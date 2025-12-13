@@ -1,8 +1,6 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // Disable Turbopack for production builds (stability issues with Next.js 16)
-  turbopack: false,
   images: {
     remotePatterns: [
       {
