@@ -1,3 +1,4 @@
+// Next.js configuration for Saiflow
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
