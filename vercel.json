@@ -1,5 +1,6 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
+  "_comment": "Saiflow deployment config",
   "framework": "nextjs",
   "buildCommand": "prisma generate && next build",
   "installCommand": "npm install --legacy-peer-deps",
