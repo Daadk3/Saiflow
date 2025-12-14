@@ -3,17 +3,10 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useSession, signOut } from "next-auth/react";
-import { useState, useEffect } from "react";
 
 export default function Navbar() {
-  const { data: session, status } = useSession();
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  const logoHref = mounted && session ? "/dashboard" : "/";
+  const { data: session } = useSession();
+  const logoHref = session ? "/dashboard" : "/";
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-[#0a0a0a]/90 backdrop-blur-sm border-b border-gray-800">
@@ -36,9 +29,7 @@ export default function Navbar() {
           <div className="flex items-center space-x-4">
             <Link href="/support" className="text-gray-300 hover:text-white transition">Support</Link>
             
-            {!mounted ? (
-              <div className="w-24 h-8 bg-gray-700 rounded animate-pulse"></div>
-            ) : session ? (
+            {session ? (
               <>
                 <Link href="/dashboard" className="text-gray-300 hover:text-white transition">Dashboard</Link>
                 <button 

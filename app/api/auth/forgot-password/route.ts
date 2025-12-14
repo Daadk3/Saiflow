@@ -5,7 +5,9 @@ import crypto from "crypto";
 import { rateLimiters, getClientIp } from "@/lib/rate-limit";
 import { forgotPasswordSchema, formatZodError } from "@/lib/validations";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+function getResend() {
+  return new Resend(process.env.RESEND_API_KEY);
+}
 
 export async function POST(req: Request) {
   try {
@@ -78,6 +80,7 @@ export async function POST(req: Request) {
     const resetUrl = `${baseUrl}/reset-password?token=${resetToken}`;
 
     // Send email
+    const resend = getResend();
     const { error: emailError } = await resend.emails.send({
       from: "Saiflow <noreply@saiflow.io>",
       to: email,

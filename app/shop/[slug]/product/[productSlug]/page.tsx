@@ -56,7 +56,7 @@ async function getProduct(shopSlug: string, productSlug: string): Promise<Produc
 export default async function ProductPage({
   params,
 }: {
-  params: { slug: string; productSlug: string };
+  params: Promise<{ slug: string; productSlug: string }>;
 }) {
   const { slug, productSlug } = await params;
   const product = await getProduct(slug, productSlug);

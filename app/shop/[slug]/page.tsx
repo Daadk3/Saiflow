@@ -46,7 +46,7 @@ async function getShop(slug: string): Promise<Shop | null> {
 export default async function PublicShopPage({
   params,
 }: {
-  params: { slug: string };
+  params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
   const shop = await getShop(slug);

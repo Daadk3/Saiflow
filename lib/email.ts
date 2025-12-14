@@ -1,6 +1,8 @@
 import { Resend } from 'resend';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+function getResend() {
+  return new Resend(process.env.RESEND_API_KEY);
+}
 
 interface PurchaseEmailParams {
   customerEmail: string;
@@ -18,6 +20,7 @@ export async function sendPurchaseConfirmationEmail({
   shopName,
 }: PurchaseEmailParams) {
   try {
+    const resend = getResend();
     const { data, error } = await resend.emails.send({
       from: 'Saiflow <noreply@saiflow.io>',
       to: customerEmail,
