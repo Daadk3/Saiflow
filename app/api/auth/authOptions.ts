@@ -40,7 +40,11 @@ export const authOptions: NextAuthOptions = {
   pages: {
     signIn: "/login",
   },
-  debug: true,
+  debug: process.env.NODE_ENV === "development",
+  // NextAuth automatically uses NEXTAUTH_URL from environment
+  // The callback URL will be: ${NEXTAUTH_URL}/api/auth/callback/google
+  // Make sure this exact URL is added to Google Cloud Console as an authorized redirect URI
+  // For production: https://saiflow.io/api/auth/callback/google
   callbacks: {
     async signIn({ user, account }) {
       if (account?.provider === "google") {
