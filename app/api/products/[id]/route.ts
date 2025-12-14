@@ -57,7 +57,7 @@ export async function PUT(
     }
 
     const { id } = await params;
-    const { name, description, price, fileUrl, thumbnailUrl } = await req.json();
+    const { name, description, price, category, fileUrl, thumbnailUrl } = await req.json();
 
     // Get the user
     const user = await prisma.user.findFirst({
@@ -117,6 +117,7 @@ export async function PUT(
         slug,
         description: description !== undefined ? description : product.description,
         price: price !== undefined ? price : product.price,
+        category: category !== undefined ? (category || null) : product.category,
         fileUrl: fileUrl !== undefined ? fileUrl : product.fileUrl,
         thumbnailUrl: thumbnailUrl !== undefined ? thumbnailUrl : product.thumbnailUrl,
       },

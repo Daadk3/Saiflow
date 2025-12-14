@@ -1,12 +1,12 @@
 import Link from "next/link";
 
 const categories = [
-  { name: "eBooks & Guides", slug: "ebooks-guides", icon: "📘" },
-  { name: "Online Courses", slug: "online-courses", icon: "🎥" },
-  { name: "Templates & Themes", slug: "templates-themes", icon: "🧩" },
-  { name: "Music & Audio", slug: "music-audio", icon: "🎵" },
-  { name: "Art & Graphics", slug: "art-graphics", icon: "🎨" },
-  { name: "Software & Apps", slug: "software-apps", icon: "💻" },
+  { name: "eBooks & Guides", slug: "ebooks", icon: "📘" },
+  { name: "Online Courses", slug: "courses", icon: "🎥" },
+  { name: "Templates & Themes", slug: "templates", icon: "🧩" },
+  { name: "Music & Audio", slug: "music", icon: "🎵" },
+  { name: "Art & Graphics", slug: "art", icon: "🎨" },
+  { name: "Software & Apps", slug: "software", icon: "💻" },
 ];
 
 export function CategoriesSection() {
@@ -24,7 +24,7 @@ export function CategoriesSection() {
           {categories.map((category) => (
             <Link
               key={category.slug}
-              href={`/browse?category=${encodeURIComponent(category.slug)}`}
+              href={`/browse?category=${category.slug}`}
               className="group relative overflow-hidden rounded-2xl border border-white/10 bg-[#111111] p-6 transition-transform duration-200 hover:-translate-y-1 hover:border-teal-500/60"
             >
               <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200">

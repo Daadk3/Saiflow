@@ -14,15 +14,31 @@ interface Product {
   images: string[];
   thumbnailUrl: string | null;
   fileUrl: string | null;
+  category: string | null;
   shop: {
     name: string;
     slug: string;
   };
 }
 
-async function getProducts(): Promise<Product[]> {
+const categoryMap: Record<string, string> = {
+  ebooks: "eBooks & Guides",
+  courses: "Online Courses",
+  templates: "Templates & Themes",
+  music: "Music & Audio",
+  art: "Art & Graphics",
+  software: "Software & Apps",
+};
+
+async function getProducts(category?: string): Promise<Product[]> {
+  const where: { isActive: boolean; category?: string } = { isActive: true };
+  
+  if (category && categoryMap[category]) {
+    where.category = category;
+  }
+
   const products = await prisma.product.findMany({
-    where: { isActive: true },
+    where,
     select: {
       id: true,
       name: true,
@@ -32,6 +48,7 @@ async function getProducts(): Promise<Product[]> {
       images: true,
       thumbnailUrl: true,
       fileUrl: true,
+      category: true,
       createdAt: true,
       shop: {
         select: {
@@ -48,8 +65,15 @@ async function getProducts(): Promise<Product[]> {
   }));
 }
 
-export default async function BrowsePage() {
-  const products = await getProducts();
+interface BrowsePageProps {
+  searchParams: Promise<{ category?: string }>;
+}
+
+export default async function BrowsePage({ searchParams }: BrowsePageProps) {
+  const params = await searchParams;
+  const category = params.category;
+  const products = await getProducts(category);
+  const categoryName = category ? categoryMap[category] : null;
 
   return (
     <div className="min-h-screen bg-[#0a0a0a]">
@@ -98,14 +122,48 @@ export default async function BrowsePage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center">
             <h1 className="text-4xl sm:text-5xl font-bold text-white">
-              Browse Products
+              {categoryName ? categoryName : "Browse Products"}
             </h1>
             <p className="mt-4 text-gray-400 text-lg max-w-2xl mx-auto">
-              Discover amazing digital products from creators
+              {categoryName 
+                ? `Discover amazing ${categoryName.toLowerCase()} from creators`
+                : "Discover amazing digital products from creators"}
             </p>
+            {categoryName && (
+              <div className="mt-6">
+                <Link
+                  href="/browse"
+                  className="inline-flex items-center gap-2 px-4 py-2 text-sm text-gray-400 hover:text-white bg-gray-800/50 hover:bg-gray-800 rounded-lg transition-colors"
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                  Clear filter
+                </Link>
+              </div>
+            )}
           </div>
         </div>
       </section>
+
+      {/* Category Filter Tabs */}
+      {!categoryName && (
+        <section className="pb-8">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex flex-wrap gap-3 justify-center">
+              {Object.entries(categoryMap).map(([slug, name]) => (
+                <Link
+                  key={slug}
+                  href={`/browse?category=${slug}`}
+                  className="px-4 py-2 text-sm font-medium text-gray-400 hover:text-white bg-gray-800/50 hover:bg-gray-800 rounded-lg transition-colors"
+                >
+                  {name}
+                </Link>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* Products Grid */}
       <section className="pb-20">
@@ -196,19 +254,35 @@ export default async function BrowsePage() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
                 </svg>
               </div>
-              <h3 className="text-xl font-semibold text-gray-300">No products yet</h3>
+              <h3 className="text-xl font-semibold text-gray-300">
+                {categoryName ? `No products found in ${categoryName}` : "No products yet"}
+              </h3>
               <p className="mt-2 text-gray-600 max-w-md mx-auto">
-                Check back soon for amazing digital products!
+                {categoryName 
+                  ? `Check back soon for ${categoryName.toLowerCase()}!`
+                  : "Check back soon for amazing digital products!"}
               </p>
-              <Link
-                href="/signup"
-                className="mt-6 inline-flex items-center gap-2 text-teal-400 hover:text-teal-300 font-medium"
-              >
-                Be the first to sell
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
-                </svg>
-              </Link>
+              {categoryName ? (
+                <Link
+                  href="/browse"
+                  className="mt-6 inline-flex items-center gap-2 text-teal-400 hover:text-teal-300 font-medium"
+                >
+                  Browse all products
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                  </svg>
+                </Link>
+              ) : (
+                <Link
+                  href="/signup"
+                  className="mt-6 inline-flex items-center gap-2 text-teal-400 hover:text-teal-300 font-medium"
+                >
+                  Be the first to sell
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                  </svg>
+                </Link>
+              )}
             </div>
           )}
         </div>

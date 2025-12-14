@@ -15,7 +15,7 @@ export async function POST(req: Request) {
       );
     }
 
-    const { name, description, price, shopId, fileUrl, thumbnailUrl } = await req.json();
+    const { name, description, price, category, shopId, fileUrl, thumbnailUrl } = await req.json();
 
     if (!name || !price || !shopId) {
       return NextResponse.json(
@@ -64,6 +64,7 @@ export async function POST(req: Request) {
         slug,
         description,
         price,
+        category: category || null,
         shopId,
         fileUrl,
         thumbnailUrl,

@@ -13,6 +13,7 @@ interface Product {
   slug: string;
   description: string | null;
   price: number;
+  category: string | null;
   fileUrl: string | null;
   thumbnailUrl: string | null;
   shop: {
@@ -27,6 +28,7 @@ export default function EditProductPage() {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [price, setPrice] = useState("");
+  const [category, setCategory] = useState("");
   const [fileUrl, setFileUrl] = useState("");
   const [fileName, setFileName] = useState("");
   const [thumbnailUrl, setThumbnailUrl] = useState("");
@@ -34,6 +36,16 @@ export default function EditProductPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+
+  const categories = [
+    { value: "", label: "Select a category (optional)" },
+    { value: "ebooks", label: "eBooks & Guides" },
+    { value: "courses", label: "Online Courses" },
+    { value: "templates", label: "Templates & Themes" },
+    { value: "music", label: "Music & Audio" },
+    { value: "art", label: "Art & Graphics" },
+    { value: "software", label: "Software & Apps" },
+  ];
 
   const router = useRouter();
   const params = useParams();
@@ -89,6 +101,7 @@ export default function EditProductPage() {
       setName(productData.name);
       setDescription(productData.description || "");
       setPrice(String(productData.price));
+      setCategory(productData.category || "");
       setFileUrl(productData.fileUrl || "");
       setThumbnailUrl(productData.thumbnailUrl || "");
       if (productData.fileUrl) {
@@ -117,6 +130,7 @@ export default function EditProductPage() {
           name,
           description,
           price: parseFloat(price),
+          category: category || null,
           fileUrl: fileUrl || null,
           thumbnailUrl: thumbnailUrl || null,
         }),
@@ -341,6 +355,28 @@ export default function EditProductPage() {
                     className="w-full pl-8 pr-4 py-3 bg-[#0a0a0a] border border-gray-800 rounded-xl text-white placeholder-gray-600 focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500 transition-colors"
                   />
                 </div>
+              </div>
+
+              {/* Category */}
+              <div>
+                <label htmlFor="category" className="block text-sm font-medium text-gray-300 mb-2">
+                  Category
+                </label>
+                <select
+                  id="category"
+                  value={category}
+                  onChange={(e) => setCategory(e.target.value)}
+                  className="w-full px-4 py-3 bg-[#0a0a0a] border border-gray-800 rounded-xl text-white focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500 transition-colors"
+                >
+                  {categories.map((cat) => (
+                    <option key={cat.value} value={cat.value}>
+                      {cat.label}
+                    </option>
+                  ))}
+                </select>
+                <p className="mt-1 text-xs text-gray-500">
+                  Help buyers find your product by selecting a category
+                </p>
               </div>
 
               {/* File Upload */}
