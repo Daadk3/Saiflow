@@ -3,7 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useEffect, useState } from "react";
-import { useSession } from "next-auth/react";
+import { useSession, signOut } from "next-auth/react";
 import { usePathname } from "next/navigation";
 
 export default function Navbar() {
@@ -18,8 +18,6 @@ export default function Navbar() {
     window.addEventListener("scroll", onScroll);
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
-
-  const startSellingHref = session ? "/dashboard" : "/signup";
 
   const navLinkClass =
     "text-gray-400 hover:text-white font-medium transition-colors";
@@ -76,15 +74,30 @@ export default function Navbar() {
                 <line x1="16.65" y1="16.65" x2="21" y2="21" />
               </svg>
             </Link>
-            <Link href="/login" className={navLinkClass}>
-              Login
-            </Link>
-            <Link
-              href={startSellingHref}
-              className="bg-teal-500 hover:bg-teal-600 text-white px-5 py-2 rounded-full font-medium transition-all"
-            >
-              Start Selling
-            </Link>
+            {session ? (
+              // Logged in - show these
+              <div className="flex items-center gap-4">
+                <Link href="/dashboard" className={navLinkClass}>
+                  Dashboard
+                </Link>
+                <button 
+                  onClick={() => signOut({ callbackUrl: '/' })}
+                  className={navLinkClass}
+                >
+                  Sign Out
+                </button>
+              </div>
+            ) : (
+              // Logged out - show these
+              <div className="flex items-center gap-4">
+                <Link href="/login" className={navLinkClass}>
+                  Login
+                </Link>
+                <Link href="/signup" className="bg-teal-500 hover:bg-teal-600 text-white px-5 py-2 rounded-full font-medium transition-all">
+                  Start Selling
+                </Link>
+              </div>
+            )}
           </div>
 
           {/* Mobile menu button */}
@@ -141,16 +154,37 @@ export default function Navbar() {
             <Link href="/pricing" className={navLinkClass} onClick={() => setMenuOpen(false)}>
               Pricing
             </Link>
-            <Link href="/login" className={navLinkClass} onClick={() => setMenuOpen(false)}>
-              Login
-            </Link>
-            <Link
-              href={startSellingHref}
-              onClick={() => setMenuOpen(false)}
-              className="bg-teal-500 hover:bg-teal-600 text-white px-5 py-2 rounded-full font-medium transition-all text-center"
-            >
-              Start Selling
-            </Link>
+            {session ? (
+              // Logged in mobile menu
+              <>
+                <Link href="/dashboard" className={navLinkClass} onClick={() => setMenuOpen(false)}>
+                  Dashboard
+                </Link>
+                <button
+                  onClick={() => {
+                    setMenuOpen(false);
+                    signOut({ callbackUrl: '/' });
+                  }}
+                  className={`${navLinkClass} text-left`}
+                >
+                  Sign Out
+                </button>
+              </>
+            ) : (
+              // Logged out mobile menu
+              <>
+                <Link href="/login" className={navLinkClass} onClick={() => setMenuOpen(false)}>
+                  Login
+                </Link>
+                <Link
+                  href="/signup"
+                  onClick={() => setMenuOpen(false)}
+                  className="bg-teal-500 hover:bg-teal-600 text-white px-5 py-2 rounded-full font-medium transition-all text-center"
+                >
+                  Start Selling
+                </Link>
+              </>
+            )}
           </div>
         </div>
       </div>
