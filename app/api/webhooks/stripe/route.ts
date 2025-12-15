@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
 import { prisma } from "@/lib/prisma";
-import { sendPurchaseConfirmationEmail } from "@/lib/email";
+import { sendPurchaseEmail } from "@/lib/email";
 
 // Initialize Stripe with API version
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
@@ -183,23 +183,14 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
     stripeSessionId: session.id,
   });
 
-  // Send purchase confirmation email
-  const baseUrl = process.env.NEXTAUTH_URL || 'https://saiflow.io';
-  // Use orderId in download URL for better tracking
-  const downloadUrl = `${baseUrl}/api/download/${product.id}?orderId=${order.id}`;
-  
-  try {
-    await sendPurchaseConfirmationEmail({
+  // Send purchase email
+  if (customerEmail && customerEmail !== "unknown@example.com" && product) {
+    const downloadUrl = `${process.env.NEXTAUTH_URL}/api/download/${product.id}?orderId=${order.id}`;
+    await sendPurchaseEmail({
       customerEmail,
       productName: product.name,
-      productPrice: Number(product.price),
       downloadUrl,
-      shopName: product.shop.name,
     });
-    console.log(`[Stripe Webhook] Purchase confirmation email sent to: ${customerEmail}`);
-  } catch (emailError) {
-    // Log but don't throw - email failure shouldn't break the order flow
-    console.error(`[Stripe Webhook] Failed to send email to ${customerEmail}:`, emailError);
   }
 }
 
