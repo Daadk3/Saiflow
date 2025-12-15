@@ -17,10 +17,36 @@ export async function GET(
       );
     }
 
-    // If orderId is provided, validate the order exists and belongs to this product
-    if (orderId) {
+    // If productId looks like a Stripe session ID (starts with "cs_"), look up the order
+    let actualProductId = productId;
+    let actualOrderId = orderId;
+
+    if (productId.startsWith("cs_")) {
+      // This is a sessionId, look up the order
       const order = await prisma.order.findUnique({
-        where: { id: orderId },
+        where: { stripeSessionId: productId },
+        select: {
+          id: true,
+          productId: true,
+          customerEmail: true,
+        },
+      });
+
+      if (!order) {
+        return NextResponse.json(
+          { error: "Order not found for this session" },
+          { status: 404 }
+        );
+      }
+
+      actualProductId = order.productId;
+      actualOrderId = order.id;
+    }
+
+    // If orderId is provided, validate the order exists and belongs to this product
+    if (actualOrderId && !productId.startsWith("cs_")) {
+      const order = await prisma.order.findUnique({
+        where: { id: actualOrderId },
         select: {
           id: true,
           productId: true,
@@ -35,7 +61,7 @@ export async function GET(
         );
       }
 
-      if (order.productId !== productId) {
+      if (order.productId !== actualProductId) {
         return NextResponse.json(
           { error: "Order does not match product" },
           { status: 403 }
@@ -45,7 +71,7 @@ export async function GET(
 
     // Fetch the product from database
     const product = await prisma.product.findUnique({
-      where: { id: productId },
+      where: { id: actualProductId },
       select: {
         id: true,
         name: true,
@@ -67,7 +93,7 @@ export async function GET(
       );
     }
 
-    console.log(`Download requested for product ${product.name}${orderId ? ` (order: ${orderId})` : ""}, fileUrl: ${product.fileUrl}`);
+    console.log(`Download requested for product ${product.name}${actualOrderId ? ` (order: ${actualOrderId})` : ""}, fileUrl: ${product.fileUrl}`);
 
     return NextResponse.json({
       productName: product.name,

@@ -26,16 +26,26 @@ function SuccessContent() {
       }
 
       try {
+        setLoading(true);
+        setError(null);
+        
         const response = await fetch(`/api/download/${sessionId}`);
         const data = await response.json();
 
         if (!response.ok) {
           setError(data.error || "Failed to get download link");
+          setLoading(false);
           return;
         }
 
-        setDownloadInfo(data);
+        // Validate that we got the expected data structure
+        if (data.productName && data.downloadUrl) {
+          setDownloadInfo(data);
+        } else {
+          setError("Invalid response from server");
+        }
       } catch (err) {
+        console.error("Error fetching download info:", err);
         setError("Failed to fetch download information");
       } finally {
         setLoading(false);
@@ -100,13 +110,13 @@ function SuccessContent() {
               </div>
             )}
 
-            {error && (
+            {!loading && error && !downloadInfo && (
               <div className="mb-8 p-4 bg-red-500/10 border border-red-500/20 rounded-xl">
                 <p className="text-red-400">{error}</p>
               </div>
             )}
 
-            {downloadInfo && (
+            {!loading && downloadInfo && (
               <div className="mb-8">
                 <p className="text-gray-300 mb-4">
                   Your file <strong className="text-white">{downloadInfo.productName}</strong> is ready!
