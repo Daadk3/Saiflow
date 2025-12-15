@@ -56,9 +56,9 @@ export default async function PublicShopPage({
   }
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-[#0a0a0a]">
       {/* Shop header */}
-      <header className="bg-white border-b border-gray-100 py-12">
+      <header className="bg-[#0a0a0a] border-b border-gray-800 py-12">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col items-center text-center">
             {/* Shop avatar */}
@@ -77,11 +77,11 @@ export default async function PublicShopPage({
             )}
 
             {/* Shop name */}
-            <h1 className="text-3xl font-bold text-gray-900 mt-4">{shop.name}</h1>
+            <h1 className="text-3xl font-bold text-white mt-4">{shop.name}</h1>
 
             {/* Description */}
             {shop.description && (
-              <p className="text-gray-600 mt-2 max-w-2xl">
+              <p className="text-gray-400 mt-2 max-w-2xl">
                 {shop.description}
               </p>
             )}
@@ -95,10 +95,10 @@ export default async function PublicShopPage({
       </header>
 
       {/* Products section */}
-      <main className="bg-white py-12">
+      <main className="bg-[#0a0a0a] py-12">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold text-gray-900">Products</h2>
+            <h2 className="text-2xl font-bold text-white">Products</h2>
             {shop.products.length > 0 && (
               <span className="text-sm text-gray-500">
                 Showing {shop.products.length} {shop.products.length === 1 ? "product" : "products"}
@@ -112,10 +112,10 @@ export default async function PublicShopPage({
                 <Link
                   key={product.id}
                   href={`/shop/${shop.slug}/product/${product.slug}`}
-                  className="group bg-white rounded-2xl shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-100 hover:-translate-y-1"
+                  className="group bg-[#111111] rounded-2xl shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-800 hover:border-gray-700 hover:-translate-y-1"
                 >
                   {/* Product Image */}
-                  <div className="relative aspect-[4/3] overflow-hidden bg-gray-100">
+                  <div className="relative aspect-[4/3] overflow-hidden bg-gray-800">
                     {product.thumbnailUrl ? (
                       <Image
                         src={product.thumbnailUrl}
@@ -145,7 +145,7 @@ export default async function PublicShopPage({
 
                     {/* Price Badge */}
                     <div className="absolute top-3 right-3">
-                      <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold bg-white/90 backdrop-blur-sm text-gray-900">
+                      <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold bg-[#0a0a0a]/80 backdrop-blur-sm text-white">
                         ${Number(product.price).toFixed(2)}
                       </span>
                     </div>
@@ -153,21 +153,21 @@ export default async function PublicShopPage({
 
                   {/* Product Info */}
                   <div className="p-5">
-                    <h3 className="font-semibold text-gray-900 text-lg line-clamp-2 group-hover:text-teal-600 transition-colors">
+                    <h3 className="font-semibold text-white text-lg line-clamp-2 group-hover:text-teal-400 transition-colors">
                       {product.name}
                     </h3>
 
                     {product.description && (
-                      <p className="mt-2 text-gray-600 text-sm line-clamp-2 leading-relaxed">
+                      <p className="mt-2 text-gray-400 text-sm line-clamp-2 leading-relaxed">
                         {product.description}
                       </p>
                     )}
 
                     <div className="mt-4 flex items-center justify-between">
-                      <span className="text-sm font-bold text-teal-600">
+                      <span className="text-sm font-bold text-teal-400">
                         ${Number(product.price).toFixed(2)}
                       </span>
-                      <span className="inline-flex items-center gap-1 text-sm font-medium text-teal-700 group-hover:text-teal-800 transition-colors">
+                      <span className="inline-flex items-center gap-1 text-sm font-medium text-teal-400 group-hover:text-teal-300 transition-colors">
                         View product
                         <svg
                           className="w-4 h-4 transition-transform duration-200 group-hover:translate-x-1"
@@ -186,7 +186,7 @@ export default async function PublicShopPage({
             </div>
           ) : (
             <div className="text-center py-16">
-              <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto text-gray-400">
+              <div className="w-16 h-16 bg-gray-800 rounded-full flex items-center justify-center mx-auto text-gray-500">
                 <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path
                     strokeLinecap="round"
@@ -196,7 +196,7 @@ export default async function PublicShopPage({
                   />
                 </svg>
               </div>
-              <p className="text-gray-500 mt-4">No products yet. Check back soon for new releases.</p>
+              <p className="text-gray-400 mt-4">No products yet. Check back soon for new releases.</p>
             </div>
           )}
         </div>

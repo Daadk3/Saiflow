@@ -11,16 +11,16 @@ const categories = [
 
 export function CategoriesSection() {
   return (
-    <section className="py-16 sm:py-20 px-4 bg-white">
+    <section className="py-16 sm:py-20 px-4 bg-[#0a0a0a]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-10">
-          <p className="text-sm font-semibold text-teal-700 uppercase tracking-wide">
+          <p className="text-sm font-semibold text-teal-400 uppercase tracking-wide">
             Explore by category
           </p>
-          <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mt-2">
+          <h2 className="text-3xl sm:text-4xl font-bold text-white mt-2">
             Find the right digital product
           </h2>
-          <p className="mt-3 text-lg text-gray-600">
+          <p className="mt-3 text-lg text-gray-400">
             From courses to templates, discover what creators are selling.
           </p>
         </div>
@@ -30,22 +30,22 @@ export function CategoriesSection() {
             <Link
               key={category.slug}
               href={`/browse?category=${category.slug}`}
-              className="group rounded-xl border border-gray-100 bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-md"
+              className="group rounded-xl border border-gray-800 bg-[#111111] p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-md hover:border-gray-700"
             >
               <div className="flex items-start gap-4">
-                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-teal-50 text-2xl">
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-teal-500/10 text-2xl">
                   {category.icon}
                 </div>
                 <div className="flex-1">
-                  <h3 className="text-lg font-semibold text-gray-900">
+                  <h3 className="text-lg font-semibold text-white">
                     {category.name}
                   </h3>
-                  <p className="mt-1 text-sm text-gray-600">
+                  <p className="mt-1 text-sm text-gray-400">
                     Explore the latest in {category.name.toLowerCase()}.
                   </p>
                 </div>
               </div>
-              <div className="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-teal-700">
+              <div className="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-teal-400">
                 Browse category
                 <svg
                   xmlns="http://www.w3.org/2000/svg"

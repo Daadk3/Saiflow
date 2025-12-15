@@ -66,9 +66,9 @@ export default async function ProductPage({
   }
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-[#0a0a0a]">
       {/* Header */}
-      <header className="border-b border-gray-100 bg-white">
+      <header className="border-b border-gray-800 bg-[#0a0a0a]">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
           <Link
             href={`/shop/${product.shop.slug}`}
@@ -82,7 +82,7 @@ export default async function ProductPage({
             >
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0 7-7m-7 7h18" />
             </svg>
-            <span className="text-sm font-medium">Back to {product.shop.name}</span>
+            <span className="text-sm font-medium text-gray-300">Back to {product.shop.name}</span>
           </Link>
 
           <Link href={`/shop/${product.shop.slug}`} className="flex items-center gap-2">
@@ -95,11 +95,11 @@ export default async function ProductPage({
                 className="rounded-full"
               />
             ) : (
-              <div className="w-8 h-8 rounded-full bg-teal-100 text-teal-600 flex items-center justify-center font-semibold">
+              <div className="w-8 h-8 rounded-full bg-teal-500/20 text-teal-400 flex items-center justify-center font-semibold">
                 {product.shop.name.charAt(0)}
               </div>
             )}
-            <span className="text-gray-900 font-medium hidden sm:block">{product.shop.name}</span>
+            <span className="text-white font-medium hidden sm:block">{product.shop.name}</span>
           </Link>
         </div>
       </header>
@@ -110,7 +110,7 @@ export default async function ProductPage({
           {/* Left column */}
           <div>
             {/* Preview */}
-            <div className="rounded-2xl overflow-hidden shadow-lg aspect-video bg-gray-100 relative">
+            <div className="rounded-2xl overflow-hidden shadow-lg aspect-video bg-gray-800 relative">
               {product.thumbnailUrl ? (
                 <Image src={product.thumbnailUrl} alt={product.name} fill className="object-cover" priority />
               ) : product.images && product.images.length > 0 ? (
@@ -131,7 +131,7 @@ export default async function ProductPage({
             </div>
 
             {/* Title */}
-            <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 mt-8">{product.name}</h1>
+            <h1 className="text-3xl sm:text-4xl font-bold text-white mt-8">{product.name}</h1>
 
             {/* Creator info */}
             <div className="flex items-center gap-3 mt-4">
@@ -144,27 +144,27 @@ export default async function ProductPage({
                   className="w-10 h-10 rounded-full object-cover"
                 />
               ) : (
-                <div className="w-10 h-10 rounded-full bg-teal-100 text-teal-600 flex items-center justify-center font-semibold">
+                <div className="w-10 h-10 rounded-full bg-teal-500/20 text-teal-400 flex items-center justify-center font-semibold">
                   {product.shop.name.charAt(0)}
                 </div>
               )}
               <div>
-                <p className="font-medium text-gray-900">{product.shop.name}</p>
+                <p className="font-medium text-white">{product.shop.name}</p>
                 <p className="text-sm text-gray-500">Digital creator</p>
               </div>
             </div>
 
             {/* Description */}
-            <div className="prose prose-gray mt-8 max-w-none text-gray-600 leading-relaxed">
+            <div className="prose prose-invert mt-8 max-w-none text-gray-300 leading-relaxed">
               <p className="whitespace-pre-wrap">
                 {product.description || "This creator hasn’t added a description yet."}
               </p>
             </div>
 
             {/* What's included */}
-            <div className="mt-12 p-6 bg-gray-50 rounded-xl">
-              <h2 className="font-semibold text-gray-900 text-lg mb-4">What&apos;s included</h2>
-              <ul className="space-y-3 text-sm text-gray-700">
+            <div className="mt-12 p-6 bg-[#111111] rounded-xl border border-gray-800">
+              <h2 className="font-semibold text-white text-lg mb-4">What&apos;s included</h2>
+              <ul className="space-y-3 text-sm text-gray-300">
                 <li className="flex items-center gap-2">
                   <span className="text-teal-500">
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -195,9 +195,9 @@ export default async function ProductPage({
 
           {/* Right column - purchase card */}
           <aside className="lg:pl-4">
-            <div className="sticky top-24 bg-white border border-gray-200 rounded-2xl p-6 shadow-lg">
+            <div className="sticky top-24 bg-[#111111] border border-gray-800 rounded-2xl p-6 shadow-lg">
               <div className="flex items-baseline gap-2">
-                <span className="text-4xl font-bold text-gray-900">
+                <span className="text-4xl font-bold text-white">
                   ${Number(product.price).toFixed(2)}
                 </span>
                 <span className="text-sm text-gray-500">USD</span>
@@ -229,10 +229,10 @@ export default async function ProductPage({
       </main>
 
       {/* Mobile sticky bar */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 lg:hidden flex items-center justify-between z-50">
+      <div className="fixed bottom-0 left-0 right-0 bg-[#111111] border-t border-gray-800 p-4 lg:hidden flex items-center justify-between z-50">
         <div>
-          <p className="text-xs text-gray-500">Get this product</p>
-          <p className="text-lg font-bold text-gray-900">
+          <p className="text-xs text-gray-400">Get this product</p>
+          <p className="text-lg font-bold text-white">
             ${Number(product.price).toFixed(2)}
           </p>
         </div>

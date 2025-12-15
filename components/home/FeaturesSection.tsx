@@ -30,12 +30,12 @@ export function FeaturesSection() {
   ];
 
   return (
-    <section className="py-16 sm:py-20 px-4 bg-white">
+    <section className="py-16 sm:py-20 px-4 bg-[#0a0a0a]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-12">
-          <p className="text-sm font-semibold text-teal-700 uppercase tracking-wide">How it works</p>
-          <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mt-2">Launch in three simple steps</h2>
-          <p className="mt-3 text-lg text-gray-600">
+          <p className="text-sm font-semibold text-teal-400 uppercase tracking-wide">How it works</p>
+          <h2 className="text-3xl sm:text-4xl font-bold text-white mt-2">Launch in three simple steps</h2>
+          <p className="mt-3 text-lg text-gray-400">
             Create, upload, and start earning with a modern Gumroad-like experience.
           </p>
         </div>
@@ -44,16 +44,16 @@ export function FeaturesSection() {
           {steps.map((step, idx) => (
             <div
               key={step.title}
-              className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-md"
+              className="rounded-2xl border border-gray-800 bg-[#111111] p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-md hover:border-gray-700"
             >
               <div className="flex items-center justify-between mb-4">
-                <div className="h-12 w-12 rounded-xl bg-teal-50 text-teal-700 flex items-center justify-center">
+                <div className="h-12 w-12 rounded-xl bg-teal-500/10 text-teal-400 flex items-center justify-center">
                   {step.icon}
                 </div>
                 <span className="text-sm font-semibold text-gray-500">Step {idx + 1}</span>
               </div>
-              <h3 className="text-xl font-semibold text-gray-900">{step.title}</h3>
-              <p className="mt-2 text-gray-600 leading-relaxed">{step.desc}</p>
+              <h3 className="text-xl font-semibold text-white">{step.title}</h3>
+              <p className="mt-2 text-gray-400 leading-relaxed">{step.desc}</p>
             </div>
           ))}
         </div>

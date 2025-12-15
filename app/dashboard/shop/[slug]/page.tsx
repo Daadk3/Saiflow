@@ -95,7 +95,7 @@ export default function ShopDashboard() {
 
   if (status === "loading" || loading) {
     return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
+      <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
           <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-teal-500"></div>
           <p className="text-gray-500">Loading shop...</p>
@@ -106,7 +106,7 @@ export default function ShopDashboard() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-white p-8">
+      <div className="min-h-screen bg-[#0a0a0a] p-8">
         <div className="max-w-6xl mx-auto">
           <div className="bg-red-50 border border-red-100 rounded-2xl p-6">
             <h1 className="text-2xl font-bold text-red-600 mb-2">Error</h1>
@@ -131,7 +131,7 @@ export default function ShopDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-[#0a0a0a]">
       <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
         {/* Shop header */}
         <div className="mb-8 flex items-start justify-between gap-4">
@@ -152,14 +152,14 @@ export default function ShopDashboard() {
               </div>
             )}
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">
+              <h1 className="text-3xl font-bold text-white">
                 {shop.name}
               </h1>
-              <p className="mt-1 text-gray-600">
+              <p className="mt-1 text-gray-400">
                 {shop.description || "No description"}
               </p>
               <p className="mt-2 text-xs text-gray-500">
-                <span className="font-mono bg-gray-50 px-2 py-1 rounded">/shop/{shop.slug}</span>
+                <span className="font-mono bg-[#111111] px-2 py-1 rounded border border-gray-800">/shop/{shop.slug}</span>
               </p>
             </div>
           </div>
@@ -177,13 +177,13 @@ export default function ShopDashboard() {
             <Link
               href={`/shop/${shop.slug}`}
               target="_blank"
-              className="bg-white border border-gray-200 hover:border-gray-300 text-gray-700 px-5 py-2.5 rounded-lg font-medium transition-colors flex items-center gap-2"
+              className="bg-[#111111] border border-gray-800 hover:border-gray-700 text-gray-200 px-5 py-2.5 rounded-lg font-medium transition-colors flex items-center gap-2"
             >
               View public shop
             </Link>
             <Link
               href={`/dashboard/shop/${shop.slug}/edit`}
-              className="bg-white border border-gray-200 hover:border-gray-300 text-gray-700 px-5 py-2.5 rounded-lg font-medium transition-colors flex items-center gap-2"
+              className="bg-[#111111] border border-gray-800 hover:border-gray-700 text-gray-200 px-5 py-2.5 rounded-lg font-medium transition-colors flex items-center gap-2"
             >
               Edit shop
             </Link>
@@ -192,35 +192,35 @@ export default function ShopDashboard() {
 
         {/* Stats cards */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-8">
-          <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
+          <div className="bg-[#111111] p-6 rounded-xl border border-gray-800 shadow-sm">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-gray-500 text-sm">Total products</p>
-                <p className="text-3xl font-bold text-gray-900 mt-1">{totalProducts}</p>
+                <p className="text-gray-400 text-sm">Total products</p>
+                <p className="text-3xl font-bold text-white mt-1">{totalProducts}</p>
               </div>
-              <div className="w-12 h-12 rounded-xl bg-teal-50 flex items-center justify-center text-teal-600">
+              <div className="w-12 h-12 rounded-xl bg-teal-500/10 flex items-center justify-center text-teal-400">
                 <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
                 </svg>
               </div>
             </div>
           </div>
-          <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
-            <p className="text-gray-500 text-sm">Total sales</p>
-            <p className="text-3xl font-bold text-gray-900 mt-1">0</p>
-            <p className="text-xs text-gray-400 mt-1">Coming soon</p>
+          <div className="bg-[#111111] p-6 rounded-xl border border-gray-800 shadow-sm">
+            <p className="text-gray-400 text-sm">Total sales</p>
+            <p className="text-3xl font-bold text-white mt-1">0</p>
+            <p className="text-xs text-gray-500 mt-1">Coming soon</p>
           </div>
-          <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
-            <p className="text-gray-500 text-sm">Total revenue</p>
-            <p className="text-3xl font-bold text-gray-900 mt-1">$0.00</p>
-            <p className="text-xs text-gray-400 mt-1">Coming soon</p>
+          <div className="bg-[#111111] p-6 rounded-xl border border-gray-800 shadow-sm">
+            <p className="text-gray-400 text-sm">Total revenue</p>
+            <p className="text-3xl font-bold text-white mt-1">$0.00</p>
+            <p className="text-xs text-gray-500 mt-1">Coming soon</p>
           </div>
         </div>
 
         {/* Products section */}
-        <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
-          <div className="bg-gray-50 px-6 py-4 border-b border-gray-100 flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-gray-900">Products</h2>
+        <div className="bg-[#111111] rounded-xl border border-gray-800 overflow-hidden">
+          <div className="bg-[#0a0a0a] px-6 py-4 border-b border-gray-800 flex items-center justify-between">
+            <h2 className="text-lg font-semibold text-white">Products</h2>
             <span className="text-sm text-gray-500">
               {totalProducts} {totalProducts === 1 ? "product" : "products"}
             </span>

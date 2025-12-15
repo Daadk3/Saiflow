@@ -79,7 +79,7 @@ export default function Dashboard() {
 
   if (status === "loading" || loading) {
     return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
+      <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
           <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-teal-500"></div>
           <p className="text-gray-500">Loading dashboard...</p>
@@ -90,7 +90,7 @@ export default function Dashboard() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-white p-8">
+      <div className="min-h-screen bg-[#0a0a0a] p-8">
         <div className="max-w-6xl mx-auto">
           <div className="bg-red-50 border border-red-100 rounded-2xl p-6">
             <h1 className="text-2xl font-bold text-red-600 mb-2">Error</h1>
@@ -102,11 +102,11 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-[#0a0a0a]">
       <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
         {/* Welcome header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">
+          <h1 className="text-3xl font-bold text-white">
             Welcome back, {session?.user?.name || "Creator"}!
           </h1>
           <p className="text-gray-500 mt-1">
@@ -116,13 +116,13 @@ export default function Dashboard() {
 
         {/* Stats cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
+          <div className="bg-[#111111] p-6 rounded-xl border border-gray-800 shadow-sm">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-gray-500 text-sm">Total shops</p>
-                <p className="text-3xl font-bold text-gray-900 mt-1">{totalShops}</p>
+                <p className="text-gray-400 text-sm">Total shops</p>
+                <p className="text-3xl font-bold text-white mt-1">{totalShops}</p>
               </div>
-              <div className="w-12 h-12 rounded-xl bg-teal-50 flex items-center justify-center text-teal-600">
+              <div className="w-12 h-12 rounded-xl bg-teal-500/10 flex items-center justify-center text-teal-400">
                 <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path
                     strokeLinecap="round"
@@ -135,20 +135,20 @@ export default function Dashboard() {
             </div>
           </div>
 
-          <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
+          <div className="bg-[#111111] p-6 rounded-xl border border-gray-800 shadow-sm">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-gray-500 text-sm">Total products</p>
-                <p className="text-3xl font-bold text-gray-900 mt-1">{totalProducts}</p>
+                <p className="text-gray-400 text-sm">Total products</p>
+                <p className="text-3xl font-bold text-white mt-1">{totalProducts}</p>
               </div>
             </div>
           </div>
 
-          <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
+          <div className="bg-[#111111] p-6 rounded-xl border border-gray-800 shadow-sm">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-gray-500 text-sm">Total revenue</p>
-                <p className="text-3xl font-bold text-gray-900 mt-1">
+                <p className="text-gray-400 text-sm">Total revenue</p>
+                <p className="text-3xl font-bold text-white mt-1">
                   ${orderStats.totalRevenue.toFixed(2)}
                 </p>
               </div>
@@ -171,7 +171,7 @@ export default function Dashboard() {
             <>
               <Link
                 href={`/dashboard/shop/${shops[0].slug}/add-product`}
-                className="bg-white border border-gray-200 hover:border-gray-300 text-gray-700 px-5 py-2.5 rounded-lg font-medium transition-colors flex items-center gap-2"
+                className="bg-[#111111] border border-gray-800 hover:border-gray-700 text-gray-200 px-5 py-2.5 rounded-lg font-medium transition-colors flex items-center gap-2"
               >
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path
@@ -185,7 +185,7 @@ export default function Dashboard() {
               </Link>
               <Link
                 href={`/shop/${shops[0].slug}`}
-                className="bg-white border border-gray-200 hover:border-gray-300 text-gray-700 px-5 py-2.5 rounded-lg font-medium transition-colors flex items-center gap-2"
+                className="bg-[#111111] border border-gray-800 hover:border-gray-700 text-gray-200 px-5 py-2.5 rounded-lg font-medium transition-colors flex items-center gap-2"
               >
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path
@@ -207,7 +207,7 @@ export default function Dashboard() {
           )}
           <Link
             href="/dashboard/sales"
-            className="bg-white border border-gray-200 hover:border-gray-300 text-gray-700 px-5 py-2.5 rounded-lg font-medium transition-colors flex items-center gap-2"
+            className="bg-[#111111] border border-gray-800 hover:border-gray-700 text-gray-200 px-5 py-2.5 rounded-lg font-medium transition-colors flex items-center gap-2"
           >
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path
@@ -222,9 +222,9 @@ export default function Dashboard() {
         </div>
 
         {/* Shops list */}
-        <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
-          <div className="bg-gray-50 px-6 py-4 border-b border-gray-100 flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-gray-900">Your shops</h2>
+        <div className="bg-[#111111] rounded-xl border border-gray-800 overflow-hidden">
+          <div className="bg-[#0a0a0a] px-6 py-4 border-b border-gray-800 flex items-center justify-between">
+            <h2 className="text-lg font-semibold text-white">Your shops</h2>
             <span className="text-sm text-gray-500">
               {shops.length} {shops.length === 1 ? "shop" : "shops"}
             </span>
@@ -236,14 +236,14 @@ export default function Dashboard() {
                 <Link
                   key={shop.id}
                   href={`/dashboard/shop/${shop.slug}`}
-                  className="px-6 py-4 border-b border-gray-50 hover:bg-gray-50 transition-colors flex items-center justify-between"
+                  className="px-6 py-4 border-b border-gray-800 hover:bg-gray-800/50 transition-colors flex items-center justify-between"
                 >
                   <div className="flex items-center gap-4">
                     <div className="w-10 h-10 rounded-xl bg-teal-500 flex items-center justify-center text-white font-semibold">
                       {shop.name.charAt(0)}
                     </div>
                     <div>
-                      <p className="font-medium text-gray-900">{shop.name}</p>
+                      <p className="font-medium text-white">{shop.name}</p>
                       <p className="text-sm text-gray-500">
                         {shop.description || "No description"}
                       </p>
@@ -251,7 +251,7 @@ export default function Dashboard() {
                   </div>
                   <div className="flex items-center gap-4">
                     <div className="text-right">
-                      <p className="text-sm font-semibold text-gray-900">
+                      <p className="text-sm font-semibold text-white">
                         {shop._count?.products || 0}
                       </p>
                       <p className="text-xs text-gray-500">products</p>
@@ -269,8 +269,8 @@ export default function Dashboard() {
               ))}
             </div>
           ) : (
-            <div className="text-center py-16 bg-white">
-              <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto text-gray-400">
+            <div className="text-center py-16 bg-[#111111]">
+              <div className="w-16 h-16 bg-gray-800 rounded-full flex items-center justify-center mx-auto text-gray-500">
                 <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path
                     strokeLinecap="round"
@@ -280,7 +280,7 @@ export default function Dashboard() {
                   />
                 </svg>
               </div>
-              <p className="text-gray-500 mt-4">You don&apos;t have any shops yet.</p>
+              <p className="text-gray-400 mt-4">You don&apos;t have any shops yet.</p>
               <Link
                 href="/dashboard/create-shop"
                 className="mt-4 bg-teal-500 hover:bg-teal-600 text-white px-6 py-3 rounded-lg font-medium transition-colors inline-flex items-center gap-2"
