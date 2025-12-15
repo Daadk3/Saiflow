@@ -95,10 +95,10 @@ export default function ShopDashboard() {
 
   if (status === "loading" || loading) {
     return (
-      <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center">
+      <div className="min-h-screen bg-white flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
           <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-teal-500"></div>
-          <p className="text-gray-400">Loading shop...</p>
+          <p className="text-gray-500">Loading shop...</p>
         </div>
       </div>
     );
@@ -106,19 +106,19 @@ export default function ShopDashboard() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-[#0a0a0a] p-8">
+      <div className="min-h-screen bg-white p-8">
         <div className="max-w-6xl mx-auto">
-          <div className="bg-red-500/10 border border-red-500/20 rounded-2xl p-6">
-            <h1 className="text-2xl font-bold text-red-400 mb-2">Error</h1>
-            <p className="text-red-300 mb-4">{error}</p>
-            <Link 
-              href="/dashboard" 
-              className="inline-flex items-center gap-2 text-teal-400 hover:text-teal-300 transition-colors"
+          <div className="bg-red-50 border border-red-100 rounded-2xl p-6">
+            <h1 className="text-2xl font-bold text-red-600 mb-2">Error</h1>
+            <p className="text-red-500 mb-4">{error}</p>
+            <Link
+              href="/dashboard"
+              className="inline-flex items-center gap-2 text-teal-600 hover:text-teal-700 transition-colors"
             >
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
               </svg>
-              Back to Dashboard
+              Back to dashboard
             </Link>
           </div>
         </div>
@@ -131,49 +131,10 @@ export default function ShopDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a]">
-      {/* Background Effects */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-teal-500/5 rounded-full blur-[120px]" />
-        <div className="absolute bottom-0 right-1/4 w-[400px] h-[400px] bg-cyan-500/5 rounded-full blur-[100px]" />
-      </div>
-
-      {/* Header */}
-      <header className="relative z-10 border-b border-gray-800/50">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center justify-between">
-            <Link href="/" className="flex items-center gap-3">
-              <Image
-                src="/mascot.png"
-                alt="Saiflow"
-                width={48}
-                height={48}
-                className="h-12 w-auto object-contain"
-              />
-              <span className="text-xl font-bold text-white">Saiflow</span>
-            </Link>
-
-            <Link
-              href="/dashboard"
-              className="flex items-center gap-2 text-gray-400 hover:text-teal-400 transition-colors group"
-            >
-              <svg 
-                className="w-5 h-5 transition-transform group-hover:-translate-x-1" 
-                fill="none" 
-                viewBox="0 0 24 24" 
-                stroke="currentColor"
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-              </svg>
-              <span>Back to Dashboard</span>
-            </Link>
-          </div>
-        </div>
-      </header>
-
-      <main className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Shop Header */}
-        <div className="mb-8">
+    <div className="min-h-screen bg-white">
+      <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+        {/* Shop header */}
+        <div className="mb-8 flex items-start justify-between gap-4">
           <div className="flex items-start gap-4">
             {shop.logo ? (
               <Image
@@ -184,117 +145,85 @@ export default function ShopDashboard() {
                 className="flex-shrink-0 w-16 h-16 rounded-2xl object-cover"
               />
             ) : (
-              <div className="flex-shrink-0 w-16 h-16 rounded-2xl bg-gradient-to-br from-teal-500 to-cyan-500 flex items-center justify-center">
+              <div className="flex-shrink-0 w-16 h-16 rounded-2xl bg-teal-500 flex items-center justify-center">
                 <span className="text-2xl font-bold text-white">
                   {shop.name.charAt(0)}
                 </span>
               </div>
             )}
-            <div className="flex-1">
-              <h1 className="text-3xl sm:text-4xl font-bold text-white">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">
                 {shop.name}
               </h1>
-              <p className="mt-1 text-gray-400">
+              <p className="mt-1 text-gray-600">
                 {shop.description || "No description"}
               </p>
-              <p className="mt-2 text-sm text-gray-600">
-                <span className="font-mono bg-gray-800/50 px-2 py-1 rounded">/shop/{shop.slug}</span>
+              <p className="mt-2 text-xs text-gray-500">
+                <span className="font-mono bg-gray-50 px-2 py-1 rounded">/shop/{shop.slug}</span>
               </p>
             </div>
           </div>
+
+          <div className="flex flex-wrap gap-2">
+            <Link
+              href={`/dashboard/shop/${shop.slug}/add-product`}
+              className="bg-teal-500 hover:bg-teal-600 text-white px-5 py-2.5 rounded-lg font-medium transition-colors flex items-center gap-2"
+            >
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+              Add product
+            </Link>
+            <Link
+              href={`/shop/${shop.slug}`}
+              target="_blank"
+              className="bg-white border border-gray-200 hover:border-gray-300 text-gray-700 px-5 py-2.5 rounded-lg font-medium transition-colors flex items-center gap-2"
+            >
+              View public shop
+            </Link>
+            <Link
+              href={`/dashboard/shop/${shop.slug}/edit`}
+              className="bg-white border border-gray-200 hover:border-gray-300 text-gray-700 px-5 py-2.5 rounded-lg font-medium transition-colors flex items-center gap-2"
+            >
+              Edit shop
+            </Link>
+          </div>
         </div>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 mb-8">
-          {/* Total Products */}
-          <div className="bg-[#111111] rounded-2xl border border-gray-800/50 p-6">
+        {/* Stats cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-8">
+          <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-gray-500 text-sm font-medium">Total Products</p>
-                <p className="text-3xl font-bold text-white mt-1">{totalProducts}</p>
+                <p className="text-gray-500 text-sm">Total products</p>
+                <p className="text-3xl font-bold text-gray-900 mt-1">{totalProducts}</p>
               </div>
-              <div className="w-12 h-12 rounded-xl bg-teal-500/10 flex items-center justify-center">
-                <svg className="w-6 h-6 text-teal-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <div className="w-12 h-12 rounded-xl bg-teal-50 flex items-center justify-center text-teal-600">
+                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
                 </svg>
               </div>
             </div>
           </div>
-
-          {/* Total Sales */}
-          <div className="bg-[#111111] rounded-2xl border border-gray-800/50 p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-gray-500 text-sm font-medium">Total Sales</p>
-                <p className="text-3xl font-bold text-white mt-1">0</p>
-                <p className="text-xs text-gray-600 mt-1">Coming soon</p>
-              </div>
-              <div className="w-12 h-12 rounded-xl bg-cyan-500/10 flex items-center justify-center">
-                <svg className="w-6 h-6 text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
-                </svg>
-              </div>
-            </div>
+          <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
+            <p className="text-gray-500 text-sm">Total sales</p>
+            <p className="text-3xl font-bold text-gray-900 mt-1">0</p>
+            <p className="text-xs text-gray-400 mt-1">Coming soon</p>
           </div>
-
-          {/* Total Revenue */}
-          <div className="bg-[#111111] rounded-2xl border border-gray-800/50 p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-gray-500 text-sm font-medium">Total Revenue</p>
-                <p className="text-3xl font-bold text-white mt-1">$0.00</p>
-                <p className="text-xs text-gray-600 mt-1">Coming soon</p>
-              </div>
-              <div className="w-12 h-12 rounded-xl bg-emerald-500/10 flex items-center justify-center">
-                <svg className="w-6 h-6 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
-            </div>
+          <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
+            <p className="text-gray-500 text-sm">Total revenue</p>
+            <p className="text-3xl font-bold text-gray-900 mt-1">$0.00</p>
+            <p className="text-xs text-gray-400 mt-1">Coming soon</p>
           </div>
         </div>
 
-        {/* Quick Actions */}
-        <div className="mb-8">
-          <h2 className="text-lg font-semibold text-white mb-4">Quick Actions</h2>
-          <div className="flex flex-wrap gap-3">
-            <Link
-              href={`/dashboard/shop/${shop.slug}/add-product`}
-              className="inline-flex items-center gap-2 bg-teal-500 hover:bg-teal-400 text-white font-medium px-5 py-2.5 rounded-xl transition-colors"
-            >
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-              </svg>
-              Add Product
-            </Link>
-            <Link
-              href={`/shop/${shop.slug}`}
-              target="_blank"
-              className="inline-flex items-center gap-2 bg-[#111111] hover:bg-[#1a1a1a] text-white font-medium px-5 py-2.5 rounded-xl border border-gray-800 hover:border-gray-700 transition-colors"
-            >
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-              </svg>
-              View Public Shop
-            </Link>
-            <Link
-              href={`/dashboard/shop/${shop.slug}/edit`}
-              className="inline-flex items-center gap-2 bg-[#111111] hover:bg-[#1a1a1a] text-white font-medium px-5 py-2.5 rounded-xl border border-gray-800 hover:border-gray-700 transition-colors"
-            >
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-              </svg>
-              Edit Shop
-            </Link>
-          </div>
-        </div>
-
-        {/* Products Section */}
-        <div className="bg-[#111111] rounded-2xl border border-gray-800/50 p-6">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-semibold text-white">Products</h2>
-            <span className="text-sm text-gray-500">{totalProducts} {totalProducts === 1 ? 'product' : 'products'}</span>
+        {/* Products section */}
+        <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
+          <div className="bg-gray-50 px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+            <h2 className="text-lg font-semibold text-gray-900">Products</h2>
+            <span className="text-sm text-gray-500">
+              {totalProducts} {totalProducts === 1 ? "product" : "products"}
+            </span>
           </div>
 
           {shop.products && shop.products.length > 0 ? (
