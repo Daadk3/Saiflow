@@ -33,8 +33,21 @@ export function CategoriesSection() {
               className="group rounded-xl border border-gray-800 bg-[#111111] p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-md hover:border-gray-700"
             >
               <div className="flex items-start gap-4">
-                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-teal-500/10 text-2xl">
-                  {category.icon}
+                <div
+                  className={[
+                    "w-14 h-14 rounded-xl flex items-center justify-center shadow-lg transform transition-transform duration-200",
+                    "group-hover:scale-105",
+                    category.slug === "ebooks" && "bg-gradient-to-br from-blue-500 to-blue-600",
+                    category.slug === "courses" && "bg-gradient-to-br from-purple-500 to-purple-600",
+                    category.slug === "templates" && "bg-gradient-to-br from-pink-500 to-rose-600",
+                    category.slug === "music" && "bg-gradient-to-br from-orange-500 to-amber-600",
+                    category.slug === "art" && "bg-gradient-to-br from-red-500 to-orange-600",
+                    category.slug === "software" && "bg-gradient-to-br from-teal-500 to-emerald-600",
+                  ]
+                    .filter(Boolean)
+                    .join(" ")}
+                >
+                  <span className="text-white text-2xl leading-none">{category.icon}</span>
                 </div>
                 <div className="flex-1">
                   <h3 className="text-lg font-semibold text-white">
