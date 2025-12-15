@@ -3,116 +3,126 @@ import Image from "next/image";
 
 export function HeroSection() {
   return (
-    <section className="relative overflow-hidden px-4 pt-16 pb-16 sm:pt-24 sm:pb-24">
-      {/* Animated gradient background */}
-      <div
-        className="absolute inset-0 -z-10"
-        style={{
-          background:
-            "linear-gradient(120deg, rgba(0,208,148,0.18), rgba(157,78,221,0.18), rgba(0,102,204,0.2), rgba(255,107,157,0.15))",
-          backgroundSize: "200% 200%",
-          filter: "blur(30px)",
-        }}
-      />
-      <div className="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_20%_20%,rgba(0,208,148,0.15),transparent_35%),radial-gradient(circle_at_80%_30%,rgba(255,107,157,0.12),transparent_30%),radial-gradient(circle_at_40%_80%,rgba(157,78,221,0.15),transparent_30%)] animate-pulse" />
-      {/* Blurred orbs */}
-      <div className="absolute -top-10 -left-10 h-72 w-72 rounded-full bg-[#FF6B9D]/20 blur-[90px]" />
-      <div className="absolute top-20 -right-20 h-80 w-80 rounded-full bg-[#9D4EDD]/15 blur-[100px]" />
-      <div className="absolute bottom-0 right-10 h-72 w-72 rounded-full bg-[#FF9F1C]/12 blur-[90px]" />
+    <section className="relative overflow-hidden bg-gradient-to-b from-white via-white to-gray-50">
+      {/* Background shapes */}
+      <div className="absolute -top-24 -left-24 h-72 w-72 rounded-full bg-teal-100 blur-3xl" />
+      <div className="absolute top-10 right-10 h-64 w-64 rounded-full bg-cyan-50 blur-3xl" />
+      <div className="absolute bottom-[-120px] left-1/2 -translate-x-1/2 h-72 w-72 rounded-full bg-teal-50 blur-3xl" />
 
-      <div className="w-full px-4 sm:px-8 lg:px-16 xl:px-24 relative z-10">
-        <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-12">
-          {/* Left - Sellers */}
-          <div className="text-center lg:text-left space-y-6 lg:max-w-xl xl:max-w-2xl">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-teal-500/15 border border-teal-500/30 text-teal-200 text-sm font-medium">
-              <span className="h-2 w-2 rounded-full bg-teal-400 animate-pulse" />
-              Built for creators across MENA & beyond
-            </div>
-            <h1 className="text-5xl sm:text-6xl lg:text-7xl font-extrabold text-white tracking-tight leading-[1.05]">
-              Let your
-              <span className="block text-teal-300">creativity flow</span>
+      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-16 lg:pt-28 lg:pb-24">
+        <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
+          {/* Left */}
+          <div className="space-y-6">
+            <span className="inline-flex items-center gap-2 rounded-full bg-teal-50 px-4 py-2 text-sm font-semibold text-teal-700 border border-teal-100">
+              <span className="h-2 w-2 rounded-full bg-teal-500 animate-pulse" />
+              Built for modern creators
+            </span>
+            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-gray-900 leading-tight">
+              Sell your digital products the easy way
             </h1>
-            <p className="text-xl text-gray-300 max-w-xl mx-auto lg:mx-0 leading-relaxed">
-              Sell digital products, courses, and memberships. Start earning in minutes, not months.
+            <p className="text-lg sm:text-xl text-gray-600 max-w-xl">
+              Launch your shop in minutes, deliver instantly, and get paid fast. No headaches, just a clean,
+              modern checkout for you and your customers.
             </p>
-            <div className="flex flex-col sm:flex-row items-center gap-4 justify-center lg:justify-start">
+            <div className="flex flex-col sm:flex-row gap-3">
               <Link
                 href="/signup"
-                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-teal-500 hover:bg-teal-400 text-black font-semibold px-8 py-4 rounded-full transition-all duration-200 shadow-lg shadow-teal-500/30 hover:shadow-xl hover:shadow-teal-500/40"
+                className="inline-flex items-center justify-center gap-2 rounded-full bg-teal-500 px-6 sm:px-8 py-3 text-white font-semibold shadow-sm transition hover:bg-teal-600"
               >
-                Start Selling — It&apos;s Free
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
-                </svg>
+                Start Selling →
               </Link>
               <Link
                 href="/browse"
-                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-white/5 hover:bg-white/10 text-white font-semibold px-8 py-4 rounded-full border border-white/10 hover:border-white/20 transition-all duration-200"
+                className="inline-flex items-center justify-center gap-2 rounded-full border border-gray-300 px-6 sm:px-8 py-3 text-gray-800 font-semibold bg-white transition hover:border-teal-200 hover:text-teal-700"
               >
                 Browse Products
               </Link>
             </div>
-          </div>
 
-          {/* Right - Buyers visuals */}
-          <div className="relative flex items-center justify-center lg:justify-end lg:scale-110 xl:scale-125 origin-center lg:origin-right">
-            {/* Mascot */}
-            <div className="relative">
-              <Image
-                src="/logo.png"
-                alt="Saiflow mascot - a friendly teal blob character with laptop"
-                width={456}
-                height={456}
-                className="w-72 sm:w-80 lg:w-96 h-auto drop-shadow-2xl"
-              />
-              <div className="absolute inset-0 -z-10 bg-teal-500/30 blur-[80px] rounded-full scale-90" />
-            </div>
-
-            {/* Floating cards */}
-            <div className="absolute -left-6 sm:left-0 top-12 w-52 rounded-2xl bg-[#1A1A1A] border border-pink-400/40 p-4 shadow-2xl animate-bounce">
-              <p className="text-xs text-pink-200/90">New sale!</p>
-              <p className="text-2xl font-bold text-white">+$49.00</p>
-              <div className="mt-2 text-xs text-gray-400">ebook-bundle.pdf</div>
-            </div>
-
-            <div className="absolute -right-4 sm:right-0 bottom-8 w-56 rounded-2xl bg-[#181326] border border-purple-400/40 p-4 shadow-2xl animate-pulse">
-              <p className="text-xs text-purple-200/90">Downloads</p>
-              <p className="text-2xl font-bold text-white">2,847</p>
-              <div className="mt-2 text-xs text-gray-400">Last 30 days</div>
-            </div>
-
-            <div className="absolute -left-10 sm:-left-6 bottom-14 w-48 rounded-2xl bg-[#201107] border border-orange-300/50 p-4 shadow-2xl animate-pulse">
-              <p className="text-xs text-orange-200/90">Store rating</p>
-              <p className="text-2xl font-bold text-white">4.9</p>
-              <div className="mt-2 text-xs text-gray-400">Based on 1,240 reviews</div>
-            </div>
-          </div>
-        </div>
-
-        {/* Trust banner */}
-        <div className="mt-14 w-full rounded-3xl border border-white/10 bg-white/5 backdrop-blur-md px-6 py-5 flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-2xl bg-teal-500/20 border border-teal-400/40 flex items-center justify-center">
-              <svg className="w-5 h-5 text-teal-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-              </svg>
-            </div>
-            <div>
-              <p className="text-sm text-gray-300">Join</p>
-              <p className="text-lg font-semibold text-white">
-                1,000+ creators already earning
-              </p>
-            </div>
-          </div>
-          <div className="flex -space-x-3">
-            {[1, 2, 3, 4, 5].map((i) => (
-              <div
-                key={i}
-                className="h-10 w-10 rounded-full border-2 border-[#0a0a0a] bg-gradient-to-br from-[#FF6B9D] via-[#9D4EDD] to-[#00D094] flex items-center justify-center text-white text-sm font-semibold"
-              >
-                {i}
+            {/* Social proof quick row */}
+            <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600">
+              <div className="flex items-center gap-2">
+                <div className="h-8 w-8 rounded-full bg-teal-100 border border-teal-200 flex items-center justify-center text-teal-700 text-xs font-semibold">
+                  10k
+                </div>
+                Trusted creators
               </div>
-            ))}
+              <span className="h-1 w-1 rounded-full bg-gray-300" />
+              <div className="flex items-center gap-2">
+                <div className="h-8 w-8 rounded-full bg-amber-100 border border-amber-200 flex items-center justify-center text-amber-700 text-xs font-semibold">
+                  $1M+
+                </div>
+                Earned through Saiflow
+              </div>
+            </div>
+          </div>
+
+          {/* Right visuals */}
+          <div className="relative">
+            <div className="absolute -inset-6 rounded-[32px] bg-gradient-to-br from-teal-100 via-white to-cyan-50 blur-2xl" />
+            <div className="relative rounded-[28px] border border-gray-100 bg-white shadow-lg shadow-gray-100 p-6">
+              {/* Mock header */}
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-2">
+                  <Image src="/mascot.png" alt="Saiflow mascot" width={40} height={40} className="h-10 w-10" />
+                  <div>
+                    <p className="text-sm text-gray-500">Saiflow Shop</p>
+                    <p className="text-base font-semibold text-gray-900">Digital Creator Store</p>
+                  </div>
+                </div>
+                <span className="rounded-full bg-teal-50 text-teal-700 text-sm font-semibold px-3 py-1">
+                  Live
+                </span>
+              </div>
+
+              {/* Floating product mockups */}
+              <div className="grid grid-cols-2 gap-4">
+                {[
+                  { title: "Course Bundle", price: "$129", color: "from-teal-500/90 to-emerald-500/80" },
+                  { title: "Ebook Pack", price: "$39", color: "from-sky-500/90 to-blue-500/80" },
+                  { title: "UI Kit", price: "$69", color: "from-amber-500/90 to-orange-500/80" },
+                  { title: "Preset Pack", price: "$19", color: "from-purple-500/90 to-indigo-500/80" },
+                ].map((item) => (
+                  <div
+                    key={item.title}
+                    className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm hover:shadow-md transition"
+                  >
+                    <div
+                      className={`h-20 rounded-xl bg-gradient-to-br ${item.color} flex items-center justify-center text-white font-semibold text-lg mb-3`}
+                    >
+                      {item.title}
+                    </div>
+                    <div className="flex items-center justify-between text-sm text-gray-600">
+                      <span>{item.price}</span>
+                      <span className="flex items-center gap-1 text-teal-600 font-semibold">
+                        Buy
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          className="h-4 w-4"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                        >
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M17 8l4 4m0 0-4 4m4-4H3" />
+                        </svg>
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Bottom stat */}
+              <div className="mt-6 flex items-center justify-between rounded-xl border border-gray-100 bg-gray-50 px-4 py-3">
+                <div>
+                  <p className="text-sm text-gray-500">Recent sale</p>
+                  <p className="text-base font-semibold text-gray-900">+$49 from Sarah</p>
+                </div>
+                <span className="text-sm font-semibold text-teal-700 bg-teal-50 px-3 py-1 rounded-full">
+                  2m ago
+                </span>
+              </div>
+            </div>
           </div>
         </div>
       </div>

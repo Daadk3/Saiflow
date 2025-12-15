@@ -20,30 +20,30 @@ interface TrendingProductsSectionProps {
 
 export function TrendingProductsSection({ products }: TrendingProductsSectionProps) {
   return (
-    <section className="py-16 sm:py-24 px-4 bg-[#0a0a0a]">
-      <div className="max-w-full px-4 sm:px-8 lg:px-16 xl:px-24 mx-auto">
+    <section className="py-16 sm:py-20 px-4 bg-gray-50">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-10">
           <div>
-            <h2 className="text-4xl sm:text-5xl font-extrabold text-white mb-3">
-              Trending Products
+            <p className="text-sm font-semibold text-teal-700 uppercase tracking-wide">
+              Featured
+            </p>
+            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mt-1">
+              Discover amazing products
             </h2>
-            <p className="text-lg text-gray-400">
-              Discover what creators are launching right now.
+            <p className="text-lg text-gray-600">
+              Hand-picked digital products from top creators.
             </p>
           </div>
           <Link
             href="/browse"
-            className="inline-flex items-center gap-2 rounded-full border border-teal-500/40 px-5 py-2 text-sm font-semibold text-teal-300 transition-colors hover:bg-teal-500 hover:text-black"
+            className="inline-flex items-center gap-2 text-sm font-semibold text-teal-700 hover:text-teal-800"
           >
-            Browse All Products
-            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
-            </svg>
+            View all products →
           </Link>
         </div>
 
         {products.length === 0 ? (
-          <div className="rounded-2xl border border-white/10 bg-[#111111] p-10 text-center text-gray-400">
+          <div className="rounded-2xl border border-gray-200 bg-white p-10 text-center text-gray-600">
             Products coming soon! Be the first to sell.
           </div>
         ) : (
@@ -57,45 +57,40 @@ export function TrendingProductsSection({ products }: TrendingProductsSectionPro
                 <Link
                   key={product.id}
                   href={href}
-                  className="group relative overflow-hidden rounded-2xl border border-white/10 bg-[#111111] transition-transform duration-200 hover:-translate-y-1 hover:border-teal-500/50"
+                  className="group relative overflow-hidden rounded-2xl border border-gray-200 bg-white transition hover:-translate-y-1 hover:shadow-lg"
                 >
-                  <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                    <div className="absolute inset-0 bg-gradient-to-br from-teal-500/10 via-cyan-500/5 to-emerald-500/10 blur-3xl" />
-                  </div>
-                  <div className="relative">
-                    <div className="relative w-full h-64 overflow-hidden rounded-t-2xl bg-gray-900 flex items-center justify-center">
-                      {image ? (
-                        <Image
-                          src={image}
-                          alt={product.name}
-                          width={400}
-                          height={300}
-                          className="max-w-full max-h-full object-contain"
-                        />
-                      ) : (
-                        <div
-                          className="absolute inset-0 flex items-center justify-center text-white/60 text-lg font-semibold"
-                          style={{
-                            background: `linear-gradient(135deg,
-                              hsl(${175 + (index * 15) % 30}, 70%, ${35 - (index * 3) % 10}%) 0%,
-                              hsl(${185 + (index * 10) % 25}, 80%, ${25 - (index * 2) % 8}%) 100%)`,
-                          }}
-                        >
-                          Digital Product
-                        </div>
-                      )}
-                    </div>
-                    <div className="p-5 space-y-2">
-                      <div className="flex items-start justify-between gap-3">
-                        <h3 className="text-lg font-semibold text-white line-clamp-2">
-                          {product.name}
-                        </h3>
-                        <span className="whitespace-nowrap rounded-full bg-teal-500/15 px-3 py-1 text-sm font-semibold text-teal-300 border border-teal-500/30">
-                          ${Number(product.price).toFixed(2)}
-                        </span>
+                  <div className="relative w-full h-56 overflow-hidden bg-gray-50 flex items-center justify-center">
+                    {image ? (
+                      <Image
+                        src={image}
+                        alt={product.name}
+                        width={400}
+                        height={300}
+                        className="max-w-full max-h-full object-contain"
+                      />
+                    ) : (
+                      <div
+                        className="absolute inset-0 flex items-center justify-center text-gray-700 text-sm font-semibold"
+                        style={{
+                          background: `linear-gradient(135deg,
+                            hsl(${175 + (index * 15) % 30}, 70%, ${75 - (index * 3) % 10}%) 0%,
+                            hsl(${185 + (index * 10) % 25}, 80%, ${70 - (index * 2) % 8}%) 100%)`,
+                        }}
+                      >
+                        Digital Product
                       </div>
-                      <p className="text-sm text-gray-400">by {product.shop.name}</p>
+                    )}
+                  </div>
+                  <div className="p-5 space-y-2">
+                    <div className="flex items-start justify-between gap-3">
+                      <h3 className="text-lg font-semibold text-gray-900 line-clamp-2">
+                        {product.name}
+                      </h3>
+                      <span className="whitespace-nowrap rounded-full bg-teal-50 px-3 py-1 text-sm font-semibold text-teal-700 border border-teal-100">
+                        ${Number(product.price).toFixed(2)}
+                      </span>
                     </div>
+                    <p className="text-sm text-gray-600">by {product.shop.name}</p>
                   </div>
                 </Link>
               );

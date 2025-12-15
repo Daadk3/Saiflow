@@ -1,9 +1,9 @@
 import { prisma } from "@/lib/prisma";
 import {
   HeroSection,
+  StatsSection,
   CategoriesSection,
   TrendingProductsSection,
-  VideoSection,
   FeaturesSection,
   CTASection,
 } from "@/components/home";
@@ -29,11 +29,11 @@ export default async function Home() {
   });
 
   return (
-    <div className="pt-16">
+    <div className="pt-16 bg-white">
       <HeroSection />
+      <StatsSection />
       <CategoriesSection />
       <TrendingProductsSection products={products} />
-      <VideoSection />
       <FeaturesSection />
       <CTASection />
     </div>

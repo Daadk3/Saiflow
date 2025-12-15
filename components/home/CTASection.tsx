@@ -1,60 +1,31 @@
 import Link from "next/link";
-import Image from "next/image";
 
 export function CTASection() {
   return (
-    <section className="py-20 sm:py-32 px-4 relative overflow-hidden">
-      {/* Floating decorative mascots */}
-      <div className="absolute top-10 left-10 w-20 h-20 opacity-10 animate-float pointer-events-none hidden lg:block">
-        <Image
-          src="/mascot-camera.png"
-          alt=""
-          width={80}
-          height={80}
-          className="w-full h-full object-contain"
-        />
-      </div>
-      <div className="absolute bottom-10 right-10 w-24 h-24 opacity-10 animate-float-delayed pointer-events-none hidden lg:block">
-        <Image
-          src="/mascot-reading.png"
-          alt=""
-          width={96}
-          height={96}
-          className="w-full h-full object-contain"
-        />
-      </div>
+    <section className="py-16 sm:py-24 px-4 relative overflow-hidden">
+      <div className="absolute inset-0 bg-gradient-to-r from-teal-500 to-emerald-500 opacity-90" />
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(255,255,255,0.2),transparent_40%),radial-gradient(circle_at_80%_0%,rgba(255,255,255,0.15),transparent_40%)]" />
 
-      <div className="max-w-full px-4 sm:px-8 lg:px-16 xl:px-24 mx-auto text-center relative z-10">
-        {/* Mascot near CTA */}
-        <div className="flex justify-center mb-8">
-          <div className="w-32 h-32 sm:w-40 sm:h-40 animate-float">
-            <Image
-              src="/mascot-reading.png"
-              alt="Mascot reading"
-              width={160}
-              height={160}
-              className="w-full h-full object-contain"
-            />
-          </div>
+      <div className="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-white">
+        <h2 className="text-3xl sm:text-4xl font-bold">Start selling today</h2>
+        <p className="mt-3 text-lg text-teal-50/90">
+          Create your free account and launch your shop with a clean, modern checkout experience.
+        </p>
+        <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3">
+          <Link
+            href="/signup"
+            className="inline-flex items-center justify-center gap-2 rounded-full bg-white px-8 py-3 text-teal-700 font-semibold shadow-sm transition hover:bg-gray-100"
+          >
+            Create your free account
+          </Link>
+          <Link
+            href="/browse"
+            className="inline-flex items-center justify-center gap-2 rounded-full border border-white/60 px-8 py-3 text-white font-semibold transition hover:bg-white/10"
+          >
+            Browse products
+          </Link>
         </div>
-        <h2 className="text-4xl sm:text-5xl font-extrabold text-white mb-6">
-          Ready to start earning?
-        </h2>
-        <p className="text-xl text-gray-400 mb-10 max-w-2xl mx-auto">
-          Join thousands of creators who are already selling their digital products with Saiflow.
-        </p>
-        <Link
-          href="/signup"
-          className="inline-flex items-center gap-2 bg-teal-500 hover:bg-teal-400 text-black font-semibold px-10 py-5 rounded-full text-lg transition-all duration-200 shadow-lg shadow-teal-500/25 hover:shadow-xl hover:shadow-teal-500/30"
-        >
-          Create Your Free Store
-          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
-          </svg>
-        </Link>
-        <p className="mt-4 text-sm text-gray-500">
-          Free to start - No credit card required
-        </p>
+        <p className="mt-4 text-sm text-teal-50/80">No credit card required • Free to start</p>
       </div>
     </section>
   );
