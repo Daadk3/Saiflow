@@ -50,7 +50,9 @@ export function FeaturesSection() {
                 <div className="h-12 w-12 rounded-xl bg-teal-500/10 text-teal-400 flex items-center justify-center">
                   {step.icon}
                 </div>
-                <span className="text-sm font-semibold text-gray-500">Step {idx + 1}</span>
+                <span className="text-xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-teal-400 to-teal-300 tracking-wider uppercase">
+                  Step {idx + 1}
+                </span>
               </div>
               <h3 className="text-xl font-semibold text-white">{step.title}</h3>
               <p className="mt-2 text-gray-400 leading-relaxed">{step.desc}</p>
