@@ -185,7 +185,8 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
 
   // Send purchase confirmation email
   const baseUrl = process.env.NEXTAUTH_URL || 'https://saiflow.io';
-  const downloadUrl = `${baseUrl}/success?session_id=${session.id}`;
+  // Use orderId in download URL for better tracking
+  const downloadUrl = `${baseUrl}/api/download/${product.id}?orderId=${order.id}`;
   
   try {
     await sendPurchaseConfirmationEmail({
