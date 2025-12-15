@@ -3,11 +3,11 @@ import Image from "next/image";
 
 export function HeroSection() {
   return (
-    <section className="relative overflow-hidden bg-[#0a0a0a]">
-      {/* Background shapes */}
-      <div className="absolute -top-24 -left-24 h-72 w-72 rounded-full bg-teal-500/10 blur-3xl" />
-      <div className="absolute top-10 right-10 h-64 w-64 rounded-full bg-cyan-500/10 blur-3xl" />
-      <div className="absolute bottom-[-120px] left-1/2 -translate-x-1/2 h-72 w-72 rounded-full bg-teal-500/5 blur-3xl" />
+    <section className="relative overflow-hidden bg-transparent">
+      {/* Additional subtle background shapes for hero section */}
+      <div className="absolute -top-24 -left-24 h-72 w-72 rounded-full bg-teal-500/8 blur-3xl pointer-events-none" />
+      <div className="absolute top-10 right-10 h-64 w-64 rounded-full bg-cyan-500/8 blur-3xl pointer-events-none" />
+      <div className="absolute bottom-[-120px] left-1/2 -translate-x-1/2 h-72 w-72 rounded-full bg-teal-500/5 blur-3xl pointer-events-none" />
 
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-16 lg:pt-28 lg:pb-24">
         <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">

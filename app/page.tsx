@@ -29,13 +29,27 @@ export default async function Home() {
   });
 
   return (
-    <div className="pt-16 bg-[#0a0a0a]">
-      <HeroSection />
-      <StatsSection />
-      <CategoriesSection />
-      <TrendingProductsSection products={products} />
-      <FeaturesSection />
-      <CTASection />
+    <div className="relative min-h-screen bg-[#0a0a0a] overflow-hidden">
+      {/* Gradient overlay */}
+      <div className="absolute inset-0 bg-gradient-to-br from-gray-900 via-[#0a0a0a] to-gray-900" />
+      
+      {/* Subtle glow orbs */}
+      <div className="absolute top-0 left-1/4 w-96 h-96 bg-teal-500/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-cyan-500/5 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute top-1/2 right-0 w-64 h-64 bg-teal-400/5 rounded-full blur-2xl pointer-events-none" />
+      
+      {/* Subtle diagonal light streaks */}
+      <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/[0.02] to-transparent pointer-events-none" />
+      
+      {/* Content with relative positioning */}
+      <div className="relative z-10 pt-16">
+        <HeroSection />
+        <StatsSection />
+        <CategoriesSection />
+        <TrendingProductsSection products={products} />
+        <FeaturesSection />
+        <CTASection />
+      </div>
     </div>
   );
 }
