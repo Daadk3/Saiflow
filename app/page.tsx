@@ -29,7 +29,7 @@ export default async function Home() {
   });
 
   return (
-    <div className="pt-16 bg-white">
+    <div className="pt-16 bg-[#0a0a0a]">
       <HeroSection />
       <StatsSection />
       <CategoriesSection />

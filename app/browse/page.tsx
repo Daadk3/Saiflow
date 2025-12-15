@@ -111,28 +111,28 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
   const categories = Object.entries(categoryMap);
 
   return (
-    <div className="bg-white min-h-screen">
+    <div className="bg-[#0a0a0a] min-h-screen text-white">
       {/* Header */}
-      <section className="border-b border-gray-100 bg-white py-10">
+      <section className="border-b border-gray-800 bg-[#0a0a0a] py-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
             <div>
-              <p className="text-sm font-semibold text-teal-700 uppercase tracking-wide">Products</p>
-              <h1 className="text-3xl font-bold text-gray-900 mt-2">
+              <p className="text-sm font-semibold text-teal-400 uppercase tracking-wide">Products</p>
+              <h1 className="text-3xl font-bold text-white mt-2">
                 {category ? categoryMap[category] ?? "Products" : "All Products"}
               </h1>
-              <p className="text-gray-500 mt-2">Showing {productCount} products</p>
+              <p className="text-gray-400 mt-2">Showing {productCount} products</p>
             </div>
 
             <form className="flex items-center gap-3" method="get">
               {category && <input type="hidden" name="category" value={category} />}
               {minPrice !== undefined && <input type="hidden" name="minPrice" value={minPrice} />}
               {maxPrice !== undefined && <input type="hidden" name="maxPrice" value={maxPrice} />}
-              <label className="text-sm font-medium text-gray-700">Sort</label>
+              <label className="text-sm font-medium text-gray-300">Sort</label>
               <select
                 name="sort"
                 defaultValue={sort}
-                className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-800 focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500"
+                className="rounded-lg border border-gray-700 bg-[#0a0a0a] px-3 py-2 text-sm text-gray-100 focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500"
               >
                 <option value="newest">Newest</option>
                 <option value="popular">Popular</option>
@@ -155,19 +155,21 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col lg:flex-row gap-10">
             {/* Sidebar */}
-            <aside className="w-full lg:w-64 lg:pr-8 lg:border-r lg:border-gray-100 space-y-8">
+            <aside className="w-full lg:w-64 lg:pr-8 lg:border-r lg:border-gray-800 space-y-8">
               {/* Mobile filters */}
               <div className="lg:hidden">
-                <details className="border border-gray-200 rounded-xl p-4">
-                  <summary className="font-semibold text-gray-900 cursor-pointer">Filters</summary>
+                <details className="border border-gray-800 rounded-xl p-4 bg-[#111111]">
+                  <summary className="font-semibold text-white cursor-pointer">Filters</summary>
                   <div className="mt-4 space-y-6">
                     <div>
-                      <h3 className="font-semibold text-gray-900 mb-3">Categories</h3>
+                      <h3 className="font-semibold text-white mb-3">Categories</h3>
                       <div className="flex flex-wrap gap-2">
                         <Link
                           href="/browse"
                           className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-                            !category ? "bg-teal-500 text-white" : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                            !category
+                              ? "bg-teal-500 text-white"
+                              : "bg-gray-800 text-gray-300 hover:bg-gray-700"
                           }`}
                         >
                           All
@@ -185,7 +187,7 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
                               className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
                                 category === slug
                                   ? "bg-teal-500 text-white"
-                                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                                  : "bg-gray-800 text-gray-300 hover:bg-gray-700"
                               }`}
                             >
                               {name}
@@ -198,22 +200,22 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
                     <form className="space-y-3" method="get">
                       {category && <input type="hidden" name="category" value={category} />}
                       {sort && <input type="hidden" name="sort" value={sort} />}
-                      <h3 className="font-semibold text-gray-900">Price range</h3>
+                      <h3 className="font-semibold text-white">Price range</h3>
                       <div className="flex items-center gap-3">
                         <input
                           type="number"
                           name="minPrice"
                           placeholder="Min"
                           defaultValue={minPrice ?? ""}
-                          className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500"
+                          className="w-full rounded-lg border border-gray-700 bg-[#0a0a0a] px-3 py-2 text-sm text-white placeholder:text-gray-500 focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500"
                         />
-                        <span className="text-gray-400">—</span>
+                        <span className="text-gray-500">—</span>
                         <input
                           type="number"
                           name="maxPrice"
                           placeholder="Max"
                           defaultValue={maxPrice ?? ""}
-                          className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500"
+                          className="w-full rounded-lg border border-gray-700 bg-[#0a0a0a] px-3 py-2 text-sm text-white placeholder:text-gray-500 focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500"
                         />
                       </div>
                       <button
@@ -226,7 +228,7 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
 
                     <Link
                       href="/browse"
-                      className="inline-flex items-center gap-2 text-sm font-medium text-teal-700 hover:text-teal-800"
+                      className="inline-flex items-center gap-2 text-sm font-medium text-teal-400 hover:text-teal-300"
                     >
                       Clear filters
                     </Link>
@@ -237,12 +239,14 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
               {/* Desktop filters */}
               <div className="hidden lg:block sticky top-24 space-y-8">
                 <div>
-                  <h3 className="font-semibold text-gray-900 mb-3">Categories</h3>
+                  <h3 className="font-semibold text-white mb-3">Categories</h3>
                   <div className="flex flex-wrap gap-2">
                     <Link
                       href="/browse"
                       className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-                        !category ? "bg-teal-500 text-white" : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                        !category
+                          ? "bg-teal-500 text-white"
+                          : "bg-gray-800 text-gray-300 hover:bg-gray-700"
                       }`}
                     >
                       All
@@ -260,7 +264,7 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
                           className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
                             category === slug
                               ? "bg-teal-500 text-white"
-                              : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                              : "bg-gray-800 text-gray-300 hover:bg-gray-700"
                           }`}
                         >
                           {name}
@@ -273,22 +277,22 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
                 <form className="space-y-3" method="get">
                   {category && <input type="hidden" name="category" value={category} />}
                   {sort && <input type="hidden" name="sort" value={sort} />}
-                  <h3 className="font-semibold text-gray-900 mb-1">Price range</h3>
+                  <h3 className="font-semibold text-white mb-1">Price range</h3>
                   <div className="flex items-center gap-3">
                     <input
                       type="number"
                       name="minPrice"
                       placeholder="Min"
                       defaultValue={minPrice ?? ""}
-                      className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500"
+                      className="w-full rounded-lg border border-gray-700 bg-[#0a0a0a] px-3 py-2 text-sm text-white placeholder:text-gray-500 focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500"
                     />
-                    <span className="text-gray-400">—</span>
+                    <span className="text-gray-500">—</span>
                     <input
                       type="number"
                       name="maxPrice"
                       placeholder="Max"
                       defaultValue={maxPrice ?? ""}
-                      className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500"
+                      className="w-full rounded-lg border border-gray-700 bg-[#0a0a0a] px-3 py-2 text-sm text-white placeholder:text-gray-500 focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500"
                     />
                   </div>
                   <button
@@ -315,9 +319,9 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
                     <Link
                       key={product.id}
                       href={`/shop/${product.shop.slug}/product/${product.slug}`}
-                      className="group bg-white rounded-2xl shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-100 hover:-translate-y-1"
+                      className="group bg-[#111111] rounded-2xl border border-gray-800 hover:border-gray-700 overflow-hidden transition-all duration-300 hover:-translate-y-1"
                     >
-                      <div className="relative aspect-[4/3] overflow-hidden bg-gray-100">
+                      <div className="relative aspect-[4/3] overflow-hidden bg-gray-800">
                         {product.thumbnailUrl ? (
                           <Image
                             src={product.thumbnailUrl}
@@ -346,14 +350,14 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
                         )}
 
                         <div className="absolute top-3 right-3">
-                          <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold bg-white/90 backdrop-blur-sm text-gray-900">
+                          <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold bg-[#0a0a0a]/80 backdrop-blur-sm text-white">
                             ${Number(product.price).toFixed(2)}
                           </span>
                         </div>
 
                         {!product.fileUrl && (
                           <div className="absolute top-3 left-3">
-                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-800 border border-amber-200">
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-amber-500/10 text-amber-300 border border-amber-500/30">
                               <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                               </svg>
@@ -364,19 +368,19 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
                       </div>
 
                       <div className="p-5">
-                        <h3 className="font-semibold text-gray-900 text-lg line-clamp-2 group-hover:text-teal-600 transition-colors">
+                        <h3 className="font-semibold text-white text-lg line-clamp-2 group-hover:text-teal-400 transition-colors">
                           {product.name}
                         </h3>
                         <div className="text-sm text-gray-500 mt-1">{product.shop.name}</div>
                         {product.description && (
-                          <p className="mt-2 text-gray-600 text-sm line-clamp-2">{product.description}</p>
+                          <p className="mt-2 text-gray-400 text-sm line-clamp-2">{product.description}</p>
                         )}
                         {product.category && (
-                          <span className="inline-block px-3 py-1 bg-gray-100 text-gray-600 text-xs font-medium rounded-full mt-3">
+                          <span className="inline-block px-3 py-1 bg-gray-800 text-gray-300 text-xs font-medium rounded-full mt-3">
                             {categoryMap[product.category] || "Digital Product"}
                           </span>
                         )}
-                        <div className="text-teal-600 font-bold text-xl mt-3">
+                        <div className="text-teal-400 font-bold text-xl mt-3">
                           ${Number(product.price).toFixed(2)}
                         </div>
                       </div>
@@ -384,14 +388,14 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
                   ))}
                 </div>
               ) : (
-                <div className="text-center py-20 border border-dashed border-gray-200 rounded-2xl bg-white">
-                  <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-gray-100 mb-6">
-                    <svg className="w-8 h-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <div className="text-center py-20 border border-dashed border-gray-800 rounded-2xl bg-[#111111]">
+                  <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-gray-800 mb-6">
+                    <svg className="w-8 h-8 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
                     </svg>
                   </div>
-                  <h3 className="text-xl font-semibold text-gray-800">No products found</h3>
-                  <p className="mt-2 text-gray-500">Try adjusting your filters or browse everything available.</p>
+                  <h3 className="text-xl font-semibold text-white">No products found</h3>
+                  <p className="mt-2 text-gray-400">Try adjusting your filters or browse everything available.</p>
                   <div className="mt-6">
                     <Link
                       href="/browse"

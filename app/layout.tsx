@@ -59,7 +59,7 @@ export default function RootLayout({
         <link rel="icon" href="/icon.png" type="image/png" />
         <link rel="apple-touch-icon" href="/apple-icon.png" />
       </head>
-      <body className="bg-white text-gray-900 min-h-screen antialiased">
+      <body className="bg-[#0a0a0a] text-white min-h-screen antialiased">
         <Providers>
           <ErrorBoundary>
             <Navbar />

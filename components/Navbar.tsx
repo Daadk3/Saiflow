@@ -23,12 +23,12 @@ export default function Navbar() {
   const startSellingHref = session ? "/dashboard" : "/signup";
 
   const navLinkClass =
-    "text-gray-600 hover:text-gray-900 font-medium transition-colors";
+    "text-gray-400 hover:text-white font-medium transition-colors";
 
   return (
     <nav
-      className={`sticky top-0 z-50 bg-white border-b border-gray-100 transition-shadow duration-300 ${
-        scrolled ? "shadow-sm" : ""
+      className={`sticky top-0 z-50 bg-[#0a0a0a]/80 backdrop-blur-md border-b border-gray-800 transition-shadow duration-300 ${
+        scrolled ? "shadow-sm shadow-black/40" : ""
       }`}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -36,7 +36,7 @@ export default function Navbar() {
           {/* Logo */}
           <Link href={logoHref} className="flex items-center gap-2">
             <Image src="/mascot.png" alt="Saiflow" width={36} height={36} />
-            <span className="text-lg font-semibold text-gray-900">Saiflow</span>
+            <span className="text-lg font-semibold text-white">Saiflow</span>
           </Link>
 
           {/* Desktop nav */}
@@ -57,7 +57,7 @@ export default function Navbar() {
             <Link
               href="/browse"
               aria-label="Search"
-              className="text-gray-500 hover:text-gray-800 transition-colors"
+              className="text-gray-500 hover:text-white transition-colors"
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -85,7 +85,7 @@ export default function Navbar() {
           {/* Mobile menu button */}
           <button
             onClick={() => setMenuOpen((prev) => !prev)}
-            className="md:hidden inline-flex items-center justify-center rounded-md p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition"
+            className="md:hidden inline-flex items-center justify-center rounded-md p-2 text-gray-300 hover:text-white hover:bg-gray-800 transition"
             aria-label="Toggle navigation"
           >
             {menuOpen ? (
@@ -121,10 +121,10 @@ export default function Navbar() {
           menuOpen ? "max-h-screen opacity-100" : "max-h-0 opacity-0 overflow-hidden"
         }`}
       >
-        <div className="border-t border-gray-100 bg-white px-4 py-4 space-y-4 shadow-sm">
+        <div className="border-t border-gray-800 bg-[#0a0a0a] px-4 py-4 space-y-4 shadow-sm shadow-black/40">
           <div className="flex items-center justify-between">
             <span className="text-xs uppercase tracking-wide text-gray-500">Navigate</span>
-            <span className="text-xs text-gray-400">{pathname}</span>
+            <span className="text-xs text-gray-500">{pathname}</span>
           </div>
           <div className="flex flex-col gap-3">
             <Link href="/browse" className={navLinkClass} onClick={() => setMenuOpen(false)}>
