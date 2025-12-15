@@ -95,10 +95,20 @@ export async function GET(
 
     console.log(`Download requested for product ${product.name}${actualOrderId ? ` (order: ${actualOrderId})` : ""}, fileUrl: ${product.fileUrl}`);
 
-    return NextResponse.json({
-      productName: product.name,
-      downloadUrl: product.fileUrl,
-    });
+    // Check if JSON format is requested (for API calls from success page)
+    const format = searchParams.get("format");
+    const wantsJson = format === "json";
+
+    // If JSON format is requested (from success page fetch), return JSON
+    if (wantsJson) {
+      return NextResponse.json({
+        productName: product.name,
+        downloadUrl: product.fileUrl,
+      });
+    }
+
+    // Default: redirect to the file URL (for email links and direct browser access)
+    return NextResponse.redirect(product.fileUrl);
   } catch (error) {
     console.error("Download error:", error);
     return NextResponse.json(

@@ -29,7 +29,7 @@ function SuccessContent() {
         setLoading(true);
         setError(null);
         
-        const response = await fetch(`/api/download/${sessionId}`);
+        const response = await fetch(`/api/download/${sessionId}?format=json`);
         const data = await response.json();
 
         if (!response.ok) {
