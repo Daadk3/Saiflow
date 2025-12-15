@@ -181,46 +181,40 @@ export default async function PublicShopPage({
               <Link
                 key={product.id}
                 href={`/shop/${shop.slug}/product/${product.slug}`}
-                className="group relative bg-[#111111] rounded-2xl overflow-hidden border border-gray-800/50 hover:border-teal-500/30 transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl hover:shadow-teal-500/10"
+                className="group bg-white rounded-2xl shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-100 hover:-translate-y-1"
               >
                 {/* Product Image */}
-                <div className="relative aspect-[4/3] overflow-hidden">
+                <div className="relative aspect-[4/3] overflow-hidden bg-gray-100">
                   {product.thumbnailUrl ? (
                     <Image
                       src={product.thumbnailUrl}
                       alt={product.name}
                       fill
-                      className="object-cover transition-transform duration-500 group-hover:scale-105"
+                      className="object-cover group-hover:scale-105 transition-transform duration-300"
                     />
                   ) : product.images && product.images.length > 0 ? (
                     <Image
                       src={product.images[0]}
                       alt={product.name}
                       fill
-                      className="object-cover transition-transform duration-500 group-hover:scale-105"
+                      className="object-cover group-hover:scale-105 transition-transform duration-300"
                     />
                   ) : (
                     <div 
-                      className="absolute inset-0 flex flex-col items-center justify-center"
+                      className="absolute inset-0 flex flex-col items-center justify-center text-gray-700 text-sm font-semibold"
                       style={{
                         background: `linear-gradient(135deg, 
-                          hsl(${175 + (index * 15) % 30}, 70%, ${35 - (index * 3) % 10}%) 0%, 
-                          hsl(${185 + (index * 10) % 25}, 80%, ${25 - (index * 2) % 8}%) 100%)`
+                          hsl(${175 + (index * 15) % 30}, 70%, ${75 - (index * 3) % 10}%) 0%, 
+                          hsl(${185 + (index * 10) % 25}, 80%, ${70 - (index * 2) % 8}%) 100%)`
                       }}
                     >
-                      <svg className="w-16 h-16 text-white/20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                      </svg>
-                      <span className="text-white/30 text-sm mt-2 font-medium">Digital Product</span>
+                      Digital Product
                     </div>
                   )}
                   
-                  {/* Overlay on hover */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                  
                   {/* Price Badge */}
                   <div className="absolute top-3 right-3">
-                    <span className="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-semibold bg-black/70 backdrop-blur-sm text-white border border-white/10">
+                    <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold bg-white/90 backdrop-blur-sm text-gray-900">
                       ${Number(product.price).toFixed(2)}
                     </span>
                   </div>
@@ -228,30 +222,31 @@ export default async function PublicShopPage({
 
                 {/* Product Info */}
                 <div className="p-5">
-                  <h3 className="font-semibold text-lg text-white group-hover:text-teal-400 transition-colors duration-200">
+                  <h3 className="font-semibold text-gray-900 text-lg line-clamp-2 group-hover:text-teal-600 transition-colors">
                     {product.name}
                   </h3>
                   
                   {product.description && (
-                    <p className="mt-2 text-gray-500 text-sm line-clamp-2 leading-relaxed">
+                    <p className="mt-2 text-gray-600 text-sm line-clamp-2 leading-relaxed">
                       {product.description}
                     </p>
                   )}
 
                   {/* CTA */}
                   <div className="mt-4 flex items-center justify-between">
-                    <span className="text-xs text-gray-600 uppercase tracking-wider">
-                      Digital Download
+                    <span className="text-sm font-bold text-teal-600">
+                      ${Number(product.price).toFixed(2)}
                     </span>
-                    <span className="inline-flex items-center gap-1 text-sm font-medium text-teal-400 group-hover:text-teal-300 transition-colors">
-                      View
-                      <svg 
-                        className="w-4 h-4 transition-transform duration-200 group-hover:translate-x-1" 
-                        fill="none" 
-                        viewBox="0 0 24 24" 
+                    <span className="inline-flex items-center gap-1 text-sm font-medium text-teal-700 group-hover:text-teal-800 transition-colors">
+                      View product
+                      <svg
+                        className="w-4 h-4 transition-transform duration-200 group-hover:translate-x-1"
+                        fill="none"
+                        viewBox="0 0 24 24"
                         stroke="currentColor"
+                        strokeWidth={2}
                       >
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M17 8l4 4m0 0-4 4m4-4H3" />
                       </svg>
                     </span>
                   </div>
