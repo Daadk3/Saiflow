@@ -38,9 +38,9 @@ export default function Navbar() {
             <Image
               src="/mascot.png"
               alt="Saiflow"
-              width={48}
-              height={48}
-              className="w-12 h-12"
+              width={56}
+              height={56}
+              className="w-14 h-14"
             />
             <span className="text-xl font-bold text-white">Saiflow</span>
           </Link>
