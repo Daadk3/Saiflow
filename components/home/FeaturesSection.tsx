@@ -50,7 +50,7 @@ export function FeaturesSection() {
                 <div className="h-12 w-12 rounded-xl bg-teal-500/10 text-teal-400 flex items-center justify-center">
                   {step.icon}
                 </div>
-                <span className="text-xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-teal-400 to-teal-300 tracking-wider uppercase">
+                <span className="inline-block px-4 py-1 text-sm font-bold tracking-widest uppercase bg-gradient-to-r from-teal-500 to-cyan-500 text-white rounded-full shadow-lg shadow-teal-500/30 hover:scale-105 transition-transform duration-300">
                   Step {idx + 1}
                 </span>
               </div>
