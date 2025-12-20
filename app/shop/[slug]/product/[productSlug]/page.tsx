@@ -114,7 +114,8 @@ export default async function ProductPage({
               {product.thumbnailUrl ? (
                 <Image
                   src={product.thumbnailUrl}
-                  alt={`${product.name} - Digital product preview image from ${product.shop.name}`}
+                  alt=""
+                  aria-hidden="true"
                   width={1200}
                   height={800}
                   className="max-h-full w-auto object-contain"
@@ -123,7 +124,8 @@ export default async function ProductPage({
               ) : product.images && product.images.length > 0 ? (
                 <Image
                   src={product.images[0]}
-                  alt={`${product.name} - Digital product preview image from ${product.shop.name}`}
+                  alt=""
+                  aria-hidden="true"
                   width={1200}
                   height={800}
                   className="max-h-full w-auto object-contain"
