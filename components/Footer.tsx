@@ -23,8 +23,8 @@ export default function Footer() {
             </p>
 
             {/* Newsletter */}
-            <div className="space-y-3">
-              <p className="text-sm font-semibold text-white">Stay in the loop</p>
+            <div className="newsletter-section space-y-3">
+              <h3 className="text-sm font-semibold text-white">Stay in the loop</h3>
               <form className="flex flex-col sm:flex-row gap-3">
                 <label htmlFor="newsletter-email" className="sr-only">
                   Email address for newsletter
@@ -34,11 +34,11 @@ export default function Footer() {
                   name="email"
                   type="email"
                   placeholder="you@example.com"
+                  aria-label="Email address for newsletter"
                   className="w-full rounded-lg border border-gray-800 bg-[#0a0a0a] px-4 py-3 text-sm text-gray-100 placeholder-gray-500 focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500"
                 />
                 <button 
                   type="submit"
-                  aria-label="Subscribe to newsletter"
                   className="inline-flex justify-center rounded-lg bg-teal-500 px-5 py-3 text-sm font-semibold text-white transition hover:bg-teal-600"
                 >
                   Subscribe
