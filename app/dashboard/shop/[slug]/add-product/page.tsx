@@ -172,7 +172,7 @@ export default function AddProductPage() {
                       alt="Product thumbnail"
                       width={200}
                       height={200}
-                      className="rounded-xl border border-gray-800 object-cover"
+                      className="rounded-xl border border-gray-800 object-contain"
                     />
                     <button
                       type="button"

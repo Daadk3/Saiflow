@@ -8,13 +8,13 @@ export default function Footer() {
     "text-gray-400 hover:text-white text-sm font-medium transition-colors";
 
   return (
-    <footer className="bg-[#0a0a0a] border-t border-gray-800 py-16 px-4">
+    <footer role="contentinfo" aria-label="Site footer" className="bg-[#0a0a0a] border-t border-gray-800 py-16 px-4">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Top grid */}
         <div className="grid gap-12 lg:grid-cols-5">
           <div className="lg:col-span-2 space-y-4">
-            <Link href="/" className="flex items-center gap-2">
-              <Image src="/mascot.png" alt="Saiflow" width={40} height={40} />
+            <Link href="/" className="logo flex items-center gap-2">
+              <Image src="/mascot.png" alt="" aria-hidden="true" width={40} height={40} />
               <span className="text-xl font-semibold text-white">Saiflow</span>
             </Link>
             <p className="text-gray-400 text-sm leading-relaxed">
@@ -25,16 +25,26 @@ export default function Footer() {
             {/* Newsletter */}
             <div className="space-y-3">
               <p className="text-sm font-semibold text-white">Stay in the loop</p>
-              <div className="flex flex-col sm:flex-row gap-3">
+              <form className="flex flex-col sm:flex-row gap-3">
+                <label htmlFor="newsletter-email" className="sr-only">
+                  Email address
+                </label>
                 <input
+                  id="newsletter-email"
+                  name="email"
                   type="email"
                   placeholder="you@example.com"
+                  aria-label="Email address"
                   className="w-full rounded-lg border border-gray-800 bg-[#0a0a0a] px-4 py-3 text-sm text-gray-100 placeholder-gray-500 focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500"
                 />
-                <button className="inline-flex justify-center rounded-lg bg-teal-500 px-5 py-3 text-sm font-semibold text-white transition hover:bg-teal-600">
+                <button 
+                  type="submit"
+                  aria-label="Subscribe to newsletter"
+                  className="inline-flex justify-center rounded-lg bg-teal-500 px-5 py-3 text-sm font-semibold text-white transition hover:bg-teal-600"
+                >
                   Subscribe
                 </button>
-              </div>
+              </form>
               <p className="text-xs text-gray-500">Get product updates and creator tips.</p>
             </div>
           </div>
@@ -42,43 +52,44 @@ export default function Footer() {
           {/* Columns */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-8 lg:col-span-3">
             <div className="space-y-3">
-              <h4 className="text-sm font-semibold text-white">Product</h4>
-              <div className="flex flex-col gap-2">
-                <Link href="/browse" className={linkClass}>Marketplace</Link>
-                <Link href="/features" className={linkClass}>Features</Link>
-                <Link href="/pricing" className={linkClass}>Pricing</Link>
-                <Link href="/dashboard" className={linkClass}>Start Selling</Link>
-              </div>
+              <h3 className="text-sm font-semibold text-white">Product</h3>
+              <ul className="flex flex-col gap-2">
+                <li><Link href="/browse" className={linkClass}>Marketplace</Link></li>
+                <li><Link href="/features" className={linkClass}>Features</Link></li>
+                <li><Link href="/pricing" className={linkClass}>Pricing</Link></li>
+                <li><Link href="/dashboard" className={linkClass}>Start Selling</Link></li>
+              </ul>
             </div>
 
             <div className="space-y-3">
-              <h4 className="text-sm font-semibold text-white">Company</h4>
-              <div className="flex flex-col gap-2">
-                <Link href="/about" className={linkClass}>About</Link>
-                <Link href="/blog" className={linkClass}>Blog</Link>
-                <Link href="/careers" className={linkClass}>Careers</Link>
-                <Link href="/contact" className={linkClass}>Contact</Link>
-              </div>
+              <h3 className="text-sm font-semibold text-white">Company</h3>
+              <ul className="flex flex-col gap-2">
+                <li><Link href="/about" className={linkClass}>About</Link></li>
+                <li><Link href="/blog" className={linkClass}>Blog</Link></li>
+                <li><Link href="/careers" className={linkClass}>Careers</Link></li>
+                <li><Link href="/contact" className={linkClass}>Contact</Link></li>
+              </ul>
             </div>
 
             <div className="space-y-3">
-              <h4 className="text-sm font-semibold text-white">Resources</h4>
-              <div className="flex flex-col gap-2">
-                <Link href="/support" className={linkClass}>Support</Link>
-                <Link href="/guides" className={linkClass}>Guides</Link>
-                <Link href="/faq" className={linkClass}>FAQ</Link>
-                <Link href="/status" className={linkClass}>Status</Link>
-              </div>
+              <h3 className="text-sm font-semibold text-white">Resources</h3>
+              <ul className="flex flex-col gap-2">
+                <li><Link href="/docs" className={linkClass}>Documentation</Link></li>
+                <li><Link href="/blog" className={linkClass}>Blog</Link></li>
+                <li><Link href="/whitepaper" className={linkClass}>Whitepaper</Link></li>
+                <li><Link href="/support" className={linkClass}>Support</Link></li>
+                <li><Link href="/faq" className={linkClass}>FAQ</Link></li>
+              </ul>
             </div>
 
             <div className="space-y-3">
-              <h4 className="text-sm font-semibold text-white">Legal</h4>
-              <div className="flex flex-col gap-2">
-                <Link href="/terms" className={linkClass}>Terms</Link>
-                <Link href="/privacy" className={linkClass}>Privacy</Link>
-                <Link href="/refunds" className={linkClass}>Refunds</Link>
-                <Link href="/security" className={linkClass}>Security</Link>
-              </div>
+              <h3 className="text-sm font-semibold text-white">Legal</h3>
+              <ul className="flex flex-col gap-2">
+                <li><Link href="/terms" className={linkClass}>Terms</Link></li>
+                <li><Link href="/privacy" className={linkClass}>Privacy</Link></li>
+                <li><Link href="/refunds" className={linkClass}>Refunds</Link></li>
+                <li><Link href="/security" className={linkClass}>Security</Link></li>
+              </ul>
             </div>
           </div>
         </div>

@@ -241,7 +241,7 @@ export default function ShopDashboard() {
                         alt={product.name}
                         width={56}
                         height={56}
-                        className="w-full h-full object-cover"
+                        className="w-full h-full object-contain"
                       />
                     ) : (
                       <svg className="w-6 h-6 text-teal-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">

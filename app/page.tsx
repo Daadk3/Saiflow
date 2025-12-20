@@ -5,8 +5,10 @@ import {
   CategoriesSection,
   TrendingProductsSection,
   FeaturesSection,
+  PlatformSection,
   CTASection,
 } from "@/components/home";
+import TrustBadges from "@/components/TrustBadges";
 
 export default async function Home() {
   const products = await prisma.product.findMany({
@@ -48,6 +50,10 @@ export default async function Home() {
         <CategoriesSection />
         <TrendingProductsSection products={products} />
         <FeaturesSection />
+        <PlatformSection />
+        <section className="container mx-auto px-4 py-8 bg-[#0a0a0a]">
+          <TrustBadges />
+        </section>
         <CTASection />
       </div>
     </div>

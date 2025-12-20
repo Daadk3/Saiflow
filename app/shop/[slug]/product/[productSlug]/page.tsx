@@ -89,7 +89,7 @@ export default async function ProductPage({
             {product.shop.logo ? (
               <Image
                 src={product.shop.logo}
-                alt={product.shop.name}
+                alt={`${product.shop.name} shop logo`}
                 width={32}
                 height={32}
                 className="rounded-full"
@@ -110,13 +110,27 @@ export default async function ProductPage({
           {/* Left column */}
           <div>
             {/* Preview */}
-            <div className="rounded-2xl overflow-hidden shadow-lg aspect-video bg-gray-800 relative">
+            <div className="rounded-2xl overflow-hidden shadow-lg bg-gray-800 flex items-center justify-center h-[360px] max-h-[480px]">
               {product.thumbnailUrl ? (
-                <Image src={product.thumbnailUrl} alt={product.name} fill className="object-cover" priority />
+                <Image
+                  src={product.thumbnailUrl}
+                  alt={`${product.name} - Digital product preview image from ${product.shop.name}`}
+                  width={1200}
+                  height={800}
+                  className="max-h-full w-auto object-contain"
+                  priority
+                />
               ) : product.images && product.images.length > 0 ? (
-                <Image src={product.images[0]} alt={product.name} fill className="object-cover" priority />
+                <Image
+                  src={product.images[0]}
+                  alt={`${product.name} - Digital product preview image from ${product.shop.name}`}
+                  width={1200}
+                  height={800}
+                  className="max-h-full w-auto object-contain"
+                  priority
+                />
               ) : (
-                <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-500">
+                <div className="flex flex-col items-center justify-center text-gray-500">
                   <svg className="w-16 h-16 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path
                       strokeLinecap="round"

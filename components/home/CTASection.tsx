@@ -1,3 +1,5 @@
+"use client";
+
 import Link from "next/link";
 
 export function CTASection() {
@@ -14,13 +16,13 @@ export function CTASection() {
         <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3">
           <Link
             href="/signup"
-            className="inline-flex items-center justify-center gap-2 rounded-full bg-white px-8 py-3 text-teal-700 font-semibold shadow-sm transition hover:bg-gray-100"
+            className="btn-primary"
           >
             Create your free account
           </Link>
           <Link
             href="/browse"
-            className="inline-flex items-center justify-center gap-2 rounded-full border border-white/60 px-8 py-3 text-white font-semibold transition hover:bg-white/10"
+            className="btn-secondary"
           >
             Browse products
           </Link>

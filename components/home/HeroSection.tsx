@@ -1,3 +1,5 @@
+"use client";
+
 import Link from "next/link";
 import Image from "next/image";
 
@@ -27,13 +29,15 @@ export function HeroSection() {
             <div className="flex flex-col sm:flex-row gap-3">
               <Link
                 href="/signup"
-                className="inline-flex items-center justify-center gap-2 rounded-full bg-teal-500 px-6 sm:px-8 py-3 text-white font-semibold shadow-lg shadow-teal-500/25 transition hover:bg-teal-600"
+                className="btn-primary"
+                aria-label="Start selling digital products - Sign up for free"
               >
                 Start Selling →
               </Link>
               <Link
                 href="/browse"
-                className="inline-flex items-center justify-center gap-2 rounded-full border border-gray-700 px-6 sm:px-8 py-3 text-white font-semibold bg-transparent transition hover:border-gray-600"
+                className="btn-secondary"
+                aria-label="Browse all digital products"
               >
                 Browse Products
               </Link>
@@ -64,7 +68,7 @@ export function HeroSection() {
               {/* Mock header */}
               <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-2">
-                  <Image src="/mascot.png" alt="Saiflow mascot" width={40} height={40} className="h-10 w-10" />
+                  <Image src="/mascot.png" alt="Saiflow mascot logo in shop preview" width={40} height={40} className="h-10 w-10" />
                   <div>
                     <p className="text-sm text-gray-400">Saiflow Shop</p>
                     <p className="text-base font-semibold text-white">Digital Creator Store</p>

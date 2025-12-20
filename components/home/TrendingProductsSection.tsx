@@ -27,8 +27,8 @@ export function TrendingProductsSection({ products }: TrendingProductsSectionPro
             <p className="text-sm font-semibold text-teal-400 uppercase tracking-wide">
               Featured
             </p>
-            <h2 className="text-3xl sm:text-4xl font-bold text-white mt-1">
-              Discover amazing products
+            <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
+              Featured Digital Products & Downloads
             </h2>
             <p className="text-lg text-gray-400">
               Hand-picked digital products from top creators.
@@ -57,16 +57,16 @@ export function TrendingProductsSection({ products }: TrendingProductsSectionPro
                 <Link
                   key={product.id}
                   href={href}
-                  className="group relative overflow-hidden rounded-2xl border border-gray-800 bg-[#111111] transition hover:-translate-y-1 hover:shadow-lg hover:border-gray-700"
+                  className="product-card group relative rounded-2xl border border-gray-800 bg-[#111111] transition hover:-translate-y-1 hover:shadow-lg hover:border-gray-700 overflow-visible"
                 >
-                  <div className="relative w-full h-56 overflow-hidden bg-gray-800 flex items-center justify-center">
+                  <div className="relative w-full h-80 bg-gray-900 rounded-t-xl overflow-hidden flex items-center justify-center p-4">
                     {image ? (
-                      <Image
+                      <img
                         src={image}
-                        alt={product.name}
-                        width={400}
-                        height={300}
+                        alt=""
+                        aria-hidden="true"
                         className="max-w-full max-h-full object-contain"
+                        style={{ width: 'auto', height: 'auto', maxWidth: '100%', maxHeight: '100%' }}
                       />
                     ) : (
                       <div

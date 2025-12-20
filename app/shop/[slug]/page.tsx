@@ -112,42 +112,19 @@ export default async function PublicShopPage({
                 <Link
                   key={product.id}
                   href={`/shop/${shop.slug}/product/${product.slug}`}
-                  className="group bg-[#111111] rounded-2xl shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-800 hover:border-gray-700 hover:-translate-y-1"
+                  className="product-card group bg-[#111111] rounded-2xl shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-800 hover:border-gray-700 hover:-translate-y-1 overflow-visible"
                 >
                   {/* Product Image */}
-                  <div className="relative aspect-[4/3] overflow-hidden bg-gray-800">
-                    {product.thumbnailUrl ? (
-                      <Image
-                        src={product.thumbnailUrl}
-                        alt={product.name}
-                        fill
-                        className="object-cover group-hover:scale-105 transition-transform duration-300"
-                      />
-                    ) : product.images && product.images.length > 0 ? (
-                      <Image
-                        src={product.images[0]}
-                        alt={product.name}
-                        fill
-                        className="object-cover group-hover:scale-105 transition-transform duration-300"
-                      />
-                    ) : (
-                      <div
-                        className="absolute inset-0 flex flex-col items-center justify-center text-gray-700 text-sm font-semibold"
-                        style={{
-                          background: `linear-gradient(135deg, 
-                            hsl(${175 + (index * 15) % 30}, 70%, ${75 - (index * 3) % 10}%) 0%, 
-                            hsl(${185 + (index * 10) % 25}, 80%, ${70 - (index * 2) % 8}%) 100%)`,
-                        }}
-                      >
-                        Digital Product
-                      </div>
-                    )}
-
-                    {/* Price Badge */}
-                    <div className="absolute top-3 right-3">
-                      <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold bg-[#0a0a0a]/80 backdrop-blur-sm text-white">
-                        ${Number(product.price).toFixed(2)}
-                      </span>
+                  <div className="relative w-full h-80 bg-gray-900 rounded-t-xl overflow-hidden flex items-center justify-center p-4">
+                    <img
+                      src={product.thumbnailUrl || (product.images && product.images.length > 0 ? product.images[0] : '/placeholder.png')}
+                      alt=""
+                      aria-hidden="true"
+                      className="max-w-full max-h-full object-contain"
+                      style={{ width: 'auto', height: 'auto', maxWidth: '100%', maxHeight: '100%' }}
+                    />
+                    <div className="absolute top-3 right-3 bg-gray-900/80 px-3 py-1 rounded-full">
+                      <span className="text-emerald-400 font-bold">${Number(product.price).toFixed(2)}</span>
                     </div>
                   </div>
 

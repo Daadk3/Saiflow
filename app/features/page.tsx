@@ -1,3 +1,5 @@
+"use client";
+
 import Link from "next/link";
 
 export default function FeaturesPage() {
@@ -265,7 +267,7 @@ export default function FeaturesPage() {
           </p>
           <Link
             href="/signup"
-            className="inline-flex items-center gap-2 bg-teal-500 hover:bg-teal-400 text-black font-semibold px-10 py-5 rounded-full text-lg transition-all duration-200 shadow-lg shadow-teal-500/25 hover:shadow-xl hover:shadow-teal-500/30"
+            className="btn-primary text-lg px-10 py-5"
           >
             Start Selling — It&apos;s Free
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">

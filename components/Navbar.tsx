@@ -24,6 +24,8 @@ export default function Navbar() {
 
   return (
     <nav
+      role="navigation"
+      aria-label="Main navigation"
       className={`sticky top-0 z-50 bg-[#0a0a0a]/80 backdrop-blur-md border-b border-gray-800 transition-shadow duration-300 ${
         scrolled ? "shadow-sm shadow-black/40" : ""
       }`}
@@ -31,10 +33,11 @@ export default function Navbar() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-2 cursor-pointer">
+          <Link href="/" className="logo flex items-center gap-2 cursor-pointer">
             <Image
               src="/mascot.png"
-              alt="Saiflow"
+              alt=""
+              aria-hidden="true"
               width={56}
               height={56}
               className="w-14 h-14"
@@ -43,14 +46,17 @@ export default function Navbar() {
           </Link>
 
           {/* Desktop nav */}
-          <div className="hidden md:flex items-center gap-8">
-            <Link href="/browse" className={navLinkClass}>
+          <div className="hidden md:flex items-center gap-8" role="menubar">
+            <Link href="/browse" className={navLinkClass} role="menuitem">
               Products
             </Link>
-            <Link href="/features" className={navLinkClass}>
-              Features
+            <Link href="/blog" className={navLinkClass} role="menuitem">
+              Blog
             </Link>
-            <Link href="/pricing" className={navLinkClass}>
+            <Link href="/docs" className={navLinkClass} role="menuitem">
+              Docs
+            </Link>
+            <Link href="/pricing" className={navLinkClass} role="menuitem">
               Pricing
             </Link>
           </div>
@@ -93,7 +99,10 @@ export default function Navbar() {
                 <Link href="/login" className={navLinkClass}>
                   Login
                 </Link>
-                <Link href="/signup" className="bg-teal-500 hover:bg-teal-600 text-white px-5 py-2 rounded-full font-medium transition-all">
+                <Link 
+                  href="/signup" 
+                  className="btn-primary"
+                >
                   Start Selling
                 </Link>
               </div>
@@ -105,6 +114,8 @@ export default function Navbar() {
             onClick={() => setMenuOpen((prev) => !prev)}
             className="md:hidden inline-flex items-center justify-center rounded-md p-2 text-gray-300 hover:text-white hover:bg-gray-800 transition"
             aria-label="Toggle navigation"
+            aria-expanded={menuOpen}
+            aria-controls="mobile-menu"
           >
             {menuOpen ? (
               <svg
@@ -135,6 +146,9 @@ export default function Navbar() {
 
       {/* Mobile drawer */}
       <div
+        id="mobile-menu"
+        role="menu"
+        aria-label="Mobile navigation menu"
         className={`md:hidden transition-all duration-200 ${
           menuOpen ? "max-h-screen opacity-100" : "max-h-0 opacity-0 overflow-hidden"
         }`}
@@ -145,13 +159,16 @@ export default function Navbar() {
             <span className="text-xs text-gray-500">{pathname}</span>
           </div>
           <div className="flex flex-col gap-3">
-            <Link href="/browse" className={navLinkClass} onClick={() => setMenuOpen(false)}>
+            <Link href="/browse" className={navLinkClass} onClick={() => setMenuOpen(false)} role="menuitem">
               Products
             </Link>
-            <Link href="/features" className={navLinkClass} onClick={() => setMenuOpen(false)}>
-              Features
+            <Link href="/blog" className={navLinkClass} onClick={() => setMenuOpen(false)} role="menuitem">
+              Blog
             </Link>
-            <Link href="/pricing" className={navLinkClass} onClick={() => setMenuOpen(false)}>
+            <Link href="/docs" className={navLinkClass} onClick={() => setMenuOpen(false)} role="menuitem">
+              Docs
+            </Link>
+            <Link href="/pricing" className={navLinkClass} onClick={() => setMenuOpen(false)} role="menuitem">
               Pricing
             </Link>
             {session ? (
@@ -179,7 +196,7 @@ export default function Navbar() {
                 <Link
                   href="/signup"
                   onClick={() => setMenuOpen(false)}
-                  className="bg-teal-500 hover:bg-teal-600 text-white px-5 py-2 rounded-full font-medium transition-all text-center"
+                  className="btn-primary text-center"
                 >
                   Start Selling
                 </Link>

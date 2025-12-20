@@ -34,7 +34,7 @@ export function FeaturesSection() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-12">
           <p className="text-sm font-semibold text-teal-400 uppercase tracking-wide">How it works</p>
-          <h2 className="text-3xl sm:text-4xl font-bold text-white mt-2">Launch in three simple steps</h2>
+          <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">Sell Digital Downloads in Three Simple Steps</h2>
           <p className="mt-3 text-lg text-gray-400">
             Create, upload, and start earning with a modern Gumroad-like experience.
           </p>

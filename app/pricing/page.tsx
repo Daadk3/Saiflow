@@ -108,7 +108,7 @@ export default function PricingPage() {
               {/* CTA */}
               <Link
                 href="/signup"
-                className="block w-full py-4 px-6 bg-teal-500 hover:bg-teal-400 text-black font-semibold rounded-xl text-center transition-colors shadow-lg shadow-teal-500/25"
+                className="btn-primary block w-full py-4 px-6 rounded-xl text-center"
               >
                 Start Selling — It&apos;s Free
               </Link>
@@ -273,7 +273,7 @@ export default function PricingPage() {
           </p>
           <Link
             href="/signup"
-            className="inline-flex items-center gap-2 bg-teal-500 hover:bg-teal-400 text-black font-semibold px-10 py-5 rounded-full text-lg transition-all duration-200 shadow-lg shadow-teal-500/25 hover:shadow-xl hover:shadow-teal-500/30"
+            className="btn-primary text-lg px-10 py-5"
           >
             Start Selling — It&apos;s Free
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
