@@ -1,13 +1,8 @@
-import createMiddleware from 'next-intl/middleware';
+// Middleware disabled - using client-side language switching instead
+// This file is kept for reference but not used
 
-export default createMiddleware({
-  locales: ['en', 'ar'],
-  defaultLocale: 'en'
-});
+export { default } from 'next-auth/middleware';
 
 export const config = {
-  // Match all pathnames except for
-  // - … if they start with `/api`, `/_next` or `/_vercel`
-  // - … the ones containing a dot (e.g. `favicon.ico`)
-  matcher: ['/((?!api|_next|_vercel|.*\\..*).*)']
+  matcher: ['/dashboard/:path*']
 };

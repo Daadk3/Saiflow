@@ -2,10 +2,10 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { useTranslations } from "next-intl";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 export function HeroSection() {
-  const t = useTranslations('hero');
+  const { t } = useLanguage();
   return (
     <section className="relative overflow-hidden bg-transparent">
       {/* Additional subtle background shapes for hero section */}
@@ -18,10 +18,10 @@ export function HeroSection() {
           {/* Left */}
           <div className="space-y-6">
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-white leading-tight">
-              {t('title')}
+              {t('hero.title')}
             </h1>
             <p className="text-lg sm:text-xl text-gray-400 max-w-xl">
-              {t('subtitle')}
+              {t('hero.subtitle')}
             </p>
             <div className="flex flex-col sm:flex-row gap-3">
               <Link
@@ -29,14 +29,14 @@ export function HeroSection() {
                 className="btn-primary"
                 aria-label="Start selling digital products - Sign up for free"
               >
-                {t('cta')}
+                {t('hero.cta')}
               </Link>
               <Link
                 href="/browse"
                 className="btn-secondary"
                 aria-label="Browse all digital products"
               >
-                {t('browse')}
+                {t('hero.browse')}
               </Link>
             </div>
           </div>

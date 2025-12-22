@@ -5,15 +5,13 @@ import Image from "next/image";
 import { useEffect, useState } from "react";
 import { useSession, signOut } from "next-auth/react";
 import { usePathname } from "next/navigation";
-import { useTranslations } from "next-intl";
-import LanguageSwitcher from "./LanguageSwitcher";
+import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 
 export default function Navbar() {
   const { data: session } = useSession();
   const pathname = usePathname();
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
-  const t = useTranslations('nav');
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 10);
@@ -51,16 +49,16 @@ export default function Navbar() {
           {/* Desktop nav */}
           <div className="hidden md:flex items-center gap-8" role="menubar">
             <Link href="/browse" className={navLinkClass} role="menuitem">
-              {t('products')}
+              Products
             </Link>
             <Link href="/blog" className={navLinkClass} role="menuitem">
-              {t('blog')}
+              Blog
             </Link>
             <Link href="/docs" className={navLinkClass} role="menuitem">
-              {t('docs')}
+              Docs
             </Link>
             <Link href="/pricing" className={navLinkClass} role="menuitem">
-              {t('pricing')}
+              Pricing
             </Link>
           </div>
 
@@ -68,7 +66,7 @@ export default function Navbar() {
           <div className="hidden md:flex items-center gap-4">
             <Link
               href="/browse"
-              aria-label={t('search')}
+              aria-label="Search"
               className="text-gray-500 hover:text-white transition-colors"
             >
               <svg
@@ -88,26 +86,26 @@ export default function Navbar() {
               // Logged in - show these
               <div className="flex items-center gap-4">
                 <Link href="/dashboard" className={navLinkClass}>
-                  {t('dashboard')}
+                  Dashboard
                 </Link>
                 <button 
                   onClick={() => signOut({ callbackUrl: '/' })}
                   className={navLinkClass}
                 >
-                  {t('signOut')}
+                  Sign Out
                 </button>
               </div>
             ) : (
               // Logged out - show these
               <div className="flex items-center gap-4">
                 <Link href="/login" className={navLinkClass}>
-                  {t('login')}
+                  Login
                 </Link>
                 <Link 
                   href="/signup" 
                   className="btn-primary"
                 >
-                  {t('startSelling')}
+                  Start Selling
                 </Link>
               </div>
             )}
@@ -164,22 +162,22 @@ export default function Navbar() {
           </div>
           <div className="flex flex-col gap-3">
             <Link href="/browse" className={navLinkClass} onClick={() => setMenuOpen(false)} role="menuitem">
-              {t('products')}
+              Products
             </Link>
             <Link href="/blog" className={navLinkClass} onClick={() => setMenuOpen(false)} role="menuitem">
-              {t('blog')}
+              Blog
             </Link>
             <Link href="/docs" className={navLinkClass} onClick={() => setMenuOpen(false)} role="menuitem">
-              {t('docs')}
+              Docs
             </Link>
             <Link href="/pricing" className={navLinkClass} onClick={() => setMenuOpen(false)} role="menuitem">
-              {t('pricing')}
+              Pricing
             </Link>
             {session ? (
               // Logged in mobile menu
               <>
                 <Link href="/dashboard" className={navLinkClass} onClick={() => setMenuOpen(false)}>
-                  {t('dashboard')}
+                  Dashboard
                 </Link>
                 <button
                   onClick={() => {
@@ -188,21 +186,21 @@ export default function Navbar() {
                   }}
                   className={`${navLinkClass} text-left rtl:text-right`}
                 >
-                  {t('signOut')}
+                  Sign Out
                 </button>
               </>
             ) : (
               // Logged out mobile menu
               <>
                 <Link href="/login" className={navLinkClass} onClick={() => setMenuOpen(false)}>
-                  {t('login')}
+                  Login
                 </Link>
                 <Link
                   href="/signup"
                   onClick={() => setMenuOpen(false)}
                   className="btn-primary text-center"
                 >
-                  {t('startSelling')}
+                  Start Selling
                 </Link>
               </>
             )}

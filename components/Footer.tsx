@@ -2,10 +2,10 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { useTranslations } from "next-intl";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 export default function Footer() {
-  const t = useTranslations('footer');
+  const { t } = useLanguage();
   const linkClass =
     "text-gray-400 hover:text-white text-sm font-medium transition-colors";
 
@@ -20,7 +20,7 @@ export default function Footer() {
               <span className="text-xl font-semibold text-white">Saiflow</span>
             </Link>
             <p className="text-gray-400 text-sm leading-relaxed">
-              {t('tagline')}
+              {t('footer.tagline')}
             </p>
 
             {/* Newsletter */}
@@ -64,17 +64,17 @@ export default function Footer() {
             <div className="space-y-3">
               <h3 className="text-sm font-semibold text-white">Company</h3>
               <ul className="flex flex-col gap-2">
-                <li><Link href="/about" className={linkClass}>{t('about')}</Link></li>
-                <li><Link href="/blog" className={linkClass}>{t('blog')}</Link></li>
-                <li><Link href="/contact" className={linkClass}>{t('contact')}</Link></li>
+                <li><Link href="/about" className={linkClass}>{t('footer.about')}</Link></li>
+                <li><Link href="/blog" className={linkClass}>{t('footer.blog')}</Link></li>
+                <li><Link href="/contact" className={linkClass}>{t('footer.contact')}</Link></li>
               </ul>
             </div>
 
             <div className="space-y-3">
               <h3 className="text-sm font-semibold text-white">Resources</h3>
               <ul className="flex flex-col gap-2">
-                <li><Link href="/docs" className={linkClass}>{t('docs')}</Link></li>
-                <li><Link href="/blog" className={linkClass}>{t('blog')}</Link></li>
+                <li><Link href="/docs" className={linkClass}>{t('footer.docs')}</Link></li>
+                <li><Link href="/blog" className={linkClass}>{t('footer.blog')}</Link></li>
                 <li><Link href="/support" className={linkClass}>{t('common.support')}</Link></li>
               </ul>
             </div>
@@ -82,8 +82,8 @@ export default function Footer() {
             <div className="space-y-3">
               <h3 className="text-sm font-semibold text-white">Legal</h3>
               <ul className="flex flex-col gap-2">
-                <li><Link href="/terms" className={linkClass}>{t('terms')}</Link></li>
-                <li><Link href="/privacy" className={linkClass}>{t('privacy')}</Link></li>
+                <li><Link href="/terms" className={linkClass}>{t('footer.terms')}</Link></li>
+                <li><Link href="/privacy" className={linkClass}>{t('footer.privacy')}</Link></li>
               </ul>
             </div>
           </div>
@@ -92,7 +92,7 @@ export default function Footer() {
         {/* Bottom row */}
         <div className="mt-12 flex flex-col sm:flex-row items-center justify-between gap-6 border-t border-gray-800 pt-6">
           <p className="text-sm text-gray-500">
-            {t('copyright')}
+            {t('footer.copyright')}
           </p>
           <div className="flex items-center gap-4 text-gray-500">
             <Link href="https://twitter.com" aria-label="Twitter" className="hover:text-white transition">
