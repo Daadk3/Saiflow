@@ -1,5 +1,3 @@
-import Link from "next/link";
-
 export default function TermsPage() {
   return (
     <div className="pt-16">

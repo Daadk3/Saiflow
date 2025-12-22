@@ -241,7 +241,7 @@ export default function FeaturesPage() {
               { icon: "🎨", title: "Custom Branding", desc: "Your logo, your colors" },
               { icon: "🔒", title: "SSL Security", desc: "Bank-grade encryption" },
               { icon: "📊", title: "Analytics", desc: "Track your performance" },
-              { icon: "💬", title: "Support", desc: "We're here to help" },
+              { icon: "💬", title: "Support", desc: "We&apos;re here to help" },
             ].map((feature) => (
               <div
                 key={feature.title}

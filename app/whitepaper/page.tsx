@@ -56,7 +56,7 @@ export default function WhitepaperPage() {
                   <strong className="text-white">High Transaction Fees:</strong> Many platforms charge 30% or more, significantly reducing creator earnings
                 </li>
                 <li>
-                  <strong className="text-white">Limited Customization:</strong> Creators are forced to use generic templates that don't reflect their brand
+                  <strong className="text-white">Limited Customization:</strong> Creators are forced to use generic templates that don&apos;t reflect their brand
                 </li>
                 <li>
                   <strong className="text-white">Customer Relationship Barriers:</strong> Platforms often prevent direct communication between creators and customers
@@ -93,7 +93,7 @@ export default function WhitepaperPage() {
                   <div className="text-3xl mb-4">🎨</div>
                   <h3 className="text-xl font-semibold text-white mb-3">Full Customization</h3>
                   <p className="text-gray-300">
-                    Complete control over your storefront's appearance, allowing you to create a unique brand experience that resonates with your audience.
+                    Complete control over your storefront&apos;s appearance, allowing you to create a unique brand experience that resonates with your audience.
                   </p>
                 </div>
                 
@@ -162,7 +162,7 @@ export default function WhitepaperPage() {
                   <div>
                     <h3 className="text-xl font-semibold text-white mb-2">Grow Your Business</h3>
                     <p className="text-gray-300">
-                      Use analytics to understand your customers, optimize your products, and scale your digital business. Withdraw earnings whenever you're ready.
+                      Use analytics to understand your customers, optimize your products, and scale your digital business. Withdraw earnings whenever you&apos;re ready.
                     </p>
                   </div>
                 </div>
@@ -173,7 +173,7 @@ export default function WhitepaperPage() {
             <section className="mb-16 bg-gradient-to-br from-teal-500/10 to-cyan-500/10 rounded-2xl p-8 border border-teal-500/20">
               <h2 className="text-3xl font-bold text-white mb-6">Future Roadmap</h2>
               <p className="text-lg text-gray-300 mb-6">
-                We're just getting started. Here's what's coming next:
+                We&apos;re just getting started. Here&apos;s what&apos;s coming next:
               </p>
               
               <div className="space-y-4">
@@ -215,7 +215,7 @@ export default function WhitepaperPage() {
             <section className="text-center bg-[#111111] rounded-2xl p-12 border border-gray-800">
               <h2 className="text-3xl font-bold text-white mb-4">Join Us</h2>
               <p className="text-lg text-gray-300 mb-8 max-w-2xl mx-auto">
-                We're building the future of digital commerce, and we'd love for you to be part of it. Whether you're a creator looking to sell or a customer looking to support creators, Saiflow is here for you.
+                We&apos;re building the future of digital commerce, and we&apos;d love for you to be part of it. Whether you&apos;re a creator looking to sell or a customer looking to support creators, Saiflow is here for you.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <Link

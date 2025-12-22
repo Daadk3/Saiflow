@@ -7,15 +7,15 @@ import { useRouter } from "next/navigation";
 const faqs = [
   {
     question: "How do I create a product?",
-    answer: "To create a product, first create a shop from your dashboard. Then, click 'Add Product' in your shop. Fill in the product details (name, description, price), upload your digital file, and click 'Create Product'. Your product will be live immediately with a unique link you can share.",
+    answer: "To create a product, first create a shop from your dashboard. Then, click &apos;Add Product&apos; in your shop. Fill in the product details (name, description, price), upload your digital file, and click &apos;Create Product&apos;. Your product will be live immediately with a unique link you can share.",
   },
   {
     question: "How do I upload files?",
-    answer: "When creating or editing a product, you'll see an 'Upload File' button. Click it to select your file from your computer. Supported formats include PDFs, videos, audio files, ZIP archives, images, and more. Files are securely hosted and delivered to customers after purchase.",
+    answer: "When creating or editing a product, you&apos;ll see an &apos;Upload File&apos; button. Click it to select your file from your computer. Supported formats include PDFs, videos, audio files, ZIP archives, images, and more. Files are securely hosted and delivered to customers after purchase.",
   },
   {
     question: "When do I get paid?",
-    answer: "You get paid instantly! As soon as a customer completes a purchase, the money is transferred to your connected payment account. There's no waiting period or monthly payout schedule.",
+    answer: "You get paid instantly! As soon as a customer completes a purchase, the money is transferred to your connected payment account. There&apos;s no waiting period or monthly payout schedule.",
   },
   {
     question: "How do customers receive their files?",
@@ -23,11 +23,11 @@ const faqs = [
   },
   {
     question: "Can I edit my product after publishing?",
-    answer: "Yes! You can edit your product at any time from your dashboard. Go to your shop, find the product, and click 'Edit'. You can update the name, description, price, and even replace the file. Changes take effect immediately.",
+    answer: "Yes! You can edit your product at any time from your dashboard. Go to your shop, find the product, and click &apos;Edit&apos;. You can update the name, description, price, and even replace the file. Changes take effect immediately.",
   },
   {
     question: "How do I delete my account?",
-    answer: "To delete your account, please contact us at support@saiflow.io with your account email. We'll process your request and permanently delete your account and all associated data within 30 days, in accordance with our Privacy Policy.",
+    answer: "To delete your account, please contact us at support@saiflow.io with your account email. We&apos;ll process your request and permanently delete your account and all associated data within 30 days, in accordance with our Privacy Policy.",
   },
 ];
 

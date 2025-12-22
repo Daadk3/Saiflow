@@ -18,15 +18,15 @@ const faqs = [
   },
   {
     question: "What file types can I sell?",
-    answer: "You can sell PDFs, ebooks, videos, audio files (MP3, WAV), ZIP archives, images, software, templates, and more. If it's digital, you can sell it on Saiflow.",
+    answer: "You can sell PDFs, ebooks, videos, audio files (MP3, WAV), ZIP archives, images, software, templates, and more. If it&apos;s digital, you can sell it on Saiflow.",
   },
   {
     question: "Do I need technical skills?",
-    answer: "Not at all! Saiflow is designed for creators, not developers. Upload your file, set a price, and share your link. That's it.",
+    answer: "Not at all! Saiflow is designed for creators, not developers. Upload your file, set a price, and share your link. That&apos;s it.",
   },
   {
     question: "Can I cancel anytime?",
-    answer: "There's nothing to cancel! Since there are no monthly fees or subscriptions, you can stop using Saiflow whenever you want with no penalties.",
+    answer: "There&apos;s nothing to cancel! Since there are no monthly fees or subscriptions, you can stop using Saiflow whenever you want with no penalties.",
   },
 ];
 
