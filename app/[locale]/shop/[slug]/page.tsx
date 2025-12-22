@@ -108,7 +108,7 @@ export default async function PublicShopPage({
 
           {shop.products.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {shop.products.map((product, index) => (
+              {shop.products.map((product) => (
                 <Link
                   key={product.id}
                   href={`/shop/${shop.slug}/product/${product.slug}`}

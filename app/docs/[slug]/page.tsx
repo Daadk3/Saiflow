@@ -1,7 +1,13 @@
 import Link from "next/link";
 
 // Documentation content (in a real app, this would come from a CMS or database)
-const docs: Record<string, any> = {
+interface DocContent {
+  title: string;
+  category: string;
+  content: string;
+}
+
+const docs: Record<string, DocContent> = {
   "getting-started": {
     title: "Welcome to Saiflow",
     category: "Getting Started",

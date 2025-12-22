@@ -315,7 +315,7 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
             <div className="flex-1">
               {products.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {products.map((product, index) => (
+                  {products.map((product) => (
                     <Link
                       key={product.id}
                       href={`/shop/${product.shop.slug}/product/${product.slug}`}
