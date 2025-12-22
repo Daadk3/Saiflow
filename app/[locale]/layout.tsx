@@ -9,7 +9,7 @@ import Footer from "@/components/Footer";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import StickyMobileCTA from "@/components/StickyMobileCTA";
 import StructuredData from "@/components/StructuredData";
-import { locales } from '@/i18n';
+import { locales, type Locale } from '@/i18n';
 
 export const metadata: Metadata = {
   title: "Saiflow - Sell Digital Products Online | Digital Commerce Platform",
@@ -66,7 +66,7 @@ export default async function LocaleLayout({
   const { locale } = resolvedParams;
   
   // Validate locale
-  if (!locales.includes(locale as any)) {
+  if (!locales.includes(locale as Locale)) {
     notFound();
   }
 

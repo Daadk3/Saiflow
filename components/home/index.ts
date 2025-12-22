@@ -5,7 +5,3 @@ export { TrendingProductsSection } from "./TrendingProductsSection";
 export { FeaturesSection } from "./FeaturesSection";
 export { PlatformSection } from "./PlatformSection";
 export { CTASection } from "./CTASection";
-export { CategoriesSection } from "./CategoriesSection";
-export { TrendingProductsSection } from "./TrendingProductsSection";
-export { FeaturesSection } from "./FeaturesSection";
-export { CTASection } from "./CTASection";

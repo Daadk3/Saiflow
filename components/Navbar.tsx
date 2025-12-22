@@ -83,6 +83,7 @@ export default function Navbar() {
                 <line x1="16.65" y1="16.65" x2="21" y2="21" />
               </svg>
             </Link>
+            <LanguageSwitcher />
             {session ? (
               // Logged in - show these
               <div className="flex items-center gap-4">
@@ -110,7 +111,6 @@ export default function Navbar() {
                 </Link>
               </div>
             )}
-            <LanguageSwitcher />
           </div>
 
           {/* Mobile menu button */}
@@ -175,9 +175,6 @@ export default function Navbar() {
             <Link href="/pricing" className={navLinkClass} onClick={() => setMenuOpen(false)} role="menuitem">
               {t('pricing')}
             </Link>
-            <div className="pt-2 border-t border-gray-800">
-              <LanguageSwitcher />
-            </div>
             {session ? (
               // Logged in mobile menu
               <>
@@ -209,6 +206,9 @@ export default function Navbar() {
                 </Link>
               </>
             )}
+            <div className="pt-3 border-t border-gray-800 mt-3">
+              <LanguageSwitcher />
+            </div>
           </div>
         </div>
       </div>
