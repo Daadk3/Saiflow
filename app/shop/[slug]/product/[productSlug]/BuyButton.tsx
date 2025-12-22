@@ -50,7 +50,7 @@ export default function BuyButton({ productId, hasFile = true }: BuyButtonProps)
       } else {
         setError("Something went wrong");
       }
-    } catch (err) {
+    } catch {
       setError("Something went wrong. Please try again.");
     } finally {
       setLoading(false);

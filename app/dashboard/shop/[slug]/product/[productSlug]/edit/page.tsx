@@ -107,7 +107,7 @@ export default function EditProductPage() {
       if (productData.fileUrl) {
         setFileName("Current file");
       }
-    } catch (err) {
+    } catch {
       setError("Something went wrong");
     } finally {
       setLoading(false);
@@ -149,7 +149,7 @@ export default function EditProductPage() {
       setTimeout(() => {
         router.push(`/dashboard/shop/${slug}`);
       }, 1500);
-    } catch (err) {
+    } catch {
       setError("Something went wrong");
     } finally {
       setSaving(false);

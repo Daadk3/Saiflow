@@ -58,7 +58,7 @@ export default function SalesPage() {
       }
 
       setData(ordersData);
-    } catch (err) {
+    } catch {
       setError("Something went wrong");
     } finally {
       setLoading(false);

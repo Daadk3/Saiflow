@@ -89,7 +89,7 @@ export default function AddProductPage() {
       }
 
       router.push(`/dashboard/shop/${slug}`);
-    } catch (err) {
+    } catch {
       setError("Something went wrong");
     } finally {
       setLoading(false);

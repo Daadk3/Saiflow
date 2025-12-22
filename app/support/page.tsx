@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
@@ -49,7 +48,7 @@ export default function SupportPage() {
     // Try to open mailto link (may be blocked by browser)
     try {
       window.location.href = mailtoLink;
-    } catch (err) {
+    } catch {
       // If mailto fails, continue with redirect
     }
     

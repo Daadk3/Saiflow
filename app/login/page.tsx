@@ -29,7 +29,7 @@ export default function LoginPage() {
       } else if (result?.ok) {
         router.push("/dashboard");
       }
-    } catch (err) {
+    } catch {
       setError("Something went wrong");
     } finally {
       setLoading(false);

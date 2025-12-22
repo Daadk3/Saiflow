@@ -61,7 +61,7 @@ export default function ShopDashboard() {
       }
 
       setShop(data);
-    } catch (err) {
+    } catch {
       setError("Something went wrong");
     } finally {
       setLoading(false);

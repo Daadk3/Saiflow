@@ -59,7 +59,7 @@ export default function EditShopPage() {
       setDescription(data.description || "");
       setLogo(data.logo || "");
       setCoverImage(data.coverImage || "");
-    } catch (err) {
+    } catch {
       setError("Something went wrong");
     } finally {
       setLoading(false);
@@ -105,7 +105,7 @@ export default function EditShopPage() {
           router.push(`/dashboard/shop/${slug}`);
         }, 1500);
       }
-    } catch (err) {
+    } catch {
       setError("Something went wrong");
     } finally {
       setSaving(false);
