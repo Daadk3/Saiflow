@@ -1,28 +1,27 @@
+"use client";
+
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 
 const categories = [
-  { name: "eBooks & Guides", slug: "ebooks", icon: "📘" },
-  { name: "Online Courses", slug: "courses", icon: "🎥" },
-  { name: "Templates & Themes", slug: "templates", icon: "🧩" },
-  { name: "Music & Audio", slug: "music", icon: "🎵" },
-  { name: "Art & Graphics", slug: "art", icon: "🎨" },
-  { name: "Software & Apps", slug: "software", icon: "💻" },
+  { key: "ebooksGuides", slug: "ebooks", icon: "📘" },
+  { key: "onlineCourses", slug: "courses", icon: "🎥" },
+  { key: "templatesThemes", slug: "templates", icon: "🧩" },
+  { key: "musicAudio", slug: "music", icon: "🎵" },
+  { key: "artGraphics", slug: "art", icon: "🎨" },
+  { key: "softwareApps", slug: "software", icon: "💻" },
 ];
 
 export function CategoriesSection() {
+  const t = useTranslations('home.categories');
+  
   return (
     <section className="py-16 sm:py-20 px-4 bg-[#0a0a0a]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-10">
-          <p className="text-sm font-semibold text-teal-400 uppercase tracking-wide">
-            Explore by category
-          </p>
           <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
-            Digital Products Marketplace for Creators
+            {t('digitalProducts')}
           </h2>
-          <p className="mt-3 text-lg text-gray-400">
-            From courses to templates, discover what creators are selling.
-          </p>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -51,18 +50,15 @@ export function CategoriesSection() {
                 </div>
                 <div className="flex-1">
                   <h3 className="text-lg font-semibold text-white">
-                    {category.name}
+                    {t(category.key)}
                   </h3>
-                  <p className="mt-1 text-sm text-gray-400">
-                    Explore the latest in {category.name.toLowerCase()}.
-                  </p>
                 </div>
               </div>
               <div className="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-teal-400">
-                Browse category
+                {t('viewAll')}
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
-                  className="h-4 w-4 transition-transform group-hover:translate-x-1"
+                  className="h-4 w-4 transition-transform group-hover:translate-x-1 rtl:group-hover:-translate-x-1"
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"

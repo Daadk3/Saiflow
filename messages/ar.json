@@ -1,0 +1,108 @@
+{
+  "nav": {
+    "products": "المنتجات",
+    "features": "المميزات",
+    "pricing": "الأسعار",
+    "login": "تسجيل الدخول",
+    "startSelling": "ابدأ البيع",
+    "dashboard": "لوحة التحكم",
+    "signOut": "تسجيل الخروج",
+    "search": "بحث"
+  },
+  "hero": {
+    "title": "بِع منتجاتك الرقمية",
+    "subtitle": "أسهل طريقة لبيع المنتجات الرقمية عبر الإنترنت. بدون رسوم شهرية، فقط عمولة بسيطة على كل عملية بيع.",
+    "cta": "ابدأ البيع الآن",
+    "browse": "تصفح المنتجات"
+  },
+  "categories": {
+    "all": "الكل",
+    "ebooksGuides": "كتب إلكترونية ودلائل",
+    "onlineCourses": "دورات تعليمية",
+    "templatesThemes": "قوالب وثيمات",
+    "musicAudio": "موسيقى وصوتيات",
+    "artGraphics": "فن ورسومات",
+    "softwareApps": "برامج وتطبيقات",
+    "digitalProducts": "منتجات رقمية"
+  },
+  "products": {
+    "allProducts": "جميع المنتجات",
+    "showingProducts": "عرض {count} منتج",
+    "filters": "تصفية",
+    "priceRange": "نطاق السعر",
+    "minPrice": "الحد الأدنى",
+    "maxPrice": "الحد الأقصى",
+    "applyFilters": "تطبيق الفلاتر",
+    "clearFilters": "مسح الفلاتر",
+    "sort": "ترتيب",
+    "newest": "الأحدث",
+    "priceLowHigh": "السعر: من الأقل للأعلى",
+    "priceHighLow": "السعر: من الأعلى للأقل",
+    "apply": "تطبيق",
+    "buyNow": "اشترِ الآن",
+    "getProduct": "احصل على هذا المنتج",
+    "download": "حمّل ملفك",
+    "downloadProduct": "حمّل منتجك",
+    "free": "مجاني",
+    "comingSoon": "قريباً",
+    "productNotFound": "المنتج غير موجود"
+  },
+  "purchase": {
+    "paymentSuccessful": "تمت عملية الدفع بنجاح!",
+    "thankYou": "شكراً لشرائك.",
+    "fileReady": "ملفك {name} جاهز!",
+    "havingTrouble": "تواجه مشكلة؟ تواصل مع الدعم على",
+    "continueShopping": "متابعة التسوق"
+  },
+  "seller": {
+    "backToShop": "العودة إلى {shop}",
+    "createShop": "أنشئ متجرك",
+    "shopName": "اسم المتجر",
+    "shopNamePlaceholder": "مثال: الاستوديو الإبداعي",
+    "createShopButton": "إنشاء المتجر",
+    "addProduct": "إضافة منتج",
+    "editProduct": "تعديل المنتج",
+    "productName": "اسم المنتج",
+    "description": "الوصف",
+    "price": "السعر",
+    "category": "الفئة",
+    "thumbnail": "الصورة المصغرة",
+    "productFile": "ملف المنتج",
+    "save": "حفظ",
+    "cancel": "إلغاء",
+    "delete": "حذف",
+    "sales": "المبيعات",
+    "revenue": "الإيرادات",
+    "views": "المشاهدات"
+  },
+  "auth": {
+    "login": "تسجيل الدخول",
+    "signUp": "إنشاء حساب",
+    "signInWithGoogle": "تسجيل الدخول بحساب جوجل",
+    "email": "البريد الإلكتروني",
+    "password": "كلمة المرور",
+    "forgotPassword": "نسيت كلمة المرور؟",
+    "noAccount": "ليس لديك حساب؟",
+    "haveAccount": "لديك حساب بالفعل؟"
+  },
+  "footer": {
+    "about": "عن سايفلو",
+    "contact": "تواصل معنا",
+    "terms": "شروط الخدمة",
+    "privacy": "سياسة الخصوصية",
+    "blog": "المدونة",
+    "docs": "التوثيق",
+    "copyright": "© 2025 سايفلو. جميع الحقوق محفوظة.",
+    "tagline": "سوقك للمنتجات الرقمية"
+  },
+  "common": {
+    "loading": "جاري التحميل...",
+    "error": "حدث خطأ ما",
+    "tryAgain": "حاول مرة أخرى",
+    "noResults": "لا توجد نتائج",
+    "viewAll": "عرض الكل",
+    "learnMore": "اعرف المزيد",
+    "getStarted": "ابدأ الآن",
+    "support": "الدعم"
+  }
+}

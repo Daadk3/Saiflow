@@ -2,8 +2,10 @@
 
 import Link from "next/link";
 import Image from "next/image";
+import { useTranslations } from "next-intl";
 
 export function HeroSection() {
+  const t = useTranslations('hero');
   return (
     <section className="relative overflow-hidden bg-transparent">
       {/* Additional subtle background shapes for hero section */}
@@ -15,16 +17,11 @@ export function HeroSection() {
         <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
           {/* Left */}
           <div className="space-y-6">
-            <span className="inline-flex items-center gap-2 rounded-full bg-teal-500/10 px-4 py-2 text-sm font-semibold text-teal-400 border border-teal-500/20">
-              <span className="h-2 w-2 rounded-full bg-teal-500 animate-pulse" />
-              Built for modern creators
-            </span>
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-white leading-tight">
-              Sell your digital products the easy way
+              {t('title')}
             </h1>
             <p className="text-lg sm:text-xl text-gray-400 max-w-xl">
-              Launch your shop in minutes, deliver instantly, and get paid fast. No headaches, just a clean,
-              modern checkout for you and your customers.
+              {t('subtitle')}
             </p>
             <div className="flex flex-col sm:flex-row gap-3">
               <Link
@@ -32,32 +29,15 @@ export function HeroSection() {
                 className="btn-primary"
                 aria-label="Start selling digital products - Sign up for free"
               >
-                Start Selling →
+                {t('cta')}
               </Link>
               <Link
                 href="/browse"
                 className="btn-secondary"
                 aria-label="Browse all digital products"
               >
-                Browse Products
+                {t('browse')}
               </Link>
-            </div>
-
-            {/* Social proof quick row */}
-            <div className="flex flex-wrap items-center gap-4 text-sm text-gray-400">
-              <div className="flex items-center gap-2">
-                <div className="h-8 w-8 rounded-full bg-teal-500/10 border border-teal-500/40 flex items-center justify-center text-teal-400 text-xs font-semibold">
-                  10k
-                </div>
-                Trusted creators
-              </div>
-              <span className="h-1 w-1 rounded-full bg-gray-700" />
-              <div className="flex items-center gap-2">
-                <div className="h-8 w-8 rounded-full bg-amber-500/10 border border-amber-500/40 flex items-center justify-center text-amber-300 text-xs font-semibold">
-                  $1M+
-                </div>
-                Earned through Saiflow
-              </div>
             </div>
           </div>
 

@@ -1,0 +1,108 @@
+{
+  "nav": {
+    "products": "Products",
+    "features": "Features",
+    "pricing": "Pricing",
+    "login": "Login",
+    "startSelling": "Start Selling",
+    "dashboard": "Dashboard",
+    "signOut": "Sign Out",
+    "search": "Search"
+  },
+  "hero": {
+    "title": "Sell Your Digital Products",
+    "subtitle": "The easiest way to sell digital products online. No monthly fees, just a simple transaction fee.",
+    "cta": "Start Selling Now",
+    "browse": "Browse Products"
+  },
+  "categories": {
+    "all": "All",
+    "ebooksGuides": "eBooks & Guides",
+    "onlineCourses": "Online Courses",
+    "templatesThemes": "Templates & Themes",
+    "musicAudio": "Music & Audio",
+    "artGraphics": "Art & Graphics",
+    "softwareApps": "Software & Apps",
+    "digitalProducts": "Digital Products"
+  },
+  "products": {
+    "allProducts": "All Products",
+    "showingProducts": "Showing {count} products",
+    "filters": "Filters",
+    "priceRange": "Price range",
+    "minPrice": "Min",
+    "maxPrice": "Max",
+    "applyFilters": "Apply filters",
+    "clearFilters": "Clear filters",
+    "sort": "Sort",
+    "newest": "Newest",
+    "priceLowHigh": "Price: Low to High",
+    "priceHighLow": "Price: High to Low",
+    "apply": "Apply",
+    "buyNow": "Buy Now",
+    "getProduct": "Get this product",
+    "download": "Download Your File",
+    "downloadProduct": "Download Your Product",
+    "free": "Free",
+    "comingSoon": "Coming Soon",
+    "productNotFound": "Product not found"
+  },
+  "purchase": {
+    "paymentSuccessful": "Payment Successful!",
+    "thankYou": "Thank you for your purchase.",
+    "fileReady": "Your file {name} is ready!",
+    "havingTrouble": "Having trouble? Contact support at",
+    "continueShopping": "Continue Shopping"
+  },
+  "seller": {
+    "backToShop": "Back to {shop}",
+    "createShop": "Create Your Shop",
+    "shopName": "Shop Name",
+    "shopNamePlaceholder": "e.g., Creative Studio",
+    "createShopButton": "Create Shop",
+    "addProduct": "Add Product",
+    "editProduct": "Edit Product",
+    "productName": "Product Name",
+    "description": "Description",
+    "price": "Price",
+    "category": "Category",
+    "thumbnail": "Thumbnail",
+    "productFile": "Product File",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "sales": "Sales",
+    "revenue": "Revenue",
+    "views": "Views"
+  },
+  "auth": {
+    "login": "Login",
+    "signUp": "Sign Up",
+    "signInWithGoogle": "Sign in with Google",
+    "email": "Email",
+    "password": "Password",
+    "forgotPassword": "Forgot password?",
+    "noAccount": "Don't have an account?",
+    "haveAccount": "Already have an account?"
+  },
+  "footer": {
+    "about": "About",
+    "contact": "Contact",
+    "terms": "Terms of Service",
+    "privacy": "Privacy Policy",
+    "blog": "Blog",
+    "docs": "Documentation",
+    "copyright": "© 2025 Saiflow. All rights reserved.",
+    "tagline": "Your Digital Products Marketplace"
+  },
+  "common": {
+    "loading": "Loading...",
+    "error": "Something went wrong",
+    "tryAgain": "Try again",
+    "noResults": "No results found",
+    "viewAll": "View All",
+    "learnMore": "Learn More",
+    "getStarted": "Get Started",
+    "support": "Support"
+  }
+}

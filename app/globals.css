@@ -158,6 +158,23 @@ select:focus-visible {
   animation: slide-up 0.3s ease-out;
 }
 
+/* RTL Support */
+[dir="rtl"] {
+  direction: rtl;
+  text-align: right;
+}
+
+[dir="rtl"] .skip-to-main {
+  left: auto;
+  right: 0;
+  border-radius: 0 0 0 4px;
+}
+
+/* RTL adjustments for flex containers */
+[dir="rtl"] .flex {
+  flex-direction: row-reverse;
+}
+
 /* Mobile-first touch target improvements */
 @media (max-width: 768px) {
   /* All interactive elements */

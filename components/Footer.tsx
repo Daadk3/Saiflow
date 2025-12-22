@@ -2,8 +2,10 @@
 
 import Link from "next/link";
 import Image from "next/image";
+import { useTranslations } from "next-intl";
 
 export default function Footer() {
+  const t = useTranslations('footer');
   const linkClass =
     "text-gray-400 hover:text-white text-sm font-medium transition-colors";
 
@@ -18,8 +20,7 @@ export default function Footer() {
               <span className="text-xl font-semibold text-white">Saiflow</span>
             </Link>
             <p className="text-gray-400 text-sm leading-relaxed">
-              Sell digital products, courses, and memberships with a clean, modern checkout
-              experience. Keep more of what you earn with Saiflow.
+              {t('tagline')}
             </p>
 
             {/* Newsletter */}
@@ -53,41 +54,36 @@ export default function Footer() {
             <div className="space-y-3">
               <h3 className="text-sm font-semibold text-white">Product</h3>
               <ul className="flex flex-col gap-2">
-                <li><Link href="/browse" className={linkClass}>Marketplace</Link></li>
-                <li><Link href="/features" className={linkClass}>Features</Link></li>
-                <li><Link href="/pricing" className={linkClass}>Pricing</Link></li>
-                <li><Link href="/dashboard" className={linkClass}>Start Selling</Link></li>
+                <li><Link href="/browse" className={linkClass}>{t('products.allProducts')}</Link></li>
+                <li><Link href="/features" className={linkClass}>{t('nav.features')}</Link></li>
+                <li><Link href="/pricing" className={linkClass}>{t('nav.pricing')}</Link></li>
+                <li><Link href="/dashboard" className={linkClass}>{t('nav.startSelling')}</Link></li>
               </ul>
             </div>
 
             <div className="space-y-3">
               <h3 className="text-sm font-semibold text-white">Company</h3>
               <ul className="flex flex-col gap-2">
-                <li><Link href="/about" className={linkClass}>About</Link></li>
-                <li><Link href="/blog" className={linkClass}>Blog</Link></li>
-                <li><Link href="/careers" className={linkClass}>Careers</Link></li>
-                <li><Link href="/contact" className={linkClass}>Contact</Link></li>
+                <li><Link href="/about" className={linkClass}>{t('about')}</Link></li>
+                <li><Link href="/blog" className={linkClass}>{t('blog')}</Link></li>
+                <li><Link href="/contact" className={linkClass}>{t('contact')}</Link></li>
               </ul>
             </div>
 
             <div className="space-y-3">
               <h3 className="text-sm font-semibold text-white">Resources</h3>
               <ul className="flex flex-col gap-2">
-                <li><Link href="/docs" className={linkClass}>Documentation</Link></li>
-                <li><Link href="/blog" className={linkClass}>Blog</Link></li>
-                <li><Link href="/whitepaper" className={linkClass}>Whitepaper</Link></li>
-                <li><Link href="/support" className={linkClass}>Support</Link></li>
-                <li><Link href="/faq" className={linkClass}>FAQ</Link></li>
+                <li><Link href="/docs" className={linkClass}>{t('docs')}</Link></li>
+                <li><Link href="/blog" className={linkClass}>{t('blog')}</Link></li>
+                <li><Link href="/support" className={linkClass}>{t('common.support')}</Link></li>
               </ul>
             </div>
 
             <div className="space-y-3">
               <h3 className="text-sm font-semibold text-white">Legal</h3>
               <ul className="flex flex-col gap-2">
-                <li><Link href="/terms" className={linkClass}>Terms</Link></li>
-                <li><Link href="/privacy" className={linkClass}>Privacy</Link></li>
-                <li><Link href="/refunds" className={linkClass}>Refunds</Link></li>
-                <li><Link href="/security" className={linkClass}>Security</Link></li>
+                <li><Link href="/terms" className={linkClass}>{t('terms')}</Link></li>
+                <li><Link href="/privacy" className={linkClass}>{t('privacy')}</Link></li>
               </ul>
             </div>
           </div>
@@ -96,7 +92,7 @@ export default function Footer() {
         {/* Bottom row */}
         <div className="mt-12 flex flex-col sm:flex-row items-center justify-between gap-6 border-t border-gray-800 pt-6">
           <p className="text-sm text-gray-500">
-            © {new Date().getFullYear()} Saiflow. All rights reserved.
+            {t('copyright')}
           </p>
           <div className="flex items-center gap-4 text-gray-500">
             <Link href="https://twitter.com" aria-label="Twitter" className="hover:text-white transition">
