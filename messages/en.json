@@ -10,10 +10,11 @@
     "search": "Search"
   },
   "hero": {
-    "title": "Sell Your Digital Products",
-    "subtitle": "The easiest way to sell digital products online. No monthly fees, just a simple transaction fee.",
-    "cta": "Start Selling Now",
-    "browse": "Browse Products"
+    "badge": "The Arab creator marketplace — finally",
+    "title": "The marketplace where Arab creators get paid for what they know",
+    "subtitle": "Set up your store in minutes, sell in any currency, and keep 95% of every sale. No complicated tools. No gatekeepers. Just you, your audience, and your income.",
+    "cta": "Start for free — no credit card",
+    "browse": "See what's selling"
   },
   "categories": {
     "all": "All",
@@ -23,7 +24,45 @@
     "musicAudio": "Music & Audio",
     "artGraphics": "Art & Graphics",
     "softwareApps": "Software & Apps",
-    "digitalProducts": "Digital Products"
+    "digitalProducts": "Digital Products",
+    "sectionTitle": "What are you selling?",
+    "sectionSubtitle": "From ebooks to full courses — pick your category and start earning today.",
+    "ebooksDesc": "Recipes, self-help, niche guides — turn what you know into a PDF someone pays for.",
+    "coursesDesc": "Teach once, earn forever. Host and sell your video courses with zero platform fees eating your margins.",
+    "templatesDesc": "Canva decks, Notion setups, website themes — designers and productivity creators thrive here.",
+    "musicDesc": "Beats, sound packs, and Arabic music — sell your sound to the audience it deserves.",
+    "artDesc": "Illustrations, digital prints, and graphic packs. Your art is a product — sell it like one.",
+    "softwareDesc": "Scripts, tools, plugins, and indie apps. Sell your code to buyers who need exactly what you built."
+  },
+  "platform": {
+    "title": "From idea to income in three steps",
+    "subtitle": "No tech skills needed. Set up your store, upload your product, and start earning — in under an hour.",
+    "step1Title": "Build your storefront",
+    "step1Desc": "Set up a branded store page in minutes — your name, your colors, your products. No design skills needed.",
+    "step2Title": "Upload anything digital",
+    "step2Desc": "PDFs, videos, audio, courses, templates — if it's a file, you can sell it. Delivery is instant and automatic.",
+    "step3Title": "Get paid, anywhere",
+    "step3Desc": "Accept payments in SAR, USD, and more. Funds go straight to you — no waiting, no middlemen, no hidden fees."
+  },
+  "stats": {
+    "badge1": "Free to start",
+    "badge2": "Instant delivery",
+    "badge3": "Arab-first platform",
+    "badge4": "Arabic & English"
+  },
+  "cta": {
+    "title": "Your first sale is closer than you think.",
+    "subtitle": "Arab creators are turning their knowledge into income on Saiflow. Your store is free to create — it takes 5 minutes and zero technical skills.",
+    "button": "Create your free account",
+    "browse": "Browse products",
+    "note": "No credit card required • Free to start"
+  },
+  "footer": {
+    "tagline": "Sell digital products, courses, and memberships with a clean, modern checkout experience. Keep more of what you earn with Saiflow.",
+    "newsletter": "Get the Arab creator playbook",
+    "newsletterDesc": "Weekly tips on selling digital products, growing your audience, and making money from what you know. In Arabic and English.",
+    "emailPlaceholder": "you@example.com",
+    "subscribe": "Subscribe"
   },
   "products": {
     "allProducts": "All Products",
@@ -32,77 +71,50 @@
     "priceRange": "Price range",
     "minPrice": "Min",
     "maxPrice": "Max",
-    "applyFilters": "Apply filters",
-    "clearFilters": "Clear filters",
-    "sort": "Sort",
+    "sortBy": "Sort by",
     "newest": "Newest",
-    "priceLowHigh": "Price: Low to High",
-    "priceHighLow": "Price: High to Low",
-    "apply": "Apply",
-    "buyNow": "Buy Now",
-    "getProduct": "Get this product",
-    "download": "Download Your File",
-    "downloadProduct": "Download Your Product",
+    "priceLow": "Price: Low to High",
+    "priceHigh": "Price: High to Low",
     "free": "Free",
-    "comingSoon": "Coming Soon",
-    "productNotFound": "Product not found"
+    "buyNow": "Buy Now",
+    "viewProduct": "View Product",
+    "noProducts": "No products found",
+    "featured": "Featured"
   },
-  "purchase": {
-    "paymentSuccessful": "Payment Successful!",
-    "thankYou": "Thank you for your purchase.",
-    "fileReady": "Your file {name} is ready!",
-    "havingTrouble": "Having trouble? Contact support at",
-    "continueShopping": "Continue Shopping"
+  "shop": {
+    "products": "products",
+    "noProducts": "No products yet",
+    "viewShop": "View public shop"
   },
-  "seller": {
-    "backToShop": "Back to {shop}",
-    "createShop": "Create Your Shop",
-    "shopName": "Shop Name",
-    "shopNamePlaceholder": "e.g., Creative Studio",
-    "createShopButton": "Create Shop",
-    "addProduct": "Add Product",
-    "editProduct": "Edit Product",
-    "productName": "Product Name",
-    "description": "Description",
-    "price": "Price",
-    "category": "Category",
-    "thumbnail": "Thumbnail",
-    "productFile": "Product File",
-    "save": "Save",
-    "cancel": "Cancel",
-    "delete": "Delete",
-    "sales": "Sales",
-    "revenue": "Revenue",
-    "views": "Views"
+  "dashboard": {
+    "welcome": "Welcome back",
+    "yourShops": "Your shops",
+    "totalProducts": "Total products",
+    "totalSales": "Total sales",
+    "totalRevenue": "Total revenue",
+    "addProduct": "Add product",
+    "editShop": "Edit shop",
+    "createShop": "Create shop",
+    "viewShop": "View shop",
+    "viewSales": "View sales",
+    "comingSoon": "Coming soon"
   },
   "auth": {
-    "login": "Login",
-    "signUp": "Sign Up",
-    "signInWithGoogle": "Sign in with Google",
+    "signIn": "Sign in",
+    "signUp": "Sign up",
     "email": "Email",
     "password": "Password",
     "forgotPassword": "Forgot password?",
-    "noAccount": "Don't have an account?",
-    "haveAccount": "Already have an account?"
+    "continueWithGoogle": "Continue with Google",
+    "orContinueWithEmail": "or continue with email",
+    "noAccount": "New to Saiflow?",
+    "createAccount": "Create an account",
+    "alreadyHaveAccount": "Already have an account?",
+    "welcomeBack": "Welcome back",
+    "logInToAccount": "Log in to your account"
   },
-  "footer": {
-    "about": "About",
-    "contact": "Contact",
-    "terms": "Terms of Service",
-    "privacy": "Privacy Policy",
-    "blog": "Blog",
-    "docs": "Documentation",
-    "copyright": "© 2025 Saiflow. All rights reserved.",
-    "tagline": "Your Digital Products Marketplace"
-  },
-  "common": {
-    "loading": "Loading...",
-    "error": "Something went wrong",
-    "tryAgain": "Try again",
-    "noResults": "No results found",
-    "viewAll": "View All",
-    "learnMore": "Learn More",
-    "getStarted": "Get Started",
-    "support": "Support"
+  "meta": {
+    "title": "Saiflow — The Digital Marketplace for Arab Creators",
+    "description": "The marketplace where Arab creators sell their knowledge. Sell ebooks, courses, templates and more. Keep 95% of every sale. Start free."
   }
 }
