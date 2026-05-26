@@ -49,7 +49,9 @@
     "step2Title": "Upload anything digital",
     "step2Desc": "PDFs, videos, audio, courses, templates — if it's a file, you can sell it. Delivery is instant and automatic.",
     "step3Title": "Get paid, anywhere",
-    "step3Desc": "Accept payments in SAR, USD, and more. Funds go straight to you — no waiting, no middlemen, no hidden fees."
+    "step3Desc": "Accept payments in SAR, USD, and more. Funds go straight to you — no waiting, no middlemen, no hidden fees.",
+    "eyebrow": "How it works",
+    "stepLabel": "Step {number}"
   },
   "stats": {
     "badge1": "Free to start",
