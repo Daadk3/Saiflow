@@ -2,36 +2,31 @@
 
 import Link from "next/link";
 import { useState } from "react";
-
-const faqs = [
-  {
-    question: "When do I get paid?",
-    answer: "You get paid instantly! As soon as a customer completes a purchase, the money is transferred to your connected bank account. No waiting for monthly payouts.",
-  },
-  {
-    question: "Are there any hidden fees?",
-    answer: "No hidden fees whatsoever. We only charge 9% per successful sale. No monthly fees, no setup fees, no transaction minimums. What you see is what you get.",
-  },
-  {
-    question: "Can I sell internationally?",
-    answer: "Yes! We support payments from customers worldwide. Currency conversion is handled automatically, so you can sell to anyone, anywhere.",
-  },
-  {
-    question: "What file types can I sell?",
-    answer: "You can sell PDFs, ebooks, videos, audio files (MP3, WAV), ZIP archives, images, software, templates, and more. If it&apos;s digital, you can sell it on Saiflow.",
-  },
-  {
-    question: "Do I need technical skills?",
-    answer: "Not at all! Saiflow is designed for creators, not developers. Upload your file, set a price, and share your link. That&apos;s it.",
-  },
-  {
-    question: "Can I cancel anytime?",
-    answer: "There&apos;s nothing to cancel! Since there are no monthly fees or subscriptions, you can stop using Saiflow whenever you want with no penalties.",
-  },
-];
+import { useTranslations } from "next-intl";
 
 export default function PricingPage() {
+  const t = useTranslations("pricing");
   const [openFaq, setOpenFaq] = useState<number | null>(null);
+
+  const faqs = [
+    { question: t("faq.q1"), answer: t("faq.a1") },
+    { question: t("faq.q2"), answer: t("faq.a2") },
+    { question: t("faq.q3"), answer: t("faq.a3") },
+    { question: t("faq.q4"), answer: t("faq.a4") },
+    { question: t("faq.q5"), answer: t("faq.a5") },
+    { question: t("faq.q6"), answer: t("faq.a6") },
+  ];
+
+  const features = [
+    t("tiers.feature1"),
+    t("tiers.feature2"),
+    t("tiers.feature3"),
+    t("tiers.feature4"),
+    t("tiers.feature5"),
+    t("tiers.feature6"),
+    t("tiers.feature7"),
+    t("tiers.feature8"),
+  ];
 
   return (
     <div className="pt-16">
@@ -43,18 +38,17 @@ export default function PricingPage() {
             <svg className="w-4 h-4 text-teal-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
-            <span className="text-teal-400 text-sm font-medium">Fair pricing for creators</span>
+            <span className="text-teal-400 text-sm font-medium">{t("hero.eyebrow")}</span>
           </div>
 
           {/* Headline */}
           <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-white tracking-tight leading-[1.1]">
-            Simple, transparent
-            <span className="block text-teal-400">pricing</span>
+            {t("hero.title")}
           </h1>
 
           {/* Subheadline */}
           <p className="mt-6 text-xl text-gray-400 max-w-2xl mx-auto leading-relaxed">
-            No monthly fees. No hidden costs. Only pay when you make a sale.
+            {t("hero.subtitle")}
           </p>
         </div>
       </section>
@@ -66,34 +60,25 @@ export default function PricingPage() {
           <div className="relative group">
             {/* Glow background */}
             <div className="absolute -inset-1 bg-gradient-to-r from-teal-500 to-cyan-500 rounded-3xl blur-lg opacity-25 group-hover:opacity-40 transition-opacity duration-500"></div>
-            
+
             {/* Card */}
             <div className="relative bg-[#111111] rounded-3xl border border-teal-500/30 p-8 sm:p-10">
               {/* Header */}
               <div className="text-center mb-8">
                 <span className="inline-block px-4 py-1 bg-teal-500/10 text-teal-400 text-sm font-medium rounded-full mb-4">
-                  Most Popular
+                  {t("tiers.badge")}
                 </span>
-                <h2 className="text-2xl font-bold text-white mb-2">Creator</h2>
+                <h2 className="text-2xl font-bold text-white mb-2">{t("tiers.name")}</h2>
                 <div className="flex items-baseline justify-center gap-2">
-                  <span className="text-5xl sm:text-6xl font-extrabold text-white">9%</span>
-                  <span className="text-xl text-gray-400">per sale</span>
+                  <span className="text-5xl sm:text-6xl font-extrabold text-white">{t("tiers.rate")}</span>
+                  <span className="text-xl text-gray-400">{t("tiers.ratePeriod")}</span>
                 </div>
-                <p className="mt-2 text-gray-500">Only pay when you earn</p>
+                <p className="mt-2 text-gray-500">{t("tiers.rateNote")}</p>
               </div>
 
               {/* Features */}
               <ul className="space-y-4 mb-8">
-                {[
-                  "Unlimited products",
-                  "Unlimited sales",
-                  "Secure file hosting",
-                  "Instant payouts",
-                  "Sales dashboard & analytics",
-                  "Email notifications",
-                  "Custom product links",
-                  "24/7 support",
-                ].map((feature) => (
+                {features.map((feature) => (
                   <li key={feature} className="flex items-center gap-3">
                     <div className="w-5 h-5 rounded-full bg-teal-500/20 flex items-center justify-center flex-shrink-0">
                       <svg className="w-3 h-3 text-teal-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -110,10 +95,10 @@ export default function PricingPage() {
                 href="/signup"
                 className="btn-primary block w-full py-4 px-6 rounded-xl text-center"
               >
-                Start Selling — It&apos;s Free
+                {t("tiers.cta")}
               </Link>
               <p className="mt-4 text-center text-sm text-gray-500">
-                No credit card required
+                {t("tiers.ctaNote")}
               </p>
             </div>
           </div>
@@ -125,10 +110,10 @@ export default function PricingPage() {
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-12">
             <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">
-              Why creators choose Saiflow
+              {t("comparison.heading")}
             </h2>
             <p className="text-gray-400">
-              See how we compare to other platforms
+              {t("comparison.subheading")}
             </p>
           </div>
 
@@ -137,78 +122,79 @@ export default function PricingPage() {
             <table className="w-full">
               <thead>
                 <tr className="border-b border-white/10">
-                  <th className="text-left py-5 px-6 text-gray-400 font-medium">Feature</th>
+                  <th className="text-start py-5 px-6 text-gray-400 font-medium">{t("comparison.headerFeature")}</th>
                   <th className="text-center py-5 px-6">
                     <span className="inline-flex items-center gap-2 text-teal-400 font-semibold">
                       <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                         <path fillRule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clipRule="evenodd" />
                       </svg>
-                      Saiflow
+                      {t("comparison.headerYou")}
                     </span>
                   </th>
-                  <th className="text-center py-5 px-6 text-gray-400 font-medium">Others</th>
+                  <th className="text-center py-5 px-6 text-gray-400 font-medium">{t("comparison.headerThem")}</th>
                 </tr>
               </thead>
               <tbody>
                 <tr className="border-b border-white/5">
-                  <td className="py-5 px-6 text-gray-300">Monthly fee</td>
+                  <td className="py-5 px-6 text-gray-300">{t("comparison.rowMonthlyFee")}</td>
                   <td className="py-5 px-6 text-center">
                     <span className="inline-flex items-center gap-1 text-teal-400 font-semibold">
-                      $0
+                      {t("comparison.saiflowFree")}
                       <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                       </svg>
                     </span>
                   </td>
+                  {/* Competitor pricing in their actual currency — deliberately not localized */}
                   <td className="py-5 px-6 text-center text-gray-500">$29-99/mo</td>
                 </tr>
                 <tr className="border-b border-white/5">
-                  <td className="py-5 px-6 text-gray-300">Transaction fee</td>
+                  <td className="py-5 px-6 text-gray-300">{t("comparison.rowTransactionFee")}</td>
                   <td className="py-5 px-6 text-center">
                     <span className="inline-flex items-center gap-1 text-teal-400 font-semibold">
-                      9%
+                      {t("comparison.saiflowRate")}
                       <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                       </svg>
                     </span>
                   </td>
-                  <td className="py-5 px-6 text-center text-gray-500">5-10% + monthly</td>
+                  <td className="py-5 px-6 text-center text-gray-500">{t("comparison.themTransaction")}</td>
                 </tr>
                 <tr className="border-b border-white/5">
-                  <td className="py-5 px-6 text-gray-300">Setup time</td>
+                  <td className="py-5 px-6 text-gray-300">{t("comparison.rowSetupTime")}</td>
                   <td className="py-5 px-6 text-center">
                     <span className="inline-flex items-center gap-1 text-teal-400 font-semibold">
-                      Minutes
+                      {t("comparison.saiflowFast")}
                       <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                       </svg>
                     </span>
                   </td>
-                  <td className="py-5 px-6 text-center text-gray-500">Days/Weeks</td>
+                  <td className="py-5 px-6 text-center text-gray-500">{t("comparison.themSlow")}</td>
                 </tr>
                 <tr className="border-b border-white/5">
-                  <td className="py-5 px-6 text-gray-300">Payout speed</td>
+                  <td className="py-5 px-6 text-gray-300">{t("comparison.rowPayoutSpeed")}</td>
                   <td className="py-5 px-6 text-center">
                     <span className="inline-flex items-center gap-1 text-teal-400 font-semibold">
-                      Instant
+                      {t("comparison.saiflowInstant")}
                       <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                       </svg>
                     </span>
                   </td>
-                  <td className="py-5 px-6 text-center text-gray-500">Weekly/Monthly</td>
+                  <td className="py-5 px-6 text-center text-gray-500">{t("comparison.themPayout")}</td>
                 </tr>
                 <tr>
-                  <td className="py-5 px-6 text-gray-300">Hidden costs</td>
+                  <td className="py-5 px-6 text-gray-300">{t("comparison.rowHiddenCosts")}</td>
                   <td className="py-5 px-6 text-center">
                     <span className="inline-flex items-center gap-1 text-teal-400 font-semibold">
-                      None
+                      {t("comparison.saiflowNone")}
                       <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                       </svg>
                     </span>
                   </td>
-                  <td className="py-5 px-6 text-center text-gray-500">Often yes</td>
+                  <td className="py-5 px-6 text-center text-gray-500">{t("comparison.themHidden")}</td>
                 </tr>
               </tbody>
             </table>
@@ -221,10 +207,10 @@ export default function PricingPage() {
         <div className="max-w-3xl mx-auto">
           <div className="text-center mb-12">
             <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">
-              Frequently asked questions
+              {t("faq.heading")}
             </h2>
             <p className="text-gray-400">
-              Everything you need to know about Saiflow pricing
+              {t("faq.subheading")}
             </p>
           </div>
 
@@ -237,9 +223,9 @@ export default function PricingPage() {
               >
                 <button
                   onClick={() => setOpenFaq(openFaq === index ? null : index)}
-                  className="w-full flex items-center justify-between p-6 text-left"
+                  className="w-full flex items-center justify-between p-6 text-start"
                 >
-                  <span className="text-white font-medium pr-4">{faq.question}</span>
+                  <span className="text-white font-medium pe-4">{faq.question}</span>
                   <svg
                     className={`w-5 h-5 text-gray-400 flex-shrink-0 transition-transform duration-200 ${
                       openFaq === index ? "rotate-180" : ""
@@ -266,22 +252,22 @@ export default function PricingPage() {
       <section className="py-20 sm:py-32 px-4">
         <div className="max-w-4xl mx-auto text-center">
           <h2 className="text-4xl sm:text-5xl font-extrabold text-white mb-6">
-            Ready to start selling?
+            {t("cta.title")}
           </h2>
           <p className="text-xl text-gray-400 mb-10 max-w-2xl mx-auto">
-            Join thousands of creators who are already selling their digital products with Saiflow.
+            {t("cta.subtitle")}
           </p>
           <Link
             href="/signup"
             className="btn-primary text-lg px-10 py-5"
           >
-            Start Selling — It&apos;s Free
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            {t("cta.primary")}
+            <svg className="w-5 h-5 rtl:rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
             </svg>
           </Link>
           <p className="mt-4 text-sm text-gray-500">
-            Free to start • No credit card required
+            {t("cta.note")}
           </p>
         </div>
       </section>

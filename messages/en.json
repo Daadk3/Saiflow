@@ -51,8 +51,8 @@
     "step1Desc": "Set up a branded store page in minutes — your name, your colors, your products. No design skills needed.",
     "step2Title": "Upload anything digital",
     "step2Desc": "PDFs, videos, audio, courses, templates — if it's a file, you can sell it. Delivery is instant and automatic.",
-    "step3Title": "Get paid, anywhere",
-    "step3Desc": "Get paid in SAR, anywhere — instant payouts and zero hidden fees.",
+    "step3Title": "Get paid instantly",
+    "step3Desc": "Get paid in SAR — instant payouts and zero hidden fees.",
     "eyebrow": "How it works",
     "stepLabel": "Step {number}"
   },
@@ -158,5 +158,72 @@
     "saudiSubtitle": "Local-first marketplace",
     "supportTitle": "Arabic-first support",
     "supportSubtitle": "We speak your language"
+  },
+  "pricing": {
+    "hero": {
+      "eyebrow": "Pricing",
+      "title": "Simple pricing, built for creators",
+      "subtitle": "Start free. Grow with us as you grow."
+    },
+    "tiers": {
+      "badge": "Most Popular",
+      "name": "Creator",
+      "rate": "9%",
+      "ratePeriod": "per sale",
+      "rateNote": "Only pay when you earn",
+      "feature1": "Unlimited products",
+      "feature2": "Unlimited sales",
+      "feature3": "Secure file hosting",
+      "feature4": "Instant payouts",
+      "feature5": "Sales dashboard & analytics",
+      "feature6": "Email notifications",
+      "feature7": "Custom product links",
+      "feature8": "24/7 support",
+      "cta": "Start Selling — It's Free",
+      "ctaNote": "No credit card required"
+    },
+    "comparison": {
+      "heading": "How we compare",
+      "subheading": "Side-by-side with leading alternatives",
+      "headerFeature": "Feature",
+      "headerYou": "Saiflow",
+      "headerThem": "Other platforms",
+      "rowMonthlyFee": "Monthly fee",
+      "rowTransactionFee": "Transaction fee",
+      "rowSetupTime": "Time to launch",
+      "rowPayoutSpeed": "Payout speed",
+      "rowHiddenCosts": "Hidden costs",
+      "saiflowFree": "Free",
+      "saiflowRate": "9%",
+      "saiflowFast": "Minutes",
+      "saiflowInstant": "Instant",
+      "saiflowNone": "None",
+      "themTransaction": "5-10% + monthly",
+      "themSlow": "Days or weeks",
+      "themPayout": "Weekly/Monthly",
+      "themHidden": "Often yes"
+    },
+    "faq": {
+      "heading": "Common questions",
+      "subheading": "Everything you might wonder before signing up",
+      "q1": "When do I get paid?",
+      "a1": "You get paid instantly. As soon as a customer completes a purchase, the money is transferred to your connected bank account — no waiting for monthly payouts.",
+      "q2": "Are there any hidden fees?",
+      "a2": "No hidden fees whatsoever. We only charge 9% per successful sale — no monthly fees, no setup fees, no transaction minimums. What you see is what you get.",
+      "q3": "Who can I sell to?",
+      "a3": "Saiflow is built for creators in Saudi Arabia first — with local payment methods, SAR pricing, and Arabic-first support tailored to your market.",
+      "q4": "What file types can I sell?",
+      "a4": "You can sell PDFs, ebooks, videos, audio files (MP3, WAV), ZIP archives, images, software, templates, and more. If it's digital, you can sell it on Saiflow.",
+      "q5": "Do I need technical skills?",
+      "a5": "Not at all. Saiflow is designed for creators, not developers. Upload your file, set a price, and share your link — that's it.",
+      "q6": "Can I cancel anytime?",
+      "a6": "There's nothing to cancel. Since there are no monthly fees or subscriptions, you can stop using Saiflow whenever you want, with no penalties."
+    },
+    "cta": {
+      "title": "Start selling in minutes",
+      "subtitle": "Start free, pay only when you earn. No monthly fees, no tiers, no surprises.",
+      "primary": "Get started",
+      "note": "Free to start • No credit card required"
+    }
   }
 }
