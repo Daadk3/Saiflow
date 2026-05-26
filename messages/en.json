@@ -251,5 +251,63 @@
       "primary": "Get started",
       "note": "Free to start • No credit card required"
     }
+  },
+  "features": {
+    "hero": {
+      "eyebrow": "Features",
+      "title": "Everything you need to sell digital products",
+      "subtitle": "Powerful features to help creators sell more, with zero complexity. No technical skills required."
+    },
+    "chips": ["Ebooks", "PDFs", "Courses", "Templates", "Music", "Art", "Software", "Videos"],
+    "moreHeading": "And much more...",
+    "moreSubheading": "Every feature you need to run a successful digital products business.",
+    "cards": {
+      "sellAnything": {
+        "title": "Sell Anything Digital",
+        "description": "Upload your files and start selling in minutes. We handle hosting, delivery, and payments so you can focus on creating.",
+        "imageLabel": "Upload & Sell"
+      },
+      "checkout": {
+        "title": "Simple Checkout",
+        "description": "One-click purchase flow that converts. No cart abandonment, no complicated steps.",
+        "items": ["One-click purchase", "Mobile-friendly", "No account required"]
+      },
+      "payouts": {
+        "title": "Instant Payouts",
+        "description": "Get paid directly to your bank account, with support for local and international cards.",
+        "items": ["Direct to your bank", "Local & international cards", "Fast transfers"]
+      },
+      "delivery": {
+        "title": "Secure File Delivery",
+        "description": "Automatic file delivery after purchase. Secure download links that expire.",
+        "items": ["Automatic delivery", "Secure links", "No hosting worries"]
+      },
+      "dashboard": {
+        "title": "Sales Dashboard",
+        "description": "Beautiful analytics to track your revenue, orders, and customer insights. Know what's working and optimize your sales."
+      },
+      "noFees": {
+        "title": "No Monthly Fees",
+        "description": "Only pay when you make a sale. Simple percentage-based pricing with no hidden costs.",
+        "rate": "9%",
+        "ratePeriod": "per sale",
+        "items": ["No setup fees", "No monthly fees", "No hidden costs"]
+      }
+    },
+    "more": {
+      "customLinks": { "title": "Custom Links", "description": "Share your product links" },
+      "emailReceipts": { "title": "Email Receipts", "description": "Automatic purchase confirmations" },
+      "localPayments": { "title": "Local Payments", "description": "Accept payments across Saudi Arabia" },
+      "mobileReady": { "title": "Mobile Ready", "description": "Works on all devices" },
+      "customBranding": { "title": "Custom Branding", "description": "Your logo, your colors" },
+      "analytics": { "title": "Analytics", "description": "Track your performance" },
+      "support": { "title": "Support", "description": "We're here to help" }
+    },
+    "cta": {
+      "title": "Start selling in minutes",
+      "subtitle": "No code, no monthly fees — start earning from your digital products today.",
+      "primary": "Start Selling — It's Free",
+      "note": "Free to start • No credit card required"
+    }
   }
 }
