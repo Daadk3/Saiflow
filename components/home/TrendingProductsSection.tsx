@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { useLanguage } from "@/contexts/LanguageContext";
+import { useTranslations } from "next-intl";
 
 interface Product {
   id: string;
@@ -22,7 +22,7 @@ interface TrendingProductsSectionProps {
 }
 
 export function TrendingProductsSection({ products }: TrendingProductsSectionProps) {
-  const { t } = useLanguage();
+  const t = useTranslations();
   
   return (
     <section className="py-16 sm:py-20 px-4 bg-[#0a0a0a]">

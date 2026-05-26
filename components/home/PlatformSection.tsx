@@ -1,9 +1,9 @@
 "use client";
 
-import { useLanguage } from "@/contexts/LanguageContext";
+import { useTranslations } from "next-intl";
 
 export function PlatformSection() {
-  const { t } = useLanguage();
+  const t = useTranslations();
   return (
     <section className="py-16 px-4 bg-[#0a0a0a]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

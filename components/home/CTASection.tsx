@@ -1,10 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useLanguage } from "@/contexts/LanguageContext";
+import { useTranslations } from "next-intl";
 
 export function CTASection() {
-  const { t } = useLanguage();
+  const t = useTranslations();
   return (
     <section className="py-16 sm:py-24 px-4 relative overflow-hidden">
       <div className="absolute inset-0 bg-gradient-to-r from-teal-500 to-emerald-500 opacity-90" />

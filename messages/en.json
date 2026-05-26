@@ -11,9 +11,10 @@
   },
   "hero": {
     "badge": "The Arab creator marketplace — finally",
-    "title": "The marketplace where Arab creators get paid for what they know",
-    "subtitle": "Set up your store in minutes, sell in any currency, and keep 95% of every sale. No complicated tools. No gatekeepers. Just you, your audience, and your income.",
-    "cta": "Start for free — no credit card",
+    "title": "The first digital marketplace built for Arab creators.",
+    "secondary": "",
+    "subtitle": "Sell your courses, ebooks, and templates in SAR — and get paid via Mada, STC Pay, and Apple Pay. Fully Arabic, built right-to-left.",
+    "cta": "Open your store — free",
     "browse": "See what's selling"
   },
   "categories": {
@@ -62,7 +63,18 @@
     "newsletter": "Get the Arab creator playbook",
     "newsletterDesc": "Weekly tips on selling digital products, growing your audience, and making money from what you know. In Arabic and English.",
     "emailPlaceholder": "you@example.com",
-    "subscribe": "Subscribe"
+    "subscribe": "Subscribe",
+    "about": "About",
+    "blog": "Blog",
+    "contact": "Contact",
+    "docs": "Docs",
+    "terms": "Terms",
+    "privacy": "Privacy",
+    "copyright": "© 2026 Saiflow. All rights reserved."
+  },
+  "common": {
+    "viewAll": "View all",
+    "support": "Support"
   },
   "products": {
     "allProducts": "All Products",

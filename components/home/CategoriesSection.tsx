@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useLanguage } from "@/contexts/LanguageContext";
+import { useTranslations } from "next-intl";
 
 const categories = [
   { key: "ebooksGuides", slug: "ebooks", icon: "📘" },
@@ -13,7 +13,7 @@ const categories = [
 ];
 
 export function CategoriesSection() {
-  const { t } = useLanguage();
+  const t = useTranslations();
   
   return (
     <section className="py-16 sm:py-20 px-4 bg-[#0a0a0a]">

@@ -10,25 +10,36 @@ import {
 } from "@/components/home";
 import TrustBadges from "@/components/TrustBadges";
 
-export default async function Home() {
-  const products = await prisma.product.findMany({
-    take: 8,
-    orderBy: { createdAt: "desc" },
-    select: {
-      id: true,
-      name: true,
-      slug: true,
-      price: true,
-      thumbnailUrl: true,
-      images: true,
-      shop: {
-        select: {
-          slug: true,
-          name: true,
+async function getRecentProducts() {
+  try {
+    return await prisma.product.findMany({
+      take: 8,
+      orderBy: { createdAt: "desc" },
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        price: true,
+        thumbnailUrl: true,
+        images: true,
+        shop: {
+          select: {
+            slug: true,
+            name: true,
+          },
         },
       },
-    },
-  });
+    });
+  } catch (error) {
+    // Don't let a DB hiccup take down the whole homepage — render with no
+    // products (TrendingProductsSection shows its empty state instead).
+    console.error("Homepage: failed to load products, rendering without them.", error);
+    return [];
+  }
+}
+
+export default async function Home() {
+  const products = await getRecentProducts();
 
   return (
     <div className="relative min-h-screen bg-[#0a0a0a] overflow-hidden">

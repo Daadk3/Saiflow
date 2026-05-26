@@ -2,10 +2,11 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { useLanguage } from "@/contexts/LanguageContext";
+import { useTranslations } from "next-intl";
 
 export function HeroSection() {
-  const { t } = useLanguage();
+  const t = useTranslations();
+  const secondary = t("hero.secondary");
   return (
     <section className="relative overflow-hidden bg-transparent">
       {/* Additional subtle background shapes for hero section */}
@@ -20,6 +21,11 @@ export function HeroSection() {
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-white leading-tight">
               {t('hero.title')}
             </h1>
+            {secondary && (
+              <p className="text-sm sm:text-base font-medium tracking-wide text-gray-500">
+                {secondary}
+              </p>
+            )}
             <p className="text-lg sm:text-xl text-gray-400 max-w-xl">
               {t('hero.subtitle')}
             </p>
@@ -50,22 +56,22 @@ export function HeroSection() {
                 <div className="flex items-center gap-2">
                   <Image src="/mascot.png" alt="Saiflow mascot logo in shop preview" width={40} height={40} className="h-10 w-10" />
                   <div>
-                    <p className="text-sm text-gray-400">Saiflow Shop</p>
-                    <p className="text-base font-semibold text-white">Digital Creator Store</p>
+                    <p className="text-sm text-gray-400">متجر Saiflow</p>
+                    <p className="text-base font-semibold text-white">متجر صانع محتوى</p>
                   </div>
                 </div>
                 <span className="rounded-full bg-teal-500/10 text-teal-400 text-sm font-semibold px-3 py-1">
-                  Live
+                  مباشر
                 </span>
               </div>
 
               {/* Floating product mockups */}
               <div className="grid grid-cols-2 gap-4">
                 {[
-                  { title: "Course Bundle", price: "$129", color: "from-teal-500/90 to-emerald-500/80" },
-                  { title: "Ebook Pack", price: "$39", color: "from-sky-500/90 to-blue-500/80" },
-                  { title: "UI Kit", price: "$69", color: "from-amber-500/90 to-orange-500/80" },
-                  { title: "Preset Pack", price: "$19", color: "from-purple-500/90 to-indigo-500/80" },
+                  { title: "حزمة كورسات", price: "٤٩٩ ر.س", color: "from-teal-500/90 to-emerald-500/80" },
+                  { title: "حزمة كتب", price: "١٤٩ ر.س", color: "from-sky-500/90 to-blue-500/80" },
+                  { title: "قوالب تصميم", price: "٢٤٩ ر.س", color: "from-amber-500/90 to-orange-500/80" },
+                  { title: "حزمة فلاتر", price: "٧٩ ر.س", color: "from-purple-500/90 to-indigo-500/80" },
                 ].map((item) => (
                   <div
                     key={item.title}
@@ -79,7 +85,7 @@ export function HeroSection() {
                     <div className="flex items-center justify-between text-sm text-gray-400">
                       <span>{item.price}</span>
                       <span className="flex items-center gap-1 text-teal-600 font-semibold">
-                        Buy
+                        اشترِ
                         <svg
                           xmlns="http://www.w3.org/2000/svg"
                           className="h-4 w-4"
@@ -99,11 +105,11 @@ export function HeroSection() {
               {/* Bottom stat */}
               <div className="mt-6 flex items-center justify-between rounded-xl border border-gray-800 bg-[#111111] px-4 py-3">
                 <div>
-                  <p className="text-sm text-gray-400">Recent sale</p>
-                  <p className="text-base font-semibold text-white">+$49 from Sarah</p>
+                  <p className="text-sm text-gray-400">آخر عملية بيع</p>
+                  <p className="text-base font-semibold text-white">+١٤٩ ر.س من نورة</p>
                 </div>
                 <span className="text-sm font-semibold text-teal-400 bg-teal-500/10 px-3 py-1 rounded-full">
-                  2m ago
+                  قبل دقيقتين
                 </span>
               </div>
             </div>
