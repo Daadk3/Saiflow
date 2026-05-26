@@ -136,5 +136,15 @@
   "meta": {
     "title": "Saiflow — The Digital Marketplace for Arab Creators",
     "description": "The marketplace where Arab creators sell their knowledge. Sell ebooks, courses, templates and more. Keep 95% of every sale. Start free."
+  },
+  "trustBadges": {
+    "secureTitle": "Secure checkout",
+    "secureSubtitle": "Encrypted payment processing",
+    "deliveryTitle": "Instant digital delivery",
+    "deliverySubtitle": "Get your purchase immediately",
+    "saudiTitle": "Built for Saudi Arabia",
+    "saudiSubtitle": "Local-first marketplace",
+    "supportTitle": "Arabic-first support",
+    "supportSubtitle": "We speak your language"
   }
 }
