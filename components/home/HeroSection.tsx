@@ -33,14 +33,14 @@ export function HeroSection() {
               <Link
                 href="/signup"
                 className="btn-primary"
-                aria-label="Start selling digital products - Sign up for free"
+                aria-label={t('hero.ctaAria')}
               >
                 {t('hero.cta')}
               </Link>
               <Link
                 href="/browse"
                 className="btn-secondary"
-                aria-label="Browse all digital products"
+                aria-label={t('hero.browseAria')}
               >
                 {t('hero.browse')}
               </Link>

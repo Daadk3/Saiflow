@@ -66,6 +66,7 @@ export default async function RootLayout({
   // defaulting to Arabic) so RTL renders immediately — no client-side flash.
   const locale = await getLocale();
   const messages = await getMessages();
+  const t = await getTranslations("nav");
   const dir = locale === "ar" ? "rtl" : "ltr";
 
   return (
@@ -94,7 +95,7 @@ export default async function RootLayout({
           <Providers>
             <ErrorBoundary>
               <a href="#main-content" className="skip-to-main">
-                Skip to main content
+                {t("skipToMain")}
               </a>
               <Navbar />
               <main id="main-content" role="main" tabIndex={-1}>
