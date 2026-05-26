@@ -7,7 +7,13 @@
     "startSelling": "Start Selling",
     "dashboard": "Dashboard",
     "signOut": "Sign Out",
-    "search": "Search"
+    "search": "Search",
+    "blog": "Blog",
+    "docs": "Docs",
+    "menu": "Navigate",
+    "mainNav": "Main navigation",
+    "toggleMenu": "Toggle navigation",
+    "mobileMenu": "Mobile navigation menu"
   },
   "hero": {
     "badge": "The Arab creator marketplace — finally",
