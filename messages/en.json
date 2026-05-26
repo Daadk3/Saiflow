@@ -101,7 +101,13 @@
     "buyNow": "Buy Now",
     "viewProduct": "View Product",
     "noProducts": "No products found",
-    "featured": "Featured"
+    "featured": "Featured",
+    "trendingHeading": "Trending now",
+    "trendingSubheading": "Hand-picked products from our community",
+    "byShop": "by {shop}",
+    "viewAll": "View all products",
+    "trendingEmpty": "Products coming soon. Be the first to sell.",
+    "imagePlaceholder": "Digital Product"
   },
   "shop": {
     "products": "products",

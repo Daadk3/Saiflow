@@ -101,7 +101,13 @@
     "buyNow": "اشتري الآن",
     "viewProduct": "عرض المنتج",
     "noProducts": "لا توجد منتجات",
-    "featured": "مميز"
+    "featured": "مميّز",
+    "trendingHeading": "الأكثر رواجاً",
+    "trendingSubheading": "منتجات مختارة من مجتمعنا",
+    "byShop": "من {shop}",
+    "viewAll": "عرض كل المنتجات",
+    "trendingEmpty": "المنتجات قريباً. كن أول البائعين.",
+    "imagePlaceholder": "منتج رقمي"
   },
   "shop": {
     "products": "منتجات",

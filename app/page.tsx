@@ -20,6 +20,7 @@ async function getRecentProducts() {
         name: true,
         slug: true,
         price: true,
+        currency: true,
         thumbnailUrl: true,
         images: true,
         shop: {

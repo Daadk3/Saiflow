@@ -2,13 +2,15 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
+import { formatPrice } from "@/lib/formatPrice";
 
 interface Product {
   id: string;
   name: string;
   slug: string;
   price: number | { toString(): string };
+  currency: string;
   thumbnailUrl: string | null;
   images: string[];
   shop: {
@@ -22,34 +24,36 @@ interface TrendingProductsSectionProps {
 }
 
 export function TrendingProductsSection({ products }: TrendingProductsSectionProps) {
-  const t = useTranslations();
-  
+  const t = useTranslations("products");
+  const locale = useLocale();
+
   return (
     <section className="py-16 sm:py-20 px-4 bg-[#0a0a0a]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-10">
           <div>
             <p className="text-sm font-semibold text-teal-400 uppercase tracking-wide">
-              Featured
+              {t('featured')}
             </p>
             <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
-              {t('products.allProducts')}
+              {t('trendingHeading')}
             </h2>
             <p className="text-lg text-gray-400">
-              Hand-picked digital products from top creators.
+              {t('trendingSubheading')}
             </p>
           </div>
           <Link
             href="/browse"
             className="inline-flex items-center gap-2 text-sm font-semibold text-teal-400 hover:text-teal-300"
           >
-            View all products →
+            {t('viewAll')}{' '}
+            <span aria-hidden="true" className="inline-block rtl:rotate-180">→</span>
           </Link>
         </div>
 
         {products.length === 0 ? (
           <div className="rounded-2xl border border-gray-800 bg-[#111111] p-10 text-center text-gray-400">
-            Products coming soon! Be the first to sell.
+            {t('trendingEmpty')}
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-6">
@@ -82,7 +86,7 @@ export function TrendingProductsSection({ products }: TrendingProductsSectionPro
                             hsl(${185 + (index * 10) % 25}, 80%, ${30 - (index * 2) % 8}%) 100%)`,
                         }}
                       >
-                        Digital Product
+                        {t('imagePlaceholder')}
                       </div>
                     )}
                   </div>
@@ -92,10 +96,10 @@ export function TrendingProductsSection({ products }: TrendingProductsSectionPro
                         {product.name}
                       </h3>
                       <span className="whitespace-nowrap rounded-full bg-teal-500/10 px-3 py-1 text-sm font-semibold text-teal-400 border border-teal-500/30">
-                        ${Number(product.price).toFixed(2)}
+                        <bdi>{formatPrice(Number(product.price), product.currency, locale)}</bdi>
                       </span>
                     </div>
-                    <p className="text-sm text-gray-400">by {product.shop.name}</p>
+                    <p className="text-sm text-gray-400">{t('byShop', { shop: product.shop.name })}</p>
                   </div>
                 </Link>
               );
