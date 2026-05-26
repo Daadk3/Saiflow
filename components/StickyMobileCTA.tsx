@@ -2,8 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 
 export default function StickyMobileCTA() {
+  const t = useTranslations('cta');
   const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
@@ -24,9 +26,10 @@ export default function StickyMobileCTA() {
         <Link 
           href="/signup"
           className="btn-primary block w-full py-4 px-6 rounded-lg text-center"
-          aria-label="Start selling for free - Sign up now"
+          aria-label={t('stickyAria')}
         >
-          Start Selling Free →
+          {t('stickyLabel')}{' '}
+          <span aria-hidden="true" className="inline-block rtl:rotate-180">→</span>
         </Link>
       </div>
     </div>

@@ -62,7 +62,9 @@
     "subtitle": "Arab creators are turning their knowledge into income on Saiflow. Your store is free to create — it takes 5 minutes and zero technical skills.",
     "button": "Create your free account",
     "browse": "Browse products",
-    "note": "No credit card required • Free to start"
+    "note": "No credit card required • Free to start",
+    "stickyLabel": "Start Selling Free",
+    "stickyAria": "Start selling for free - Sign up now"
   },
   "footer": {
     "tagline": "Sell digital products, courses, and memberships with a clean, modern checkout experience. Keep more of what you earn with Saiflow.",
