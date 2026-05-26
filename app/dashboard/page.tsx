@@ -5,6 +5,8 @@ import { useSession, signOut } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
+import { useLocale, useTranslations } from "next-intl";
+import { formatPrice } from "@/lib/formatPrice";
 
 interface Shop {
   id: string;
@@ -20,14 +22,18 @@ interface Shop {
 interface OrderStats {
   totalRevenue: number;
   totalSales: number;
+  currency: string;
+  isMixed: boolean;
 }
 
 export default function Dashboard() {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const locale = useLocale();
+  const t = useTranslations("dashboard");
 
   const [shops, setShops] = useState<Shop[]>([]);
-  const [orderStats, setOrderStats] = useState<OrderStats>({ totalRevenue: 0, totalSales: 0 });
+  const [orderStats, setOrderStats] = useState<OrderStats>({ totalRevenue: 0, totalSales: 0, currency: "SAR", isMixed: false });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -61,9 +67,13 @@ export default function Dashboard() {
       setShops(shopsData);
 
       if (ordersRes.ok) {
+        const orderRows: Array<{ product?: { currency?: string } }> = ordersData.orders || [];
+        const currencies = new Set(orderRows.map((o) => o.product?.currency || "SAR"));
         setOrderStats({
           totalRevenue: ordersData.totalRevenue || 0,
           totalSales: ordersData.totalSales || 0,
+          currency: currencies.size === 1 ? [...currencies][0] : "SAR",
+          isMixed: currencies.size > 1,
         });
       }
     } catch {
@@ -149,7 +159,7 @@ export default function Dashboard() {
               <div>
                 <p className="text-gray-400 text-sm">Total revenue</p>
                 <p className="text-3xl font-bold text-white mt-1">
-                  ${orderStats.totalRevenue.toFixed(2)}
+                  {orderStats.isMixed ? t("mixedCurrency") : <bdi>{formatPrice(Number(orderStats.totalRevenue), orderStats.currency, locale)}</bdi>}
                 </p>
               </div>
             </div>

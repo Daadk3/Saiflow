@@ -125,7 +125,8 @@
     "createShop": "Create shop",
     "viewShop": "View shop",
     "viewSales": "View sales",
-    "comingSoon": "Coming soon"
+    "comingSoon": "Coming soon",
+    "mixedCurrency": "Multiple currencies — see breakdown"
   },
   "auth": {
     "signIn": "Sign in",

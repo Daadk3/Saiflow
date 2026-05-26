@@ -1,6 +1,8 @@
 import Link from "next/link";
 import Image from "next/image";
 import { prisma } from "@/lib/prisma";
+import { getLocale } from "next-intl/server";
+import { formatPrice } from "@/lib/formatPrice";
 
 export const dynamic = "force-dynamic";
 
@@ -10,6 +12,7 @@ interface Product {
   slug: string;
   description: string | null;
   price: number;
+  currency: string;
   images: string[];
   thumbnailUrl: string | null;
   fileUrl: string | null;
@@ -68,6 +71,7 @@ async function getProducts(options: {
       slug: true,
       description: true,
       price: true,
+      currency: true,
       images: true,
       thumbnailUrl: true,
       fileUrl: true,
@@ -106,6 +110,7 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
   const maxPrice = params.maxPrice ? Number(params.maxPrice) : undefined;
 
   const products = await getProducts({ category, sort, minPrice, maxPrice });
+  const locale = await getLocale();
   const categoryName = category ? categoryMap[category] : "All Products";
   const productCount = products.length;
   const categories = Object.entries(categoryMap);
@@ -330,7 +335,7 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
                           style={{ width: 'auto', height: 'auto', maxWidth: '100%', maxHeight: '100%' }}
                         />
                         <div className="absolute top-3 right-3 bg-gray-900/80 px-3 py-1 rounded-full">
-                          <span className="text-emerald-400 font-bold">${Number(product.price).toFixed(2)}</span>
+                          <span className="text-emerald-400 font-bold"><bdi>{formatPrice(Number(product.price), product.currency, locale)}</bdi></span>
                         </div>
                         {!product.fileUrl && (
                           <div className="absolute top-3 left-3">
@@ -358,7 +363,7 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
                           </span>
                         )}
                         <div className="text-teal-400 font-bold text-xl mt-3">
-                          ${Number(product.price).toFixed(2)}
+                          <bdi>{formatPrice(Number(product.price), product.currency, locale)}</bdi>
                         </div>
                       </div>
                     </Link>

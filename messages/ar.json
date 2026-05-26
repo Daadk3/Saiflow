@@ -125,7 +125,8 @@
     "createShop": "إنشاء متجر",
     "viewShop": "عرض المتجر",
     "viewSales": "عرض المبيعات",
-    "comingSoon": "قريباً"
+    "comingSoon": "قريباً",
+    "mixedCurrency": "عملات متعددة — راجع التفاصيل"
   },
   "auth": {
     "signIn": "تسجيل الدخول",

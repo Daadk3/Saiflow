@@ -3,6 +3,8 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import BuyButton from "./BuyButton";
+import { getLocale } from "next-intl/server";
+import { formatPrice } from "@/lib/formatPrice";
 
 interface Product {
   id: string;
@@ -10,6 +12,7 @@ interface Product {
   slug: string;
   description: string | null;
   price: number;
+  currency: string;
   images: string[];
   thumbnailUrl: string | null;
   fileUrl: string | null;
@@ -34,6 +37,7 @@ async function getProduct(shopSlug: string, productSlug: string): Promise<Produc
       slug: true,
       description: true,
       price: true,
+      currency: true,
       images: true,
       thumbnailUrl: true,
       fileUrl: true,
@@ -64,6 +68,8 @@ export default async function ProductPage({
   if (!product) {
     notFound();
   }
+
+  const locale = await getLocale();
 
   return (
     <div className="min-h-screen bg-[#0a0a0a]">
@@ -214,9 +220,8 @@ export default async function ProductPage({
             <div className="sticky top-24 bg-[#111111] border border-gray-800 rounded-2xl p-6 shadow-lg">
               <div className="flex items-baseline gap-2">
                 <span className="text-4xl font-bold text-white">
-                  ${Number(product.price).toFixed(2)}
+                  <bdi>{formatPrice(Number(product.price), product.currency, locale)}</bdi>
                 </span>
-                <span className="text-sm text-gray-500">USD</span>
               </div>
 
               <div className="mt-6">
@@ -249,7 +254,7 @@ export default async function ProductPage({
         <div>
           <p className="text-xs text-gray-400">Get this product</p>
           <p className="text-lg font-bold text-white">
-            ${Number(product.price).toFixed(2)}
+            <bdi>{formatPrice(Number(product.price), product.currency, locale)}</bdi>
           </p>
         </div>
         <div className="flex-1 pl-4">

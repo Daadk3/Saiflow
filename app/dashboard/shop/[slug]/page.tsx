@@ -5,6 +5,8 @@ import { useSession } from "next-auth/react";
 import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
+import { useLocale } from "next-intl";
+import { formatPrice } from "@/lib/formatPrice";
 
 interface Product {
   id: string;
@@ -12,6 +14,7 @@ interface Product {
   slug: string;
   description: string | null;
   price: number;
+  currency: string;
   thumbnailUrl: string | null;
   fileUrl: string | null;
   createdAt: string;
@@ -33,6 +36,7 @@ export default function ShopDashboard() {
   const router = useRouter();
   const params = useParams();
   const slug = params.slug as string;
+  const locale = useLocale();
 
   const [shop, setShop] = useState<Shop | null>(null);
   const [loading, setLoading] = useState(true);
@@ -282,7 +286,7 @@ export default function ShopDashboard() {
                   {/* Price */}
                   <div className="flex-shrink-0">
                     <span className="text-xl font-bold text-teal-400">
-                      ${Number(product.price).toFixed(2)}
+                      <bdi>{formatPrice(Number(product.price), product.currency, locale)}</bdi>
                     </span>
                   </div>
 
