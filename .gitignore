@@ -75,3 +75,6 @@ logs
 
 # Uploadthing
 .uploadthing/
+
+# Claude Code harness — local settings, not for commit
+.claude/settings.local.json

@@ -7,14 +7,24 @@
     "startSelling": "Start Selling",
     "dashboard": "Dashboard",
     "signOut": "Sign Out",
-    "search": "Search"
+    "search": "Search",
+    "blog": "Blog",
+    "docs": "Docs",
+    "menu": "Navigate",
+    "mainNav": "Main navigation",
+    "toggleMenu": "Toggle navigation",
+    "mobileMenu": "Mobile navigation menu",
+    "skipToMain": "Skip to main content"
   },
   "hero": {
     "badge": "The Arab creator marketplace — finally",
-    "title": "The marketplace where Arab creators get paid for what they know",
-    "subtitle": "Set up your store in minutes, sell in any currency, and keep 95% of every sale. No complicated tools. No gatekeepers. Just you, your audience, and your income.",
-    "cta": "Start for free — no credit card",
-    "browse": "See what's selling"
+    "title": "The first digital marketplace built for Arab creators.",
+    "secondary": "",
+    "subtitle": "Sell your courses, ebooks, and templates in SAR — and get paid via Mada, STC Pay, and Apple Pay. Fully Arabic, built right-to-left.",
+    "cta": "Open your store — free",
+    "browse": "See what's selling",
+    "ctaAria": "Start selling digital products - Sign up for free",
+    "browseAria": "Browse all digital products"
   },
   "categories": {
     "all": "All",
@@ -41,13 +51,15 @@
     "step1Desc": "Set up a branded store page in minutes — your name, your colors, your products. No design skills needed.",
     "step2Title": "Upload anything digital",
     "step2Desc": "PDFs, videos, audio, courses, templates — if it's a file, you can sell it. Delivery is instant and automatic.",
-    "step3Title": "Get paid, anywhere",
-    "step3Desc": "Accept payments in SAR, USD, and more. Funds go straight to you — no waiting, no middlemen, no hidden fees."
+    "step3Title": "Get paid instantly",
+    "step3Desc": "Get paid in SAR — instant payouts and zero hidden fees.",
+    "eyebrow": "How it works",
+    "stepLabel": "Step {number}"
   },
   "stats": {
     "badge1": "Free to start",
     "badge2": "Instant delivery",
-    "badge3": "Arab-first platform",
+    "badge3": "Designed in Arabic",
     "badge4": "Arabic & English"
   },
   "cta": {
@@ -55,14 +67,27 @@
     "subtitle": "Arab creators are turning their knowledge into income on Saiflow. Your store is free to create — it takes 5 minutes and zero technical skills.",
     "button": "Create your free account",
     "browse": "Browse products",
-    "note": "No credit card required • Free to start"
+    "note": "No credit card required • Free to start",
+    "stickyLabel": "Start Selling Free",
+    "stickyAria": "Start selling for free - Sign up now"
   },
   "footer": {
     "tagline": "Sell digital products, courses, and memberships with a clean, modern checkout experience. Keep more of what you earn with Saiflow.",
     "newsletter": "Get the Arab creator playbook",
     "newsletterDesc": "Weekly tips on selling digital products, growing your audience, and making money from what you know. In Arabic and English.",
     "emailPlaceholder": "you@example.com",
-    "subscribe": "Subscribe"
+    "subscribe": "Subscribe",
+    "about": "About",
+    "blog": "Blog",
+    "contact": "Contact",
+    "docs": "Docs",
+    "terms": "Terms",
+    "privacy": "Privacy",
+    "copyright": "© 2026 Saiflow. All rights reserved."
+  },
+  "common": {
+    "viewAll": "View all",
+    "support": "Support"
   },
   "products": {
     "allProducts": "All Products",
@@ -79,7 +104,13 @@
     "buyNow": "Buy Now",
     "viewProduct": "View Product",
     "noProducts": "No products found",
-    "featured": "Featured"
+    "featured": "Featured",
+    "trendingHeading": "Trending now",
+    "trendingSubheading": "Hand-picked products from our community",
+    "byShop": "by {shop}",
+    "viewAll": "View all products",
+    "trendingEmpty": "Products coming soon. Be the first to sell.",
+    "imagePlaceholder": "Digital Product"
   },
   "shop": {
     "products": "products",
@@ -97,7 +128,34 @@
     "createShop": "Create shop",
     "viewShop": "View shop",
     "viewSales": "View sales",
-    "comingSoon": "Coming soon"
+    "comingSoon": "Coming soon",
+    "mixedCurrency": "Multiple currencies — see breakdown",
+    "shop": {
+      "loadingShop": "Loading shop...",
+      "errorTitle": "Error",
+      "shopNotFound": "Shop not found",
+      "somethingWrong": "Something went wrong",
+      "backToDashboard": "Back to dashboard",
+      "noDescription": "No description",
+      "addProduct": "Add product",
+      "viewPublicShop": "View public shop",
+      "editShop": "Edit shop",
+      "totalProducts": "Total products",
+      "totalSales": "Total sales",
+      "totalRevenue": "Total revenue",
+      "comingSoon": "Coming soon",
+      "productsHeading": "Products",
+      "productsCount": "{count, plural, =0 {No products} one {# product} other {# products}}",
+      "noFile": "No file",
+      "uploadFileWarning": "Upload a file to enable sales",
+      "viewProductTitle": "View Product",
+      "editProductTitle": "Edit Product",
+      "deleteProductTitle": "Delete Product",
+      "deleteConfirm": "Are you sure you want to delete this product?",
+      "noProductsTitle": "No products yet",
+      "addFirstProductDesc": "Add your first product to start selling",
+      "addFirstProductCta": "Add Your First Product"
+    }
   },
   "auth": {
     "signIn": "Sign in",
@@ -116,5 +174,140 @@
   "meta": {
     "title": "Saiflow — The Digital Marketplace for Arab Creators",
     "description": "The marketplace where Arab creators sell their knowledge. Sell ebooks, courses, templates and more. Keep 95% of every sale. Start free."
+  },
+  "trustBadges": {
+    "secureTitle": "Secure checkout",
+    "secureSubtitle": "Encrypted payment processing",
+    "deliveryTitle": "Instant digital delivery",
+    "deliverySubtitle": "Get your purchase immediately",
+    "saudiTitle": "Built for Saudi Arabia",
+    "saudiSubtitle": "Local-first marketplace",
+    "supportTitle": "Arabic-first support",
+    "supportSubtitle": "We speak your language"
+  },
+  "pricing": {
+    "hero": {
+      "eyebrow": "Pricing",
+      "title": "Simple pricing, built for creators",
+      "subtitle": "Start free. Grow with us as you grow."
+    },
+    "tiers": {
+      "badge": "Most Popular",
+      "name": "Creator",
+      "rate": "9%",
+      "ratePeriod": "per sale",
+      "rateNote": "Only pay when you earn",
+      "feature1": "Unlimited products",
+      "feature2": "Unlimited sales",
+      "feature3": "Secure file hosting",
+      "feature4": "Instant payouts",
+      "feature5": "Sales dashboard & analytics",
+      "feature6": "Email notifications",
+      "feature7": "Custom product links",
+      "feature8": "24/7 support",
+      "cta": "Start Selling — It's Free",
+      "ctaNote": "No credit card required"
+    },
+    "comparison": {
+      "heading": "How we compare",
+      "subheading": "Side-by-side with leading alternatives",
+      "headerFeature": "Feature",
+      "headerYou": "Saiflow",
+      "headerThem": "Other platforms",
+      "rowMonthlyFee": "Monthly fee",
+      "rowTransactionFee": "Transaction fee",
+      "rowSetupTime": "Time to launch",
+      "rowPayoutSpeed": "Payout speed",
+      "rowHiddenCosts": "Hidden costs",
+      "saiflowFree": "Free",
+      "saiflowRate": "9%",
+      "saiflowFast": "Minutes",
+      "saiflowInstant": "Instant",
+      "saiflowNone": "None",
+      "themTransaction": "5-10% + monthly",
+      "themSlow": "Days or weeks",
+      "themPayout": "Weekly/Monthly",
+      "themHidden": "Often yes"
+    },
+    "faq": {
+      "heading": "Common questions",
+      "subheading": "Everything you might wonder before signing up",
+      "q1": "When do I get paid?",
+      "a1": "You get paid instantly. As soon as a customer completes a purchase, the money is transferred to your connected bank account — no waiting for monthly payouts.",
+      "q2": "Are there any hidden fees?",
+      "a2": "No hidden fees whatsoever. We only charge 9% per successful sale — no monthly fees, no setup fees, no transaction minimums. What you see is what you get.",
+      "q3": "Who can I sell to?",
+      "a3": "Saiflow is built for creators in Saudi Arabia first — with local payment methods, SAR pricing, and Arabic-first support tailored to your market.",
+      "q4": "What file types can I sell?",
+      "a4": "You can sell PDFs, ebooks, videos, audio files (MP3, WAV), ZIP archives, images, software, templates, and more. If it's digital, you can sell it on Saiflow.",
+      "q5": "Do I need technical skills?",
+      "a5": "Not at all. Saiflow is designed for creators, not developers. Upload your file, set a price, and share your link — that's it.",
+      "q6": "Can I cancel anytime?",
+      "a6": "There's nothing to cancel. Since there are no monthly fees or subscriptions, you can stop using Saiflow whenever you want, with no penalties."
+    },
+    "cta": {
+      "title": "Start selling in minutes",
+      "subtitle": "Start free, pay only when you earn. No monthly fees, no tiers, no surprises.",
+      "primary": "Get started",
+      "note": "Free to start • No credit card required"
+    }
+  },
+  "features": {
+    "hero": {
+      "eyebrow": "Features",
+      "title": "Everything you need to sell digital products",
+      "subtitle": "Powerful features to help creators sell more, with zero complexity. No technical skills required."
+    },
+    "chips": ["Ebooks", "PDFs", "Courses", "Templates", "Music", "Art", "Software", "Videos"],
+    "moreHeading": "And much more...",
+    "moreSubheading": "Every feature you need to run a successful digital products business.",
+    "cards": {
+      "sellAnything": {
+        "title": "Sell Anything Digital",
+        "description": "Upload your files and start selling in minutes. We handle hosting, delivery, and payments so you can focus on creating.",
+        "imageLabel": "Upload & Sell"
+      },
+      "checkout": {
+        "title": "Simple Checkout",
+        "description": "One-click purchase flow that converts. No cart abandonment, no complicated steps.",
+        "items": ["One-click purchase", "Mobile-friendly", "No account required"]
+      },
+      "payouts": {
+        "title": "Instant Payouts",
+        "description": "Get paid directly to your bank account, with support for local and international cards.",
+        "items": ["Direct to your bank", "Local & international cards", "Fast transfers"]
+      },
+      "delivery": {
+        "title": "Secure File Delivery",
+        "description": "Automatic file delivery after purchase. Secure download links that expire.",
+        "items": ["Automatic delivery", "Secure links", "No hosting worries"]
+      },
+      "dashboard": {
+        "title": "Sales Dashboard",
+        "description": "Beautiful analytics to track your revenue, orders, and customer insights. Know what's working and optimize your sales."
+      },
+      "noFees": {
+        "title": "No Monthly Fees",
+        "description": "Only pay when you make a sale. Simple percentage-based pricing with no hidden costs.",
+        "rate": "9%",
+        "ratePeriod": "per sale",
+        "items": ["No setup fees", "No monthly fees", "No hidden costs"]
+      }
+    },
+    "more": {
+      "customLinks": { "title": "Custom Links", "description": "Share your product links" },
+      "emailReceipts": { "title": "Email Receipts", "description": "Automatic purchase confirmations" },
+      "localPayments": { "title": "Local Payments", "description": "Accept payments across Saudi Arabia" },
+      "mobileReady": { "title": "Mobile Ready", "description": "Works on all devices" },
+      "customBranding": { "title": "Custom Branding", "description": "Your logo, your colors" },
+      "analytics": { "title": "Analytics", "description": "Track your performance" },
+      "support": { "title": "Support", "description": "We're here to help" }
+    },
+    "cta": {
+      "title": "Start selling in minutes",
+      "subtitle": "No code, no monthly fees — start earning from your digital products today.",
+      "primary": "Start Selling — It's Free",
+      "note": "Free to start • No credit card required"
+    }
   }
 }

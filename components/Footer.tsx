@@ -2,10 +2,10 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { useLanguage } from "@/contexts/LanguageContext";
+import { useTranslations } from "next-intl";
 
 export default function Footer() {
-  const { t } = useLanguage();
+  const t = useTranslations();
   const linkClass =
     "text-gray-400 hover:text-white text-sm font-medium transition-colors";
 

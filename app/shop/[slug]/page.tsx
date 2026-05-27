@@ -2,6 +2,8 @@ import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
+import { getLocale } from "next-intl/server";
+import { formatPrice } from "@/lib/formatPrice";
 
 interface Product {
   id: string;
@@ -9,6 +11,7 @@ interface Product {
   slug: string;
   description: string | null;
   price: number;
+  currency: string;
   images: string[];
   thumbnailUrl: string | null;
 }
@@ -54,6 +57,8 @@ export default async function PublicShopPage({
   if (!shop) {
     notFound();
   }
+
+  const locale = await getLocale();
 
   return (
     <div className="min-h-screen bg-[#0a0a0a]">
@@ -124,7 +129,7 @@ export default async function PublicShopPage({
                       style={{ width: 'auto', height: 'auto', maxWidth: '100%', maxHeight: '100%' }}
                     />
                     <div className="absolute top-3 right-3 bg-gray-900/80 px-3 py-1 rounded-full">
-                      <span className="text-emerald-400 font-bold">${Number(product.price).toFixed(2)}</span>
+                      <span className="text-emerald-400 font-bold"><bdi>{formatPrice(Number(product.price), product.currency, locale)}</bdi></span>
                     </div>
                   </div>
 
@@ -142,7 +147,7 @@ export default async function PublicShopPage({
 
                     <div className="mt-4 flex items-center justify-between">
                       <span className="text-sm font-bold text-teal-400">
-                        ${Number(product.price).toFixed(2)}
+                        <bdi>{formatPrice(Number(product.price), product.currency, locale)}</bdi>
                       </span>
                       <span className="inline-flex items-center gap-1 text-sm font-medium text-teal-400 group-hover:text-teal-300 transition-colors">
                         View product

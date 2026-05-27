@@ -5,6 +5,8 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
+import { useLocale, useTranslations } from "next-intl";
+import { formatPrice } from "@/lib/formatPrice";
 
 interface Order {
   id: string;
@@ -15,6 +17,7 @@ interface Order {
   stripeSessionId: string;
   createdAt: string;
   product: {
+    currency: string;
     shop: {
       name: string;
       slug: string;
@@ -31,10 +34,16 @@ interface OrdersData {
 export default function SalesPage() {
   const { status } = useSession();
   const router = useRouter();
+  const locale = useLocale();
+  const t = useTranslations("dashboard");
 
   const [data, setData] = useState<OrdersData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const revenueCurrencies = new Set((data?.orders || []).map((o) => o.product.currency || "SAR"));
+  const revenueIsMixed = revenueCurrencies.size > 1;
+  const revenueCurrency = revenueCurrencies.size === 1 ? [...revenueCurrencies][0] : "SAR";
 
   useEffect(() => {
     if (status === "unauthenticated") {
@@ -125,7 +134,7 @@ export default function SalesPage() {
               <div>
                 <p className="text-gray-400 text-sm">Total revenue</p>
                 <p className="text-3xl font-bold text-white mt-1">
-                  ${(data?.totalRevenue || 0).toFixed(2)}
+                  {revenueIsMixed ? t("mixedCurrency") : <bdi>{formatPrice(Number(data?.totalRevenue || 0), revenueCurrency, locale)}</bdi>}
                 </p>
               </div>
               <div className="w-12 h-12 rounded-xl bg-teal-500/10 flex items-center justify-center text-teal-400">
@@ -200,7 +209,7 @@ export default function SalesPage() {
                         </Link>
                       </td>
                       <td className="px-6 py-4 text-right text-sm font-semibold text-teal-400">
-                        ${Number(order.price).toFixed(2)}
+                        <bdi>{formatPrice(Number(order.price), order.product.currency, locale)}</bdi>
                       </td>
                     </tr>
                   ))}
