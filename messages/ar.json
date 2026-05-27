@@ -24,7 +24,21 @@
     "cta": "افتح متجرك مجاناً",
     "browse": "شوف إيش يبيعونه",
     "ctaAria": "ابدأ بيع المنتجات الرقمية - أنشئ حساباً مجانياً",
-    "browseAria": "تصفّح جميع المنتجات الرقمية"
+    "browseAria": "تصفّح جميع المنتجات الرقمية",
+    "demo": {
+      "storeLabel": "متجر Saiflow",
+      "storeSubheader": "متجر صانع محتوى",
+      "liveBadge": "مباشر",
+      "buyLabel": "اشترِ",
+      "tile1Title": "حزمة كورسات",
+      "tile2Title": "حزمة كتب",
+      "tile3Title": "قوالب تصميم",
+      "tile4Title": "حزمة فلاتر",
+      "saleLabel": "آخر عملية بيع",
+      "saleBuyer": "نورة",
+      "saleTime": "قبل دقيقتين",
+      "saleConnector": "من"
+    }
   },
   "categories": {
     "all": "الكل",

@@ -24,7 +24,21 @@
     "cta": "Open your store — free",
     "browse": "See what's selling",
     "ctaAria": "Start selling digital products - Sign up for free",
-    "browseAria": "Browse all digital products"
+    "browseAria": "Browse all digital products",
+    "demo": {
+      "storeLabel": "Saiflow store",
+      "storeSubheader": "Creator's store",
+      "liveBadge": "Live",
+      "buyLabel": "Buy",
+      "tile1Title": "Course bundle",
+      "tile2Title": "Ebook bundle",
+      "tile3Title": "Design templates",
+      "tile4Title": "Preset pack",
+      "saleLabel": "Latest sale",
+      "saleBuyer": "نورة",
+      "saleTime": "2 min ago",
+      "saleConnector": "from"
+    }
   },
   "categories": {
     "all": "All",
