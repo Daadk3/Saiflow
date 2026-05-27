@@ -2,8 +2,19 @@ import Link from "next/link";
 import Image from "next/image";
 import { notFound } from "next/navigation";
 
+interface BlogPost {
+  slug: string;
+  title: string;
+  content: string;
+  author: string;
+  date: string;
+  category: string;
+  featuredImage: string;
+  readTime: string;
+}
+
 // Sample blog posts data (in a real app, this would come from a database or CMS)
-const blogPosts: Record<string, any> = {
+const blogPosts: Record<string, BlogPost> = {
   "introducing-saiflow": {
     slug: "introducing-saiflow",
     title: "Introducing Saiflow: The Future of Digital Product Sales",
