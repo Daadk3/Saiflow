@@ -139,7 +139,24 @@
     "totalRevenue": "Total revenue",
     "addProduct": "Add product",
     "editShop": "Edit shop",
-    "createShop": "Create shop",
+    "createShop": {
+      "title": "Create Your Shop",
+      "subtitle": "Set up your shop to start selling digital products",
+      "backLinkPrefix": "Back to ",
+      "backLinkShort": "Dashboard",
+      "shopNameLabel": "Shop Name",
+      "shopNamePlaceholder": "e.g., My Awesome Shop",
+      "slugPreview": "This will be used to create your shop URL: saiflow.com/shop/{slug}",
+      "slugFallback": "your-shop",
+      "descriptionLabel": "Description",
+      "descriptionPlaceholder": "Tell customers what your shop is about...",
+      "cancel": "Cancel",
+      "submit": "Create Shop",
+      "creating": "Creating...",
+      "loading": "Loading...",
+      "helpText": "You can edit your shop details later from the dashboard",
+      "mascotAlt": "Saiflow mascot logo"
+    },
     "viewShop": "View shop",
     "viewSales": "View sales",
     "comingSoon": "Coming soon",
@@ -169,6 +186,17 @@
       "noProductsTitle": "No products yet",
       "addFirstProductDesc": "Add your first product to start selling",
       "addFirstProductCta": "Add Your First Product"
+    },
+    "home": {
+      "subtitle": "Manage your shops and track your performance",
+      "welcome": "Welcome, {name}",
+      "creatorFallback": "Creator",
+      "totalShops": "Total shops",
+      "loadingDashboard": "Loading dashboard...",
+      "productsCount": "{count, plural, =0 {No products} one {# product} other {# products}}",
+      "shopsCount": "{count, plural, =0 {No shops} one {# shop} other {# shops}}",
+      "emptyStateTitle": "No shops yet",
+      "emptyStateCta": "Create your first shop"
     }
   },
   "auth": {

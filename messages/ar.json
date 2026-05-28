@@ -139,7 +139,24 @@
     "totalRevenue": "إجمالي الإيرادات",
     "addProduct": "إضافة منتج",
     "editShop": "تعديل المتجر",
-    "createShop": "إنشاء متجر",
+    "createShop": {
+      "title": "أنشئ متجرك",
+      "subtitle": "جهّز متجرك لتبدأ بيع منتجاتك الرقمية",
+      "backLinkPrefix": "العودة إلى ",
+      "backLinkShort": "لوحة التحكم",
+      "shopNameLabel": "اسم المتجر",
+      "shopNamePlaceholder": "مثال: متجري الرائع",
+      "slugPreview": "سيُستخدم لإنشاء رابط متجرك: saiflow.com/shop/{slug}",
+      "slugFallback": "your-shop",
+      "descriptionLabel": "الوصف",
+      "descriptionPlaceholder": "عرّف زبائنك بمتجرك...",
+      "cancel": "إلغاء",
+      "submit": "إنشاء المتجر",
+      "creating": "جارٍ الإنشاء...",
+      "loading": "جارٍ التحميل...",
+      "helpText": "يمكنك تعديل تفاصيل متجرك لاحقاً من لوحة التحكم",
+      "mascotAlt": "شعار Saiflow"
+    },
     "viewShop": "عرض المتجر",
     "viewSales": "عرض المبيعات",
     "comingSoon": "قريباً",
@@ -169,6 +186,17 @@
       "noProductsTitle": "لا توجد منتجات بعد",
       "addFirstProductDesc": "أضف أول منتج لك لتبدأ البيع",
       "addFirstProductCta": "أضف أول منتج لك"
+    },
+    "home": {
+      "subtitle": "أدر متاجرك وتتبّع أداءها",
+      "welcome": "مرحباً، {name}",
+      "creatorFallback": "مبدع",
+      "totalShops": "إجمالي المتاجر",
+      "loadingDashboard": "جارٍ تحميل لوحة التحكم...",
+      "productsCount": "{count, plural, zero {لا توجد منتجات} one {منتج واحد} two {منتجان} few {# منتجات} many {# منتجاً} other {# منتج}}",
+      "shopsCount": "{count, plural, zero {لا توجد متاجر} one {متجر واحد} two {متجران} few {# متاجر} many {# متجراً} other {# متجر}}",
+      "emptyStateTitle": "لا توجد متاجر بعد",
+      "emptyStateCta": "أنشئ متجرك الأول"
     }
   },
   "auth": {
