@@ -186,6 +186,17 @@
       "noProductsTitle": "No products yet",
       "addFirstProductDesc": "Add your first product to start selling",
       "addFirstProductCta": "Add Your First Product"
+    },
+    "home": {
+      "subtitle": "Manage your shops and track your performance",
+      "welcome": "Welcome, {name}",
+      "creatorFallback": "Creator",
+      "totalShops": "Total shops",
+      "loadingDashboard": "Loading dashboard...",
+      "productsCount": "{count, plural, =0 {No products} one {# product} other {# products}}",
+      "shopsCount": "{count, plural, =0 {No shops} one {# shop} other {# shops}}",
+      "emptyStateTitle": "No shops yet",
+      "emptyStateCta": "Create your first shop"
     }
   },
   "auth": {

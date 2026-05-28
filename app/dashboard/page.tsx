@@ -30,7 +30,7 @@ export default function Dashboard() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const locale = useLocale();
-  const t = useTranslations("dashboard");
+  const t = useTranslations();
 
   const [shops, setShops] = useState<Shop[]>([]);
   const [orderStats, setOrderStats] = useState<OrderStats>({ totalRevenue: 0, totalSales: 0, currency: "SAR", isMixed: false });
@@ -60,7 +60,7 @@ export default function Dashboard() {
       const ordersData = await ordersRes.json();
 
       if (!shopsRes.ok) {
-        setError(shopsData.error || "Failed to fetch shops");
+        setError(shopsData.error || t('dashboard.shop.somethingWrong'));
         return;
       }
 
@@ -77,7 +77,7 @@ export default function Dashboard() {
         });
       }
     } catch {
-      setError("Something went wrong");
+      setError(t('dashboard.shop.somethingWrong'));
     } finally {
       setLoading(false);
     }
@@ -92,7 +92,7 @@ export default function Dashboard() {
       <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
           <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-teal-500"></div>
-          <p className="text-gray-500">Loading dashboard...</p>
+          <p className="text-gray-500">{t('dashboard.home.loadingDashboard')}</p>
         </div>
       </div>
     );
@@ -103,7 +103,7 @@ export default function Dashboard() {
       <div className="min-h-screen bg-[#0a0a0a] p-8">
         <div className="max-w-6xl mx-auto">
           <div className="bg-red-50 border border-red-100 rounded-2xl p-6">
-            <h1 className="text-2xl font-bold text-red-600 mb-2">Error</h1>
+            <h1 className="text-2xl font-bold text-red-600 mb-2">{t('dashboard.shop.errorTitle')}</h1>
             <p className="text-red-500">{error}</p>
           </div>
         </div>
@@ -117,10 +117,10 @@ export default function Dashboard() {
         {/* Welcome header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-white">
-            Welcome back, {session?.user?.name || "Creator"}!
+            {t('dashboard.home.welcome', { name: session?.user?.name ?? t('dashboard.home.creatorFallback') })}
           </h1>
           <p className="text-gray-500 mt-1">
-            Here&apos;s what&apos;s happening with your digital products.
+            {t('dashboard.home.subtitle')}
           </p>
         </div>
 
@@ -129,7 +129,7 @@ export default function Dashboard() {
           <div className="bg-[#111111] p-6 rounded-xl border border-gray-800 shadow-sm">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-gray-400 text-sm">Total shops</p>
+                <p className="text-gray-400 text-sm">{t('dashboard.home.totalShops')}</p>
                 <p className="text-3xl font-bold text-white mt-1">{totalShops}</p>
               </div>
               <div className="w-12 h-12 rounded-xl bg-teal-500/10 flex items-center justify-center text-teal-400">
@@ -148,7 +148,7 @@ export default function Dashboard() {
           <div className="bg-[#111111] p-6 rounded-xl border border-gray-800 shadow-sm">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-gray-400 text-sm">Total products</p>
+                <p className="text-gray-400 text-sm">{t('dashboard.totalProducts')}</p>
                 <p className="text-3xl font-bold text-white mt-1">{totalProducts}</p>
               </div>
             </div>
@@ -157,9 +157,9 @@ export default function Dashboard() {
           <div className="bg-[#111111] p-6 rounded-xl border border-gray-800 shadow-sm">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-gray-400 text-sm">Total revenue</p>
+                <p className="text-gray-400 text-sm">{t('dashboard.totalRevenue')}</p>
                 <p className="text-3xl font-bold text-white mt-1">
-                  {orderStats.isMixed ? t("mixedCurrency") : <bdi>{formatPrice(Number(orderStats.totalRevenue), orderStats.currency, locale)}</bdi>}
+                  {orderStats.isMixed ? t('dashboard.mixedCurrency') : <bdi>{formatPrice(Number(orderStats.totalRevenue), orderStats.currency, locale)}</bdi>}
                 </p>
               </div>
             </div>
@@ -175,7 +175,7 @@ export default function Dashboard() {
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
             </svg>
-            Create shop
+            {t('dashboard.createShop.submit')}
           </Link>
           {shops.length > 0 && (
             <>
@@ -191,7 +191,7 @@ export default function Dashboard() {
                     d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"
                   />
                 </svg>
-                Add product
+                {t('dashboard.addProduct')}
               </Link>
               <Link
                 href={`/shop/${shops[0].slug}`}
@@ -211,7 +211,7 @@ export default function Dashboard() {
                     d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
                   />
                 </svg>
-                View shop
+                {t('dashboard.viewShop')}
               </Link>
             </>
           )}
@@ -227,16 +227,16 @@ export default function Dashboard() {
                 d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
               />
             </svg>
-            View sales
+            {t('dashboard.viewSales')}
           </Link>
         </div>
 
         {/* Shops list */}
         <div className="bg-[#111111] rounded-xl border border-gray-800 overflow-hidden">
           <div className="bg-[#0a0a0a] px-6 py-4 border-b border-gray-800 flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-white">Your shops</h2>
+            <h2 className="text-lg font-semibold text-white">{t('dashboard.yourShops')}</h2>
             <span className="text-sm text-gray-500">
-              {shops.length} {shops.length === 1 ? "shop" : "shops"}
+              {t('dashboard.home.shopsCount', { count: shops.length })}
             </span>
           </div>
 
@@ -255,19 +255,18 @@ export default function Dashboard() {
                     <div>
                       <p className="font-medium text-white">{shop.name}</p>
                       <p className="text-sm text-gray-500">
-                        {shop.description || "No description"}
+                        {shop.description || t('dashboard.shop.noDescription')}
                       </p>
                     </div>
                   </div>
                   <div className="flex items-center gap-4">
-                    <div className="text-right">
+                    <div className="text-end">
                       <p className="text-sm font-semibold text-white">
-                        {shop._count?.products || 0}
+                        {t('dashboard.home.productsCount', { count: shop._count?.products || 0 })}
                       </p>
-                      <p className="text-xs text-gray-500">products</p>
                     </div>
                     <svg
-                      className="w-5 h-5 text-gray-400"
+                      className="w-5 h-5 text-gray-400 rtl:rotate-180"
                       fill="none"
                       viewBox="0 0 24 24"
                       stroke="currentColor"
@@ -290,7 +289,7 @@ export default function Dashboard() {
                   />
                 </svg>
               </div>
-              <p className="text-gray-400 mt-4">You don&apos;t have any shops yet.</p>
+              <p className="text-gray-400 mt-4">{t('dashboard.home.emptyStateTitle')}</p>
               <Link
                 href="/dashboard/create-shop"
                 className="mt-4 bg-teal-500 hover:bg-teal-600 text-white px-6 py-3 rounded-lg font-medium transition-colors inline-flex items-center gap-2"
@@ -298,7 +297,7 @@ export default function Dashboard() {
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                 </svg>
-                Create your first shop
+                {t('dashboard.home.emptyStateCta')}
               </Link>
             </div>
           )}

@@ -186,6 +186,17 @@
       "noProductsTitle": "لا توجد منتجات بعد",
       "addFirstProductDesc": "أضف أول منتج لك لتبدأ البيع",
       "addFirstProductCta": "أضف أول منتج لك"
+    },
+    "home": {
+      "subtitle": "أدر متاجرك وتتبّع أداءها",
+      "welcome": "مرحباً، {name}",
+      "creatorFallback": "مبدع",
+      "totalShops": "إجمالي المتاجر",
+      "loadingDashboard": "جارٍ تحميل لوحة التحكم...",
+      "productsCount": "{count, plural, zero {لا توجد منتجات} one {منتج واحد} two {منتجان} few {# منتجات} many {# منتجاً} other {# منتج}}",
+      "shopsCount": "{count, plural, zero {لا توجد متاجر} one {متجر واحد} two {متجران} few {# متاجر} many {# متجراً} other {# متجر}}",
+      "emptyStateTitle": "لا توجد متاجر بعد",
+      "emptyStateCta": "أنشئ متجرك الأول"
     }
   },
   "auth": {
