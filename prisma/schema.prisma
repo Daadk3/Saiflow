@@ -173,7 +173,7 @@ model Product {
   slug         String
   description  String?  @db.Text
   price        Decimal  @db.Decimal(10, 2)
-  currency     String   @default("USD")
+  currency     String   @default("SAR")
   category     String?
   thumbnailUrl String?
   images       String[]
