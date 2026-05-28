@@ -65,7 +65,7 @@ export default function CreateShopPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] flex flex-col">
+    <div className="min-h-screen bg-[#0a0a0a] flex flex-col overflow-x-hidden">
       {/* Background Effects */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-teal-500/10 rounded-full blur-[120px]" />
@@ -99,7 +99,7 @@ export default function CreateShopPage() {
               >
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
               </svg>
-              <span>Back to Dashboard</span>
+              <span><span className="hidden sm:inline">Back to </span>Dashboard</span>
             </Link>
           </div>
         </div>
@@ -137,7 +137,7 @@ export default function CreateShopPage() {
                   placeholder="e.g., My Awesome Shop"
                   className="w-full p-3 bg-gray-800 text-white border border-gray-700 rounded-lg focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500 transition-colors"
                 />
-                <p className="mt-1 text-xs text-gray-400">
+                <p className="mt-1 text-xs text-gray-400 break-all">
                   This will be used to create your shop URL: saiflow.com/shop/{name.toLowerCase().replace(/[^a-z0-9]+/g, "-") || "your-shop"}
                 </p>
               </div>
