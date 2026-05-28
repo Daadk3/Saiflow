@@ -15,11 +15,22 @@ export async function POST(req: Request) {
       );
     }
 
-    const { name, description, price, category, shopId, fileUrl, thumbnailUrl } = await req.json();
+    const { name, description, price, category, shopId, fileUrl, thumbnailUrl, currency } = await req.json();
 
     if (!name || !price || !shopId) {
       return NextResponse.json(
         { error: "Name, price, and shopId are required" },
+        { status: 400 }
+      );
+    }
+
+    // Saudi-first marketplace: only SAR is supported. Reject any
+    // explicit non-SAR currency loudly so future multi-currency
+    // attempts fail visibly instead of silently writing USD again.
+    const ALLOWED_CURRENCIES = ["SAR"];
+    if (currency && !ALLOWED_CURRENCIES.includes(currency)) {
+      return NextResponse.json(
+        { error: "Invalid currency" },
         { status: 400 }
       );
     }
@@ -68,6 +79,7 @@ export async function POST(req: Request) {
         shopId,
         fileUrl,
         thumbnailUrl,
+        currency: "SAR",
       },
     });
 
