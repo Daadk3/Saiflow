@@ -214,7 +214,7 @@
     "forgotPassword": "Forgot password?",
     "continueWithGoogle": "Continue with Google",
     "orContinueWithEmail": "or continue with email",
-    "noAccount": "New to Saiflow?",
+    "noAccount": "New to Saiflow? <link>Sign up</link>",
     "createAccount": "Create an account",
     "alreadyHaveAccount": "Already have an account?",
     "welcomeBack": "Welcome back",
@@ -237,6 +237,14 @@
       "successMessage": "Account created! Redirecting to login...",
       "errorFallback": "Signup failed",
       "errorGeneric": "Something went wrong. Please try again."
+    },
+    "login": {
+      "emailPlaceholder": "you@example.com",
+      "passwordPlaceholder": "Enter your password",
+      "submitButton": "Log in",
+      "submitting": "Signing in...",
+      "errorInvalid": "Invalid email or password",
+      "errorGeneric": "Something went wrong"
     }
   },
   "meta": {
