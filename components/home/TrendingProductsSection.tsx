@@ -32,9 +32,6 @@ export function TrendingProductsSection({ products }: TrendingProductsSectionPro
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-10">
           <div>
-            <p className="text-sm font-semibold text-teal-400 uppercase tracking-wide">
-              {t('featured')}
-            </p>
             <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
               {t('trendingHeading')}
             </h2>
