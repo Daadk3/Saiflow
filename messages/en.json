@@ -245,6 +245,38 @@
       "submitting": "Signing in...",
       "errorInvalid": "Invalid email or password",
       "errorGeneric": "Something went wrong"
+    },
+    "backToLogin": "Back to login",
+    "forgotPasswordPage": {
+      "heroTitle": "Forgot password?",
+      "heroSubtitle": "No worries, we'll send you reset instructions.",
+      "emailPlaceholder": "you@example.com",
+      "submitButton": "Send Reset Link",
+      "submitting": "Sending...",
+      "errorGeneric": "Something went wrong",
+      "successTitle": "Check your email",
+      "successBody": "If an account exists for {email}, we've sent a password reset link.",
+      "successRetryHint": "Didn't receive it? Check your spam folder or try again.",
+      "successTryAnother": "Try another email"
+    },
+    "resetPassword": {
+      "heroTitle": "Set new password",
+      "heroSubtitle": "Your new password must be at least 6 characters.",
+      "newPasswordLabel": "New Password",
+      "newPasswordPlaceholder": "Enter new password",
+      "confirmPasswordLabel": "Confirm Password",
+      "confirmPasswordPlaceholder": "Confirm new password",
+      "submitButton": "Reset Password",
+      "submitting": "Resetting...",
+      "passwordsDoNotMatch": "Passwords do not match",
+      "passwordTooShort": "Password must be at least 6 characters",
+      "errorGeneric": "Something went wrong",
+      "invalidTitle": "Invalid Link",
+      "invalidBody": "This password reset link is invalid or has expired.",
+      "requestNewLink": "Request New Link",
+      "successTitle": "Password Reset!",
+      "successBody": "Your password has been successfully reset. Redirecting you to login...",
+      "goToLogin": "Go to Login"
     }
   },
   "meta": {

@@ -3,8 +3,10 @@
 import { FormEvent, useState, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 
 function ResetPasswordForm() {
+  const t = useTranslations();
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -20,12 +22,12 @@ function ResetPasswordForm() {
     setError(null);
 
     if (password !== confirmPassword) {
-      setError("Passwords do not match");
+      setError(t('auth.resetPassword.passwordsDoNotMatch'));
       return;
     }
 
     if (password.length < 6) {
-      setError("Password must be at least 6 characters");
+      setError(t('auth.resetPassword.passwordTooShort'));
       return;
     }
 
@@ -41,7 +43,7 @@ function ResetPasswordForm() {
       const data = await res.json();
 
       if (!res.ok) {
-        setError(data.error || "Something went wrong");
+        setError(data.error || t('auth.resetPassword.errorGeneric'));
       } else {
         setSuccess(true);
         // Redirect to login after 3 seconds
@@ -50,7 +52,7 @@ function ResetPasswordForm() {
         }, 3000);
       }
     } catch {
-      setError("Something went wrong");
+      setError(t('auth.resetPassword.errorGeneric'));
     } finally {
       setLoading(false);
     }
@@ -65,15 +67,15 @@ function ResetPasswordForm() {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
           </svg>
         </div>
-        <h1 className="text-2xl font-bold text-white mb-2">Invalid Link</h1>
+        <h1 className="text-2xl font-bold text-white mb-2">{t('auth.resetPassword.invalidTitle')}</h1>
         <p className="text-gray-400 mb-6">
-          This password reset link is invalid or has expired.
+          {t('auth.resetPassword.invalidBody')}
         </p>
         <Link
           href="/forgot-password"
           className="inline-block w-full py-3 px-4 bg-teal-500 hover:bg-teal-400 text-white font-semibold rounded-xl transition-colors text-center"
         >
-          Request New Link
+          {t('auth.resetPassword.requestNewLink')}
         </Link>
       </div>
     );
@@ -88,15 +90,15 @@ function ResetPasswordForm() {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
           </svg>
         </div>
-        <h1 className="text-2xl font-bold text-white mb-2">Password Reset!</h1>
+        <h1 className="text-2xl font-bold text-white mb-2">{t('auth.resetPassword.successTitle')}</h1>
         <p className="text-gray-400 mb-6">
-          Your password has been successfully reset. Redirecting you to login...
+          {t('auth.resetPassword.successBody')}
         </p>
         <Link
           href="/login"
           className="inline-block w-full py-3 px-4 bg-teal-500 hover:bg-teal-400 text-white font-semibold rounded-xl transition-colors text-center"
         >
-          Go to Login
+          {t('auth.resetPassword.goToLogin')}
         </Link>
       </div>
     );
@@ -112,8 +114,8 @@ function ResetPasswordForm() {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
           </svg>
         </div>
-        <h1 className="text-2xl font-bold text-white">Set new password</h1>
-        <p className="mt-2 text-gray-500">Your new password must be at least 6 characters.</p>
+        <h1 className="text-2xl font-bold text-white">{t('auth.resetPassword.heroTitle')}</h1>
+        <p className="mt-2 text-gray-500">{t('auth.resetPassword.heroSubtitle')}</p>
       </div>
 
       {/* Form */}
@@ -121,7 +123,7 @@ function ResetPasswordForm() {
         {/* Password Field */}
         <div>
           <label htmlFor="password" className="block text-sm font-medium text-gray-300 mb-2">
-            New Password
+            {t('auth.resetPassword.newPasswordLabel')}
           </label>
           <input
             id="password"
@@ -130,7 +132,7 @@ function ResetPasswordForm() {
             onChange={(e) => setPassword(e.target.value)}
             required
             minLength={6}
-            placeholder="Enter new password"
+            placeholder={t('auth.resetPassword.newPasswordPlaceholder')}
             className="w-full px-4 py-3 bg-[#0a0a0a] border border-gray-800 rounded-xl text-white placeholder-gray-600 focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500 transition-colors"
           />
         </div>
@@ -138,7 +140,7 @@ function ResetPasswordForm() {
         {/* Confirm Password Field */}
         <div>
           <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-300 mb-2">
-            Confirm Password
+            {t('auth.resetPassword.confirmPasswordLabel')}
           </label>
           <input
             id="confirmPassword"
@@ -147,7 +149,7 @@ function ResetPasswordForm() {
             onChange={(e) => setConfirmPassword(e.target.value)}
             required
             minLength={6}
-            placeholder="Confirm new password"
+            placeholder={t('auth.resetPassword.confirmPasswordPlaceholder')}
             className="w-full px-4 py-3 bg-[#0a0a0a] border border-gray-800 rounded-xl text-white placeholder-gray-600 focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500 transition-colors"
           />
         </div>
@@ -171,10 +173,10 @@ function ResetPasswordForm() {
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
               </svg>
-              Resetting...
+              {t('auth.resetPassword.submitting')}
             </>
           ) : (
-            "Reset Password"
+            t('auth.resetPassword.submitButton')
           )}
         </button>
       </form>
@@ -182,10 +184,10 @@ function ResetPasswordForm() {
       {/* Back to Login */}
       <p className="mt-8 text-center">
         <Link href="/login" className="inline-flex items-center gap-2 text-gray-500 hover:text-teal-400 text-sm transition-colors">
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <svg className="w-4 h-4 rtl:rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
           </svg>
-          Back to login
+          {t('auth.backToLogin')}
         </Link>
       </p>
     </>
