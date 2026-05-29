@@ -97,7 +97,14 @@
     "docs": "Docs",
     "terms": "Terms",
     "privacy": "Privacy",
-    "copyright": "© 2026 Saiflow. All rights reserved."
+    "copyright": "© 2026 Saiflow. All rights reserved.",
+    "ariaFooter": "Site footer",
+    "newsletterEmailAria": "Email address for newsletter",
+    "newsletterComingSoon": "Newsletter coming soon — thanks for your interest!",
+    "columnProduct": "Product",
+    "columnCompany": "Company",
+    "columnResources": "Resources",
+    "columnLegal": "Legal"
   },
   "common": {
     "viewAll": "View all",
