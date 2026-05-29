@@ -245,6 +245,38 @@
       "submitting": "جارٍ تسجيل الدخول...",
       "errorInvalid": "البريد الإلكتروني أو كلمة المرور غير صحيحين",
       "errorGeneric": "حدث خطأ ما"
+    },
+    "backToLogin": "العودة إلى تسجيل الدخول",
+    "forgotPasswordPage": {
+      "heroTitle": "نسيت كلمة المرور؟",
+      "heroSubtitle": "لا تقلق، سنرسل لك تعليمات إعادة التعيين.",
+      "emailPlaceholder": "you@example.com",
+      "submitButton": "إرسال رابط إعادة التعيين",
+      "submitting": "جارٍ الإرسال...",
+      "errorGeneric": "حدث خطأ ما",
+      "successTitle": "تحقّق من بريدك الإلكتروني",
+      "successBody": "إذا كان هناك حساب مرتبط بـ {email}، فقد أرسلنا رابط إعادة تعيين كلمة المرور.",
+      "successRetryHint": "لم يصلك؟ تحقّق من مجلد البريد المزعج أو حاول مرة أخرى.",
+      "successTryAnother": "جرّب بريداً آخر"
+    },
+    "resetPassword": {
+      "heroTitle": "تعيين كلمة مرور جديدة",
+      "heroSubtitle": "يجب أن تكون كلمة المرور الجديدة 6 أحرف على الأقل.",
+      "newPasswordLabel": "كلمة المرور الجديدة",
+      "newPasswordPlaceholder": "أدخل كلمة المرور الجديدة",
+      "confirmPasswordLabel": "تأكيد كلمة المرور",
+      "confirmPasswordPlaceholder": "أكّد كلمة المرور الجديدة",
+      "submitButton": "إعادة تعيين كلمة المرور",
+      "submitting": "جارٍ إعادة التعيين...",
+      "passwordsDoNotMatch": "كلمتا المرور غير متطابقتين",
+      "passwordTooShort": "يجب أن تكون كلمة المرور 6 أحرف على الأقل",
+      "errorGeneric": "حدث خطأ ما",
+      "invalidTitle": "رابط غير صالح",
+      "invalidBody": "رابط إعادة تعيين كلمة المرور هذا غير صالح أو منتهي الصلاحية.",
+      "requestNewLink": "اطلب رابطاً جديداً",
+      "successTitle": "تمت إعادة تعيين كلمة المرور!",
+      "successBody": "تمت إعادة تعيين كلمة المرور بنجاح. جارٍ تحويلك إلى تسجيل الدخول...",
+      "goToLogin": "اذهب إلى تسجيل الدخول"
     }
   },
   "meta": {
