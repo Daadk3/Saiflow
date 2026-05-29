@@ -4,8 +4,10 @@ import { FormEvent, useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 
 export default function LoginPage() {
+  const t = useTranslations();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -25,12 +27,12 @@ export default function LoginPage() {
       });
 
       if (result?.error) {
-        setError("Invalid email or password");
+        setError(t('auth.login.errorInvalid'));
       } else if (result?.ok) {
         router.push("/dashboard");
       }
     } catch {
-      setError("Something went wrong");
+      setError(t('auth.login.errorGeneric'));
     } finally {
       setLoading(false);
     }
@@ -63,8 +65,8 @@ export default function LoginPage() {
           <div className="bg-[#111111] rounded-2xl border border-gray-800/50 shadow-2xl shadow-black/50 p-8">
             {/* Header */}
             <div className="text-center mb-8">
-              <h1 className="text-2xl font-bold text-white">Welcome back</h1>
-              <p className="mt-2 text-gray-500">Log in to your account</p>
+              <h1 className="text-2xl font-bold text-white">{t('auth.welcomeBack')}</h1>
+              <p className="mt-2 text-gray-500">{t('auth.logInToAccount')}</p>
             </div>
 
             {/* Google Sign In Button */}
@@ -91,7 +93,7 @@ export default function LoginPage() {
                   d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
                 />
               </svg>
-              Continue with Google
+              {t('auth.continueWithGoogle')}
             </button>
 
             {/* Divider */}
@@ -100,7 +102,7 @@ export default function LoginPage() {
                 <div className="w-full border-t border-gray-800"></div>
               </div>
               <div className="relative flex justify-center text-sm">
-                <span className="px-4 bg-[#111111] text-gray-500">or continue with email</span>
+                <span className="px-4 bg-[#111111] text-gray-500">{t('auth.orContinueWithEmail')}</span>
               </div>
             </div>
 
@@ -109,15 +111,15 @@ export default function LoginPage() {
               {/* Email Field */}
           <div>
                 <label htmlFor="email" className="block text-sm font-medium text-gray-300 mb-2">
-              Email
-            </label>
+                  {t('auth.email')}
+                </label>
             <input
               id="email"
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-                  placeholder="you@example.com"
+                  placeholder={t('auth.login.emailPlaceholder')}
                   className="w-full px-4 py-3 bg-[#0a0a0a] border border-gray-800 rounded-xl text-white placeholder-gray-600 focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500 transition-colors"
             />
           </div>
@@ -126,10 +128,10 @@ export default function LoginPage() {
           <div>
                 <div className="flex items-center justify-between mb-2">
                   <label htmlFor="password" className="block text-sm font-medium text-gray-300">
-                    Password
+                    {t('auth.password')}
                   </label>
                   <Link href="/forgot-password" className="text-sm text-teal-400 hover:text-teal-300 transition-colors">
-                    Forgot password?
+                    {t('auth.forgotPassword')}
                   </Link>
                 </div>
             <input
@@ -138,7 +140,7 @@ export default function LoginPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-                  placeholder="Enter your password"
+                  placeholder={t('auth.login.passwordPlaceholder')}
                   className="w-full px-4 py-3 bg-[#0a0a0a] border border-gray-800 rounded-xl text-white placeholder-gray-600 focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500 transition-colors"
             />
           </div>
@@ -162,10 +164,10 @@ export default function LoginPage() {
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                     </svg>
-                    Signing in...
+                    {t('auth.login.submitting')}
                   </>
                 ) : (
-                  "Log in"
+                  t('auth.login.submitButton')
                 )}
           </button>
         </form>
@@ -173,10 +175,13 @@ export default function LoginPage() {
 
             {/* Signup Link */}
             <p className="text-center text-gray-500">
-              Don&apos;t have an account?{" "}
-              <Link href="/signup" className="text-teal-400 hover:text-teal-300 font-medium transition-colors">
-            Sign up
-              </Link>
+              {t.rich('auth.noAccount', {
+                link: (chunks) => (
+                  <Link href="/signup" className="text-teal-400 hover:text-teal-300 font-medium transition-colors">
+                    {chunks}
+                  </Link>
+                )
+              })}
             </p>
           </div>
 
