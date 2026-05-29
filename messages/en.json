@@ -211,7 +211,26 @@
     "createAccount": "Create an account",
     "alreadyHaveAccount": "Already have an account?",
     "welcomeBack": "Welcome back",
-    "logInToAccount": "Log in to your account"
+    "logInToAccount": "Log in to your account",
+    "signup": {
+      "heroTitle": "Create your account",
+      "heroSubtitle": "Start selling digital products today",
+      "googleButton": "Sign up with Google",
+      "emailDivider": "or sign up with email",
+      "nameLabel": "Name",
+      "namePlaceholder": "Enter your name",
+      "emailLabel": "Email",
+      "emailPlaceholder": "you@example.com",
+      "passwordLabel": "Password",
+      "passwordPlaceholder": "Create a password",
+      "submitButton": "Create account",
+      "submitting": "Creating account...",
+      "alreadyHaveAccount": "Already have an account? <link>Log in</link>",
+      "termsAgreement": "By creating an account, you agree to our <terms>Terms of Service</terms> and <privacy>Privacy Policy</privacy>",
+      "successMessage": "Account created! Redirecting to login...",
+      "errorFallback": "Signup failed",
+      "errorGeneric": "Something went wrong. Please try again."
+    }
   },
   "meta": {
     "title": "Saiflow — The Digital Marketplace for Arab Creators",
