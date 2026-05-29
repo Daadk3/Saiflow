@@ -89,7 +89,7 @@
     "tagline": "بيع المنتجات الرقمية، الكورسات، والعضويات بتجربة دفع نظيفة وحديثة. احتفظ بأكثر مما تكسبه مع Saiflow.",
     "newsletter": "احصل على دليل المبدع العربي",
     "newsletterDesc": "نصائح أسبوعية لبيع المنتجات الرقمية، تنمية جمهورك، والكسب من معرفتك. بالعربي والإنجليزي.",
-    "emailPlaceholder": "بريدك الإلكتروني",
+    "emailPlaceholder": "you@example.com",
     "subscribe": "اشترك",
     "about": "من نحن",
     "blog": "المدونة",
@@ -97,7 +97,14 @@
     "docs": "الدليل",
     "terms": "الشروط",
     "privacy": "الخصوصية",
-    "copyright": "© ٢٠٢٦ Saiflow. جميع الحقوق محفوظة."
+    "copyright": "© ٢٠٢٦ Saiflow. جميع الحقوق محفوظة.",
+    "ariaFooter": "تذييل الموقع",
+    "newsletterEmailAria": "البريد الإلكتروني للنشرة الإخبارية",
+    "newsletterComingSoon": "النشرة قريباً — شكراً لاهتمامك!",
+    "columnProduct": "المنتجات",
+    "columnCompany": "الشركة",
+    "columnResources": "الموارد",
+    "columnLegal": "الشؤون القانونية"
   },
   "common": {
     "viewAll": "عرض الكل",
