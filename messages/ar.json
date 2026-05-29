@@ -211,7 +211,26 @@
     "createAccount": "إنشاء حساب",
     "alreadyHaveAccount": "لديك حساب بالفعل؟",
     "welcomeBack": "مرحباً بعودتك",
-    "logInToAccount": "سجل دخولك إلى حسابك"
+    "logInToAccount": "سجل دخولك إلى حسابك",
+    "signup": {
+      "heroTitle": "أنشئ حسابك",
+      "heroSubtitle": "ابدأ بيع المنتجات الرقمية اليوم",
+      "googleButton": "إنشاء حساب عبر Google",
+      "emailDivider": "أو سجّل عبر البريد الإلكتروني",
+      "nameLabel": "الاسم",
+      "namePlaceholder": "أدخل اسمك",
+      "emailLabel": "البريد الإلكتروني",
+      "emailPlaceholder": "you@example.com",
+      "passwordLabel": "كلمة المرور",
+      "passwordPlaceholder": "أنشئ كلمة مرور",
+      "submitButton": "إنشاء الحساب",
+      "submitting": "جارٍ إنشاء الحساب...",
+      "alreadyHaveAccount": "لديك حساب مسبقاً؟ <link>تسجيل الدخول</link>",
+      "termsAgreement": "بإنشاء الحساب، فإنك توافق على <terms>شروط الخدمة</terms> و<privacy>سياسة الخصوصية</privacy>",
+      "successMessage": "تم إنشاء الحساب! جارٍ التحويل إلى تسجيل الدخول...",
+      "errorFallback": "فشل إنشاء الحساب",
+      "errorGeneric": "حدث خطأ ما. يرجى المحاولة مرة أخرى."
+    }
   },
   "meta": {
     "title": "Saiflow — سوق المنتجات الرقمية للمبدعين العرب",
