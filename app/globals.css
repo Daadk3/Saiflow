@@ -170,11 +170,6 @@ select:focus-visible {
   border-radius: 0 0 0 4px;
 }
 
-/* RTL adjustments for flex containers */
-[dir="rtl"] .flex {
-  flex-direction: row-reverse;
-}
-
 /* Mobile-first touch target improvements */
 @media (max-width: 768px) {
   /* All interactive elements */
