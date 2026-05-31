@@ -204,6 +204,19 @@
       "shopsCount": "{count, plural, =0 {No shops} one {# shop} other {# shops}}",
       "emptyStateTitle": "No shops yet",
       "emptyStateCta": "Create your first shop"
+    },
+    "sales": {
+      "heading": "Sales",
+      "subtitle": "Track your sales and revenue.",
+      "loading": "Loading sales...",
+      "errorFailedFetch": "Failed to fetch orders",
+      "recentOrders": "Recent orders",
+      "colDate": "Date",
+      "colProduct": "Product",
+      "colCustomer": "Customer",
+      "colShop": "Shop",
+      "colAmount": "Amount",
+      "emptyState": "No sales yet. When you make your first sale, the details will appear here."
     }
   },
   "auth": {

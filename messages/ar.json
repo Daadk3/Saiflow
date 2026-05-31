@@ -204,6 +204,19 @@
       "shopsCount": "{count, plural, zero {لا توجد متاجر} one {متجر واحد} two {متجران} few {# متاجر} many {# متجراً} other {# متجر}}",
       "emptyStateTitle": "لا توجد متاجر بعد",
       "emptyStateCta": "أنشئ متجرك الأول"
+    },
+    "sales": {
+      "heading": "المبيعات",
+      "subtitle": "تتبّع مبيعاتك وإيراداتك.",
+      "loading": "جارٍ تحميل المبيعات...",
+      "errorFailedFetch": "تعذّر جلب الطلبات",
+      "recentOrders": "الطلبات الأخيرة",
+      "colDate": "التاريخ",
+      "colProduct": "المنتج",
+      "colCustomer": "العميل",
+      "colShop": "المتجر",
+      "colAmount": "المبلغ",
+      "emptyState": "لا توجد مبيعات بعد. سيظهر هنا أول طلب فور إتمام عملية الشراء."
     }
   },
   "auth": {
