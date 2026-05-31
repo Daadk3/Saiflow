@@ -192,7 +192,27 @@
       "deleteConfirm": "هل أنت متأكد أنك تريد حذف هذا المنتج؟",
       "noProductsTitle": "لا توجد منتجات بعد",
       "addFirstProductDesc": "أضف أول منتج لك لتبدأ البيع",
-      "addFirstProductCta": "أضف أول منتج لك"
+      "addFirstProductCta": "أضف أول منتج لك",
+      "edit": {
+        "heading": "تعديل المتجر",
+        "subtitle": "حدّث تفاصيل متجرك ومظهره",
+        "backToShop": "العودة إلى <name>{shopName}</name>",
+        "shopFallback": "المتجر",
+        "coverImageLabel": "صورة الغلاف",
+        "coverImageHelp": "صورة الغلاف لمتجرك (الأبعاد المقترحة: 1200×400 بكسل)",
+        "coverImageAlt": "صورة غلاف المتجر",
+        "coverImageUploadCta": "ارفع صورة الغلاف",
+        "logoLabel": "شعار المتجر",
+        "logoHelp": "شعار مربّع لمتجرك (الأبعاد المقترحة: 200×200 بكسل)",
+        "logoAlt": "شعار المتجر",
+        "logoUploadCta": "ارفع الشعار",
+        "coverUploadFailed": "فشل رفع صورة الغلاف: {message}",
+        "logoUploadFailed": "فشل رفع الشعار: {message}",
+        "successMessage": "تمّ تحديث المتجر بنجاح!",
+        "saving": "جارٍ الحفظ...",
+        "submit": "حفظ التغييرات",
+        "helpText": "ستظهر التغييرات فوراً على صفحة متجرك العامة"
+      }
     },
     "home": {
       "subtitle": "أدر متاجرك وتتبّع أداءها",
