@@ -5,6 +5,7 @@ import { useRouter, useParams } from "next/navigation";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
 import Image from "next/image";
+import { useTranslations } from "next-intl";
 import { UploadButton } from "@/lib/uploadthing";
 
 interface Shop {
@@ -31,6 +32,7 @@ export default function EditShopPage() {
   const params = useParams();
   const slug = params.slug as string;
   const { status } = useSession();
+  const t = useTranslations("dashboard");
 
   useEffect(() => {
     if (status === "unauthenticated") {
@@ -49,7 +51,7 @@ export default function EditShopPage() {
       const data = await res.json();
 
       if (!res.ok) {
-        setError(data.error || "Shop not found");
+        setError(data.error || t("shop.shopNotFound"));
         setLoading(false);
         return;
       }
@@ -60,7 +62,7 @@ export default function EditShopPage() {
       setLogo(data.logo || "");
       setCoverImage(data.coverImage || "");
     } catch {
-      setError("Something went wrong");
+      setError(t("shop.somethingWrong"));
     } finally {
       setLoading(false);
     }
@@ -89,12 +91,12 @@ export default function EditShopPage() {
       const data = await res.json();
 
       if (!res.ok) {
-        setError(data.error || "Something went wrong");
+        setError(data.error || t("shop.somethingWrong"));
         return;
       }
 
-      setSuccess("Shop updated successfully!");
-      
+      setSuccess(t("shop.edit.successMessage"));
+
       // If slug changed, redirect to new URL
       if (data.slug !== slug) {
         setTimeout(() => {
@@ -106,7 +108,7 @@ export default function EditShopPage() {
         }, 1500);
       }
     } catch {
-      setError("Something went wrong");
+      setError(t("shop.somethingWrong"));
     } finally {
       setSaving(false);
     }
@@ -117,7 +119,7 @@ export default function EditShopPage() {
       <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
           <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-teal-500"></div>
-          <p className="text-gray-400">Loading shop...</p>
+          <p className="text-gray-400">{t("shop.loadingShop")}</p>
         </div>
       </div>
     );
@@ -128,16 +130,16 @@ export default function EditShopPage() {
       <div className="min-h-screen bg-[#0a0a0a] p-8">
         <div className="max-w-2xl mx-auto">
           <div className="bg-red-500/10 border border-red-500/20 rounded-2xl p-6">
-            <h1 className="text-2xl font-bold text-red-400 mb-2">Error</h1>
+            <h1 className="text-2xl font-bold text-red-400 mb-2">{t("shop.errorTitle")}</h1>
             <p className="text-red-300 mb-4">{error}</p>
-            <Link 
+            <Link
               href="/dashboard"
               className="inline-flex items-center gap-2 text-teal-400 hover:text-teal-300 transition-colors"
             >
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg className="w-5 h-5 rtl:rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
               </svg>
-              Back to Dashboard
+              {t("shop.backToDashboard")}
             </Link>
           </div>
         </div>
@@ -160,7 +162,7 @@ export default function EditShopPage() {
             <Link href="/" className="flex items-center gap-3">
               <Image
                 src="/mascot.png"
-                alt="Saiflow"
+                alt={t("createShop.mascotAlt")}
                 width={48}
                 height={48}
                 className="h-12 w-auto object-contain"
@@ -173,15 +175,20 @@ export default function EditShopPage() {
               href={`/dashboard/shop/${slug}`}
               className="flex items-center gap-2 text-gray-400 hover:text-teal-400 transition-colors group"
             >
-              <svg 
-                className="w-5 h-5 transition-transform group-hover:-translate-x-1" 
-                fill="none" 
-                viewBox="0 0 24 24" 
+              <svg
+                className="w-5 h-5 transition-transform group-hover:-translate-x-1 rtl:rotate-180 rtl:group-hover:translate-x-1"
+                fill="none"
+                viewBox="0 0 24 24"
                 stroke="currentColor"
               >
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
               </svg>
-              <span>Back to {shop?.name || "Shop"}</span>
+              <span>
+                {t.rich("shop.edit.backToShop", {
+                  shopName: shop?.name || t("shop.edit.shopFallback"),
+                  name: (chunks) => <bdi>{chunks}</bdi>,
+                })}
+              </span>
             </Link>
           </div>
         </div>
@@ -199,8 +206,8 @@ export default function EditShopPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                 </svg>
               </div>
-              <h1 className="text-2xl font-bold text-white">Edit Shop</h1>
-              <p className="mt-2 text-gray-500">Update your shop details and branding</p>
+              <h1 className="text-2xl font-bold text-white">{t("shop.edit.heading")}</h1>
+              <p className="mt-2 text-gray-500">{t("shop.edit.subtitle")}</p>
             </div>
 
             {/* Form */}
@@ -208,17 +215,17 @@ export default function EditShopPage() {
               {/* Cover Image Upload */}
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Cover Image / Banner
+                  {t("shop.edit.coverImageLabel")}
                 </label>
                 <p className="text-xs text-gray-500 mb-3">
-                  A banner image for your shop (recommended: 1200x400px)
+                  {t("shop.edit.coverImageHelp")}
                 </p>
-                
+
                 {coverImage ? (
                   <div className="relative">
                     <Image
                       src={coverImage}
-                      alt="Shop cover"
+                      alt={t("shop.edit.coverImageAlt")}
                       width={600}
                       height={200}
                       className="w-full h-40 object-cover rounded-xl border border-gray-800"
@@ -226,7 +233,7 @@ export default function EditShopPage() {
                     <button
                       type="button"
                       onClick={() => setCoverImage("")}
-                      className="absolute top-2 right-2 w-8 h-8 bg-red-500 hover:bg-red-400 rounded-full flex items-center justify-center transition-colors"
+                      className="absolute top-2 end-2 w-8 h-8 bg-red-500 hover:bg-red-400 rounded-full flex items-center justify-center transition-colors"
                     >
                       <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -240,7 +247,7 @@ export default function EditShopPage() {
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                       </svg>
                     </div>
-                    <p className="text-gray-400 text-sm mb-2">Upload a cover image</p>
+                    <p className="text-gray-400 text-sm mb-2">{t("shop.edit.coverImageUploadCta")}</p>
                     <UploadButton
                       endpoint="shopCover"
                       onClientUploadComplete={(res) => {
@@ -249,7 +256,7 @@ export default function EditShopPage() {
                         }
                       }}
                       onUploadError={(error: Error) => {
-                        setError(`Cover upload failed: ${error.message}`);
+                        setError(t("shop.edit.coverUploadFailed", { message: error.message }));
                       }}
                       appearance={{
                         button: "bg-gray-700 hover:bg-gray-600 text-white font-medium px-4 py-2 rounded-lg transition-colors text-sm ut-uploading:bg-gray-700/50",
@@ -263,18 +270,18 @@ export default function EditShopPage() {
               {/* Logo Upload */}
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Shop Logo
+                  {t("shop.edit.logoLabel")}
                 </label>
                 <p className="text-xs text-gray-500 mb-3">
-                  A square logo for your shop (recommended: 200x200px)
+                  {t("shop.edit.logoHelp")}
                 </p>
-                
+
                 <div className="flex items-start gap-4">
                   {logo ? (
                     <div className="relative">
                       <Image
                         src={logo}
-                        alt="Shop logo"
+                        alt={t("shop.edit.logoAlt")}
                         width={100}
                         height={100}
                         className="w-24 h-24 object-cover rounded-xl border border-gray-800"
@@ -282,7 +289,7 @@ export default function EditShopPage() {
                       <button
                         type="button"
                         onClick={() => setLogo("")}
-                        className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 hover:bg-red-400 rounded-full flex items-center justify-center transition-colors"
+                        className="absolute -top-2 -end-2 w-6 h-6 bg-red-500 hover:bg-red-400 rounded-full flex items-center justify-center transition-colors"
                       >
                         <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -296,7 +303,7 @@ export default function EditShopPage() {
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                         </svg>
                       </div>
-                      <p className="text-gray-400 text-sm mb-2">Upload logo</p>
+                      <p className="text-gray-400 text-sm mb-2">{t("shop.edit.logoUploadCta")}</p>
                       <UploadButton
                         endpoint="shopLogo"
                         onClientUploadComplete={(res) => {
@@ -305,7 +312,7 @@ export default function EditShopPage() {
                           }
                         }}
                         onUploadError={(error: Error) => {
-                          setError(`Logo upload failed: ${error.message}`);
+                          setError(t("shop.edit.logoUploadFailed", { message: error.message }));
                         }}
                         appearance={{
                           button: "bg-gray-700 hover:bg-gray-600 text-white font-medium px-4 py-2 rounded-lg transition-colors text-sm ut-uploading:bg-gray-700/50",
@@ -320,7 +327,7 @@ export default function EditShopPage() {
               {/* Shop Name */}
               <div>
                 <label htmlFor="name" className="block text-sm font-medium text-gray-300 mb-2">
-                  Shop Name <span className="text-teal-400">*</span>
+                  {t("createShop.shopNameLabel")} <span className="text-teal-400">*</span>
                 </label>
                 <input
                   id="name"
@@ -328,7 +335,7 @@ export default function EditShopPage() {
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   required
-                  placeholder="e.g., My Awesome Shop"
+                  placeholder={t("createShop.shopNamePlaceholder")}
                   className="w-full px-4 py-3 bg-[#0a0a0a] border border-gray-800 rounded-xl text-white placeholder-gray-600 focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500 transition-colors"
                 />
               </div>
@@ -336,14 +343,14 @@ export default function EditShopPage() {
               {/* Description */}
               <div>
                 <label htmlFor="description" className="block text-sm font-medium text-gray-300 mb-2">
-                  Description
+                  {t("createShop.descriptionLabel")}
                 </label>
                 <textarea
                   id="description"
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   rows={4}
-                  placeholder="Describe your shop and what you sell..."
+                  placeholder={t("createShop.descriptionPlaceholder")}
                   className="w-full px-4 py-3 bg-[#0a0a0a] border border-gray-800 rounded-xl text-white placeholder-gray-600 focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500 transition-colors resize-none"
                 />
               </div>
@@ -368,7 +375,7 @@ export default function EditShopPage() {
                   href={`/dashboard/shop/${slug}`}
                   className="flex-1 py-3 px-4 bg-[#0a0a0a] hover:bg-gray-900 text-gray-300 font-semibold rounded-xl border border-gray-800 transition-colors duration-200 text-center"
                 >
-                  Cancel
+                  {t("createShop.cancel")}
                 </Link>
                 <button
                   type="submit"
@@ -381,14 +388,14 @@ export default function EditShopPage() {
                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                       </svg>
-                      Saving...
+                      {t("shop.edit.saving")}
                     </>
                   ) : (
                     <>
                       <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                       </svg>
-                      Save Changes
+                      {t("shop.edit.submit")}
                     </>
                   )}
                 </button>
@@ -398,7 +405,7 @@ export default function EditShopPage() {
 
           {/* Help Text */}
           <p className="mt-6 text-center text-gray-600 text-sm">
-            Changes will be reflected immediately on your public shop page
+            {t("shop.edit.helpText")}
           </p>
         </div>
       </main>

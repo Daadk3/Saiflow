@@ -192,7 +192,27 @@
       "deleteConfirm": "Are you sure you want to delete this product?",
       "noProductsTitle": "No products yet",
       "addFirstProductDesc": "Add your first product to start selling",
-      "addFirstProductCta": "Add Your First Product"
+      "addFirstProductCta": "Add Your First Product",
+      "edit": {
+        "heading": "Edit Shop",
+        "subtitle": "Update your shop details and branding",
+        "backToShop": "Back to <name>{shopName}</name>",
+        "shopFallback": "Shop",
+        "coverImageLabel": "Cover Image / Banner",
+        "coverImageHelp": "A banner image for your shop (recommended: 1200x400px)",
+        "coverImageAlt": "Shop cover",
+        "coverImageUploadCta": "Upload a cover image",
+        "logoLabel": "Shop Logo",
+        "logoHelp": "A square logo for your shop (recommended: 200x200px)",
+        "logoAlt": "Shop logo",
+        "logoUploadCta": "Upload logo",
+        "coverUploadFailed": "Cover upload failed: {message}",
+        "logoUploadFailed": "Logo upload failed: {message}",
+        "successMessage": "Shop updated successfully!",
+        "saving": "Saving...",
+        "submit": "Save Changes",
+        "helpText": "Changes will be reflected immediately on your public shop page"
+      }
     },
     "home": {
       "subtitle": "Manage your shops and track your performance",
