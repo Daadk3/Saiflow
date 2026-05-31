@@ -7,6 +7,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useLocale, useTranslations } from "next-intl";
 import { formatPrice } from "@/lib/formatPrice";
+import { formatDate } from "@/lib/formatDate";
 
 interface Order {
   id: string;
@@ -62,27 +63,16 @@ export default function SalesPage() {
       const ordersData = await res.json();
 
       if (!res.ok) {
-        setError(ordersData.error || "Failed to fetch orders");
+        setError(ordersData.error || t("sales.errorFailedFetch"));
         return;
       }
 
       setData(ordersData);
     } catch {
-      setError("Something went wrong");
+      setError(t("shop.somethingWrong"));
     } finally {
       setLoading(false);
     }
-  }
-
-  function formatDate(dateString: string) {
-    const date = new Date(dateString);
-    return date.toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
   }
 
   if (status === "loading" || loading) {
@@ -90,7 +80,7 @@ export default function SalesPage() {
       <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
           <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-teal-500"></div>
-          <p className="text-gray-500">Loading sales...</p>
+          <p className="text-gray-500">{t("sales.loading")}</p>
         </div>
       </div>
     );
@@ -101,16 +91,16 @@ export default function SalesPage() {
       <div className="min-h-screen bg-[#0a0a0a] p-8">
         <div className="max-w-6xl mx-auto">
           <div className="bg-red-50 border border-red-100 rounded-2xl p-6">
-            <h1 className="text-2xl font-bold text-red-600 mb-2">Error</h1>
+            <h1 className="text-2xl font-bold text-red-600 mb-2">{t("shop.errorTitle")}</h1>
             <p className="text-red-500 mb-4">{error}</p>
             <Link
               href="/dashboard"
               className="inline-flex items-center gap-2 text-teal-600 hover:text-teal-700 transition-colors"
             >
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg className="w-5 h-5 rtl:rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
               </svg>
-              Back to dashboard
+              {t("shop.backToDashboard")}
             </Link>
           </div>
         </div>
@@ -123,8 +113,8 @@ export default function SalesPage() {
       <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
         {/* Page header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-white">Sales</h1>
-          <p className="text-gray-500 mt-1">Track your sales and revenue.</p>
+          <h1 className="text-3xl font-bold text-white">{t("sales.heading")}</h1>
+          <p className="text-gray-500 mt-1">{t("sales.subtitle")}</p>
         </div>
 
         {/* Stats cards */}
@@ -132,7 +122,7 @@ export default function SalesPage() {
           <div className="bg-[#111111] p-6 rounded-xl border border-gray-800 shadow-sm">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-gray-400 text-sm">Total revenue</p>
+                <p className="text-gray-400 text-sm">{t("totalRevenue")}</p>
                 <p className="text-3xl font-bold text-white mt-1">
                   {revenueIsMixed ? t("mixedCurrency") : <bdi>{formatPrice(Number(data?.totalRevenue || 0), revenueCurrency, locale)}</bdi>}
                 </p>
@@ -153,7 +143,7 @@ export default function SalesPage() {
           <div className="bg-[#111111] p-6 rounded-xl border border-gray-800 shadow-sm">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-gray-400 text-sm">Total sales</p>
+                <p className="text-gray-400 text-sm">{t("totalSales")}</p>
                 <p className="text-3xl font-bold text-white mt-1">{data?.totalSales || 0}</p>
               </div>
             </div>
@@ -163,7 +153,7 @@ export default function SalesPage() {
         {/* Orders table */}
         <div className="bg-[#111111] rounded-xl border border-gray-800 overflow-hidden">
           <div className="bg-[#0a0a0a] px-6 py-4 border-b border-gray-800">
-            <h2 className="text-lg font-semibold text-white">Recent orders</h2>
+            <h2 className="text-lg font-semibold text-white">{t("sales.recentOrders")}</h2>
           </div>
 
           {data?.orders && data.orders.length > 0 ? (
@@ -171,20 +161,20 @@ export default function SalesPage() {
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-gray-800 bg-[#111111]">
-                    <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-6 py-3">
-                      Date
+                    <th className="text-start text-xs font-medium text-gray-500 uppercase tracking-wider px-6 py-3">
+                      {t("sales.colDate")}
                     </th>
-                    <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-6 py-3">
-                      Product
+                    <th className="text-start text-xs font-medium text-gray-500 uppercase tracking-wider px-6 py-3">
+                      {t("sales.colProduct")}
                     </th>
-                    <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-6 py-3">
-                      Customer
+                    <th className="text-start text-xs font-medium text-gray-500 uppercase tracking-wider px-6 py-3">
+                      {t("sales.colCustomer")}
                     </th>
-                    <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-6 py-3">
-                      Shop
+                    <th className="text-start text-xs font-medium text-gray-500 uppercase tracking-wider px-6 py-3">
+                      {t("sales.colShop")}
                     </th>
-                    <th className="text-right text-xs font-medium text-gray-500 uppercase tracking-wider px-6 py-3">
-                      Amount
+                    <th className="text-end text-xs font-medium text-gray-500 uppercase tracking-wider px-6 py-3">
+                      {t("sales.colAmount")}
                     </th>
                   </tr>
                 </thead>
@@ -192,7 +182,13 @@ export default function SalesPage() {
                   {data.orders.map((order) => (
                     <tr key={order.id} className="border-b border-gray-800 hover:bg-gray-800/50 transition-colors">
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {formatDate(order.createdAt)}
+                        {formatDate(order.createdAt, locale, {
+                          year: "numeric",
+                          month: "short",
+                          day: "numeric",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
                       </td>
                       <td className="px-6 py-4 text-sm text-white font-medium">
                         {order.productName}
@@ -208,7 +204,7 @@ export default function SalesPage() {
                           {order.product.shop.name}
                         </Link>
                       </td>
-                      <td className="px-6 py-4 text-right text-sm font-semibold text-teal-400">
+                      <td className="px-6 py-4 text-end text-sm font-semibold text-teal-400">
                         <bdi>{formatPrice(Number(order.price), order.product.currency, locale)}</bdi>
                       </td>
                     </tr>
@@ -228,15 +224,15 @@ export default function SalesPage() {
                   />
                 </svg>
               </div>
-              <h3 className="text-gray-400 mt-4">No sales yet. When customers purchase, orders will appear here.</h3>
+              <h3 className="text-gray-400 mt-4">{t("sales.emptyState")}</h3>
               <Link
                 href="/dashboard"
                 className="mt-4 inline-flex items-center gap-2 text-teal-600 hover:text-teal-700 font-medium transition-colors"
               >
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg className="w-5 h-5 rtl:rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                 </svg>
-                Back to dashboard
+                {t("shop.backToDashboard")}
               </Link>
             </div>
           )}
