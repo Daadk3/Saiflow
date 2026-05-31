@@ -2,6 +2,7 @@
 
 import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import { useTranslations } from "next-intl";
 import Link from "next/link";
 
 interface DownloadInfo {
@@ -10,9 +11,10 @@ interface DownloadInfo {
 }
 
 function SuccessContent() {
+  const t = useTranslations("success");
   const searchParams = useSearchParams();
   const sessionId = searchParams.get("session_id");
-  
+
   const [downloadInfo, setDownloadInfo] = useState<DownloadInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -21,19 +23,19 @@ function SuccessContent() {
     async function fetchDownloadUrl() {
       if (!sessionId) {
         setLoading(false);
-        setError("No session found");
+        setError(t("errorNoSession"));
         return;
       }
 
       try {
         setLoading(true);
         setError(null);
-        
+
         const response = await fetch(`/api/download/${sessionId}?format=json`);
         const data = await response.json();
 
         if (!response.ok) {
-          setError(data.error || "Failed to get download link");
+          setError(data.error || t("errorFailedGet"));
           setLoading(false);
           return;
         }
@@ -42,18 +44,18 @@ function SuccessContent() {
         if (data.productName && data.downloadUrl) {
           setDownloadInfo(data);
         } else {
-          setError("Invalid response from server");
+          setError(t("errorInvalidResponse"));
         }
       } catch (err) {
         console.error("Error fetching download info:", err);
-        setError("Failed to fetch download information");
+        setError(t("errorFailedFetch"));
       } finally {
         setLoading(false);
       }
     }
 
     fetchDownloadUrl();
-  }, [sessionId]);
+  }, [sessionId, t]);
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] flex flex-col">
@@ -96,17 +98,17 @@ function SuccessContent() {
             </div>
             
             <h1 className="text-2xl font-bold text-white mb-2">
-              Payment Successful!
+              {t("heading")}
             </h1>
-            
+
             <p className="text-gray-400 mb-8">
-              Thank you for your purchase.
+              {t("subtitle")}
             </p>
 
             {loading && (
               <div className="mb-8">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-500 mx-auto"></div>
-                <p className="text-gray-500 mt-3">Preparing your download...</p>
+                <p className="text-gray-500 mt-3">{t("loading")}</p>
               </div>
             )}
 
@@ -119,7 +121,10 @@ function SuccessContent() {
             {!loading && downloadInfo && (
               <div className="mb-8">
                 <p className="text-gray-300 mb-4">
-                  Your file <strong className="text-white">{downloadInfo.productName}</strong> is ready!
+                  {t.rich("fileReady", {
+                    name: downloadInfo.productName,
+                    product: (chunks) => <strong className="text-white">{chunks}</strong>,
+                  })}
                 </p>
                 <a
                   href={downloadInfo.downloadUrl}
@@ -140,22 +145,25 @@ function SuccessContent() {
                       d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
                     />
                   </svg>
-                  Download Your File
+                  {t("downloadCta")}
                 </a>
                 <p className="text-gray-500 text-sm mt-4">
-                  Having trouble? Contact support at{" "}
-                  <a href="mailto:support@saiflow.io" className="text-teal-400 hover:text-teal-300">
-                    support@saiflow.io
-                  </a>
+                  {t.rich("helperText", {
+                    email: (chunks) => (
+                      <a href="mailto:support@saiflow.io" className="text-teal-400 hover:text-teal-300">
+                        {chunks}
+                      </a>
+                    ),
+                  })}
                 </p>
               </div>
             )}
-            
+
             <Link
               href="/browse"
               className="inline-block text-teal-400 hover:text-teal-300 font-medium transition-colors"
             >
-              Continue Shopping
+              {t("continueShopping")}
             </Link>
           </div>
         </div>
@@ -165,11 +173,12 @@ function SuccessContent() {
 }
 
 function LoadingFallback() {
+  const t = useTranslations("success");
   return (
     <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center">
       <div className="bg-[#111111] rounded-2xl border border-gray-800/50 p-8 text-center">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-500 mx-auto"></div>
-        <p className="text-gray-400 mt-4">Loading...</p>
+        <p className="text-gray-400 mt-4">{t("suspenseFallback")}</p>
       </div>
     </div>
   );
