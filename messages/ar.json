@@ -417,5 +417,27 @@
       "primary": "ابدأ البيع — مجاناً",
       "note": "مجاني للبدء • بدون بطاقة ائتمان"
     }
+  },
+  "success": {
+    "heading": "تمّت عملية الدفع بنجاح!",
+    "subtitle": "شكراً لك على عملية الشراء.",
+    "loading": "جارٍ تجهيز ملف التنزيل...",
+    "fileReady": "ملفك <product>{name}</product> جاهز للتنزيل!",
+    "downloadCta": "تنزيل الملف",
+    "helperText": "هل تواجه مشكلة؟ تواصل مع الدعم عبر <email>support@saiflow.io</email>",
+    "continueShopping": "متابعة التصفّح",
+    "suspenseFallback": "جارٍ التحميل...",
+    "errorNoSession": "لم يتم العثور على جلسة الدفع",
+    "errorFailedGet": "تعذّر الحصول على رابط التنزيل",
+    "errorInvalidResponse": "استجابة غير صالحة من الخادم",
+    "errorFailedFetch": "تعذّر جلب بيانات التنزيل"
+  },
+  "support": {
+    "success": {
+      "heading": "تمّ إرسال رسالتك!",
+      "subtitle": "شكراً لتواصلك معنا. سنرد عليك خلال 24 ساعة.",
+      "backToHome": "العودة إلى الرئيسية",
+      "sendAnother": "إرسال رسالة أخرى"
+    }
   }
 }

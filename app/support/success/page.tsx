@@ -1,8 +1,10 @@
 "use client";
 
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 
 export default function SupportSuccessPage() {
+  const t = useTranslations("support.success");
   return (
     <div className="min-h-screen bg-[#0a0a0a] flex flex-col">
       {/* Background Effects */}
@@ -34,12 +36,12 @@ export default function SupportSuccessPage() {
             
             {/* Headline */}
             <h1 className="text-2xl font-bold text-white mb-2">
-              Message Sent!
+              {t("heading")}
             </h1>
-            
+
             {/* Subtext */}
             <p className="text-gray-400 mb-8">
-              Thank you for reaching out. We&apos;ll get back to you within 24 hours.
+              {t("subtitle")}
             </p>
 
             {/* Buttons */}
@@ -48,14 +50,14 @@ export default function SupportSuccessPage() {
                 href="/"
                 className="block w-full bg-teal-500 hover:bg-teal-400 text-black font-semibold px-6 py-3 rounded-xl transition-colors shadow-lg shadow-teal-500/25"
               >
-                Back to Home
+                {t("backToHome")}
               </Link>
-              
+
               <Link
                 href="/support"
                 className="block text-teal-400 hover:text-teal-300 font-medium transition-colors"
               >
-                Send another message
+                {t("sendAnother")}
               </Link>
             </div>
           </div>

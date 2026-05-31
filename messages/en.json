@@ -417,5 +417,27 @@
       "primary": "Start Selling — It's Free",
       "note": "Free to start • No credit card required"
     }
+  },
+  "success": {
+    "heading": "Payment Successful!",
+    "subtitle": "Thank you for your purchase.",
+    "loading": "Preparing your download...",
+    "fileReady": "Your file <product>{name}</product> is ready!",
+    "downloadCta": "Download Your File",
+    "helperText": "Having trouble? Contact support at <email>support@saiflow.io</email>",
+    "continueShopping": "Continue Shopping",
+    "suspenseFallback": "Loading...",
+    "errorNoSession": "No session found",
+    "errorFailedGet": "Failed to get download link",
+    "errorInvalidResponse": "Invalid response from server",
+    "errorFailedFetch": "Failed to fetch download information"
+  },
+  "support": {
+    "success": {
+      "heading": "Message Sent!",
+      "subtitle": "Thank you for reaching out. We'll get back to you within 24 hours.",
+      "backToHome": "Back to Home",
+      "sendAnother": "Send another message"
+    }
   }
 }
