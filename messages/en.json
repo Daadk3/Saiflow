@@ -472,5 +472,25 @@
       "backToHome": "Back to Home",
       "sendAnother": "Send another message"
     }
+  },
+  "storefront": {
+    "productDetail": {
+      "backToStore": "Back to <name>{shopName}</name>",
+      "shopLogoAlt": "{shopName} shop logo",
+      "imagePlaceholder": "Digital product preview",
+      "digitalCreator": "Digital creator",
+      "descriptionEmptyState": "This creator hasn’t added a description yet.",
+      "whatsIncluded": "What's included",
+      "includesInstantDownload": "Instant digital download",
+      "includesLifetimeAccess": "Lifetime access to files",
+      "includesFreeUpdates": "Free updates from the creator",
+      "secureCheckout": "Secure checkout. You'll get instant access after payment.",
+      "paymentsProcessedSecurely": "Payments are processed securely.",
+      "getThisProduct": "Get this product",
+      "processing": "Processing...",
+      "notAvailable": "Not Available",
+      "notAvailableForPurchase": "This product is not available for purchase yet",
+      "checkoutErrorRetry": "Something went wrong. Please try again."
+    }
   }
 }

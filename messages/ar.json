@@ -472,5 +472,25 @@
       "backToHome": "العودة إلى الرئيسية",
       "sendAnother": "إرسال رسالة أخرى"
     }
+  },
+  "storefront": {
+    "productDetail": {
+      "backToStore": "العودة إلى <name>{shopName}</name>",
+      "shopLogoAlt": "شعار متجر {shopName}",
+      "imagePlaceholder": "معاينة منتج رقمي",
+      "digitalCreator": "مبدع رقمي",
+      "descriptionEmptyState": "لم يُضف هذا المبدع وصفاً بعد.",
+      "whatsIncluded": "ما يتضمنه المنتج",
+      "includesInstantDownload": "تنزيل رقمي فوري",
+      "includesLifetimeAccess": "وصول دائم إلى الملفات",
+      "includesFreeUpdates": "تحديثات مجانية من المبدع",
+      "secureCheckout": "عملية دفع آمنة. وصول فوري بعد إتمام الدفع.",
+      "paymentsProcessedSecurely": "تُعالَج المدفوعات بشكل آمن.",
+      "getThisProduct": "احصل على هذا المنتج",
+      "processing": "جارٍ المعالجة...",
+      "notAvailable": "غير متاح",
+      "notAvailableForPurchase": "هذا المنتج غير متاح للشراء بعد",
+      "checkoutErrorRetry": "حدث خطأ ما. يرجى المحاولة مرة أخرى."
+    }
   }
 }

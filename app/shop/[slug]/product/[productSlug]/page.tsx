@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import BuyButton from "./BuyButton";
-import { getLocale } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
 import { formatPrice } from "@/lib/formatPrice";
 
 interface Product {
@@ -70,6 +70,7 @@ export default async function ProductPage({
   }
 
   const locale = await getLocale();
+  const t = await getTranslations();
 
   return (
     <div className="min-h-screen bg-[#0a0a0a]">
@@ -81,21 +82,26 @@ export default async function ProductPage({
             className="inline-flex items-center gap-2 text-gray-500 hover:text-teal-600 transition-colors group"
           >
             <svg
-              className="w-5 h-5 transition-transform group-hover:-translate-x-1"
+              className="w-5 h-5 transition-transform group-hover:-translate-x-1 rtl:rotate-180 rtl:group-hover:translate-x-1"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
             >
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0 7-7m-7 7h18" />
             </svg>
-            <span className="text-sm font-medium text-gray-300">Back to {product.shop.name}</span>
+            <span className="text-sm font-medium text-gray-300">
+              {t.rich("storefront.productDetail.backToStore", {
+                shopName: product.shop.name,
+                name: (chunks) => <bdi>{chunks}</bdi>,
+              })}
+            </span>
           </Link>
 
           <Link href={`/shop/${product.shop.slug}`} className="flex items-center gap-2">
             {product.shop.logo ? (
               <Image
                 src={product.shop.logo}
-                alt={`${product.shop.name} shop logo`}
+                alt={t("storefront.productDetail.shopLogoAlt", { shopName: product.shop.name })}
                 width={32}
                 height={32}
                 className="rounded-full"
@@ -105,7 +111,7 @@ export default async function ProductPage({
                 {product.shop.name.charAt(0)}
               </div>
             )}
-            <span className="text-white font-medium hidden sm:block">{product.shop.name}</span>
+            <span className="text-white font-medium hidden sm:block"><bdi>{product.shop.name}</bdi></span>
           </Link>
         </div>
       </header>
@@ -147,13 +153,13 @@ export default async function ProductPage({
                       d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"
                     />
                   </svg>
-                  <span className="text-sm font-medium">Digital product preview</span>
+                  <span className="text-sm font-medium">{t("storefront.productDetail.imagePlaceholder")}</span>
                 </div>
               )}
             </div>
 
             {/* Title */}
-            <h1 className="text-3xl sm:text-4xl font-bold text-white mt-8">{product.name}</h1>
+            <h1 className="text-3xl sm:text-4xl font-bold text-white mt-8"><bdi>{product.name}</bdi></h1>
 
             {/* Creator info */}
             <div className="flex items-center gap-3 mt-4">
@@ -171,21 +177,23 @@ export default async function ProductPage({
                 </div>
               )}
               <div>
-                <p className="font-medium text-white">{product.shop.name}</p>
-                <p className="text-sm text-gray-500">Digital creator</p>
+                <p className="font-medium text-white"><bdi>{product.shop.name}</bdi></p>
+                <p className="text-sm text-gray-500">{t("storefront.productDetail.digitalCreator")}</p>
               </div>
             </div>
 
             {/* Description */}
             <div className="prose prose-invert mt-8 max-w-none text-gray-300 leading-relaxed">
               <p className="whitespace-pre-wrap">
-                {product.description || "This creator hasn’t added a description yet."}
+                <bdi>
+                  {product.description || t("storefront.productDetail.descriptionEmptyState")}
+                </bdi>
               </p>
             </div>
 
             {/* What's included */}
             <div className="mt-12 p-6 bg-[#111111] rounded-xl border border-gray-800">
-              <h2 className="font-semibold text-white text-lg mb-4">What&apos;s included</h2>
+              <h2 className="font-semibold text-white text-lg mb-4">{t("storefront.productDetail.whatsIncluded")}</h2>
               <ul className="space-y-3 text-sm text-gray-300">
                 <li className="flex items-center gap-2">
                   <span className="text-teal-500">
@@ -193,7 +201,7 @@ export default async function ProductPage({
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                     </svg>
                   </span>
-                  Instant digital download
+                  {t("storefront.productDetail.includesInstantDownload")}
                 </li>
                 <li className="flex items-center gap-2">
                   <span className="text-teal-500">
@@ -201,7 +209,7 @@ export default async function ProductPage({
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                     </svg>
                   </span>
-                  Lifetime access to files
+                  {t("storefront.productDetail.includesLifetimeAccess")}
                 </li>
                 <li className="flex items-center gap-2">
                   <span className="text-teal-500">
@@ -209,14 +217,14 @@ export default async function ProductPage({
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                     </svg>
                   </span>
-                  Free updates from the creator
+                  {t("storefront.productDetail.includesFreeUpdates")}
                 </li>
               </ul>
             </div>
           </div>
 
           {/* Right column - purchase card */}
-          <aside className="lg:pl-4">
+          <aside className="lg:ps-4">
             <div className="sticky top-24 bg-[#111111] border border-gray-800 rounded-2xl p-6 shadow-lg">
               <div className="flex items-baseline gap-2">
                 <span className="text-4xl font-bold text-white">
@@ -229,7 +237,7 @@ export default async function ProductPage({
               </div>
 
               <p className="text-center text-sm text-gray-500 mt-4">
-                Secure checkout. You&apos;ll get instant access after payment.
+                {t("storefront.productDetail.secureCheckout")}
               </p>
 
               {product.fileUrl && (
@@ -241,7 +249,7 @@ export default async function ProductPage({
                       clipRule="evenodd"
                     />
                   </svg>
-                  Payments are processed securely.
+                  {t("storefront.productDetail.paymentsProcessedSecurely")}
                 </div>
               )}
             </div>
@@ -250,14 +258,14 @@ export default async function ProductPage({
       </main>
 
       {/* Mobile sticky bar */}
-      <div className="fixed bottom-0 left-0 right-0 bg-[#111111] border-t border-gray-800 p-4 lg:hidden flex items-center justify-between z-50">
+      <div className="fixed bottom-0 start-0 end-0 bg-[#111111] border-t border-gray-800 p-4 lg:hidden flex items-center justify-between z-50">
         <div>
-          <p className="text-xs text-gray-400">Get this product</p>
+          <p className="text-xs text-gray-400">{t("storefront.productDetail.getThisProduct")}</p>
           <p className="text-lg font-bold text-white">
             <bdi>{formatPrice(Number(product.price), product.currency, locale)}</bdi>
           </p>
         </div>
-        <div className="flex-1 pl-4">
+        <div className="flex-1 ps-4">
           <BuyButton productId={product.id} hasFile={!!product.fileUrl} />
         </div>
       </div>
