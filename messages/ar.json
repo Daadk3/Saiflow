@@ -258,6 +258,8 @@
       "fileUploadFailed": "فشل الرفع: {message}",
       "fileUploadedBadge": "تم رفع الملف!",
       "fileReadyBadge": "جاهز للنشر",
+      "currencySymbol": "ر.س.",
+      "priceHelp": "السعر بالريال السعودي",
       "add": {
         "heading": "إضافة منتج جديد",
         "subtitle": "أنشئ منتجاً رقمياً جديداً للبيع",

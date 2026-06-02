@@ -256,19 +256,22 @@ export default function AddProductPage() {
                   {t("dashboard.product.priceLabel")} <span className="text-teal-400">*</span>
                 </label>
                 <div className="relative">
-                  <span className="absolute start-4 top-1/2 -translate-y-1/2 text-gray-500">$</span>
+                  <span className="absolute start-4 top-1/2 -translate-y-1/2 text-gray-500">{t("dashboard.product.currencySymbol")}</span>
                   <input
                     id="price"
                     type="number"
+                    inputMode="decimal"
+                    dir="ltr"
                     step="0.01"
                     min="0"
                     value={price}
                     onChange={(e) => setPrice(e.target.value)}
                     required
                     placeholder="9.99"
-                    className="w-full ps-8 pe-4 py-3 bg-[#0a0a0a] border border-gray-800 rounded-xl text-white placeholder-gray-600 focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500 transition-colors"
+                    className="w-full ps-14 pe-4 py-3 bg-[#0a0a0a] border border-gray-800 rounded-xl text-white placeholder-gray-600 focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500 transition-colors"
                   />
                 </div>
+                <p className="mt-1 text-xs text-gray-500">{t("dashboard.product.priceHelp")}</p>
               </div>
 
               {/* Category */}
