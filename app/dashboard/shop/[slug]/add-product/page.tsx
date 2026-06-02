@@ -5,9 +5,11 @@ import { useRouter, useParams } from "next/navigation";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
 import Image from "next/image";
+import { useTranslations } from "next-intl";
 import { UploadButton } from "@/lib/uploadthing";
 
 export default function AddProductPage() {
+  const t = useTranslations();
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [price, setPrice] = useState("");
@@ -21,13 +23,13 @@ export default function AddProductPage() {
   const [shopName, setShopName] = useState<string>("");
 
   const categories = [
-    { value: "", label: "Select a category (optional)" },
-    { value: "ebooks", label: "eBooks & Guides" },
-    { value: "courses", label: "Online Courses" },
-    { value: "templates", label: "Templates & Themes" },
-    { value: "music", label: "Music & Audio" },
-    { value: "art", label: "Art & Graphics" },
-    { value: "software", label: "Software & Apps" },
+    { value: "", label: t("dashboard.product.categorySelectOption") },
+    { value: "ebooks", label: t("categories.ebooksGuides") },
+    { value: "courses", label: t("categories.onlineCourses") },
+    { value: "templates", label: t("categories.templatesThemes") },
+    { value: "music", label: t("categories.musicAudio") },
+    { value: "art", label: t("categories.artGraphics") },
+    { value: "software", label: t("categories.softwareApps") },
   ];
 
   const router = useRouter();
@@ -84,13 +86,13 @@ export default function AddProductPage() {
       const data = await res.json();
 
       if (!res.ok) {
-        setError(data.error || "Something went wrong");
+        setError(data.error || t("dashboard.shop.somethingWrong"));
         return;
       }
 
       router.push(`/dashboard/shop/${slug}`);
     } catch {
-      setError("Something went wrong");
+      setError(t("dashboard.shop.somethingWrong"));
     } finally {
       setLoading(false);
     }
@@ -111,7 +113,7 @@ export default function AddProductPage() {
             <Link href="/" className="flex items-center gap-3">
               <Image
                 src="/mascot.png"
-                alt="Saiflow"
+                alt={t("dashboard.createShop.mascotAlt")}
                 width={48}
                 height={48}
                 className="h-12 w-auto object-contain"
@@ -124,15 +126,20 @@ export default function AddProductPage() {
               href={`/dashboard/shop/${slug}`}
               className="flex items-center gap-2 text-gray-400 hover:text-teal-400 transition-colors group"
             >
-              <svg 
-                className="w-5 h-5 transition-transform group-hover:-translate-x-1" 
-                fill="none" 
-                viewBox="0 0 24 24" 
+              <svg
+                className="w-5 h-5 transition-transform group-hover:-translate-x-1 rtl:rotate-180 rtl:group-hover:translate-x-1"
+                fill="none"
+                viewBox="0 0 24 24"
                 stroke="currentColor"
               >
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
               </svg>
-              <span>Back to {shopName || "Shop"}</span>
+              <span>
+                {t.rich("dashboard.shop.edit.backToShop", {
+                  shopName: shopName || t("dashboard.shop.edit.shopFallback"),
+                  name: (chunks) => <bdi>{chunks}</bdi>,
+                })}
+              </span>
             </Link>
           </div>
         </div>
@@ -150,8 +157,8 @@ export default function AddProductPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </div>
-              <h1 className="text-2xl font-bold text-white">Add New Product</h1>
-              <p className="mt-2 text-gray-500">Create a new digital product to sell</p>
+              <h1 className="text-2xl font-bold text-white">{t("dashboard.product.add.heading")}</h1>
+              <p className="mt-2 text-gray-500">{t("dashboard.product.add.subtitle")}</p>
             </div>
 
             {/* Form */}
@@ -159,17 +166,17 @@ export default function AddProductPage() {
               {/* Thumbnail Upload */}
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Product Thumbnail
+                  {t("dashboard.product.thumbnailLabel")}
                 </label>
                 <p className="text-xs text-gray-500 mb-3">
-                  Add a preview image to attract buyers (PNG, JPG, max 4MB)
+                  {t("dashboard.product.thumbnailHelp")}
                 </p>
-                
+
                 {thumbnailUrl ? (
                   <div className="relative inline-block">
                     <Image
                       src={thumbnailUrl}
-                      alt="Product thumbnail"
+                      alt={t("dashboard.product.thumbnailAlt")}
                       width={200}
                       height={200}
                       className="rounded-xl border border-gray-800 object-contain"
@@ -177,7 +184,7 @@ export default function AddProductPage() {
                     <button
                       type="button"
                       onClick={() => setThumbnailUrl("")}
-                      className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 hover:bg-red-400 rounded-full flex items-center justify-center transition-colors"
+                      className="absolute -top-2 -end-2 w-6 h-6 bg-red-500 hover:bg-red-400 rounded-full flex items-center justify-center transition-colors"
                     >
                       <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -191,7 +198,7 @@ export default function AddProductPage() {
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                       </svg>
                     </div>
-                    <p className="text-gray-400 text-sm mb-2">Upload a thumbnail image</p>
+                    <p className="text-gray-400 text-sm mb-2">{t("dashboard.product.thumbnailUploadCta")}</p>
                     <UploadButton
                       endpoint="productThumbnail"
                       onClientUploadComplete={(res) => {
@@ -201,7 +208,7 @@ export default function AddProductPage() {
                         }
                       }}
                       onUploadError={(error: Error) => {
-                        setError(`Thumbnail upload failed: ${error.message}`);
+                        setError(t("dashboard.product.thumbnailUploadFailed", { message: error.message }));
                       }}
                       appearance={{
                         button: "bg-gray-700 hover:bg-gray-600 text-white font-medium px-4 py-2 rounded-lg transition-colors text-sm ut-uploading:bg-gray-700/50",
@@ -215,7 +222,7 @@ export default function AddProductPage() {
               {/* Product Name */}
               <div>
                 <label htmlFor="name" className="block text-sm font-medium text-gray-300 mb-2">
-                  Product Name <span className="text-teal-400">*</span>
+                  {t("dashboard.product.productNameLabel")} <span className="text-teal-400">*</span>
                 </label>
                 <input
                   id="name"
@@ -223,7 +230,7 @@ export default function AddProductPage() {
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   required
-                  placeholder="e.g., My Awesome Ebook"
+                  placeholder={t("dashboard.product.productNamePlaceholder")}
                   className="w-full px-4 py-3 bg-[#0a0a0a] border border-gray-800 rounded-xl text-white placeholder-gray-600 focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500 transition-colors"
                 />
               </div>
@@ -231,14 +238,14 @@ export default function AddProductPage() {
               {/* Description */}
               <div>
                 <label htmlFor="description" className="block text-sm font-medium text-gray-300 mb-2">
-                  Description
+                  {t("dashboard.product.descriptionLabel")}
                 </label>
                 <textarea
                   id="description"
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   rows={4}
-                  placeholder="Describe your product and what buyers will get..."
+                  placeholder={t("dashboard.product.descriptionPlaceholder")}
                   className="w-full px-4 py-3 bg-[#0a0a0a] border border-gray-800 rounded-xl text-white placeholder-gray-600 focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500 transition-colors resize-none"
                 />
               </div>
@@ -246,10 +253,10 @@ export default function AddProductPage() {
               {/* Price */}
               <div>
                 <label htmlFor="price" className="block text-sm font-medium text-gray-300 mb-2">
-                  Price (USD) <span className="text-teal-400">*</span>
+                  {t("dashboard.product.priceLabel")} <span className="text-teal-400">*</span>
                 </label>
                 <div className="relative">
-                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500">$</span>
+                  <span className="absolute start-4 top-1/2 -translate-y-1/2 text-gray-500">$</span>
                   <input
                     id="price"
                     type="number"
@@ -259,7 +266,7 @@ export default function AddProductPage() {
                     onChange={(e) => setPrice(e.target.value)}
                     required
                     placeholder="9.99"
-                    className="w-full pl-8 pr-4 py-3 bg-[#0a0a0a] border border-gray-800 rounded-xl text-white placeholder-gray-600 focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500 transition-colors"
+                    className="w-full ps-8 pe-4 py-3 bg-[#0a0a0a] border border-gray-800 rounded-xl text-white placeholder-gray-600 focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500 transition-colors"
                   />
                 </div>
               </div>
@@ -267,7 +274,7 @@ export default function AddProductPage() {
               {/* Category */}
               <div>
                 <label htmlFor="category" className="block text-sm font-medium text-gray-300 mb-2">
-                  Category
+                  {t("dashboard.product.categoryLabel")}
                 </label>
                 <select
                   id="category"
@@ -282,17 +289,17 @@ export default function AddProductPage() {
                   ))}
                 </select>
                 <p className="mt-1 text-xs text-gray-500">
-                  Help buyers find your product by selecting a category
+                  {t("dashboard.product.categoryHelp")}
                 </p>
               </div>
 
               {/* File Upload */}
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Product File <span className="text-teal-400">*</span>
+                  {t("dashboard.product.productFileLabel")} <span className="text-teal-400">*</span>
                 </label>
                 <p className="text-xs text-gray-500 mb-3">
-                  Upload your digital product file
+                  {t("dashboard.product.productFileHelp")}
                 </p>
                 <div className="flex flex-wrap gap-2 mb-3">
                   <span className="px-2 py-1 text-xs bg-gray-800 text-gray-400 rounded">PDF</span>
@@ -314,8 +321,10 @@ export default function AddProductPage() {
                       </svg>
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-teal-400 font-medium truncate">{fileName || "File uploaded!"}</p>
-                      <p className="text-xs text-gray-500">Ready to go</p>
+                      <p className="text-teal-400 font-medium truncate">
+                        <bdi>{fileName || t("dashboard.product.fileUploadedBadge")}</bdi>
+                      </p>
+                      <p className="text-xs text-gray-500">{t("dashboard.product.fileReadyBadge")}</p>
                     </div>
                     <button
                       type="button"
@@ -335,7 +344,7 @@ export default function AddProductPage() {
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                         </svg>
                       </div>
-                      <p className="text-gray-400 mb-2">Drag and drop your file here, or</p>
+                      <p className="text-gray-400 mb-2">{t("dashboard.product.dragDropInstruction")}</p>
                       <UploadButton
                         endpoint="productFile"
                         onClientUploadComplete={(res) => {
@@ -345,7 +354,7 @@ export default function AddProductPage() {
                           }
                         }}
                         onUploadError={(error: Error) => {
-                          setError(`Upload failed: ${error.message}`);
+                          setError(t("dashboard.product.fileUploadFailed", { message: error.message }));
                         }}
                         appearance={{
                           button: "bg-teal-500 hover:bg-teal-400 text-white font-medium px-6 py-2 rounded-lg transition-colors ut-uploading:bg-teal-500/50",
@@ -376,14 +385,14 @@ export default function AddProductPage() {
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                     </svg>
-                    Creating Product...
+                    {t("dashboard.product.add.submitting")}
                   </>
                 ) : (
                   <>
                     <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                     </svg>
-                    Create Product
+                    {t("dashboard.product.add.submit")}
                   </>
                 )}
               </button>
@@ -392,10 +401,13 @@ export default function AddProductPage() {
 
           {/* Help Text */}
           <p className="mt-6 text-center text-gray-600 text-sm">
-            Need help? Check out our{" "}
-            <a href="#" className="text-teal-400 hover:text-teal-300 transition-colors">
-              product creation guide
-            </a>
+            {t.rich("dashboard.product.add.helpText", {
+              link: (chunks) => (
+                <a href="#" className="text-teal-400 hover:text-teal-300 transition-colors">
+                  {chunks}
+                </a>
+              ),
+            })}
           </p>
         </div>
       </main>

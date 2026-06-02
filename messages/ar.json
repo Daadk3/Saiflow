@@ -237,6 +237,34 @@
       "colShop": "المتجر",
       "colAmount": "المبلغ",
       "emptyState": "لا توجد مبيعات بعد. سيظهر هنا أول طلب فور إتمام عملية الشراء."
+    },
+    "product": {
+      "productNameLabel": "اسم المنتج",
+      "productNamePlaceholder": "مثال: قالب التخطيط الرائع",
+      "descriptionLabel": "الوصف",
+      "descriptionPlaceholder": "صف منتجك وما سيحصل عليه المشترون...",
+      "priceLabel": "السعر",
+      "categoryLabel": "الفئة",
+      "categorySelectOption": "اختر فئة (اختياري)",
+      "categoryHelp": "اختر فئة لمساعدة المشترين على العثور على منتجك",
+      "thumbnailLabel": "صورة العرض",
+      "thumbnailHelp": "أضف صورة معاينة لجذب المشترين (PNG، JPG، بحد أقصى 4 MB)",
+      "thumbnailAlt": "صورة العرض",
+      "thumbnailUploadCta": "ارفع صورة العرض",
+      "thumbnailUploadFailed": "فشل رفع صورة العرض: {message}",
+      "productFileLabel": "ملف المنتج",
+      "productFileHelp": "ارفع ملف منتجك الرقمي",
+      "dragDropInstruction": "اسحب وأفلت ملفك هنا، أو",
+      "fileUploadFailed": "فشل الرفع: {message}",
+      "fileUploadedBadge": "تم رفع الملف!",
+      "fileReadyBadge": "جاهز للنشر",
+      "add": {
+        "heading": "إضافة منتج جديد",
+        "subtitle": "أنشئ منتجاً رقمياً جديداً للبيع",
+        "submit": "إنشاء المنتج",
+        "submitting": "جارٍ إنشاء المنتج...",
+        "helpText": "هل تحتاج مساعدة؟ راجع <link>دليل إنشاء المنتج</link>"
+      }
     }
   },
   "auth": {
