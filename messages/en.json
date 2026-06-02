@@ -237,6 +237,34 @@
       "colShop": "Shop",
       "colAmount": "Amount",
       "emptyState": "No sales yet. When you make your first sale, the details will appear here."
+    },
+    "product": {
+      "productNameLabel": "Product Name",
+      "productNamePlaceholder": "e.g., My Awesome Ebook",
+      "descriptionLabel": "Description",
+      "descriptionPlaceholder": "Describe your product and what buyers will get...",
+      "priceLabel": "Price",
+      "categoryLabel": "Category",
+      "categorySelectOption": "Select a category (optional)",
+      "categoryHelp": "Help buyers find your product by selecting a category",
+      "thumbnailLabel": "Product Thumbnail",
+      "thumbnailHelp": "Add a preview image to attract buyers (PNG, JPG, max 4MB)",
+      "thumbnailAlt": "Product thumbnail",
+      "thumbnailUploadCta": "Upload a thumbnail image",
+      "thumbnailUploadFailed": "Thumbnail upload failed: {message}",
+      "productFileLabel": "Product File",
+      "productFileHelp": "Upload your digital product file",
+      "dragDropInstruction": "Drag and drop your file here, or",
+      "fileUploadFailed": "Upload failed: {message}",
+      "fileUploadedBadge": "File uploaded!",
+      "fileReadyBadge": "Ready to go",
+      "add": {
+        "heading": "Add New Product",
+        "subtitle": "Create a new digital product to sell",
+        "submit": "Create Product",
+        "submitting": "Creating Product...",
+        "helpText": "Need help? Check out our <link>product creation guide</link>"
+      }
     }
   },
   "auth": {
