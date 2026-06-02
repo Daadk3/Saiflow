@@ -258,6 +258,8 @@
       "fileUploadFailed": "Upload failed: {message}",
       "fileUploadedBadge": "File uploaded!",
       "fileReadyBadge": "Ready to go",
+      "currencySymbol": "SAR",
+      "priceHelp": "Price in SAR",
       "add": {
         "heading": "Add New Product",
         "subtitle": "Create a new digital product to sell",
