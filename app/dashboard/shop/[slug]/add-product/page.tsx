@@ -268,7 +268,7 @@ export default function AddProductPage() {
                     onChange={(e) => setPrice(e.target.value)}
                     required
                     placeholder="9.99"
-                    className="w-full ps-14 pe-4 py-3 bg-[#0a0a0a] border border-gray-800 rounded-xl text-white placeholder-gray-600 focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500 transition-colors"
+                    className="no-spinner w-full ps-14 pe-4 py-3 bg-[#0a0a0a] border border-gray-800 rounded-xl text-white placeholder-gray-600 focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500 transition-colors"
                   />
                 </div>
                 <p className="mt-1 text-xs text-gray-500">{t("dashboard.product.priceHelp")}</p>
