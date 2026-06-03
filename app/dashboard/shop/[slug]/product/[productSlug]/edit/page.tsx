@@ -5,6 +5,7 @@ import { useRouter, useParams } from "next/navigation";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
 import Image from "next/image";
+import { useTranslations } from "next-intl";
 import { UploadButton } from "@/lib/uploadthing";
 
 interface Product {
@@ -24,6 +25,7 @@ interface Product {
 }
 
 export default function EditProductPage() {
+  const t = useTranslations();
   const [product, setProduct] = useState<Product | null>(null);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -38,13 +40,13 @@ export default function EditProductPage() {
   const [success, setSuccess] = useState<string | null>(null);
 
   const categories = [
-    { value: "", label: "Select a category (optional)" },
-    { value: "ebooks", label: "eBooks & Guides" },
-    { value: "courses", label: "Online Courses" },
-    { value: "templates", label: "Templates & Themes" },
-    { value: "music", label: "Music & Audio" },
-    { value: "art", label: "Art & Graphics" },
-    { value: "software", label: "Software & Apps" },
+    { value: "", label: t("dashboard.product.categorySelectOption") },
+    { value: "ebooks", label: t("categories.ebooksGuides") },
+    { value: "courses", label: t("categories.onlineCourses") },
+    { value: "templates", label: t("categories.templatesThemes") },
+    { value: "music", label: t("categories.musicAudio") },
+    { value: "art", label: t("categories.artGraphics") },
+    { value: "software", label: t("categories.softwareApps") },
   ];
 
   const router = useRouter();
@@ -71,7 +73,7 @@ export default function EditProductPage() {
       const shopData = await shopRes.json();
       
       if (!shopRes.ok) {
-        setError("Shop not found");
+        setError(t("dashboard.shop.shopNotFound"));
         setLoading(false);
         return;
       }
@@ -82,7 +84,7 @@ export default function EditProductPage() {
       );
 
       if (!foundProduct) {
-        setError("Product not found");
+        setError(t("dashboard.product.edit.productNotFound"));
         setLoading(false);
         return;
       }
@@ -92,7 +94,7 @@ export default function EditProductPage() {
       const productData = await productRes.json();
 
       if (!productRes.ok) {
-        setError(productData.error || "Failed to load product");
+        setError(productData.error || t("dashboard.product.edit.failedToLoad"));
         setLoading(false);
         return;
       }
@@ -105,10 +107,10 @@ export default function EditProductPage() {
       setFileUrl(productData.fileUrl || "");
       setThumbnailUrl(productData.thumbnailUrl || "");
       if (productData.fileUrl) {
-        setFileName("Current file");
+        setFileName(t("dashboard.product.edit.currentFileName"));
       }
     } catch {
-      setError("Something went wrong");
+      setError(t("dashboard.shop.somethingWrong"));
     } finally {
       setLoading(false);
     }
@@ -139,18 +141,18 @@ export default function EditProductPage() {
       const data = await res.json();
 
       if (!res.ok) {
-        setError(data.error || "Something went wrong");
+        setError(data.error || t("dashboard.shop.somethingWrong"));
         return;
       }
 
-      setSuccess("Product updated successfully!");
-      
+      setSuccess(t("dashboard.product.edit.successMessage"));
+
       // Redirect after a short delay
       setTimeout(() => {
         router.push(`/dashboard/shop/${slug}`);
       }, 1500);
     } catch {
-      setError("Something went wrong");
+      setError(t("dashboard.shop.somethingWrong"));
     } finally {
       setSaving(false);
     }
@@ -161,7 +163,7 @@ export default function EditProductPage() {
       <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
           <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-teal-500"></div>
-          <p className="text-gray-400">Loading product...</p>
+          <p className="text-gray-400">{t("dashboard.product.edit.loading")}</p>
         </div>
       </div>
     );
@@ -172,16 +174,19 @@ export default function EditProductPage() {
       <div className="min-h-screen bg-[#0a0a0a] p-8">
         <div className="max-w-2xl mx-auto">
           <div className="bg-red-500/10 border border-red-500/20 rounded-2xl p-6">
-            <h1 className="text-2xl font-bold text-red-400 mb-2">Error</h1>
+            <h1 className="text-2xl font-bold text-red-400 mb-2">{t("dashboard.shop.errorTitle")}</h1>
             <p className="text-red-300 mb-4">{error}</p>
-            <Link 
+            <Link
               href={`/dashboard/shop/${slug}`}
               className="inline-flex items-center gap-2 text-teal-400 hover:text-teal-300 transition-colors"
             >
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg className="w-5 h-5 rtl:rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
               </svg>
-              Back to Shop
+              {t.rich("dashboard.shop.edit.backToShop", {
+                shopName: t("dashboard.shop.edit.shopFallback"),
+                name: (chunks) => <bdi>{chunks}</bdi>,
+              })}
             </Link>
           </div>
         </div>
@@ -204,7 +209,7 @@ export default function EditProductPage() {
             <Link href="/" className="flex items-center gap-3">
               <Image
                 src="/mascot.png"
-                alt="Saiflow"
+                alt={t("dashboard.createShop.mascotAlt")}
                 width={48}
                 height={48}
                 className="h-12 w-auto object-contain"
@@ -217,15 +222,20 @@ export default function EditProductPage() {
               href={`/dashboard/shop/${slug}`}
               className="flex items-center gap-2 text-gray-400 hover:text-teal-400 transition-colors group"
             >
-              <svg 
-                className="w-5 h-5 transition-transform group-hover:-translate-x-1" 
-                fill="none" 
-                viewBox="0 0 24 24" 
+              <svg
+                className="w-5 h-5 transition-transform group-hover:-translate-x-1 rtl:rotate-180 rtl:group-hover:translate-x-1"
+                fill="none"
+                viewBox="0 0 24 24"
                 stroke="currentColor"
               >
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
               </svg>
-              <span>Back to {product?.shop?.name || "Shop"}</span>
+              <span>
+                {t.rich("dashboard.shop.edit.backToShop", {
+                  shopName: product?.shop?.name || t("dashboard.shop.edit.shopFallback"),
+                  name: (chunks) => <bdi>{chunks}</bdi>,
+                })}
+              </span>
             </Link>
           </div>
         </div>
@@ -243,8 +253,8 @@ export default function EditProductPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                 </svg>
               </div>
-              <h1 className="text-2xl font-bold text-white">Edit Product</h1>
-              <p className="mt-2 text-gray-500">Update your product details</p>
+              <h1 className="text-2xl font-bold text-white">{t("dashboard.product.edit.heading")}</h1>
+              <p className="mt-2 text-gray-500">{t("dashboard.product.edit.subtitle")}</p>
             </div>
 
             {/* Form */}
@@ -252,17 +262,17 @@ export default function EditProductPage() {
               {/* Thumbnail Upload */}
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Product Thumbnail
+                  {t("dashboard.product.thumbnailLabel")}
                 </label>
                 <p className="text-xs text-gray-500 mb-3">
-                  Update the preview image (PNG, JPG, max 4MB)
+                  {t("dashboard.product.edit.thumbnailHelp")}
                 </p>
-                
+
                 {thumbnailUrl ? (
                   <div className="relative inline-block">
                     <Image
                       src={thumbnailUrl}
-                      alt="Product thumbnail"
+                      alt={t("dashboard.product.thumbnailAlt")}
                       width={200}
                       height={200}
                       className="rounded-xl border border-gray-800 object-contain"
@@ -270,7 +280,7 @@ export default function EditProductPage() {
                     <button
                       type="button"
                       onClick={() => setThumbnailUrl("")}
-                      className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 hover:bg-red-400 rounded-full flex items-center justify-center transition-colors"
+                      className="absolute -top-2 -end-2 w-6 h-6 bg-red-500 hover:bg-red-400 rounded-full flex items-center justify-center transition-colors"
                     >
                       <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -284,7 +294,7 @@ export default function EditProductPage() {
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                       </svg>
                     </div>
-                    <p className="text-gray-400 text-sm mb-2">Upload a thumbnail image</p>
+                    <p className="text-gray-400 text-sm mb-2">{t("dashboard.product.thumbnailUploadCta")}</p>
                     <UploadButton
                       endpoint="productThumbnail"
                       onClientUploadComplete={(res) => {
@@ -294,7 +304,7 @@ export default function EditProductPage() {
                         }
                       }}
                       onUploadError={(error: Error) => {
-                        setError(`Thumbnail upload failed: ${error.message}`);
+                        setError(t("dashboard.product.thumbnailUploadFailed", { message: error.message }));
                       }}
                       appearance={{
                         button: "bg-gray-700 hover:bg-gray-600 text-white font-medium px-4 py-2 rounded-lg transition-colors text-sm ut-uploading:bg-gray-700/50",
@@ -308,7 +318,7 @@ export default function EditProductPage() {
               {/* Product Name */}
               <div>
                 <label htmlFor="name" className="block text-sm font-medium text-gray-300 mb-2">
-                  Product Name <span className="text-teal-400">*</span>
+                  {t("dashboard.product.productNameLabel")} <span className="text-teal-400">*</span>
                 </label>
                 <input
                   id="name"
@@ -316,7 +326,7 @@ export default function EditProductPage() {
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   required
-                  placeholder="e.g., My Awesome Ebook"
+                  placeholder={t("dashboard.product.productNamePlaceholder")}
                   className="w-full px-4 py-3 bg-[#0a0a0a] border border-gray-800 rounded-xl text-white placeholder-gray-600 focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500 transition-colors"
                 />
               </div>
@@ -324,14 +334,14 @@ export default function EditProductPage() {
               {/* Description */}
               <div>
                 <label htmlFor="description" className="block text-sm font-medium text-gray-300 mb-2">
-                  Description
+                  {t("dashboard.product.descriptionLabel")}
                 </label>
                 <textarea
                   id="description"
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   rows={4}
-                  placeholder="Describe your product and what buyers will get..."
+                  placeholder={t("dashboard.product.descriptionPlaceholder")}
                   className="w-full px-4 py-3 bg-[#0a0a0a] border border-gray-800 rounded-xl text-white placeholder-gray-600 focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500 transition-colors resize-none"
                 />
               </div>
@@ -339,28 +349,31 @@ export default function EditProductPage() {
               {/* Price */}
               <div>
                 <label htmlFor="price" className="block text-sm font-medium text-gray-300 mb-2">
-                  Price (USD) <span className="text-teal-400">*</span>
+                  {t("dashboard.product.priceLabel")} <span className="text-teal-400">*</span>
                 </label>
                 <div className="relative">
-                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500">$</span>
+                  <span className="absolute start-4 top-1/2 -translate-y-1/2 text-gray-500">{t("dashboard.product.currencySymbol")}</span>
                   <input
                     id="price"
                     type="number"
+                    inputMode="decimal"
+                    dir="ltr"
                     step="0.01"
                     min="0"
                     value={price}
                     onChange={(e) => setPrice(e.target.value)}
                     required
                     placeholder="9.99"
-                    className="w-full pl-8 pr-4 py-3 bg-[#0a0a0a] border border-gray-800 rounded-xl text-white placeholder-gray-600 focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500 transition-colors"
+                    className="no-spinner w-full ps-14 pe-4 py-3 bg-[#0a0a0a] border border-gray-800 rounded-xl text-white placeholder-gray-600 focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500 transition-colors"
                   />
                 </div>
+                <p className="mt-1 text-xs text-gray-500">{t("dashboard.product.priceHelp")}</p>
               </div>
 
               {/* Category */}
               <div>
                 <label htmlFor="category" className="block text-sm font-medium text-gray-300 mb-2">
-                  Category
+                  {t("dashboard.product.categoryLabel")}
                 </label>
                 <select
                   id="category"
@@ -375,17 +388,17 @@ export default function EditProductPage() {
                   ))}
                 </select>
                 <p className="mt-1 text-xs text-gray-500">
-                  Help buyers find your product by selecting a category
+                  {t("dashboard.product.categoryHelp")}
                 </p>
               </div>
 
               {/* File Upload */}
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Product File
+                  {t("dashboard.product.productFileLabel")}
                 </label>
                 <p className="text-xs text-gray-500 mb-3">
-                  Upload a new file to replace the existing one, or leave as is
+                  {t("dashboard.product.edit.productFileHelp")}
                 </p>
                 <div className="flex flex-wrap gap-2 mb-3">
                   <span className="px-2 py-1 text-xs bg-gray-800 text-gray-400 rounded">PDF</span>
@@ -408,14 +421,16 @@ export default function EditProductPage() {
                         </svg>
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-teal-400 font-medium truncate">{fileName || "File uploaded!"}</p>
-                        <p className="text-xs text-gray-500">Ready to go</p>
+                        <p className="text-teal-400 font-medium truncate">
+                          <bdi>{fileName || t("dashboard.product.fileUploadedBadge")}</bdi>
+                        </p>
+                        <p className="text-xs text-gray-500">{t("dashboard.product.fileReadyBadge")}</p>
                       </div>
                       <button
                         type="button"
                         onClick={() => { setFileUrl(""); setFileName(""); }}
                         className="flex-shrink-0 text-gray-400 hover:text-red-400 transition-colors"
-                        title="Remove file"
+                        title={t("dashboard.product.edit.removeFileTitle")}
                       >
                         <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -430,11 +445,11 @@ export default function EditProductPage() {
                         rel="noopener noreferrer"
                         className="text-xs text-gray-500 hover:text-teal-400 underline"
                       >
-                        Test download link
+                        {t("dashboard.product.edit.testDownloadLink")}
                       </a>
                       <span className="text-xs text-gray-600">•</span>
                       <span className="text-xs text-gray-600">
-                        If the download doesn&apos;t work, remove and re-upload the file
+                        {t("dashboard.product.edit.downloadTroubleshoot")}
                       </span>
                     </div>
                   </div>
@@ -446,7 +461,7 @@ export default function EditProductPage() {
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                         </svg>
                       </div>
-                      <p className="text-gray-400 mb-2">Drag and drop your file here, or</p>
+                      <p className="text-gray-400 mb-2">{t("dashboard.product.dragDropInstruction")}</p>
                       <UploadButton
                         endpoint="productFile"
                         onClientUploadComplete={(res) => {
@@ -456,7 +471,7 @@ export default function EditProductPage() {
                           }
                         }}
                         onUploadError={(error: Error) => {
-                          setError(`Upload failed: ${error.message}`);
+                          setError(t("dashboard.product.fileUploadFailed", { message: error.message }));
                         }}
                         appearance={{
                           button: "bg-teal-500 hover:bg-teal-400 text-white font-medium px-6 py-2 rounded-lg transition-colors ut-uploading:bg-teal-500/50",
@@ -488,7 +503,7 @@ export default function EditProductPage() {
                   href={`/dashboard/shop/${slug}`}
                   className="flex-1 py-3 px-4 bg-[#0a0a0a] hover:bg-gray-900 text-gray-300 font-semibold rounded-xl border border-gray-800 transition-colors duration-200 text-center"
                 >
-                  Cancel
+                  {t("dashboard.createShop.cancel")}
                 </Link>
                 <button
                   type="submit"
@@ -501,14 +516,14 @@ export default function EditProductPage() {
                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                       </svg>
-                      Saving...
+                      {t("dashboard.shop.edit.saving")}
                     </>
                   ) : (
                     <>
                       <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                       </svg>
-                      Save Changes
+                      {t("dashboard.shop.edit.submit")}
                     </>
                   )}
                 </button>
@@ -518,7 +533,7 @@ export default function EditProductPage() {
 
           {/* Help Text */}
           <p className="mt-6 text-center text-gray-600 text-sm">
-            Changes will be reflected immediately on your shop page
+            {t("dashboard.product.edit.helpText")}
           </p>
         </div>
       </main>

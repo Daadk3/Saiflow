@@ -266,6 +266,21 @@
         "submit": "إنشاء المنتج",
         "submitting": "جارٍ إنشاء المنتج...",
         "helpText": "هل تحتاج مساعدة؟ راجع <link>دليل إنشاء المنتج</link>"
+      },
+      "edit": {
+        "heading": "تعديل المنتج",
+        "subtitle": "حدّث تفاصيل منتجك",
+        "loading": "جارٍ تحميل المنتج...",
+        "productNotFound": "المنتج غير موجود",
+        "failedToLoad": "تعذّر تحميل المنتج",
+        "successMessage": "تمّ تحديث المنتج بنجاح!",
+        "currentFileName": "الملف الحالي",
+        "thumbnailHelp": "حدّث صورة المعاينة (PNG، JPG، بحد أقصى 4 MB)",
+        "productFileHelp": "ارفع ملفاً جديداً ليحل محل الحالي، أو اتركه كما هو",
+        "removeFileTitle": "إزالة الملف",
+        "testDownloadLink": "اختبر رابط التنزيل",
+        "downloadTroubleshoot": "إذا لم يعمل التنزيل، احذف الملف وأعد رفعه",
+        "helpText": "ستظهر التغييرات فوراً على صفحة متجرك"
       }
     }
   },

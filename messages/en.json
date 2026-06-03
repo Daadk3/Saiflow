@@ -266,6 +266,21 @@
         "submit": "Create Product",
         "submitting": "Creating Product...",
         "helpText": "Need help? Check out our <link>product creation guide</link>"
+      },
+      "edit": {
+        "heading": "Edit Product",
+        "subtitle": "Update your product details",
+        "loading": "Loading product...",
+        "productNotFound": "Product not found",
+        "failedToLoad": "Failed to load product",
+        "successMessage": "Product updated successfully!",
+        "currentFileName": "Current file",
+        "thumbnailHelp": "Update the preview image (PNG, JPG, max 4MB)",
+        "productFileHelp": "Upload a new file to replace the existing one, or leave as is",
+        "removeFileTitle": "Remove file",
+        "testDownloadLink": "Test download link",
+        "downloadTroubleshoot": "If the download doesn’t work, remove and re-upload the file",
+        "helpText": "Changes will be reflected immediately on your shop page"
       }
     }
   },
