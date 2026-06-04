@@ -7,6 +7,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useLocale, useTranslations } from "next-intl";
 import { formatPrice } from "@/lib/formatPrice";
+import { formatNumber } from "@/lib/formatNumber";
 
 interface Shop {
   id: string;
@@ -130,7 +131,7 @@ export default function Dashboard() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-gray-400 text-sm">{t('dashboard.home.totalShops')}</p>
-                <p className="text-3xl font-bold text-white mt-1">{totalShops}</p>
+                <p className="text-3xl font-bold text-white mt-1">{formatNumber(totalShops, locale)}</p>
               </div>
               <div className="w-12 h-12 rounded-xl bg-teal-500/10 flex items-center justify-center text-teal-400">
                 <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -149,7 +150,7 @@ export default function Dashboard() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-gray-400 text-sm">{t('dashboard.totalProducts')}</p>
-                <p className="text-3xl font-bold text-white mt-1">{totalProducts}</p>
+                <p className="text-3xl font-bold text-white mt-1">{formatNumber(totalProducts, locale)}</p>
               </div>
             </div>
           </div>
