@@ -8,6 +8,7 @@ import Image from "next/image";
 import { useLocale, useTranslations } from "next-intl";
 import { formatPrice } from "@/lib/formatPrice";
 import { formatDate } from "@/lib/formatDate";
+import { formatNumber } from "@/lib/formatNumber";
 
 interface Order {
   id: string;
@@ -144,7 +145,7 @@ export default function SalesPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-gray-400 text-sm">{t("totalSales")}</p>
-                <p className="text-3xl font-bold text-white mt-1">{data?.totalSales || 0}</p>
+                <p className="text-3xl font-bold text-white mt-1">{formatNumber(data?.totalSales || 0, locale)}</p>
               </div>
             </div>
           </div>

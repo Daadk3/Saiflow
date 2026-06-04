@@ -7,6 +7,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useLocale, useTranslations } from "next-intl";
 import { formatPrice } from "@/lib/formatPrice";
+import { formatNumber } from "@/lib/formatNumber";
 
 interface Product {
   id: string;
@@ -201,7 +202,7 @@ export default function ShopDashboard() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-gray-400 text-sm">{t("totalProducts")}</p>
-                <p className="text-3xl font-bold text-white mt-1">{totalProducts}</p>
+                <p className="text-3xl font-bold text-white mt-1">{formatNumber(totalProducts, locale)}</p>
               </div>
               <div className="w-12 h-12 rounded-xl bg-teal-500/10 flex items-center justify-center text-teal-400">
                 <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -212,7 +213,7 @@ export default function ShopDashboard() {
           </div>
           <div className="bg-[#111111] p-6 rounded-xl border border-gray-800 shadow-sm">
             <p className="text-gray-400 text-sm">{t("totalSales")}</p>
-            <p className="text-3xl font-bold text-white mt-1">{(0).toLocaleString(locale === "ar" ? "ar-SA" : "en-US")}</p>
+            <p className="text-3xl font-bold text-white mt-1">{formatNumber(0, locale)}</p>
             <p className="text-xs text-gray-500 mt-1">{t("comingSoon")}</p>
           </div>
           <div className="bg-[#111111] p-6 rounded-xl border border-gray-800 shadow-sm">

@@ -1,4 +1,5 @@
 import { useTranslations, useLocale } from "next-intl";
+import { formatNumber } from "@/lib/formatNumber";
 
 export function FeaturesSection() {
   const t = useTranslations("platform");
@@ -55,7 +56,7 @@ export function FeaturesSection() {
                   {step.icon}
                 </div>
                 <span className="inline-block px-4 py-1 text-sm font-bold tracking-widest uppercase bg-gradient-to-r from-teal-500 to-cyan-500 text-white rounded-full shadow-lg shadow-teal-500/30 hover:scale-105 transition-transform duration-300">
-                  {t('stepLabel', { number: (idx + 1).toLocaleString(locale === "ar" ? "ar-SA" : "en-US") })}
+                  {t('stepLabel', { number: formatNumber(idx + 1, locale) })}
                 </span>
               </div>
               <h3 className="text-xl font-semibold text-white">{step.title}</h3>
