@@ -519,6 +519,12 @@
     }
   },
   "storefront": {
+    "shopView": {
+      "productsHeading": "المنتجات",
+      "productsCount": "{count, plural, zero {لا توجد منتجات} one {منتج واحد} two {منتجان} few {# منتجات} many {# منتجاً} other {# منتج}}",
+      "showingProductsCount": "{count, plural, one {عرض منتج واحد} two {عرض منتجين} few {عرض # منتجات} many {عرض # منتجاً} other {عرض # منتج}}",
+      "emptyState": "لا توجد منتجات بعد. عد قريباً للاطلاع على أحدث الإصدارات."
+    },
     "productDetail": {
       "backToStore": "العودة إلى <name>{shopName}</name>",
       "shopLogoAlt": "شعار متجر {shopName}",
