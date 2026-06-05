@@ -519,6 +519,12 @@
     }
   },
   "storefront": {
+    "shopView": {
+      "productsHeading": "Products",
+      "productsCount": "{count, plural, =0 {No products} one {# product} other {# products}}",
+      "showingProductsCount": "{count, plural, one {Showing # product} other {Showing # products}}",
+      "emptyState": "No products yet. Check back soon for new releases."
+    },
     "productDetail": {
       "backToStore": "Back to <name>{shopName}</name>",
       "shopLogoAlt": "{shopName} shop logo",

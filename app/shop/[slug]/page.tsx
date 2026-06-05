@@ -2,7 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { getLocale } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
 import { formatPrice } from "@/lib/formatPrice";
 
 interface Product {
@@ -59,6 +59,7 @@ export default async function PublicShopPage({
   }
 
   const locale = await getLocale();
+  const t = await getTranslations();
 
   return (
     <div className="min-h-screen bg-[#0a0a0a]">
@@ -70,7 +71,7 @@ export default async function PublicShopPage({
             {shop.logo ? (
               <Image
                 src={shop.logo}
-                alt={shop.name}
+                alt={t('storefront.productDetail.shopLogoAlt', { shopName: shop.name })}
                 width={80}
                 height={80}
                 className="w-20 h-20 rounded-2xl shadow-lg object-cover"
@@ -82,18 +83,18 @@ export default async function PublicShopPage({
             )}
 
             {/* Shop name */}
-            <h1 className="text-3xl font-bold text-white mt-4">{shop.name}</h1>
+            <h1 className="text-3xl font-bold text-white mt-4"><bdi>{shop.name}</bdi></h1>
 
             {/* Description */}
             {shop.description && (
               <p className="text-gray-400 mt-2 max-w-2xl">
-                {shop.description}
+                <bdi>{shop.description}</bdi>
               </p>
             )}
 
             {/* Stats */}
             <p className="text-sm text-gray-500 mt-3">
-              {shop.products.length} {shop.products.length === 1 ? "product" : "products"}
+              {t('storefront.shopView.productsCount', { count: shop.products.length })}
             </p>
           </div>
         </div>
@@ -103,10 +104,10 @@ export default async function PublicShopPage({
       <main className="bg-[#0a0a0a] py-12">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold text-white">Products</h2>
+            <h2 className="text-2xl font-bold text-white">{t('storefront.shopView.productsHeading')}</h2>
             {shop.products.length > 0 && (
               <span className="text-sm text-gray-500">
-                Showing {shop.products.length} {shop.products.length === 1 ? "product" : "products"}
+                {t('storefront.shopView.showingProductsCount', { count: shop.products.length })}
               </span>
             )}
           </div>
@@ -128,7 +129,7 @@ export default async function PublicShopPage({
                       className="max-w-full max-h-full object-contain"
                       style={{ width: 'auto', height: 'auto', maxWidth: '100%', maxHeight: '100%' }}
                     />
-                    <div className="absolute top-3 right-3 bg-gray-900/80 px-3 py-1 rounded-full">
+                    <div className="absolute top-3 end-3 bg-gray-900/80 px-3 py-1 rounded-full">
                       <span className="text-emerald-400 font-bold"><bdi>{formatPrice(Number(product.price), product.currency, locale)}</bdi></span>
                     </div>
                   </div>
@@ -136,12 +137,12 @@ export default async function PublicShopPage({
                   {/* Product Info */}
                   <div className="p-5">
                     <h3 className="font-semibold text-white text-lg line-clamp-2 group-hover:text-teal-400 transition-colors">
-                      {product.name}
+                      <bdi>{product.name}</bdi>
                     </h3>
 
                     {product.description && (
                       <p className="mt-2 text-gray-400 text-sm line-clamp-2 leading-relaxed">
-                        {product.description}
+                        <bdi>{product.description}</bdi>
                       </p>
                     )}
 
@@ -150,9 +151,9 @@ export default async function PublicShopPage({
                         <bdi>{formatPrice(Number(product.price), product.currency, locale)}</bdi>
                       </span>
                       <span className="inline-flex items-center gap-1 text-sm font-medium text-teal-400 group-hover:text-teal-300 transition-colors">
-                        View product
+                        {t('products.viewProduct')}
                         <svg
-                          className="w-4 h-4 transition-transform duration-200 group-hover:translate-x-1"
+                          className="w-4 h-4 transition-transform duration-200 group-hover:translate-x-1 rtl:rotate-180 rtl:group-hover:-translate-x-1"
                           fill="none"
                           viewBox="0 0 24 24"
                           stroke="currentColor"
@@ -178,7 +179,7 @@ export default async function PublicShopPage({
                   />
                 </svg>
               </div>
-              <p className="text-gray-400 mt-4">No products yet. Check back soon for new releases.</p>
+              <p className="text-gray-400 mt-4">{t('storefront.shopView.emptyState')}</p>
             </div>
           )}
         </div>
