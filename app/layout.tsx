@@ -14,7 +14,7 @@ export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("meta");
   const title = t("title");
   const description = t("description");
-  const ogLocale = locale === "ar" ? "ar_SA" : "en_US";
+  const ogLocale = locale.startsWith("ar") ? "ar_SA" : "en_US";
 
   return {
     title,
@@ -67,7 +67,7 @@ export default async function RootLayout({
   const locale = await getLocale();
   const messages = await getMessages();
   const t = await getTranslations("nav");
-  const dir = locale === "ar" ? "rtl" : "ltr";
+  const dir = locale.startsWith("ar") ? "rtl" : "ltr";
 
   return (
     <html lang={locale} dir={dir}>
@@ -78,7 +78,7 @@ export default async function RootLayout({
         <link rel="apple-touch-icon" href="/apple-icon.png" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        {locale === "ar" && (
+        {locale.startsWith("ar") && (
           <link
             href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap"
             rel="stylesheet"
@@ -88,7 +88,7 @@ export default async function RootLayout({
       </head>
       <body
         className={`bg-[#0a0a0a] text-white min-h-screen antialiased ${
-          locale === "ar" ? "font-[Cairo,sans-serif]" : ""
+          locale.startsWith("ar") ? "font-[Cairo,sans-serif]" : ""
         }`}
       >
         <NextIntlClientProvider locale={locale} messages={messages}>
