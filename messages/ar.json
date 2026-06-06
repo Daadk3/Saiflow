@@ -525,6 +525,16 @@
       "showingProductsCount": "{count, plural, one {عرض منتج واحد} two {عرض منتجين} few {عرض # منتجات} many {عرض # منتجاً} other {عرض # منتج}}",
       "emptyState": "لا توجد منتجات بعد. عد قريباً للاطلاع على أحدث الإصدارات."
     },
+    "browse": {
+      "eyebrow": "المنتجات",
+      "sortPopular": "الأكثر رواجاً",
+      "apply": "طبّق",
+      "comingSoonBadge": "قريباً",
+      "emptyBody": "جرّب تعديل الفلاتر أو تصفح كل المنتجات المتوفرة.",
+      "categoriesHeading": "التصنيفات",
+      "applyFilters": "طبّق الفلاتر",
+      "clearFilters": "امسح الفلاتر"
+    },
     "productDetail": {
       "backToStore": "العودة إلى <name>{shopName}</name>",
       "shopLogoAlt": "شعار متجر {shopName}",

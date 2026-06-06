@@ -1,7 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { prisma } from "@/lib/prisma";
-import { getLocale } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
 import { formatPrice } from "@/lib/formatPrice";
 
 export const dynamic = "force-dynamic";
@@ -24,13 +24,13 @@ interface Product {
   };
 }
 
-const categoryMap: Record<string, string> = {
-  ebooks: "eBooks & Guides",
-  courses: "Online Courses",
-  templates: "Templates & Themes",
-  music: "Music & Audio",
-  art: "Art & Graphics",
-  software: "Software & Apps",
+const CATEGORY_LABEL_KEYS: Record<string, string> = {
+  ebooks: "categories.ebooksGuides",
+  courses: "categories.onlineCourses",
+  templates: "categories.templatesThemes",
+  music: "categories.musicAudio",
+  art: "categories.artGraphics",
+  software: "categories.softwareApps",
 };
 
 type SortOption = "newest" | "popular" | "price-asc" | "price-desc";
@@ -46,7 +46,7 @@ async function getProducts(options: {
     isActive: true,
   };
 
-  if (category && categoryMap[category]) {
+  if (category && category in CATEGORY_LABEL_KEYS) {
     where.category = category;
   }
 
@@ -111,9 +111,9 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
 
   const products = await getProducts({ category, sort, minPrice, maxPrice });
   const locale = await getLocale();
-  const categoryName = category ? categoryMap[category] : "All Products";
+  const t = await getTranslations();
   const productCount = products.length;
-  const categories = Object.entries(categoryMap);
+  const categories = Object.entries(CATEGORY_LABEL_KEYS);
 
   return (
     <div className="bg-[#0a0a0a] min-h-screen text-white">
@@ -122,33 +122,33 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
             <div>
-              <p className="text-sm font-semibold text-teal-400 uppercase tracking-wide">Products</p>
+              <p className="text-sm font-semibold text-teal-400 uppercase tracking-wide">{t('storefront.browse.eyebrow')}</p>
               <h1 className="text-3xl font-bold text-white mt-2">
-                {category ? categoryMap[category] ?? "Products" : "All Products"}
+                {category && CATEGORY_LABEL_KEYS[category] ? t(CATEGORY_LABEL_KEYS[category]) : t('products.allProducts')}
               </h1>
-              <p className="text-gray-400 mt-2">Showing {productCount} products</p>
+              <p className="text-gray-400 mt-2">{t('storefront.shopView.showingProductsCount', { count: productCount })}</p>
             </div>
 
             <form className="flex items-center gap-3" method="get">
               {category && <input type="hidden" name="category" value={category} />}
               {minPrice !== undefined && <input type="hidden" name="minPrice" value={minPrice} />}
               {maxPrice !== undefined && <input type="hidden" name="maxPrice" value={maxPrice} />}
-              <label className="text-sm font-medium text-gray-300">Sort</label>
+              <label className="text-sm font-medium text-gray-300">{t('products.sortBy')}</label>
               <select
                 name="sort"
                 defaultValue={sort}
                 className="rounded-lg border border-gray-700 bg-[#0a0a0a] px-3 py-2 text-sm text-gray-100 focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500"
               >
-                <option value="newest">Newest</option>
-                <option value="popular">Popular</option>
-                <option value="price-asc">Price: Low to High</option>
-                <option value="price-desc">Price: High to Low</option>
+                <option value="newest">{t('products.newest')}</option>
+                <option value="popular">{t('storefront.browse.sortPopular')}</option>
+                <option value="price-asc">{t('products.priceLow')}</option>
+                <option value="price-desc">{t('products.priceHigh')}</option>
               </select>
               <button
                 type="submit"
                 className="rounded-lg bg-teal-500 px-4 py-2 text-sm font-semibold text-white hover:bg-teal-600 transition"
               >
-                Apply
+                {t('storefront.browse.apply')}
               </button>
             </form>
           </div>
@@ -160,14 +160,14 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col lg:flex-row gap-10">
             {/* Sidebar */}
-            <aside className="w-full lg:w-64 lg:pr-8 lg:border-r lg:border-gray-800 space-y-8">
+            <aside className="w-full lg:w-64 lg:pe-8 lg:border-e lg:border-gray-800 space-y-8">
               {/* Mobile filters */}
               <div className="lg:hidden">
                 <details className="border border-gray-800 rounded-xl p-4 bg-[#111111]">
-                  <summary className="font-semibold text-white cursor-pointer">Filters</summary>
+                  <summary className="font-semibold text-white cursor-pointer">{t('products.filters')}</summary>
                   <div className="mt-4 space-y-6">
                     <div>
-                      <h3 className="font-semibold text-white mb-3">Categories</h3>
+                      <h3 className="font-semibold text-white mb-3">{t('storefront.browse.categoriesHeading')}</h3>
                       <div className="flex flex-wrap gap-2">
                         <Link
                           href="/browse"
@@ -177,9 +177,9 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
                               : "bg-gray-800 text-gray-300 hover:bg-gray-700"
                           }`}
                         >
-                          All
+                          {t('categories.all')}
                         </Link>
-                        {categories.map(([slug, name]) => {
+                        {categories.map(([slug, labelKey]) => {
                           const query = new URLSearchParams();
                           query.set("category", slug);
                           query.set("sort", sort);
@@ -195,7 +195,7 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
                                   : "bg-gray-800 text-gray-300 hover:bg-gray-700"
                               }`}
                             >
-                              {name}
+                              {t(labelKey)}
                             </Link>
                           );
                         })}
@@ -205,29 +205,33 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
                     <form className="space-y-3" method="get">
                       {category && <input type="hidden" name="category" value={category} />}
                       {sort && <input type="hidden" name="sort" value={sort} />}
-                      <h3 className="font-semibold text-white">Price range</h3>
+                      <h3 className="font-semibold text-white">{t('products.priceRange')}</h3>
                       <div className="flex items-center gap-3">
                         <input
                           type="number"
+                          inputMode="decimal"
+                          dir="ltr"
                           name="minPrice"
-                          placeholder="Min"
+                          placeholder={t('products.minPrice')}
                           defaultValue={minPrice ?? ""}
-                          className="w-full rounded-lg border border-gray-700 bg-[#0a0a0a] px-3 py-2 text-sm text-white placeholder:text-gray-500 focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500"
+                          className="no-spinner w-full rounded-lg border border-gray-700 bg-[#0a0a0a] px-3 py-2 text-sm text-white placeholder:text-gray-500 focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500"
                         />
                         <span className="text-gray-500">—</span>
                         <input
                           type="number"
+                          inputMode="decimal"
+                          dir="ltr"
                           name="maxPrice"
-                          placeholder="Max"
+                          placeholder={t('products.maxPrice')}
                           defaultValue={maxPrice ?? ""}
-                          className="w-full rounded-lg border border-gray-700 bg-[#0a0a0a] px-3 py-2 text-sm text-white placeholder:text-gray-500 focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500"
+                          className="no-spinner w-full rounded-lg border border-gray-700 bg-[#0a0a0a] px-3 py-2 text-sm text-white placeholder:text-gray-500 focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500"
                         />
                       </div>
                       <button
                         type="submit"
                         className="w-full rounded-lg bg-teal-500 px-4 py-2 text-sm font-semibold text-white hover:bg-teal-600 transition"
                       >
-                        Apply filters
+                        {t('storefront.browse.applyFilters')}
                       </button>
                     </form>
 
@@ -235,7 +239,7 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
                       href="/browse"
                       className="inline-flex items-center gap-2 text-sm font-medium text-teal-400 hover:text-teal-300"
                     >
-                      Clear filters
+                      {t('storefront.browse.clearFilters')}
                     </Link>
                   </div>
                 </details>
@@ -244,7 +248,7 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
               {/* Desktop filters */}
               <div className="hidden lg:block sticky top-24 space-y-8">
                 <div>
-                  <h3 className="font-semibold text-white mb-3">Categories</h3>
+                  <h3 className="font-semibold text-white mb-3">{t('storefront.browse.categoriesHeading')}</h3>
                   <div className="flex flex-wrap gap-2">
                     <Link
                       href="/browse"
@@ -254,9 +258,9 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
                           : "bg-gray-800 text-gray-300 hover:bg-gray-700"
                       }`}
                     >
-                      All
+                      {t('categories.all')}
                     </Link>
-                    {categories.map(([slug, name]) => {
+                    {categories.map(([slug, labelKey]) => {
                       const query = new URLSearchParams();
                       query.set("category", slug);
                       query.set("sort", sort);
@@ -272,7 +276,7 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
                               : "bg-gray-800 text-gray-300 hover:bg-gray-700"
                           }`}
                         >
-                          {name}
+                          {t(labelKey)}
                         </Link>
                       );
                     })}
@@ -282,35 +286,39 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
                 <form className="space-y-3" method="get">
                   {category && <input type="hidden" name="category" value={category} />}
                   {sort && <input type="hidden" name="sort" value={sort} />}
-                  <h3 className="font-semibold text-white mb-1">Price range</h3>
+                  <h3 className="font-semibold text-white mb-1">{t('products.priceRange')}</h3>
                   <div className="flex items-center gap-3">
                     <input
                       type="number"
+                      inputMode="decimal"
+                      dir="ltr"
                       name="minPrice"
-                      placeholder="Min"
+                      placeholder={t('products.minPrice')}
                       defaultValue={minPrice ?? ""}
-                      className="w-full rounded-lg border border-gray-700 bg-[#0a0a0a] px-3 py-2 text-sm text-white placeholder:text-gray-500 focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500"
+                      className="no-spinner w-full rounded-lg border border-gray-700 bg-[#0a0a0a] px-3 py-2 text-sm text-white placeholder:text-gray-500 focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500"
                     />
                     <span className="text-gray-500">—</span>
                     <input
                       type="number"
+                      inputMode="decimal"
+                      dir="ltr"
                       name="maxPrice"
-                      placeholder="Max"
+                      placeholder={t('products.maxPrice')}
                       defaultValue={maxPrice ?? ""}
-                      className="w-full rounded-lg border border-gray-700 bg-[#0a0a0a] px-3 py-2 text-sm text-white placeholder:text-gray-500 focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500"
+                      className="no-spinner w-full rounded-lg border border-gray-700 bg-[#0a0a0a] px-3 py-2 text-sm text-white placeholder:text-gray-500 focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500"
                     />
                   </div>
                   <button
                     type="submit"
                     className="w-full rounded-lg bg-teal-500 px-4 py-2 text-sm font-semibold text-white hover:bg-teal-600 transition"
                   >
-                    Apply filters
+                    {t('storefront.browse.applyFilters')}
                   </button>
                   <Link
                     href="/browse"
                     className="inline-flex items-center gap-2 text-sm font-medium text-teal-700 hover:text-teal-800"
                   >
-                    Clear filters
+                    {t('storefront.browse.clearFilters')}
                   </Link>
                 </form>
               </div>
@@ -334,16 +342,16 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
                           className="max-w-full max-h-full object-contain"
                           style={{ width: 'auto', height: 'auto', maxWidth: '100%', maxHeight: '100%' }}
                         />
-                        <div className="absolute top-3 right-3 bg-gray-900/80 px-3 py-1 rounded-full">
+                        <div className="absolute top-3 end-3 bg-gray-900/80 px-3 py-1 rounded-full">
                           <span className="text-emerald-400 font-bold"><bdi>{formatPrice(Number(product.price), product.currency, locale)}</bdi></span>
                         </div>
                         {!product.fileUrl && (
-                          <div className="absolute top-3 left-3">
+                          <div className="absolute top-3 start-3">
                             <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-amber-500/10 text-amber-300 border border-amber-500/30">
                               <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                               </svg>
-                              Coming Soon
+                              {t('storefront.browse.comingSoonBadge')}
                             </span>
                           </div>
                         )}
@@ -351,15 +359,15 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
 
                       <div className="p-5">
                         <h3 className="font-semibold text-white text-lg line-clamp-2 group-hover:text-teal-400 transition-colors">
-                          {product.name}
+                          <bdi>{product.name}</bdi>
                         </h3>
-                        <div className="text-sm text-gray-500 mt-1">{product.shop.name}</div>
+                        <div className="text-sm text-gray-500 mt-1"><bdi>{product.shop.name}</bdi></div>
                         {product.description && (
-                          <p className="mt-2 text-gray-400 text-sm line-clamp-2">{product.description}</p>
+                          <p className="mt-2 text-gray-400 text-sm line-clamp-2"><bdi>{product.description}</bdi></p>
                         )}
                         {product.category && (
                           <span className="inline-block px-3 py-1 bg-gray-800 text-gray-300 text-xs font-medium rounded-full mt-3">
-                            {categoryMap[product.category] || "Digital Product"}
+                            {CATEGORY_LABEL_KEYS[product.category] ? t(CATEGORY_LABEL_KEYS[product.category]) : t('products.imagePlaceholder')}
                           </span>
                         )}
                         <div className="text-teal-400 font-bold text-xl mt-3">
@@ -376,15 +384,15 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
                     </svg>
                   </div>
-                  <h3 className="text-xl font-semibold text-white">No products found</h3>
-                  <p className="mt-2 text-gray-400">Try adjusting your filters or browse everything available.</p>
+                  <h3 className="text-xl font-semibold text-white">{t('products.noProducts')}</h3>
+                  <p className="mt-2 text-gray-400">{t('storefront.browse.emptyBody')}</p>
                   <div className="mt-6">
                     <Link
                       href="/browse"
                       className="inline-flex items-center gap-2 rounded-full bg-teal-500 px-6 py-3 text-white font-semibold hover:bg-teal-600 transition"
                     >
-                      Browse all products
-                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      {t('products.viewAll')}
+                      <svg className="w-4 h-4 rtl:rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0-4 4m4-4H3" />
                       </svg>
                     </Link>

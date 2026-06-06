@@ -525,6 +525,16 @@
       "showingProductsCount": "{count, plural, one {Showing # product} other {Showing # products}}",
       "emptyState": "No products yet. Check back soon for new releases."
     },
+    "browse": {
+      "eyebrow": "Products",
+      "sortPopular": "Popular",
+      "apply": "Apply",
+      "comingSoonBadge": "Coming Soon",
+      "emptyBody": "Try adjusting your filters or browse everything available.",
+      "categoriesHeading": "Categories",
+      "applyFilters": "Apply filters",
+      "clearFilters": "Clear filters"
+    },
     "productDetail": {
       "backToStore": "Back to <name>{shopName}</name>",
       "shopLogoAlt": "{shopName} shop logo",
