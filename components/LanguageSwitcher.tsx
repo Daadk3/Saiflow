@@ -6,7 +6,7 @@ const ONE_YEAR = 60 * 60 * 24 * 365;
 
 export function LanguageSwitcher() {
   const locale = useLocale();
-  const next = locale.startsWith('ar') ? 'en' : 'ar';
+  const next = locale === 'ar' ? 'en' : 'ar';
 
   const switchTo = (lang: string) => {
     document.cookie = `${LOCALE_COOKIE}=${lang};path=/;max-age=${ONE_YEAR};samesite=lax`;
@@ -20,8 +20,8 @@ export function LanguageSwitcher() {
       className="px-3 py-1.5 text-sm text-gray-300 hover:text-white border border-gray-600 rounded-full hover:border-gray-400 transition-colors flex items-center gap-1.5"
       aria-label="Switch language"
     >
-      <span>{locale.startsWith('ar') ? '🇺🇸' : '🇸🇦'}</span>
-      <span>{locale.startsWith('ar') ? 'English' : 'العربية'}</span>
+      <span>{locale === 'ar' ? '🇺🇸' : '🇸🇦'}</span>
+      <span>{locale === 'ar' ? 'English' : 'العربية'}</span>
     </button>
   );
 }

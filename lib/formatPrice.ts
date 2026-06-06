@@ -1,17 +1,5 @@
 const VALID_ISO_CURRENCY = /^[A-Z]{3}$/;
 
-// Map app locales to Intl locales:
-//   'ar' / 'ar-SA' → 'ar-SA' (Arabic-Indic numerals + ر.س symbol)
-//   'en' / 'en-SA' → 'en-SA' (Western numerals, "SAR" prefix, Saudi context)
-// Identity entries let the helper accept either the bare cookie token or
-// the Saudi-tagged form that next-intl now returns from useLocale/getLocale.
-const SAUDI_LOCALE_MAP: Record<string, string> = {
-  ar: "ar-SA",
-  en: "en-SA",
-  "ar-SA": "ar-SA",
-  "en-SA": "en-SA",
-};
-
 export function formatPrice(
   amount: number,
   currency: string | null | undefined,
@@ -23,7 +11,12 @@ export function formatPrice(
   const safeCurrency =
     currency && VALID_ISO_CURRENCY.test(currency) ? currency : "SAR";
 
-  const intlLocale = SAUDI_LOCALE_MAP[locale] ?? "en-SA";
+  // Map our app locales to Intl locales:
+  //   'ar' → 'ar-SA' (Arabic-Indic numerals + ر.س symbol)
+  //   'en' → 'en-SA' (Western numerals, "SAR" prefix, Saudi context)
+  // 'en-SA' is the correct choice over 'en-US' because the currency
+  // context is Saudi.
+  const intlLocale = locale === "ar" ? "ar-SA" : "en-SA";
 
   try {
     return new Intl.NumberFormat(intlLocale, {

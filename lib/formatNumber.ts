@@ -1,8 +1,6 @@
 const SAUDI_LOCALE_MAP: Record<string, string> = {
   ar: "ar-SA",
   en: "en-SA",
-  "ar-SA": "ar-SA",
-  "en-SA": "en-SA",
 };
 
 export function formatNumber(
