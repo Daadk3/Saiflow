@@ -63,34 +63,41 @@ async function getProducts(options: {
       ? { price: "desc" as const }
       : { createdAt: "desc" as const }; // default / popular fallback
 
-  const products = await prisma.product.findMany({
-    where,
-    select: {
-      id: true,
-      name: true,
-      slug: true,
-      description: true,
-      price: true,
-      currency: true,
-      images: true,
-      thumbnailUrl: true,
-      fileUrl: true,
-      category: true,
-      createdAt: true,
-      shop: {
-        select: {
-          name: true,
-          slug: true,
+  try {
+    const products = await prisma.product.findMany({
+      where,
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        description: true,
+        price: true,
+        currency: true,
+        images: true,
+        thumbnailUrl: true,
+        fileUrl: true,
+        category: true,
+        createdAt: true,
+        shop: {
+          select: {
+            name: true,
+            slug: true,
+          },
         },
       },
-    },
-    orderBy,
-  });
+      orderBy,
+    });
 
-  return products.map((p) => ({
-    ...p,
-    price: Number(p.price),
-  }));
+    return products.map((p) => ({
+      ...p,
+      price: Number(p.price),
+    }));
+  } catch (error) {
+    // Don't let a DB hiccup take down /browse — render the empty state
+    // (the existing "No products found / Try adjusting filters" block).
+    console.error("Browse: failed to load products, rendering without them.", error);
+    return [];
+  }
 }
 
 interface BrowsePageProps {
