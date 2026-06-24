@@ -9,8 +9,8 @@ export const env = createEnv({
     DATABASE_URL: z.string().url(),
     NEXTAUTH_SECRET: z.string().min(1),
     NEXTAUTH_URL: z.string().url().optional(),
-    STRIPE_SECRET_KEY: z.string().startsWith("sk_"),
-    STRIPE_WEBHOOK_SECRET: z.string().startsWith("whsec_"),
+    STRIPE_SECRET_KEY: z.string().startsWith("sk_").optional(),
+    STRIPE_WEBHOOK_SECRET: z.string().startsWith("whsec_").optional(),
     UPLOADTHING_TOKEN: z.string().min(1),
     RESEND_API_KEY: z.string().startsWith("re_"),
     GOOGLE_CLIENT_ID: z.string().optional(),
@@ -18,13 +18,20 @@ export const env = createEnv({
     NODE_ENV: z
       .enum(["development", "test", "production"])
       .default("development"),
+    // Pre-launch mode. Defaults to true (fail-closed); only "false"
+    // disables it. Anything else (missing, empty, "true", typos) keeps
+    // pre-launch ON.
+    PRE_LAUNCH_MODE: z
+      .string()
+      .default("true")
+      .transform((v) => v !== "false"),
   },
 
   /**
    * Client-side environment variables schema
    */
   client: {
-    NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: z.string().startsWith("pk_"),
+    NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: z.string().startsWith("pk_").optional(),
   },
 
   /**
@@ -42,6 +49,7 @@ export const env = createEnv({
     GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID,
     GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET,
     NODE_ENV: process.env.NODE_ENV,
+    PRE_LAUNCH_MODE: process.env.PRE_LAUNCH_MODE,
     NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY:
       process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY,
   },

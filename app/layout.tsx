@@ -8,6 +8,7 @@ import Footer from "@/components/Footer";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import StickyMobileCTA from "@/components/StickyMobileCTA";
 import StructuredData from "@/components/StructuredData";
+import PreLaunchBanner from "@/components/PreLaunchBanner";
 
 export async function generateMetadata(): Promise<Metadata> {
   const locale = await getLocale();
@@ -91,6 +92,7 @@ export default async function RootLayout({
           locale.startsWith("ar") ? "font-[Cairo,sans-serif]" : ""
         }`}
       >
+        <PreLaunchBanner />
         <NextIntlClientProvider locale={locale} messages={messages}>
           <Providers>
             <ErrorBoundary>

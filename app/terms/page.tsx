@@ -8,7 +8,7 @@ export default function TermsPage() {
             Terms of Service
           </h1>
           <p className="text-gray-400">
-            Last updated: December 2024
+            Last updated: June 2026
           </p>
         </div>
       </section>
@@ -53,7 +53,7 @@ export default function TermsPage() {
                 <li>Deliver digital products as described</li>
                 <li>Comply with all applicable laws and regulations</li>
                 <li>Not sell prohibited content (see Section 6)</li>
-                <li>Pay all applicable fees (9% transaction fee)</li>
+                <li>Pay all applicable fees</li>
               </ul>
               <p>
                 You retain ownership of your content and grant Saiflow a license to host, display, and distribute your products through the Service.
@@ -100,7 +100,7 @@ export default function TermsPage() {
             <section>
               <h2 className="text-2xl font-bold text-white mb-4">7. Payment Processing</h2>
               <p>
-                Payments are processed through third-party payment processors. Saiflow charges a 9% transaction fee on all sales. Sellers receive payments directly to their connected payment accounts. We are not responsible for payment processing errors or delays caused by third-party processors.
+                Saiflow is currently in pre-launch. Payment processing and seller payouts are not yet available. Pricing and payment terms will be finalized before launch. We will notify users of these terms in advance.
               </p>
             </section>
 

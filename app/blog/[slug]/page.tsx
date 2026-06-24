@@ -27,7 +27,7 @@ const blogPosts: Record<string, BlogPost> = {
       <h2>What Makes Us Different</h2>
       <p>Unlike other platforms, Saiflow offers:</p>
       <ul>
-        <li>Lower transaction fees - keep more of your revenue</li>
+        <li>Transparent pricing — details coming before launch</li>
         <li>Beautiful, customizable storefronts</li>
         <li>Seamless checkout experience</li>
         <li>Powerful analytics to track your sales</li>

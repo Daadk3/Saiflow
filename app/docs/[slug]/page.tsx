@@ -116,7 +116,7 @@ const docs: Record<string, DocContent> = {
     category: "For Sellers",
     content: `
       <h2>How Payouts Work</h2>
-      <p>Earnings from your sales are automatically tracked in your dashboard. You can request payouts to your connected bank account or payment method.</p>
+      <p>Payout systems are currently in development. We will announce details before launch.</p>
       
       <h2>Payout Schedule</h2>
       <p>Payouts are processed according to your account settings. Standard processing time is 2-5 business days.</p>
@@ -194,7 +194,7 @@ const docs: Record<string, DocContent> = {
       <p>Saiflow is a platform for selling and buying digital products online.</p>
       
       <h2>Is Saiflow free to use?</h2>
-      <p>Creating an account is free. We charge a small transaction fee on sales.</p>
+      <p>Creating an account is free during pre-launch. Pricing and payment terms will be announced before launch.</p>
       
       <h2>What types of products can I sell?</h2>
       <p>You can sell any digital product including ebooks, courses, templates, software, and more.</p>
@@ -205,10 +205,10 @@ const docs: Record<string, DocContent> = {
     category: "FAQ",
     content: `
       <h2>How do I get paid?</h2>
-      <p>Earnings are automatically tracked and can be withdrawn to your bank account.</p>
+      <p>Saiflow is in pre-launch. Payout features will be available at launch.</p>
       
       <h2>What are the fees?</h2>
-      <p>We charge a small transaction fee. See our pricing page for details.</p>
+      <p>Pricing and payment terms will be announced before launch.</p>
       
       <h2>Can I customize my shop?</h2>
       <p>Yes! You can customize colors, fonts, and layout to match your brand.</p>
