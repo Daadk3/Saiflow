@@ -85,7 +85,7 @@ export default function WhitepaperPage() {
                   <div className="text-3xl mb-4">💰</div>
                   <h3 className="text-xl font-semibold text-white mb-3">Fair Economics</h3>
                   <p className="text-gray-300">
-                    Lower transaction fees mean creators keep more of their earnings. We believe in sustainable pricing that benefits both creators and the platform.
+                    Transparent pricing — details coming before launch
                   </p>
                 </div>
                 

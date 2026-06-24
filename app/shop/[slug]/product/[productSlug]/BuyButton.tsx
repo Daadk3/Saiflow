@@ -6,18 +6,21 @@ import { useTranslations } from "next-intl";
 interface BuyButtonProps {
   productId: string;
   hasFile?: boolean;
+  preLaunchMode?: boolean;
 }
 
-export default function BuyButton({ productId, hasFile = true }: BuyButtonProps) {
+export default function BuyButton({ productId, hasFile = true, preLaunchMode = false }: BuyButtonProps) {
   const t = useTranslations();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fileInvalid, setFileInvalid] = useState(false);
 
-  // Hard block: Don't allow checkout if no file or file is invalid
-  const isDisabled = loading || !hasFile || fileInvalid;
+  // Hard block: Don't allow checkout if pre-launch mode, no file, or file is invalid
+  const isDisabled = loading || preLaunchMode || !hasFile || fileInvalid;
 
   async function handleCheckout() {
+    // Pre-launch hard block — defense in depth alongside the disabled button.
+    if (preLaunchMode) return;
     // Double-check on client side
     if (!hasFile) {
       setError(t("storefront.productDetail.notAvailableForPurchase"));
@@ -57,6 +60,27 @@ export default function BuyButton({ productId, hasFile = true }: BuyButtonProps)
     } finally {
       setLoading(false);
     }
+  }
+
+  // Pre-launch disabled state — takes precedence over the hasFile branch
+  // so a missing file in pre-launch mode still shows "Coming Soon" copy.
+  if (preLaunchMode) {
+    return (
+      <div className="space-y-3">
+        <button
+          disabled
+          className="w-full sm:w-auto bg-gray-600 cursor-not-allowed text-gray-400 px-8 py-4 rounded-xl text-lg font-semibold flex items-center justify-center gap-3 opacity-60"
+        >
+          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+          </svg>
+          {t("preLaunch.comingSoon")}
+        </button>
+        <p className="text-gray-400 text-sm text-center">
+          {t("preLaunch.checkoutDisabled")}
+        </p>
+      </div>
+    );
   }
 
   // If no file, show disabled state

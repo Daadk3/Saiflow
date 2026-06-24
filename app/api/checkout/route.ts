@@ -1,12 +1,26 @@
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
 import { prisma } from "@/lib/prisma";
+import { env } from "@/lib/env";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: "2025-11-17.clover",
 });
 
 export async function POST(req: Request) {
+  // Pre-launch gate: defense in depth alongside the disabled BuyButton.
+  // Returns 503 with a machine-readable error code so the client can show
+  // a localized message rather than display the English fallback below.
+  if (env.PRE_LAUNCH_MODE) {
+    return NextResponse.json(
+      {
+        error: "pre_launch",
+        message: "Saiflow is in pre-launch. Payments are not yet available.",
+      },
+      { status: 503 }
+    );
+  }
+
   try {
     const { productId } = await req.json();
 

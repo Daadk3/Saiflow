@@ -52,7 +52,7 @@
     "sectionTitle": "What are you selling?",
     "sectionSubtitle": "From ebooks to full courses — pick your category and start earning today.",
     "ebooksDesc": "Recipes, self-help, niche guides — turn what you know into a PDF someone pays for.",
-    "coursesDesc": "Teach once, earn forever. Host and sell your video courses with zero platform fees eating your margins.",
+    "coursesDesc": "Teach once, earn forever. Host and sell your video courses on your own terms.",
     "templatesDesc": "Canva decks, Notion setups, website themes — designers and productivity creators thrive here.",
     "musicDesc": "Beats, sound packs, and Arabic music — sell your sound to the audience it deserves.",
     "artDesc": "Illustrations, digital prints, and graphic packs. Your art is a product — sell it like one.",
@@ -64,9 +64,9 @@
     "step1Title": "Build your storefront",
     "step1Desc": "Set up a branded store page in minutes — your name, your colors, your products. No design skills needed.",
     "step2Title": "Upload anything digital",
-    "step2Desc": "PDFs, videos, audio, courses, templates — if it's a file, you can sell it. Delivery is instant and automatic.",
-    "step3Title": "Get paid instantly",
-    "step3Desc": "Get paid in SAR — instant payouts and zero hidden fees.",
+    "step2Desc": "PDFs, videos, audio, courses, templates — if it's a file, you can sell it. Delivery is automatic when a customer completes their purchase.",
+    "step3Title": "Get paid",
+    "step3Desc": "Payouts to creator bank accounts — coming soon",
     "eyebrow": "How it works",
     "stepLabel": "Step {number}"
   },
@@ -380,13 +380,13 @@
     "tiers": {
       "badge": "Most Popular",
       "name": "Creator",
-      "rate": "9%",
-      "ratePeriod": "per sale",
-      "rateNote": "Only pay when you earn",
+      "rate": "—",
+      "ratePeriod": "TBA",
+      "rateNote": "Pricing details will be announced before launch.",
       "feature1": "Unlimited products",
       "feature2": "Unlimited sales",
       "feature3": "Secure file hosting",
-      "feature4": "Instant payouts",
+      "feature4": "Payouts (coming soon)",
       "feature5": "Sales dashboard & analytics",
       "feature6": "Email notifications",
       "feature7": "Custom product links",
@@ -405,11 +405,11 @@
       "rowSetupTime": "Time to launch",
       "rowPayoutSpeed": "Payout speed",
       "rowHiddenCosts": "Hidden costs",
-      "saiflowFree": "Free",
-      "saiflowRate": "9%",
+      "saiflowFree": "TBA",
+      "saiflowRate": "—",
       "saiflowFast": "Minutes",
-      "saiflowInstant": "Instant",
-      "saiflowNone": "None",
+      "saiflowInstant": "TBA",
+      "saiflowNone": "TBA",
       "themTransaction": "5-10% + monthly",
       "themSlow": "Days or weeks",
       "themPayout": "Weekly/Monthly",
@@ -419,9 +419,9 @@
       "heading": "Common questions",
       "subheading": "Everything you might wonder before signing up",
       "q1": "When do I get paid?",
-      "a1": "You get paid instantly. As soon as a customer completes a purchase, the money is transferred to your connected bank account — no waiting for monthly payouts.",
+      "a1": "Saiflow is in pre-launch. Payout systems are currently in development. Pricing and payment details will be announced before launch.",
       "q2": "Are there any hidden fees?",
-      "a2": "No hidden fees whatsoever. We only charge 9% per successful sale — no monthly fees, no setup fees, no transaction minimums. What you see is what you get.",
+      "a2": "Pricing details will be announced before launch.",
       "q3": "Who can I sell to?",
       "a3": "Saiflow is built for creators in Saudi Arabia first — with local payment methods, SAR pricing, and Arabic-first support tailored to your market.",
       "q4": "What file types can I sell?",
@@ -433,7 +433,7 @@
     },
     "cta": {
       "title": "Start selling in minutes",
-      "subtitle": "Start free, pay only when you earn. No monthly fees, no tiers, no surprises.",
+      "subtitle": "Saiflow is in pre-launch. Pricing details will be announced before launch.",
       "primary": "Get started",
       "note": "Free to start • No credit card required"
     }
@@ -444,7 +444,16 @@
       "title": "Everything you need to sell digital products",
       "subtitle": "Powerful features to help creators sell more, with zero complexity. No technical skills required."
     },
-    "chips": ["Ebooks", "PDFs", "Courses", "Templates", "Music", "Art", "Software", "Videos"],
+    "chips": [
+      "Ebooks",
+      "PDFs",
+      "Courses",
+      "Templates",
+      "Music",
+      "Art",
+      "Software",
+      "Videos"
+    ],
     "moreHeading": "And much more...",
     "moreSubheading": "Every feature you need to run a successful digital products business.",
     "cards": {
@@ -456,42 +465,75 @@
       "checkout": {
         "title": "Simple Checkout",
         "description": "One-click purchase flow that converts. No cart abandonment, no complicated steps.",
-        "items": ["One-click purchase", "Mobile-friendly", "No account required"]
+        "items": [
+          "One-click purchase",
+          "Mobile-friendly",
+          "No account required"
+        ]
       },
       "payouts": {
-        "title": "Instant Payouts",
-        "description": "Get paid directly to your bank account, with support for local and international cards.",
-        "items": ["Direct to your bank", "Local & international cards", "Fast transfers"]
+        "title": "Creator Payouts — Coming Soon",
+        "description": "Secure payouts for creators are currently in development.",
+        "items": [
+          "Coming soon"
+        ]
       },
       "delivery": {
         "title": "Secure File Delivery",
         "description": "Automatic file delivery after purchase. Secure download links that expire.",
-        "items": ["Automatic delivery", "Secure links", "No hosting worries"]
+        "items": [
+          "Automatic delivery",
+          "Secure links",
+          "No hosting worries"
+        ]
       },
       "dashboard": {
         "title": "Sales Dashboard",
         "description": "Beautiful analytics to track your revenue, orders, and customer insights. Know what's working and optimize your sales."
       },
       "noFees": {
-        "title": "No Monthly Fees",
-        "description": "Only pay when you make a sale. Simple percentage-based pricing with no hidden costs.",
-        "rate": "9%",
-        "ratePeriod": "per sale",
-        "items": ["No setup fees", "No monthly fees", "No hidden costs"]
+        "title": "Pricing — Coming Soon",
+        "description": "Pricing details will be announced before launch.",
+        "rate": "—",
+        "ratePeriod": "TBA",
+        "items": [
+          "Coming soon"
+        ]
       }
     },
     "more": {
-      "customLinks": { "title": "Custom Links", "description": "Share your product links" },
-      "emailReceipts": { "title": "Email Receipts", "description": "Automatic purchase confirmations" },
-      "localPayments": { "title": "Local Payments", "description": "Accept payments across Saudi Arabia" },
-      "mobileReady": { "title": "Mobile Ready", "description": "Works on all devices" },
-      "customBranding": { "title": "Custom Branding", "description": "Your logo, your colors" },
-      "analytics": { "title": "Analytics", "description": "Track your performance" },
-      "support": { "title": "Support", "description": "We're here to help" }
+      "customLinks": {
+        "title": "Custom Links",
+        "description": "Share your product links"
+      },
+      "emailReceipts": {
+        "title": "Email Receipts",
+        "description": "Automatic purchase confirmations"
+      },
+      "localPayments": {
+        "title": "Local Payments",
+        "description": "Accept payments across Saudi Arabia"
+      },
+      "mobileReady": {
+        "title": "Mobile Ready",
+        "description": "Works on all devices"
+      },
+      "customBranding": {
+        "title": "Custom Branding",
+        "description": "Your logo, your colors"
+      },
+      "analytics": {
+        "title": "Analytics",
+        "description": "Track your performance"
+      },
+      "support": {
+        "title": "Support",
+        "description": "We're here to help"
+      }
     },
     "cta": {
       "title": "Start selling in minutes",
-      "subtitle": "No code, no monthly fees — start earning from your digital products today.",
+      "subtitle": "Pre-launch. Build your store today; start earning when we launch.",
       "primary": "Start Selling — It's Free",
       "note": "Free to start • No credit card required"
     }
@@ -545,13 +587,23 @@
       "includesInstantDownload": "Instant digital download",
       "includesLifetimeAccess": "Lifetime access to files",
       "includesFreeUpdates": "Free updates from the creator",
-      "secureCheckout": "Secure checkout. You'll get instant access after payment.",
+      "secureCheckout": "Saiflow is in pre-launch. Checkout is not available yet.",
       "paymentsProcessedSecurely": "Payments are processed securely.",
       "getThisProduct": "Get this product",
       "processing": "Processing...",
       "notAvailable": "Not Available",
       "notAvailableForPurchase": "This product is not available for purchase yet",
       "checkoutErrorRetry": "Something went wrong. Please try again."
+    }
+  },
+  "preLaunch": {
+    "banner": "Saiflow is in pre-launch. You can browse products and create stores, but payments aren't available yet.",
+    "comingSoon": "Coming Soon",
+    "pricingTBA": "Pricing details will be announced before launch.",
+    "checkoutDisabled": "Saiflow is in pre-launch. Payments aren't available yet.",
+    "payoutsCard": {
+      "title": "Creator Payouts — Coming Soon",
+      "body": "Secure payouts for creators are currently in development."
     }
   }
 }

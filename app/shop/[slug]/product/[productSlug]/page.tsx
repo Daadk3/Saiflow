@@ -5,6 +5,7 @@ import Image from "next/image";
 import BuyButton from "./BuyButton";
 import { getLocale, getTranslations } from "next-intl/server";
 import { formatPrice } from "@/lib/formatPrice";
+import { env } from "@/lib/env";
 
 interface Product {
   id: string;
@@ -71,6 +72,7 @@ export default async function ProductPage({
 
   const locale = await getLocale();
   const t = await getTranslations();
+  const preLaunchMode = env.PRE_LAUNCH_MODE;
 
   return (
     <div className="min-h-screen bg-[#0a0a0a]">
@@ -233,7 +235,7 @@ export default async function ProductPage({
               </div>
 
               <div className="mt-6">
-                <BuyButton productId={product.id} hasFile={!!product.fileUrl} />
+                <BuyButton productId={product.id} hasFile={!!product.fileUrl} preLaunchMode={preLaunchMode} />
               </div>
 
               <p className="text-center text-sm text-gray-500 mt-4">
@@ -266,7 +268,7 @@ export default async function ProductPage({
           </p>
         </div>
         <div className="flex-1 ps-4">
-          <BuyButton productId={product.id} hasFile={!!product.fileUrl} />
+          <BuyButton productId={product.id} hasFile={!!product.fileUrl} preLaunchMode={preLaunchMode} />
         </div>
       </div>
     </div>

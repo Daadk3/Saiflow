@@ -14,7 +14,7 @@ const faqs = [
   },
   {
     question: "When do I get paid?",
-    answer: "You get paid instantly! As soon as a customer completes a purchase, the money is transferred to your connected payment account. There&apos;s no waiting period or monthly payout schedule.",
+    answer: "Saiflow is currently in pre-launch. Payment and payout systems are in development. We will announce details before launch.",
   },
   {
     question: "How do customers receive their files?",
