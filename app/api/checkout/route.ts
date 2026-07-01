@@ -96,7 +96,7 @@ export async function POST(req: Request) {
       line_items: [
         {
           price_data: {
-            currency: "usd",
+            currency: product.currency.toLowerCase(),
             product_data: {
               name: product.name,
               description: product.description || undefined,
