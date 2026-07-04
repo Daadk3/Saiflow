@@ -9,6 +9,12 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
 
 // This endpoint manually processes a checkout session for debugging
 export async function GET(req: Request) {
+  // P0: this debug endpoint is unauthenticated and can send emails / leak data.
+  // Never allow it to run in production — behave as if the route does not exist.
+  if (process.env.NODE_ENV === "production") {
+    return new NextResponse(null, { status: 404 });
+  }
+
   const { searchParams } = new URL(req.url);
   const sessionId = searchParams.get('session_id');
   

@@ -17,57 +17,41 @@ export async function GET(
       );
     }
 
-    // If productId looks like a Stripe session ID (starts with "cs_"), look up the order
-    let actualProductId = productId;
-    let actualOrderId = orderId;
+    // P0 AUTHORIZATION: a download requires proof of purchase.
+    // Orders are created ONLY by the signature-verified Stripe webhook, and only
+    // for sessions with payment_status === "paid" — so a matching Order's mere
+    // existence IS proof of a completed, paid purchase. No order => no file.
+    let order: { id: string; productId: string } | null = null;
 
     if (productId.startsWith("cs_")) {
-      // This is a sessionId, look up the order
-      const order = await prisma.order.findUnique({
+      // Success-page channel: the path param is a Stripe checkout session id.
+      order = await prisma.order.findUnique({
         where: { stripeSessionId: productId },
-        select: {
-          id: true,
-          productId: true,
-          customerEmail: true,
-        },
+        select: { id: true, productId: true },
       });
-
-      if (!order) {
-        return NextResponse.json(
-          { error: "Order not found for this session" },
-          { status: 404 }
-        );
+    } else if (orderId) {
+      // Email channel: bare productId + ?orderId=. The order must exist AND
+      // belong to the requested product.
+      const found = await prisma.order.findUnique({
+        where: { id: orderId },
+        select: { id: true, productId: true },
+      });
+      if (found && found.productId === productId) {
+        order = found;
       }
-
-      actualProductId = order.productId;
-      actualOrderId = order.id;
     }
 
-    // If orderId is provided, validate the order exists and belongs to this product
-    if (actualOrderId && !productId.startsWith("cs_")) {
-      const order = await prisma.order.findUnique({
-        where: { id: actualOrderId },
-        select: {
-          id: true,
-          productId: true,
-          customerEmail: true,
-        },
-      });
-
-      if (!order) {
-        return NextResponse.json(
-          { error: "Order not found" },
-          { status: 404 }
-        );
-      }
-
-      if (order.productId !== actualProductId) {
-        return NextResponse.json(
-          { error: "Order does not match product" },
-          { status: 403 }
-        );
-      }
+    // No valid proof of purchase => refuse. Closes the unauthenticated
+    // bare-productId enumeration hole.
+    if (!order) {
+      return NextResponse.json(
+        { error: "Not authorized to download this product" },
+        { status: 403 }
+      );
     }
+
+    const actualProductId = order.productId;
+    const actualOrderId = order.id;
 
     // Fetch the product from database
     const product = await prisma.product.findUnique({
