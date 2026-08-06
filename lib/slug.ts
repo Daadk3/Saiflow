@@ -6,12 +6,24 @@
  * collapse to an empty string and collide on the unique slug index —
  * they now fall back to a short random handle so creation never fails.
  */
-export function slugify(name: string, prefix = "item"): string {
-  const base = name
+export function slugify(name: string, prefix = "item", suffix?: string): string {
+  const base = slugBase(name);
+  if (base.length >= 2) return base;
+
+  // `suffix` makes the fallback deterministic — the one-off slug backfill
+  // passes a stable value derived from the product id so re-running it
+  // produces the same handle. Runtime callers omit it and get a random one.
+  return `${prefix}-${suffix ?? Math.random().toString(36).slice(2, 8)}`;
+}
+
+/**
+ * The Latin-only portion of a slug. Returns "" when a name has no usable
+ * Latin/digit characters (e.g. a purely Arabic title) — callers decide the
+ * fallback. Exported so the backfill script applies identical base rules.
+ */
+export function slugBase(name: string): string {
+  return name
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/(^-|-$)/g, "");
-
-  if (base.length >= 2) return base;
-  return `${prefix}-${Math.random().toString(36).slice(2, 8)}`;
 }
