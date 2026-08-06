@@ -78,3 +78,6 @@ logs
 
 # Claude Code harness — local settings, not for commit
 .claude/settings.local.json
+
+# Local archives
+*.zip
