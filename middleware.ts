@@ -1,5 +1,5 @@
-// Middleware disabled - using client-side language switching instead
-// This file is kept for reference but not used
+// Active middleware: NextAuth session guard for all /dashboard routes.
+// (Locale switching is cookie-based via i18n.ts and does not use middleware.)
 
 export { default } from 'next-auth/middleware';
 

@@ -1,5 +1,4 @@
 import Link from "next/link";
-import Image from "next/image";
 import { prisma } from "@/lib/prisma";
 import { getLocale, getTranslations } from "next-intl/server";
 import { formatPrice } from "@/lib/formatPrice";
@@ -42,8 +41,15 @@ async function getProducts(options: {
   maxPrice?: number;
 }): Promise<Product[]> {
   const { category, sort = "newest", minPrice, maxPrice } = options;
-  const where: { isActive: boolean; category?: string; price?: { gte?: number; lte?: number } } = {
+  const where: {
+    isActive: boolean;
+    moderationStatus: "APPROVED";
+    category?: string;
+    price?: { gte?: number; lte?: number };
+  } = {
     isActive: true,
+    // Trust & Safety: only approved products are publicly listed
+    moderationStatus: "APPROVED",
   };
 
   if (category && category in CATEGORY_LABEL_KEYS) {

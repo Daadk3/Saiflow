@@ -13,6 +13,11 @@ import TrustBadges from "@/components/TrustBadges";
 async function getRecentProducts() {
   try {
     return await prisma.product.findMany({
+      where: {
+        isActive: true,
+        moderationStatus: "APPROVED",
+        shop: { isActive: true },
+      },
       take: 8,
       orderBy: { createdAt: "desc" },
       select: {

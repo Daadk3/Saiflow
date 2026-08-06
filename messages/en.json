@@ -17,8 +17,8 @@
     "skipToMain": "Skip to main content"
   },
   "hero": {
-    "badge": "The Arab creator marketplace — finally",
-    "title": "The first digital marketplace built for Arab creators.",
+    "badge": "The Arabic-language creator marketplace — finally",
+    "title": "The first digital marketplace for Arabic-language creators.",
     "secondary": "",
     "subtitle": "Sell your courses, ebooks, and templates in SAR — and get paid via Mada, STC Pay, and Apple Pay. Fully Arabic, built right-to-left.",
     "cta": "Open your store — free",
@@ -78,7 +78,7 @@
   },
   "cta": {
     "title": "Your first sale is closer than you think.",
-    "subtitle": "Arab creators are turning their knowledge into income on Saiflow. Your store is free to create — it takes 5 minutes and zero technical skills.",
+    "subtitle": "Creators publishing in Arabic are turning their knowledge into income on Saiflow. Your store is free to create — it takes 5 minutes and zero technical skills.",
     "button": "Create your free account",
     "browse": "Browse products",
     "note": "No credit card required • Free to start",
@@ -87,7 +87,7 @@
   },
   "footer": {
     "tagline": "Sell digital products, courses, and memberships with a clean, modern checkout experience. Keep more of what you earn with Saiflow.",
-    "newsletter": "Get the Arab creator playbook",
+    "newsletter": "Get the Arabic-language creator playbook",
     "newsletterDesc": "Weekly tips on selling digital products, growing your audience, and making money from what you know. In Arabic and English.",
     "emailPlaceholder": "you@example.com",
     "subscribe": "Subscribe",
@@ -97,6 +97,7 @@
     "docs": "Docs",
     "terms": "Terms",
     "privacy": "Privacy",
+    "refunds": "Refund Policy",
     "copyright": "© 2026 Saiflow. All rights reserved.",
     "ariaFooter": "Site footer",
     "newsletterEmailAria": "Email address for newsletter",
@@ -104,7 +105,8 @@
     "columnProduct": "Product",
     "columnCompany": "Company",
     "columnResources": "Resources",
-    "columnLegal": "Legal"
+    "columnLegal": "Legal",
+    "contentPolicy": "Content Policy"
   },
   "common": {
     "viewAll": "View all",
@@ -358,8 +360,8 @@
     }
   },
   "meta": {
-    "title": "Saiflow — The Digital Marketplace for Arab Creators",
-    "description": "The marketplace where Arab creators sell their knowledge. Sell ebooks, courses, templates and more. Keep 95% of every sale. Start free."
+    "title": "Saiflow — The Arabic-Language Digital Products Marketplace",
+    "description": "The marketplace where creators sell their knowledge in Arabic. Sell ebooks, courses, templates and more. Keep 95% of every sale. Start free."
   },
   "trustBadges": {
     "secureTitle": "Secure checkout",
@@ -390,7 +392,7 @@
       "feature5": "Sales dashboard & analytics",
       "feature6": "Email notifications",
       "feature7": "Custom product links",
-      "feature8": "24/7 support",
+      "feature8": "Direct founder support",
       "cta": "Start Selling — It's Free",
       "ctaNote": "No credit card required"
     },
@@ -605,5 +607,13 @@
       "title": "Creator Payouts — Coming Soon",
       "body": "Secure payouts for creators are currently in development."
     }
+  },
+  "moderation": {
+    "certLabel": "I certify that I own this content or hold a valid license to sell it; that it does not infringe any copyright, trademark, or other intellectual-property rights; that it complies with the laws and regulations of the Kingdom of Saudi Arabia and with Saiflow's Content Policy, including its prohibited-content rules; that it contains no malware or harmful code; and that I accept full legal responsibility for this content and its sale.",
+    "certPolicyLink": "Read the Content Policy",
+    "pendingBadge": "Under review",
+    "approvedBadge": "Approved",
+    "rejectedBadge": "Rejected",
+    "pendingNotice": "New products are reviewed before they appear publicly."
   }
 }

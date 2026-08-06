@@ -3,9 +3,13 @@ import Stripe from "stripe";
 import { prisma } from "@/lib/prisma";
 import { env } from "@/lib/env";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: "2025-11-17.clover",
-});
+// Lazy init: Stripe env vars are optional in pre-launch, so a module-level
+// `new Stripe(...)` would crash builds/deploys that omit them.
+function getStripe(): Stripe {
+  return new Stripe(process.env.STRIPE_SECRET_KEY!, {
+    apiVersion: "2025-11-17.clover",
+  });
+}
 
 export async function POST(req: Request) {
   // Pre-launch gate: defense in depth alongside the disabled BuyButton.
@@ -44,6 +48,15 @@ export async function POST(req: Request) {
       );
     }
 
+    // Unpublished/unapproved products and deactivated shops must not be
+    // purchasable, even by direct API call with a known product id.
+    if (!product.isActive || product.moderationStatus !== "APPROVED" || !product.shop.isActive) {
+      return NextResponse.json(
+        { error: "This product is not available for purchase." },
+        { status: 400 }
+      );
+    }
+
     // Check if product has a file uploaded
     if (!product.fileUrl) {
       return NextResponse.json(
@@ -60,38 +73,33 @@ export async function POST(req: Request) {
       });
 
       if (!fileResponse.ok) {
-        // File doesn't exist (404, 403, etc.) - clear the fileUrl and block purchase
-        console.warn(`File not accessible for product ${product.id}: ${product.fileUrl} - Status: ${fileResponse.status}`);
-        
-        // Clear the broken fileUrl
-        await prisma.product.update({
-          where: { id: product.id },
-          data: { fileUrl: null },
-        });
-
+        // Block the purchase but do NOT mutate the product: a transient
+        // provider error must never silently unpublish a live product.
+        console.warn(`File not accessible for product ${product.id} - status: ${fileResponse.status}`);
         return NextResponse.json(
           { error: "This product is not available for purchase. The file is no longer accessible." },
           { status: 400 }
         );
       }
     } catch (error) {
-      // Network error, timeout, or other issue - treat as file not available
+      // Network error or timeout — block this attempt only, never mutate.
       console.error(`Error validating file for product ${product.id}:`, error);
-      
-      // Clear the broken fileUrl
-      await prisma.product.update({
-        where: { id: product.id },
-        data: { fileUrl: null },
-      });
-
       return NextResponse.json(
-        { error: "This product is not available for purchase. The file could not be verified." },
-        { status: 400 }
+        { error: "This product is temporarily unavailable. Please try again in a moment." },
+        { status: 503 }
       );
     }
 
     // Create Stripe checkout session
-    const session = await stripe.checkout.sessions.create({
+    // Payments unconfigured => same behavior as pre-launch: unavailable.
+    if (!process.env.STRIPE_SECRET_KEY) {
+      return NextResponse.json(
+        { error: "pre_launch", message: "Payments are not yet available." },
+        { status: 503 }
+      );
+    }
+
+    const session = await getStripe().checkout.sessions.create({
       payment_method_types: ["card"],
       line_items: [
         {

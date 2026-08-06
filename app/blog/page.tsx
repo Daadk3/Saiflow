@@ -8,42 +8,12 @@ const blogPosts = [
     title: "Introducing Saiflow: The Future of Digital Product Sales",
     excerpt: "We're excited to launch Saiflow, a platform designed to help creators sell digital products with ease. Learn about our mission and what makes us different.",
     author: "Saiflow Team",
-    date: "2024-01-15",
+    date: "2026-07-01",
     category: "Product",
     featuredImage: "/mascot.png",
     readTime: "5 min read",
   },
-  {
-    slug: "creator-tips-pricing",
-    title: "5 Tips for Pricing Your Digital Products",
-    excerpt: "Pricing can make or break your digital product business. Here are proven strategies to price your products for maximum revenue and customer satisfaction.",
-    author: "Sarah Chen",
-    date: "2024-01-10",
-    category: "Tips",
-    featuredImage: "/mascot.png",
-    readTime: "7 min read",
-  },
-  {
-    slug: "building-audience",
-    title: "How to Build an Audience Before Launching Your First Product",
-    excerpt: "Building an audience is crucial for product success. Discover strategies to grow your following and create a community around your brand.",
-    author: "Mike Johnson",
-    date: "2024-01-05",
-    category: "Marketing",
-    featuredImage: "/mascot.png",
-    readTime: "6 min read",
-  },
-  {
-    slug: "platform-updates-january",
-    title: "Platform Updates: New Features and Improvements",
-    excerpt: "We've been working hard to improve Saiflow. Check out the latest features including enhanced analytics, better checkout flows, and more.",
-    author: "Saiflow Team",
-    date: "2024-01-01",
-    category: "Updates",
-    featuredImage: "/mascot.png",
-    readTime: "4 min read",
-  },
-];
+      ];
 
 const categories = ["All", "Product", "Tips", "Marketing", "Updates"];
 

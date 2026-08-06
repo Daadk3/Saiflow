@@ -20,7 +20,7 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
     title,
     description,
-    keywords: ["sell digital products", "digital downloads", "online courses platform", "ebook marketplace", "template store", "digital commerce", "creator economy", "Arabic creators", "GCC creators", "Saudi digital marketplace", "سوق رقمي", "صناع المحتوى العرب"],
+    keywords: ["sell digital products", "digital downloads", "online courses platform", "ebook marketplace", "template store", "digital commerce", "creator economy", "Arabic-language creators", "Arabic digital products", "Saudi digital marketplace", "سوق رقمي", "صناع المحتوى بالعربية", "منتجات رقمية بالعربية"],
     authors: [{ name: "Saiflow" }],
     creator: "Saiflow",
     publisher: "Saiflow",

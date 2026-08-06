@@ -3,6 +3,7 @@ import GoogleProvider from "next-auth/providers/google";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcrypt";
+import { rateLimiters } from "@/lib/rate-limit";
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -16,19 +17,33 @@ export const authOptions: NextAuthOptions = {
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" },
       },
-      async authorize(credentials) {
+      async authorize(credentials, req) {
+        // Single generic message everywhere below: distinct errors would let
+        // an attacker enumerate which emails have accounts.
+        const GENERIC = "Invalid email or password";
+
         if (!credentials?.email || !credentials?.password) {
-          throw new Error("Missing email or password");
+          throw new Error(GENERIC);
         }
+
+        // Brute-force throttle by client IP (5/min, same limiter as other auth routes)
+        const forwarded = req?.headers?.["x-forwarded-for"];
+        const ip =
+          (typeof forwarded === "string" ? forwarded.split(",")[0].trim() : null) ??
+          "unknown";
+        if (!rateLimiters.auth(ip).success) {
+          throw new Error("Too many attempts. Please try again in a minute.");
+        }
+
         const user = await prisma.user.findFirst({
           where: { email: { equals: credentials.email, mode: "insensitive" } },
         });
         if (!user || !user.password) {
-          throw new Error("User not found");
+          throw new Error(GENERIC);
         }
         const valid = await bcrypt.compare(credentials.password, user.password);
         if (!valid) {
-          throw new Error("Incorrect password");
+          throw new Error(GENERIC);
         }
         return { id: user.id, email: user.email, name: user.name, image: user.image };
       },

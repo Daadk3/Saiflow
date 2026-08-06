@@ -1,11 +1,17 @@
+import { cache } from "react";
+import type { Metadata } from "next";
 import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import BuyButton from "./BuyButton";
+import ReportProduct from "./ReportProduct";
+import ShareButton from "@/components/ShareButton";
 import { getLocale, getTranslations } from "next-intl/server";
 import { formatPrice } from "@/lib/formatPrice";
 import { env } from "@/lib/env";
+
+const BASE_URL = "https://www.saiflow.io";
 
 interface Product {
   id: string;
@@ -24,12 +30,17 @@ interface Product {
   };
 }
 
-async function getProduct(shopSlug: string, productSlug: string): Promise<Product | null> {
+// cache(): deduplicates the query between generateMetadata and the page render
+const getProduct = cache(async function getProduct(shopSlug: string, productSlug: string): Promise<Product | null> {
   const product = await prisma.product.findFirst({
     where: {
       slug: productSlug,
+      // Unpublished / unapproved products and deactivated shops are not publicly viewable
+      isActive: true,
+      moderationStatus: "APPROVED",
       shop: {
         slug: shopSlug,
+        isActive: true,
       },
     },
     select: {
@@ -55,6 +66,45 @@ async function getProduct(shopSlug: string, productSlug: string): Promise<Produc
   return {
     ...product,
     price: Number(product.price),
+  };
+});
+
+// Per-product social metadata: canonical URL + Open Graph + Twitter card so
+// WhatsApp / LinkedIn / X previews show the product, not the generic homepage.
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string; productSlug: string }>;
+}): Promise<Metadata> {
+  const { slug, productSlug } = await params;
+  const product = await getProduct(slug, productSlug);
+  if (!product) return {};
+
+  const url = `${BASE_URL}/shop/${slug}/product/${productSlug}`;
+  const title = `${product.name} — ${product.shop.name}`;
+  const description =
+    product.description?.slice(0, 160) ||
+    `${product.name} — ${product.shop.name} on Saiflow`;
+  const image = product.thumbnailUrl || `${BASE_URL}/og-image.png`;
+
+  return {
+    title,
+    description,
+    alternates: { canonical: url },
+    openGraph: {
+      title,
+      description,
+      url,
+      siteName: "Saiflow",
+      type: "website",
+      images: [{ url: image }],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      images: [image],
+    },
   };
 }
 
@@ -238,6 +288,10 @@ export default async function ProductPage({
                 <BuyButton productId={product.id} hasFile={!!product.fileUrl} preLaunchMode={preLaunchMode} />
               </div>
 
+              <div className="mt-3 flex justify-center">
+                <ShareButton title={product.name} />
+              </div>
+
               <p className="text-center text-sm text-gray-500 mt-4">
                 {t("storefront.productDetail.secureCheckout")}
               </p>
@@ -256,6 +310,11 @@ export default async function ProductPage({
               )}
             </div>
           </aside>
+        </div>
+
+        {/* Trust & Safety: public reporting — quiet link, human review, never auto-removal */}
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-24 lg:pb-8">
+          <ReportProduct productId={product.id} />
         </div>
       </main>
 

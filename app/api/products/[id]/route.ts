@@ -1,14 +1,28 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { authOptions } from "../../auth/authOptions";
+import { slugify } from "@/lib/slug";
 
-// GET - Get a single product by ID
+// GET - Get a single product by ID (seller dashboard only)
+// SECURITY: this returns the full row including fileUrl (the paid asset),
+// so it must be restricted to authenticated members of the owning shop.
+// Public product data is served by the server-rendered product page instead.
 export async function GET(
   req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const session = await getServerSession(authOptions);
+
+    if (!session?.user?.email) {
+      return NextResponse.json(
+        { error: "Unauthorized" },
+        { status: 401 }
+      );
+    }
+
     const { id } = await params;
 
     const product = await prisma.product.findUnique({
@@ -19,6 +33,9 @@ export async function GET(
             id: true,
             name: true,
             slug: true,
+            shopUsers: {
+              select: { user: { select: { email: true } } },
+            },
           },
         },
       },
@@ -31,7 +48,20 @@ export async function GET(
       );
     }
 
-    return NextResponse.json(product);
+    const email = session.user.email.toLowerCase();
+    const isMember = product.shop.shopUsers.some(
+      (su) => su.user.email.toLowerCase() === email
+    );
+    if (!isMember) {
+      return NextResponse.json(
+        { error: "You don't have access to this product" },
+        { status: 403 }
+      );
+    }
+
+    // Don't leak the member list in the response
+    const shop = { id: product.shop.id, name: product.shop.name, slug: product.shop.slug };
+    return NextResponse.json({ ...product, shop });
   } catch (error) {
     console.error("Error fetching product:", error);
     return NextResponse.json(
@@ -100,13 +130,10 @@ export async function PUT(
       );
     }
 
-    // Create new slug if name changed
+    // Create new slug if name changed (falls back to a random handle for non-Latin names)
     let slug = product.slug;
     if (name && name !== product.name) {
-      slug = name
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, "-")
-        .replace(/(^-|-$)/g, "");
+      slug = slugify(name, "product");
     }
 
     // Update the product
@@ -125,6 +152,12 @@ export async function PUT(
 
     return NextResponse.json(updatedProduct);
   } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+      return NextResponse.json(
+        { error: "A product with a similar name already exists in this shop. Try a different name." },
+        { status: 400 }
+      );
+    }
     console.error("Error updating product:", error);
     return NextResponse.json(
       { error: "Something went wrong" },

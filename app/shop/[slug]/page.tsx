@@ -1,9 +1,14 @@
+import { cache } from "react";
+import type { Metadata } from "next";
 import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
+import ShareButton from "@/components/ShareButton";
 import { getLocale, getTranslations } from "next-intl/server";
 import { formatPrice } from "@/lib/formatPrice";
+
+const BASE_URL = "https://www.saiflow.io";
 
 interface Product {
   id: string;
@@ -26,23 +31,63 @@ interface Shop {
   products: Product[];
 }
 
-async function getShop(slug: string): Promise<Shop | null> {
+// cache(): deduplicates the query between generateMetadata and the page render
+const getShop = cache(async function getShop(slug: string): Promise<Shop | null> {
   const shop = await prisma.shop.findUnique({
     where: { slug },
     include: {
       products: {
-        where: { isActive: true },
+        where: { isActive: true, moderationStatus: "APPROVED" },
         orderBy: { createdAt: "desc" },
       },
     },
   });
-  if (!shop) return null;
+  // Deactivated shops are not publicly viewable
+  if (!shop || !shop.isActive) return null;
   return {
     ...shop,
     products: shop.products.map(p => ({
       ...p,
       price: Number(p.price),
     })),
+  };
+});
+
+// Per-storefront social metadata: canonical + OG + Twitter card so shared
+// shop links preview as the seller's store, not the generic homepage.
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}): Promise<Metadata> {
+  const { slug } = await params;
+  const shop = await getShop(slug);
+  if (!shop) return {};
+
+  const url = `${BASE_URL}/shop/${slug}`;
+  const title = `${shop.name} | Saiflow`;
+  const description =
+    shop.description?.slice(0, 160) || `${shop.name} — digital products on Saiflow`;
+  const image = shop.coverImage || shop.logo || `${BASE_URL}/og-image.png`;
+
+  return {
+    title,
+    description,
+    alternates: { canonical: url },
+    openGraph: {
+      title,
+      description,
+      url,
+      siteName: "Saiflow",
+      type: "website",
+      images: [{ url: image }],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      images: [image],
+    },
   };
 }
 
@@ -96,6 +141,11 @@ export default async function PublicShopPage({
             <p className="text-sm text-gray-500 mt-3">
               {t('storefront.shopView.productsCount', { count: shop.products.length })}
             </p>
+
+            {/* Permanent public link — share the storefront anywhere */}
+            <div className="mt-4">
+              <ShareButton title={shop.name} />
+            </div>
           </div>
         </div>
       </header>

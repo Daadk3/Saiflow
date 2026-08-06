@@ -107,4 +107,8 @@ export const rateLimiters = {
   // General API: 100 requests per minute
   api: (ip: string) =>
     rateLimit(`api:${ip}`, { windowMs: 60 * 1000, maxRequests: 100 }),
+
+  // Product reports: 5 per hour (genuine abuse reports are rare; spam is not)
+  report: (ip: string) =>
+    rateLimit(`report:${ip}`, { windowMs: 60 * 60 * 1000, maxRequests: 5 }),
 };

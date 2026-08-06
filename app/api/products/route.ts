@@ -1,7 +1,10 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { authOptions } from "../auth/authOptions";
+import { slugify } from "@/lib/slug";
+import { isAllowedAssetUrl } from "@/lib/validations";
 
 // POST - Create a new product
 export async function POST(req: Request) {
@@ -15,11 +18,53 @@ export async function POST(req: Request) {
       );
     }
 
-    const { name, description, price, category, shopId, fileUrl, thumbnailUrl, currency } = await req.json();
+    const { name, description, price, category, shopId, fileUrl, thumbnailUrl, currency, certified } = await req.json();
 
-    if (!name || !price || !shopId) {
+    // Trust & Safety: the seller must explicitly certify ownership, legality
+    // under Saudi regulations, and responsibility before every upload.
+    if (certified !== true) {
+      return NextResponse.json(
+        { error: "You must accept the seller certification to publish a product." },
+        { status: 400 }
+      );
+    }
+
+    if (!name || price === undefined || price === null || !shopId) {
       return NextResponse.json(
         { error: "Name, price, and shopId are required" },
+        { status: 400 }
+      );
+    }
+
+    // Bounds validation
+    if (typeof name !== "string" || name.trim().length < 2 || name.length > 200) {
+      return NextResponse.json(
+        { error: "Product name must be between 2 and 200 characters" },
+        { status: 400 }
+      );
+    }
+    const numericPrice = Number(price);
+    if (!Number.isFinite(numericPrice) || numericPrice < 0 || numericPrice > 100000) {
+      return NextResponse.json(
+        { error: "Price must be between 0 and 100,000 SAR" },
+        { status: 400 }
+      );
+    }
+    if (description !== undefined && description !== null && (typeof description !== "string" || description.length > 10000)) {
+      return NextResponse.json(
+        { error: "Description must be less than 10,000 characters" },
+        { status: 400 }
+      );
+    }
+    if (fileUrl && !isAllowedAssetUrl(fileUrl)) {
+      return NextResponse.json(
+        { error: "Invalid file URL" },
+        { status: 400 }
+      );
+    }
+    if (thumbnailUrl && !isAllowedAssetUrl(thumbnailUrl)) {
+      return NextResponse.json(
+        { error: "Invalid thumbnail URL" },
         { status: 400 }
       );
     }
@@ -62,29 +107,50 @@ export async function POST(req: Request) {
       );
     }
 
-    // Create slug from name
-    const slug = name
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/(^-|-$)/g, "");
+    // Create slug from name (falls back to a random handle for non-Latin names)
+    const slug = slugify(name, "product");
 
-    // Create the product
-    const product = await prisma.product.create({
-      data: {
-        name,
-        slug,
-        description,
-        price,
-        category: category || null,
-        shopId,
-        fileUrl,
-        thumbnailUrl,
-        currency: "SAR",
-      },
+    // Create the product (PENDING by default) + its audit-trail entry
+    // atomically: certification without an audit event would be unprovable.
+    const now = new Date();
+    const product = await prisma.$transaction(async (tx) => {
+      const created = await tx.product.create({
+        data: {
+          name: name.trim(),
+          slug,
+          description,
+          price: numericPrice,
+          category: category || null,
+          shopId,
+          fileUrl,
+          thumbnailUrl,
+          currency: "SAR",
+          certifiedAt: now,
+          // moderationStatus defaults to PENDING via schema
+        },
+      });
+      await tx.moderationEvent.create({
+        data: {
+          productId: created.id,
+          action: "SUBMITTED",
+          actor: `seller:${user.id}`,
+          reason: "Seller certified ownership, legality, and responsibility at upload.",
+          previousStatus: null, // product creation — no prior state
+          newStatus: "PENDING",
+        },
+      });
+      return created;
     });
 
     return NextResponse.json(product, { status: 201 });
   } catch (error) {
+    // Unique-constraint race on (shopId, slug): return a friendly error, not a 500
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+      return NextResponse.json(
+        { error: "A product with a similar name already exists in this shop. Try a different name." },
+        { status: 400 }
+      );
+    }
     console.error("Error creating product:", error);
     return NextResponse.json(
       { error: "Something went wrong" },

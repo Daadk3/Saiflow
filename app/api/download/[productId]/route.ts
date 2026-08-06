@@ -77,7 +77,8 @@ export async function GET(
       );
     }
 
-    console.log(`Download requested for product ${product.name}${actualOrderId ? ` (order: ${actualOrderId})` : ""}, fileUrl: ${product.fileUrl}`);
+    // Log by IDs only — never log the fileUrl (it is the paid asset).
+    console.log(`Download authorized: product=${product.id} order=${actualOrderId}`);
 
     // Check if JSON format is requested (for API calls from success page)
     const format = searchParams.get("format");
