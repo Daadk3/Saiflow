@@ -4,6 +4,7 @@ import CredentialsProvider from "next-auth/providers/credentials";
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcrypt";
 import { rateLimiters } from "@/lib/rate-limit";
+import { isAdminEmail } from "@/lib/admin";
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -111,6 +112,14 @@ export const authOptions: NextAuthOptions = {
     async session({ session, token }) {
       if (session?.user && token?.id) {
         (session.user as { id?: string }).id = token.id as string;
+      }
+      // Surface admin status so the navbar can show the Founder Dashboard link.
+      // Purely cosmetic: every admin page and API re-checks isAdminEmail on the
+      // server, so a tampered client session grants no access.
+      if (session?.user) {
+        (session.user as { isAdmin?: boolean }).isAdmin = isAdminEmail(
+          session.user.email
+        );
       }
       return session;
     },
