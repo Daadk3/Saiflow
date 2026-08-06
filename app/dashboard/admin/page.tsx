@@ -51,6 +51,14 @@ export default async function FounderDashboardPage() {
   const reviewPct = reviewTotal > 0 ? Math.round((reviewedCount / reviewTotal) * 100) : 100;
 
   const n = (v: number) => formatNumber(v, locale);
+
+  // Arabic is cursive: BOTH monospace (equal advance widths) and
+  // letter-spacing break glyph joining, rendering words as disconnected
+  // letters. Apply the mono/tracked treatment only in Latin locales.
+  const isAr = locale.startsWith("ar");
+  const eyebrow = isAr
+    ? "text-[11px] font-medium text-gray-500"
+    : "font-mono text-[11px] uppercase tracking-[0.16em] text-gray-500";
   const pulseQuiet =
     stats.pulse.newUsers === 0 &&
     stats.pulse.newProducts === 0 &&
@@ -76,7 +84,7 @@ export default async function FounderDashboardPage() {
                 : "border-gray-800 bg-[#111]"
             }`}
           >
-            <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-gray-500">
+            <p className={`${eyebrow} text-gray-500`}>
               {t("mission.eyebrow")}
             </p>
             <div className="mt-3 flex flex-wrap items-center justify-between gap-4">
@@ -102,7 +110,7 @@ export default async function FounderDashboardPage() {
           {/* 2 — ATTENTION (only when something is broken) */}
           {stats.missingFile.length > 0 && (
             <section className="rounded-2xl border border-red-500/30 bg-red-500/[0.06] p-6">
-              <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-red-400">
+              <p className={`${eyebrow} text-red-400`}>
                 {t("attention.eyebrow")}
               </p>
               <ul className="mt-4 space-y-3">
@@ -135,7 +143,7 @@ export default async function FounderDashboardPage() {
           {stats.notYetReviewed > 0 && (
             <section className="rounded-2xl border border-amber-500/25 bg-amber-500/[0.05] p-6">
               <div className="flex flex-wrap items-baseline justify-between gap-3">
-                <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-amber-400">
+                <p className={`${eyebrow} text-amber-400`}>
                   {t("review.eyebrow")}
                 </p>
                 <p className="font-mono text-sm tabular-nums text-gray-400">
@@ -168,7 +176,7 @@ export default async function FounderDashboardPage() {
           {/* 4 — PLATFORM PULSE */}
           <section className="rounded-xl border border-gray-800/70 bg-[#0f0f0f] px-5 py-4">
             <p className="text-sm text-gray-400">
-              <span className="font-mono text-[11px] uppercase tracking-[0.16em] text-gray-600">
+              <span className={`${eyebrow} text-gray-600`}>
                 {t("pulse.eyebrow")}
               </span>
               <span className="mx-2 text-gray-700">·</span>
@@ -187,7 +195,7 @@ export default async function FounderDashboardPage() {
 
           {/* 5 — PLATFORM SNAPSHOT (quiet, colourless) */}
           <section>
-            <p className="mb-3 font-mono text-[11px] uppercase tracking-[0.16em] text-gray-600">
+            <p className={`mb-3 ${eyebrow} text-gray-600`}>
               {t("snapshot.eyebrow")}
             </p>
             <dl className="grid grid-cols-2 gap-2 sm:grid-cols-4">
@@ -216,7 +224,7 @@ export default async function FounderDashboardPage() {
 
           {/* 6 — PAYMENTS (never computes revenue) */}
           <section className="rounded-xl border border-gray-800/70 bg-[#0f0f0f] px-5 py-4">
-            <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-gray-600">
+            <p className={`${eyebrow} text-gray-600`}>
               {t("payments.eyebrow")}
             </p>
             <p className="mt-2 text-sm text-gray-300">{t("payments.disabled")}</p>

@@ -102,7 +102,11 @@ export default async function AdminProductsPage({
           </form>
         </div>
 
-        <p className="mb-3 font-mono text-xs text-gray-600">
+        <p
+          className={`mb-3 text-xs text-gray-600 ${
+            locale.startsWith("ar") ? "" : "font-mono"
+          }`}
+        >
           {t("directory.count", { count: String(totalForFilter) })}
         </p>
 
@@ -116,22 +120,26 @@ export default async function AdminProductsPage({
             <div className="hidden overflow-x-auto rounded-xl border border-gray-800 md:block">
               <table className="w-full text-sm">
                 <thead className="bg-[#111] text-start">
-                  <tr className="text-[11px] uppercase tracking-wider text-gray-500">
-                    <th className="px-4 py-3 text-start font-medium">{t("directory.col.product")}</th>
-                    <th className="px-4 py-3 text-start font-medium">{t("directory.col.shop")}</th>
-                    <th className="px-4 py-3 text-start font-medium">{t("directory.col.category")}</th>
-                    <th className="px-4 py-3 text-start font-medium">{t("directory.col.price")}</th>
-                    <th className="px-4 py-3 text-start font-medium">{t("directory.col.status")}</th>
-                    <th className="px-4 py-3 text-start font-medium">{t("directory.col.reviewSource")}</th>
-                    <th className="px-4 py-3 text-start font-medium">{t("directory.col.reports")}</th>
-                    <th className="px-4 py-3 text-start font-medium">{t("directory.col.created")}</th>
-                    <th className="px-4 py-3" />
+                  <tr
+                    className={`text-[11px] text-gray-500 ${
+                      locale.startsWith("ar") ? "" : "uppercase tracking-wider"
+                    }`}
+                  >
+                    <th className="px-3 py-3 text-start font-medium">{t("directory.col.product")}</th>
+                    <th className="px-3 py-3 text-start font-medium">{t("directory.col.shop")}</th>
+                    <th className="px-3 py-3 text-start font-medium">{t("directory.col.category")}</th>
+                    <th className="px-3 py-3 text-start font-medium">{t("directory.col.price")}</th>
+                    <th className="px-3 py-3 text-start font-medium">{t("directory.col.status")}</th>
+                    <th className="px-3 py-3 text-start font-medium">{t("directory.col.reviewSource")}</th>
+                    <th className="px-3 py-3 text-start font-medium">{t("directory.col.reports")}</th>
+                    <th className="px-3 py-3 text-start font-medium">{t("directory.col.created")}</th>
+                    <th className="px-3 py-3" />
                   </tr>
                 </thead>
                 <tbody>
                   {rows.map((p) => (
                     <tr key={p.id} className="border-t border-gray-800/70 align-middle">
-                      <td className="px-4 py-3">
+                      <td className="px-3 py-3">
                         <div className="flex items-center gap-3">
                           <div className="h-9 w-9 shrink-0 overflow-hidden rounded-md border border-gray-800 bg-[#1a1a1a]">
                             {p.thumbnailUrl && (
@@ -159,22 +167,22 @@ export default async function AdminProductsPage({
                           </div>
                         </div>
                       </td>
-                      <td className="px-4 py-3 text-gray-400"><bdi>{p.shopName}</bdi></td>
-                      <td className="px-4 py-3 text-gray-500">{p.category ?? "—"}</td>
-                      <td className="px-4 py-3 tabular-nums text-gray-300">
+                      <td className="px-3 py-3 text-gray-400"><bdi>{p.shopName}</bdi></td>
+                      <td className="px-3 py-3 text-gray-500">{p.category ?? "—"}</td>
+                      <td className="whitespace-nowrap px-3 py-3 tabular-nums text-gray-300">
                         <bdi>{formatPrice(p.price, p.currency, locale)}</bdi>
                       </td>
-                      <td className="px-4 py-3">
+                      <td className="px-3 py-3">
                         <StatusBadge status={p.moderationStatus} t={t} />
                       </td>
-                      <td className="px-4 py-3">
+                      <td className="px-3 py-3">
                         <ReviewSourceBadge reviewed={p.humanReviewed} t={t} />
                       </td>
-                      <td className="px-4 py-3 tabular-nums text-gray-500">{p.reportCount}</td>
-                      <td className="px-4 py-3 text-xs text-gray-500">
-                        {formatDate(p.createdAt, locale)}
+                      <td className="px-3 py-3 tabular-nums text-gray-500">{p.reportCount}</td>
+                      <td className="whitespace-nowrap px-3 py-3 text-xs text-gray-500">
+                        {formatDate(p.createdAt, locale, { day: "2-digit", month: "2-digit", year: "numeric" })}
                       </td>
-                      <td className="px-4 py-3 text-end">
+                      <td className="px-3 py-3 text-end">
                         {!p.humanReviewed && (
                           <ReviewButton
                             productId={p.id}
@@ -265,7 +273,7 @@ function StatusBadge({
         ? "bg-amber-500/10 text-amber-400"
         : "bg-red-500/10 text-red-400";
   return (
-    <span className={`rounded-md px-2 py-0.5 text-[11px] font-medium ${cls}`}>
+    <span className={`whitespace-nowrap rounded-md px-2 py-0.5 text-[11px] font-medium ${cls}`}>
       {t(`directory.status.${status}`)}
     </span>
   );
@@ -279,13 +287,13 @@ function ReviewSourceBadge({
   t: (k: string) => string;
 }) {
   return reviewed ? (
-    <span className="rounded-md bg-teal-500/10 px-2 py-0.5 text-[11px] font-medium text-teal-300">
+    <span className="whitespace-nowrap rounded-md bg-teal-500/10 px-2 py-0.5 text-[11px] font-medium text-teal-300">
       {t("directory.humanReviewed")}
     </span>
   ) : (
     <span
       title={t("review.tooltip")}
-      className="rounded-md bg-gray-500/10 px-2 py-0.5 text-[11px] font-medium text-gray-400"
+      className="whitespace-nowrap rounded-md bg-gray-500/10 px-2 py-0.5 text-[11px] font-medium text-gray-400"
     >
       {t("directory.notYetReviewed")}
     </span>
