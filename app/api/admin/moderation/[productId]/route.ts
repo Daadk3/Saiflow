@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { prisma } from "@/lib/prisma";
 import { authOptions } from "../../../auth/authOptions";
 import { isAdminEmail } from "@/lib/admin";
+import { rateLimiters, getClientIp } from "@/lib/rate-limit";
 
 // POST - Record a moderation decision for a product (admins only).
 // Body: { action: "APPROVED" | "REJECTED", reason?: string }
@@ -12,6 +13,9 @@ export async function POST(
   { params }: { params: Promise<{ productId: string }> }
 ) {
   try {
+    if (!rateLimiters.api(getClientIp(req)).success) {
+      return NextResponse.json({ error: "Too many requests" }, { status: 429 });
+    }
     const session = await getServerSession(authOptions);
     if (!session?.user?.email || !isAdminEmail(session.user.email)) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
