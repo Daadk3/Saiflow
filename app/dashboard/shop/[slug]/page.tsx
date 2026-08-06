@@ -18,6 +18,7 @@ interface Product {
   currency: string;
   thumbnailUrl: string | null;
   fileUrl: string | null;
+  moderationStatus?: "PENDING" | "APPROVED" | "REJECTED";
   createdAt: string;
 }
 
@@ -39,6 +40,7 @@ export default function ShopDashboard() {
   const slug = params.slug as string;
   const locale = useLocale();
   const t = useTranslations("dashboard.shop");
+  const tModeration = useTranslations("moderation");
 
   const [shop, setShop] = useState<Shop | null>(null);
   const [loading, setLoading] = useState(true);
@@ -265,6 +267,16 @@ export default function ShopDashboard() {
                       <h3 className="font-semibold text-white group-hover:text-teal-400 transition-colors">
                         {product.name}
                       </h3>
+                      {product.moderationStatus === "PENDING" && (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                          {tModeration("pendingBadge")}
+                        </span>
+                      )}
+                      {product.moderationStatus === "REJECTED" && (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-500/10 text-red-400 border border-red-500/20">
+                          {tModeration("rejectedBadge")}
+                        </span>
+                      )}
                       {!product.fileUrl && (
                         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-amber-500/10 text-amber-400 border border-amber-500/20">
                           <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">

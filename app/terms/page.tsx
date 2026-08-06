@@ -8,7 +8,7 @@ export default function TermsPage() {
             Terms of Service
           </h1>
           <p className="text-gray-400">
-            Last updated: June 2026
+            Last updated: July 2026
           </p>
         </div>
       </section>
@@ -29,8 +29,11 @@ export default function TermsPage() {
             {/* Description of Service */}
             <section>
               <h2 className="text-2xl font-bold text-white mb-4">2. Description of Service</h2>
-              <p>
+              <p className="mb-3">
                 Saiflow is a digital products marketplace that enables creators to sell digital products, courses, and memberships. We provide the platform and payment processing infrastructure, but we are not a party to transactions between buyers and sellers.
+              </p>
+              <p>
+                Saiflow is operated by <strong className="text-white">[NovaSphere Marketing Establishment]</strong>, Commercial Registration No. <strong className="text-white">[CR NUMBER]</strong>, Riyadh, Kingdom of Saudi Arabia.
               </p>
             </section>
 
@@ -72,7 +75,9 @@ export default function TermsPage() {
                 <li>You receive lifetime access to the purchased file</li>
               </ul>
               <p className="font-semibold text-amber-400">
-                <strong>No Refunds Policy:</strong> Due to the digital nature of products sold on Saiflow, all sales are final. We do not offer refunds for digital products once the download link has been provided, except as required by law.
+                <strong>Refunds:</strong> Because digital products are delivered instantly, sales are final once the download has been made available, except where the product is defective or inaccessible, or where a refund is required by law. See our{" "}
+                <a href="/refunds" className="text-teal-400 hover:text-teal-300 underline">Refund Policy</a>{" "}
+                for full details.
               </p>
             </section>
 
@@ -136,9 +141,17 @@ export default function TermsPage() {
               </p>
             </section>
 
+            {/* Governing Law */}
+            <section>
+              <h2 className="text-2xl font-bold text-white mb-4">12. Governing Law</h2>
+              <p>
+                These Terms are governed by the laws of the Kingdom of Saudi Arabia, including the E-Commerce Law and its implementing regulations. Any dispute arising out of or relating to these Terms or the Service shall be subject to the jurisdiction of the competent courts and authorities of the Kingdom of Saudi Arabia.
+              </p>
+            </section>
+
             {/* Contact Information */}
             <section>
-              <h2 className="text-2xl font-bold text-white mb-4">12. Contact Information</h2>
+              <h2 className="text-2xl font-bold text-white mb-4">13. Contact Information</h2>
               <p>
                 If you have any questions about these Terms of Service, please contact us at{" "}
                 <a href="mailto:support@saiflow.io" className="text-teal-400 hover:text-teal-300 underline">

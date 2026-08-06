@@ -4,6 +4,26 @@ import { z } from "zod";
  * Validation schemas for API requests
  */
 
+/**
+ * Only allow files/thumbnails/logos hosted on our storage provider.
+ * Blocks javascript:/data: URLs and arbitrary external hosts from being
+ * stored and later rendered or redirected to.
+ */
+export function isAllowedAssetUrl(url: unknown): url is string {
+  if (typeof url !== "string") return false;
+  try {
+    const u = new URL(url);
+    return (
+      u.protocol === "https:" &&
+      (u.hostname === "utfs.io" ||
+        u.hostname.endsWith(".ufs.sh") ||
+        u.hostname.endsWith(".uploadthing.com"))
+    );
+  } catch {
+    return false;
+  }
+}
+
 // Auth schemas
 export const signupSchema = z.object({
   name: z

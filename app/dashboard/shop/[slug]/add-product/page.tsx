@@ -21,6 +21,8 @@ export default function AddProductPage() {
   const [error, setError] = useState<string | null>(null);
   const [shopId, setShopId] = useState<string | null>(null);
   const [shopName, setShopName] = useState<string>("");
+  // Trust & Safety: seller must certify ownership/legality before every upload
+  const [certified, setCertified] = useState(false);
 
   const categories = [
     { value: "", label: t("dashboard.product.categorySelectOption") },
@@ -80,6 +82,7 @@ export default function AddProductPage() {
           shopId,
           fileUrl,
           thumbnailUrl,
+          certified,
         }),
       });
 
@@ -369,6 +372,30 @@ export default function AddProductPage() {
                 )}
               </div>
 
+              {/* Seller certification — required before every upload */}
+              <div className="p-4 bg-[#111] border border-white/10 rounded-xl">
+                <label className="flex items-start gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={certified}
+                    onChange={(e) => setCertified(e.target.checked)}
+                    required
+                    className="mt-1 h-4 w-4 rounded border-gray-600 bg-[#0a0a0a] text-teal-500 focus:ring-teal-500"
+                  />
+                  <span className="text-sm text-gray-300 leading-relaxed">
+                    {t("moderation.certLabel")}{" "}
+                    <a
+                      href="/content-policy"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-teal-400 hover:text-teal-300 underline"
+                    >
+                      {t("moderation.certPolicyLink")}
+                    </a>
+                  </span>
+                </label>
+              </div>
+
               {/* Error Message */}
               {error && (
                 <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-xl">
@@ -379,7 +406,7 @@ export default function AddProductPage() {
               {/* Submit Button */}
               <button
                 type="submit"
-                disabled={loading || !shopId}
+                disabled={loading || !shopId || !certified}
                 className="w-full py-3 px-4 bg-teal-500 hover:bg-teal-400 disabled:bg-teal-500/50 disabled:cursor-not-allowed text-white font-semibold rounded-xl transition-colors duration-200 flex items-center justify-center gap-2"
               >
                 {loading ? (

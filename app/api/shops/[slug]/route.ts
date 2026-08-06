@@ -1,7 +1,10 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { authOptions } from "../../auth/authOptions";
+import { slugify } from "@/lib/slug";
+import { isAllowedAssetUrl } from "@/lib/validations";
 
 export async function GET(
   req: Request,
@@ -84,6 +87,26 @@ export async function PUT(
     const { slug } = await params;
     const { name, description, logo, coverImage } = await req.json();
 
+    // Bounds + asset-URL validation (same rules as shop/product creation)
+    if (name !== undefined && (typeof name !== "string" || name.trim().length < 2 || name.length > 100)) {
+      return NextResponse.json(
+        { error: "Shop name must be between 2 and 100 characters" },
+        { status: 400 }
+      );
+    }
+    if (description !== undefined && description !== null && (typeof description !== "string" || description.length > 1000)) {
+      return NextResponse.json(
+        { error: "Description must be less than 1,000 characters" },
+        { status: 400 }
+      );
+    }
+    if (logo && !isAllowedAssetUrl(logo)) {
+      return NextResponse.json({ error: "Invalid logo URL" }, { status: 400 });
+    }
+    if (coverImage && !isAllowedAssetUrl(coverImage)) {
+      return NextResponse.json({ error: "Invalid cover image URL" }, { status: 400 });
+    }
+
     // Get the shop and verify ownership
     const shop = await prisma.shop.findUnique({
       where: { slug },
@@ -119,13 +142,10 @@ export async function PUT(
       );
     }
 
-    // Create new slug if name changed
+    // Create new slug if name changed (falls back to a random handle for non-Latin names)
     let newSlug = shop.slug;
     if (name && name !== shop.name) {
-      newSlug = name
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, "-")
-        .replace(/(^-|-$)/g, "");
+      newSlug = slugify(name, "shop");
     }
 
     // Update the shop
@@ -142,6 +162,12 @@ export async function PUT(
 
     return NextResponse.json(updatedShop);
   } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+      return NextResponse.json(
+        { error: "A shop with this name already exists" },
+        { status: 400 }
+      );
+    }
     console.error("Error updating shop:", error);
     return NextResponse.json(
       { error: "Something went wrong" },

@@ -59,7 +59,7 @@ export default function CreateShopPage() {
       }
 
       router.push(`/dashboard/shop/${data.slug}`);
-    } catch (err) {
+    } catch {
       setError(t('shop.somethingWrong'));
     } finally {
       setLoading(false);

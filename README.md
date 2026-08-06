@@ -5,13 +5,12 @@ A modern digital products marketplace built with Next.js, inspired by Gumroad. S
 ![Saiflow](https://img.shields.io/badge/Next.js-16-black?style=flat-square&logo=next.js)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5-blue?style=flat-square&logo=typescript)
 ![Prisma](https://img.shields.io/badge/Prisma-6-2D3748?style=flat-square&logo=prisma)
-![Stripe](https://img.shields.io/badge/Stripe-Payments-635BFF?style=flat-square&logo=stripe)
 
 ## Features
 
 - 🏪 **Multi-shop Support** - Create and manage multiple shops
 - 📦 **Digital Products** - Upload and sell digital files (PDF, ZIP, EPUB, etc.)
-- 💳 **Stripe Payments** - Secure checkout with Stripe
+- 💳 **Payments** - Pre-launch (checkout gated off); Saudi payment provider integration planned. Dormant Stripe code retained behind optional env vars.
 - 📊 **Sales Dashboard** - Track revenue and orders
 - 🎨 **Modern Dark UI** - Beautiful dark theme with teal accents
 - 📱 **Responsive Design** - Works on all devices
@@ -25,7 +24,7 @@ A modern digital products marketplace built with Next.js, inspired by Gumroad. S
 - **Database**: PostgreSQL (Neon)
 - **ORM**: Prisma
 - **Authentication**: NextAuth.js
-- **Payments**: Stripe
+- **Payments**: Pre-launch — dormant Stripe integration (optional env vars); Moyasar planned for production
 - **File Upload**: UploadThing
 - **Styling**: Tailwind CSS
 
@@ -35,7 +34,7 @@ A modern digital products marketplace built with Next.js, inspired by Gumroad. S
 
 - Node.js 18+ 
 - PostgreSQL database (we recommend [Neon](https://neon.tech))
-- Stripe account
+- Stripe account (optional — payments are disabled in pre-launch)
 - UploadThing account
 
 ### Installation
@@ -154,8 +153,8 @@ saiflow/
 | `DATABASE_URL` | PostgreSQL connection string | Yes |
 | `NEXTAUTH_URL` | Your app URL (http://localhost:3000 for dev) | Yes |
 | `NEXTAUTH_SECRET` | Secret for NextAuth.js sessions | Yes |
-| `STRIPE_SECRET_KEY` | Stripe secret key (sk_test_... or sk_live_...) | Yes |
-| `STRIPE_WEBHOOK_SECRET` | Stripe webhook signing secret | Yes |
+| `STRIPE_SECRET_KEY` | Stripe secret key (dormant integration) | No |
+| `STRIPE_WEBHOOK_SECRET` | Stripe webhook signing secret (dormant) | No |
 | `UPLOADTHING_TOKEN` | UploadThing API token | Yes |
 
 ## Deployment

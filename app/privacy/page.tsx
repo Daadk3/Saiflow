@@ -8,7 +8,7 @@ export default function PrivacyPage() {
             Privacy Policy
           </h1>
           <p className="text-gray-400">
-            Last updated: December 2024
+            Last updated: July 2026
           </p>
         </div>
       </section>
@@ -21,7 +21,7 @@ export default function PrivacyPage() {
             {/* Introduction */}
             <section>
               <p>
-                At Saiflow, we take your privacy seriously. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our digital products marketplace.
+                At Saiflow, we take your privacy seriously. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our digital products marketplace. Saiflow is operated from the Kingdom of Saudi Arabia and processes personal data in accordance with the Saudi Personal Data Protection Law (PDPL).
               </p>
             </section>
 
@@ -34,9 +34,9 @@ export default function PrivacyPage() {
               <ul className="list-disc pl-6 space-y-2 mb-3">
                 <li><strong>Account Information:</strong> Name, email address, and password when you create an account</li>
                 <li><strong>Profile Information:</strong> Optional profile details, shop information, and product listings</li>
-                <li><strong>Payment Information:</strong> Payment details are processed by third-party payment processors (Stripe). We do not store your full credit card information.</li>
+                <li><strong>Payment Information:</strong> Payment details are processed by licensed third-party payment service providers. We never receive or store your full card details.</li>
                 <li><strong>Transaction Information:</strong> Purchase history, product downloads, and sales data</li>
-                <li><strong>Communication Data:</strong> Messages you send to us or other users through the platform</li>
+                <li><strong>Communication Data:</strong> Messages you send to our support team</li>
               </ul>
               <p className="mb-3">
                 We also automatically collect certain information:
@@ -80,10 +80,14 @@ export default function PrivacyPage() {
                 We use third-party services that may collect information about you:
               </p>
               <ul className="list-disc pl-6 space-y-2 mb-3">
-                <li><strong>Payment Processors (Stripe):</strong> We use Stripe to process payments. Stripe&apos;s use of your personal information is governed by their privacy policy. We do not store your full payment card details.</li>
-                <li><strong>File Hosting (UploadThing):</strong> We use UploadThing to host and deliver digital product files. UploadThing&apos;s use of your information is governed by their privacy policy.</li>
-                <li><strong>Analytics:</strong> We may use analytics services to understand how users interact with our Service.</li>
+                <li><strong>Payment Processing:</strong> Payments are handled by licensed payment service providers. Their use of your personal information is governed by their own privacy policies. We never store your full card details.</li>
+                <li><strong>Hosting &amp; Database (Vercel, Neon):</strong> Our application and database are hosted on infrastructure located in the United States.</li>
+                <li><strong>File Hosting (UploadThing):</strong> Digital product files and images are hosted and delivered by UploadThing (United States).</li>
+                <li><strong>Transactional Email (Resend):</strong> Purchase receipts and account emails are sent via Resend (United States).</li>
               </ul>
+              <p className="mb-3">
+                <strong className="text-white">Cross-border transfers:</strong> Because these providers operate outside the Kingdom of Saudi Arabia, some personal data (such as your email address and order details) is transferred to and stored in the United States. We limit such transfers to the minimum data necessary to deliver the Service, and we apply appropriate technical safeguards in line with the PDPL&apos;s data transfer provisions.
+              </p>
               <p>
                 These third parties have their own privacy policies. We encourage you to review them.
               </p>
@@ -101,7 +105,7 @@ export default function PrivacyPage() {
             <section>
               <h2 className="text-2xl font-bold text-white mb-4">6. Your Rights</h2>
               <p className="mb-3">
-                Depending on your location, you may have certain rights regarding your personal information:
+                Under the Saudi Personal Data Protection Law (PDPL), and other laws that may apply to you, you have rights regarding your personal information, including:
               </p>
               <ul className="list-disc pl-6 space-y-2">
                 <li><strong>Access:</strong> Request access to your personal information</li>

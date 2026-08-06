@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import Image from "next/image";
 import { useLocale, useTranslations } from "next-intl";
 import { formatPrice } from "@/lib/formatPrice";
 import { formatDate } from "@/lib/formatDate";

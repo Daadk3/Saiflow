@@ -3,10 +3,17 @@ import Stripe from "stripe";
 import { prisma } from "@/lib/prisma";
 import { sendPurchaseEmail } from "@/lib/email";
 
-// Initialize Stripe with API version
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: "2025-11-17.clover",
-});
+// Lazy init: Stripe env vars are optional in pre-launch, so a module-level
+// `new Stripe(...)` would crash builds/deploys that omit them.
+let _stripe: Stripe | null = null;
+function getStripe(): Stripe {
+  if (!_stripe) {
+    _stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+      apiVersion: "2025-11-17.clover",
+    });
+  }
+  return _stripe;
+}
 
 // Webhook secret for signature verification
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
@@ -59,7 +66,7 @@ export async function POST(req: Request) {
   // Verify the webhook signature
   let event: Stripe.Event;
   try {
-    event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
+    event = getStripe().webhooks.constructEvent(body, signature, webhookSecret);
   } catch (err) {
     const errorMessage = err instanceof Error ? err.message : "Unknown error";
     console.error(`[Stripe Webhook] Signature verification failed: ${errorMessage}`);
@@ -174,14 +181,8 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
     },
   });
 
-  console.log(`[Stripe Webhook] Order created successfully:`, {
-    orderId: order.id,
-    productName: product.name,
-    shopName: product.shop.name,
-    customerEmail,
-    price: product.price.toString(),
-    stripeSessionId: session.id,
-  });
+  // Log identifiers only — customer PII stays out of logs.
+  console.log(`[Stripe Webhook] Order created: order=${order.id} product=${product.id} session=${session.id}`);
 
   // Send purchase email
   if (customerEmail && customerEmail !== "unknown@example.com" && product) {
@@ -212,7 +213,7 @@ async function handleChargeSucceeded(charge: Stripe.Charge) {
   }
 
   // Find the checkout session associated with this payment intent
-  const sessions = await stripe.checkout.sessions.list({
+  const sessions = await getStripe().checkout.sessions.list({
     payment_intent: paymentIntentId,
     limit: 1,
   });
@@ -233,10 +234,7 @@ async function handleChargeSucceeded(charge: Stripe.Charge) {
  * Logs the failure for monitoring
  */
 async function handleAsyncPaymentFailed(session: Stripe.Checkout.Session) {
-  console.error(`[Stripe Webhook] Async payment failed for session: ${session.id}`, {
-    customerEmail: session.customer_details?.email,
-    productId: session.metadata?.productId,
-  });
+  console.error(`[Stripe Webhook] Async payment failed: session=${session.id} product=${session.metadata?.productId}`);
   
   // You could send an email notification here
   // await sendPaymentFailedEmail(session.customer_details?.email);

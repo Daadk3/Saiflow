@@ -180,18 +180,68 @@ model Product {
   fileUrl      String?
   isActive     Boolean  @default(true)
   isDigital    Boolean  @default(true)
+
+  // Trust & Safety: publication requires APPROVED status. New uploads start
+  // PENDING. Public visibility = isActive && moderationStatus == APPROVED.
+  moderationStatus ModerationStatus @default(PENDING)
+  // Timestamp of the seller's certification/legal-responsibility acceptance
+  // (required at upload; enforced by the products API).
+  certifiedAt      DateTime?
+
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  shop    Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
-  ratings Rating[]
-  orders  Order[]
+  shop             Shop              @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  ratings          Rating[]
+  orders           Order[]
+  moderationEvents ModerationEvent[]
 
   @@unique([shopId, slug])
   @@index([shopId])
   @@index([slug])
   @@index([isActive])
+  @@index([moderationStatus])
   @@index([category])
+  @@index([createdAt])
+}
+
+enum ModerationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum ModerationAction {
+  SUBMITTED
+  APPROVED
+  REJECTED
+  RESUBMITTED
+  REPORTED
+}
+
+// Append-only audit log of every moderation decision.
+// Designed so Tier 1/2 (human queue, AI pipeline) plug in with NO schema
+// changes: `actor` identifies who decided ("seller:<id>", "admin:<id>",
+// "ai:<model>"), `categories` carries detected risk categories, and
+// `confidence` carries AI confidence — both empty/null for manual actions.
+model ModerationEvent {
+  id         String           @id @default(cuid())
+  productId  String
+  action     ModerationAction
+  actor      String
+  reason     String?          @db.Text
+  // Status transition audit: state before this event (null = product creation)
+  // and after it. REPORTED events change nothing: both equal current status.
+  previousStatus ModerationStatus?
+  newStatus      ModerationStatus?
+  categories String[]         @default([])
+  confidence Float?
+  createdAt  DateTime         @default(now())
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
+  @@index([action])
   @@index([createdAt])
 }
 
