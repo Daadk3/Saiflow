@@ -3,10 +3,14 @@ import { getServerSession } from "next-auth";
 import { prisma } from "@/lib/prisma";
 import { authOptions } from "../../auth/authOptions";
 import { isAdminEmail } from "@/lib/admin";
+import { rateLimiters, getClientIp } from "@/lib/rate-limit";
 
 // GET - Pending moderation queue (admins only)
-export async function GET() {
+export async function GET(req: Request) {
   try {
+    if (!rateLimiters.api(getClientIp(req)).success) {
+      return NextResponse.json({ error: "Too many requests" }, { status: 429 });
+    }
     const session = await getServerSession(authOptions);
     if (!session?.user?.email || !isAdminEmail(session.user.email)) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });

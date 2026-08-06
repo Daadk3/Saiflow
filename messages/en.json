@@ -14,7 +14,8 @@
     "mainNav": "Main navigation",
     "toggleMenu": "Toggle navigation",
     "mobileMenu": "Mobile navigation menu",
-    "skipToMain": "Skip to main content"
+    "skipToMain": "Skip to main content",
+    "founderDashboard": "Founder Dashboard"
   },
   "hero": {
     "badge": "The Arabic-language creator marketplace — finally",
@@ -615,5 +616,106 @@
     "approvedBadge": "Approved",
     "rejectedBadge": "Rejected",
     "pendingNotice": "New products are reviewed before they appear publicly."
+  },
+  "admin": {
+    "title": "Founder Dashboard",
+    "subtitle": "What needs your attention today.",
+    "mission": {
+      "eyebrow": "Today's mission",
+      "missingFile": "Fix a product with a missing file.",
+      "review": "Review {count} products.",
+      "pending": "Approve {count} products waiting in the queue.",
+      "payments": "Enable payments.",
+      "calm": "No urgent work today.",
+      "cta": "Start",
+      "ctaCalm": "Focus on growing Saiflow"
+    },
+    "attention": {
+      "eyebrow": "Needs attention",
+      "missingFile": "Listed for sale with no downloadable file — the buyer receives nothing.",
+      "view": "View product"
+    },
+    "review": {
+      "eyebrow": "Manual review",
+      "explain": "{count} live products have not been reviewed by a human.",
+      "tooltip": "Automatically approved during moderation rollout. Has not yet been reviewed by a human.",
+      "cta": "Start review"
+    },
+    "pulse": {
+      "eyebrow": "Pulse",
+      "quiet": "No new activity today.",
+      "users": "+{count} users",
+      "products": "+{count} products",
+      "shops": "+{count} shops",
+      "reports": "{count} new reports"
+    },
+    "snapshot": {
+      "eyebrow": "Snapshot",
+      "users": "Users",
+      "creators": "Creators",
+      "shops": "Shops",
+      "products": "Products",
+      "pending": "Pending",
+      "approved": "Approved",
+      "rejected": "Rejected",
+      "reviewed": "Reviewed"
+    },
+    "payments": {
+      "eyebrow": "Payments",
+      "disabled": "Payments are not enabled.",
+      "revenue": "Real revenue:",
+      "liveOrders": "Live orders:",
+      "testNote": "{count} historical test orders excluded."
+    },
+    "actions": {
+      "startReview": "Start review",
+      "products": "Products",
+      "queue": "Moderation queue"
+    },
+    "firstVisit": {
+      "title": "Why do products say “Not yet reviewed”?",
+      "body": "When moderation was introduced, existing products were approved automatically so they wouldn't disappear from the marketplace. No one has reviewed them by hand yet. Reviewing a product records a permanent audit entry.",
+      "dismiss": "Got it"
+    },
+    "directory": {
+      "title": "Products",
+      "searchPlaceholder": "Search by title",
+      "search": "Search",
+      "count": "{count} products",
+      "empty": "No products match this filter.",
+      "next": "Next page",
+      "noFile": "Missing file",
+      "humanReviewed": "Human reviewed",
+      "notYetReviewed": "Not yet reviewed",
+      "review": "Review",
+      "open": "Open",
+      "approve": "Approve",
+      "reject": "Reject",
+      "cancel": "Cancel",
+      "rejectReason": "Reason for rejection (recorded in the audit log):",
+      "failed": "Could not record the decision.",
+      "filters": {
+        "needs_review": "Needs review",
+        "pending": "Pending",
+        "approved": "Approved",
+        "rejected": "Rejected",
+        "all": "All"
+      },
+      "status": {
+        "PENDING": "Pending",
+        "APPROVED": "Approved",
+        "REJECTED": "Rejected"
+      },
+      "col": {
+        "product": "Product",
+        "shop": "Shop",
+        "category": "Category",
+        "price": "Price",
+        "status": "Status",
+        "reviewSource": "Review source",
+        "reports": "Reports",
+        "created": "Created"
+      }
+    }
   }
 }

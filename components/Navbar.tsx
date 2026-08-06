@@ -87,10 +87,15 @@ export default function Navbar() {
             {session ? (
               // Logged in - show these
               <div className="flex items-center gap-4">
+                {session.user?.isAdmin && (
+                  <Link href="/dashboard/admin" className="text-teal-400 hover:text-teal-300 font-medium transition-colors">
+                    {t('founderDashboard')}
+                  </Link>
+                )}
                 <Link href="/dashboard" className={navLinkClass}>
                   {t('dashboard')}
                 </Link>
-                <button 
+                <button
                   onClick={() => signOut({ callbackUrl: '/' })}
                   className={navLinkClass}
                 >
@@ -178,6 +183,11 @@ export default function Navbar() {
             {session ? (
               // Logged in mobile menu
               <>
+                {session.user?.isAdmin && (
+                  <Link href="/dashboard/admin" className="text-teal-400 hover:text-teal-300 font-medium transition-colors" onClick={() => setMenuOpen(false)}>
+                    {t('founderDashboard')}
+                  </Link>
+                )}
                 <Link href="/dashboard" className={navLinkClass} onClick={() => setMenuOpen(false)}>
                   {t('dashboard')}
                 </Link>
