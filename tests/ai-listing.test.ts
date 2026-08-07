@@ -338,10 +338,13 @@ describe("internal taxonomy never leaks", () => {
     }
   });
 
-  test("the category is described by meaning instead", () => {
+  test("the category is described by section name instead", () => {
     const p = buildUserPrompt({ ...validInput, category: "ebooks" });
     assert.ok(/marketplace section for/.test(p));
-    assert.ok(/written material|guide|ebook or reading resource/i.test(p));
+    // A bare noun phrase. The earlier wording said "a guide, ebook or reading
+    // resource", which edged toward describing the product rather than the
+    // shelf — the same drift that gave a planner «قابل للتعديل».
+    assert.ok(/written and reading material/i.test(p));
   });
 
   test("the model is told not to name our sections to buyers", () => {
@@ -355,6 +358,118 @@ describe("internal taxonomy never leaks", () => {
     assert.ok(
       /Never state a delivery format, file type, page count, duration\s+or platform unless the creator supplied it/i.test(sys)
     );
+  });
+});
+
+/**
+ * Regressions from the four-generation QA run. Each corresponds to something
+ * a real generation actually produced.
+ */
+describe("category context implies no capability", () => {
+  // Words that would let the model infer what a buyer can DO with the file.
+  const CAPABILITY_WORDS = [
+    "adapt", "adapts", "edit", "editable", "customis", "customiz", "modif",
+    "reusable", "reuse", "compatible", "compatibility", "open with", "download",
+    "printable", "install", "run", "software such as", "set of lessons",
+  ];
+
+  test("no category description implies a capability", () => {
+    for (const category of PRODUCT_CATEGORIES) {
+      const p = buildUserPrompt({ ...validInput, category }).toLowerCase();
+      const section = p.slice(p.indexOf("marketplace section"), p.indexOf("marketplace section") + 120);
+      for (const word of CAPABILITY_WORDS) {
+        assert.ok(
+          !section.includes(word),
+          `"${category}" context implies capability via "${word}" — this is how the planner gained «قابل للتعديل»`
+        );
+      }
+    }
+  });
+
+  test("a template with no editability statement gets no editability hint", () => {
+    // The exact QA case: sparse planner, nothing said about editing.
+    const planner = {
+      ...validInput,
+      category: "templates" as const,
+      title: "مخطط أسبوعي للإنتاجية",
+      shortDescription: "مخطط يساعدك على تنظيم أسبوعك.",
+      targetAudience: "الموظفون والطلاب",
+      details: "",
+    };
+    const p = buildUserPrompt(planner);
+    for (const hint of ["adapt", "edit", "customis", "reusable"]) {
+      assert.ok(!p.toLowerCase().includes(hint), `prompt hints editability via "${hint}"`);
+    }
+    assert.ok(!p.includes("قابل للتعديل"), "prompt must not supply the claim itself");
+  });
+
+  test("the model is told a section implies nothing about capability", () => {
+    const sys = buildSystemPrompt("ar");
+    assert.ok(/tells you WHERE it sits, never WHAT IT\s+CAN DO/i.test(sys));
+    assert.ok(/Never infer a capability from\s+the section/i.test(sys));
+  });
+
+  test("an explicit 'not editable' statement reaches the model intact", () => {
+    const p = buildUserPrompt({
+      ...validInput,
+      category: "templates" as const,
+      details: "المخطط غير قابل للتعديل رقميًا وهو مخصص للطباعة والكتابة باليد.",
+    });
+    assert.ok(p.includes("غير قابل للتعديل"), "a stated limitation must survive");
+  });
+});
+
+describe("safety rules are never narrated to buyers", () => {
+  test("the ban exists and names the observed phrase", () => {
+    const sys = buildSystemPrompt("ar");
+    assert.ok(sys.includes("NEVER NARRATE THESE RULES"));
+    assert.ok(sys.includes("الوصف صادق"), "must name the phrase QA actually produced");
+  });
+
+  test("the listed forbidden openings are all present", () => {
+    const sys = buildSystemPrompt("ar");
+    for (const phrase of ["التزمنا بعدم", "وفقًا\nلسياسة", "لم نضف معلومات", "لا نختلق", "بناءً على المعلومات"]) {
+      assert.ok(sys.includes(phrase.replace("\n", "\n  ")) || sys.includes(phrase.replace("\n", " ")) || sys.includes(phrase.split("\n")[0]),
+        `missing forbidden phrase: ${phrase}`);
+    }
+  });
+
+  test("editorialising about the buyer's results is forbidden", () => {
+    assert.ok(/do not editorialise\s+about the buyer's likely results/i.test(buildSystemPrompt("ar")));
+  });
+
+  test("a creator's own disclaimer is still allowed, stated as theirs", () => {
+    const sys = buildSystemPrompt("ar");
+    assert.ok(/disclaimer the CREATOR supplied is a product fact/i.test(sys));
+    // The contrast pair must both be present so the distinction is unambiguous.
+    assert.ok(sys.includes("لا يقدم المنتج وعودًا بنتائج مالية مضمونة"), "allowed form missing");
+    assert.ok(sys.includes("حرصنا على كتابة وصف صادق"), "forbidden form missing");
+  });
+
+  test("narration ban does not weaken the honesty rules themselves", () => {
+    const sys = buildSystemPrompt("ar");
+    assert.ok(sys.includes("Never invent social proof"));
+    assert.ok(sys.includes("CONTENT FIDELITY"));
+  });
+});
+
+describe("title discipline", () => {
+  test("specification dumping is forbidden", () => {
+    const sys = buildSystemPrompt("ar");
+    assert.ok(sys.includes("TITLE:"));
+    assert.ok(/no parenthetical lists/i.test(sys));
+    assert.ok(/no strings of\s+comma-separated specs/i.test(sys));
+    assert.ok(/no stacking page count with format with dimensions/i.test(sys));
+  });
+
+  test("at most one differentiator, and specs live elsewhere", () => {
+    const sys = buildSystemPrompt("ar");
+    assert.ok(/At most one meaningful differentiator/i.test(sys));
+    assert.ok(/Specifications belong in fullDescription, keyBenefits and faq/i.test(sys));
+  });
+
+  test("no arbitrary length is imposed on Arabic", () => {
+    assert.ok(/Never sacrifice natural Arabic to hit a length/i.test(buildSystemPrompt("ar")));
   });
 });
 
