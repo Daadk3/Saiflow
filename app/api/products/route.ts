@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { authOptions } from "../auth/authOptions";
 import { slugify } from "@/lib/slug";
 import { isAllowedAssetUrl } from "@/lib/validations";
+import { isProductCategory } from "@/lib/categories";
 
 // POST - Create a new product
 export async function POST(req: Request) {
@@ -67,6 +68,12 @@ export async function POST(req: Request) {
         { error: "Invalid thumbnail URL" },
         { status: 400 }
       );
+    }
+    // Category must come from the shared taxonomy (lib/categories.ts). An
+    // unconstrained value would leave the product live but invisible to every
+    // browse filter.
+    if (category && !isProductCategory(category)) {
+      return NextResponse.json({ error: "Invalid category" }, { status: 400 });
     }
 
     // Saudi-first marketplace: only SAR is supported. Reject any
