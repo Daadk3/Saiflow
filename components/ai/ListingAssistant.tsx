@@ -3,6 +3,10 @@
 import { useState } from "react";
 import { useTranslations } from "next-intl";
 import type { ProductCategory } from "@/lib/categories";
+// The output shape has exactly one definition — the Zod contract the API
+// validates against. A hand-copied interface here could drift from it
+// silently, and the UI would be the last place anyone looked.
+import type { ListingOutput } from "@/lib/ai/schema";
 
 /**
  * AI Listing Assistant — optional, inline, human-in-the-loop.
@@ -18,19 +22,7 @@ import type { ProductCategory } from "@/lib/categories";
 
 type Lang = "ar" | "en";
 
-interface Suggestions {
-  improvedTitle: string;
-  shortSummary: string;
-  fullDescription: string;
-  keyBenefits: string[];
-  targetAudience: string;
-  faq: { question: string; answer: string }[];
-  cta: string;
-  seoTitle: string;
-  seoDescription: string;
-  suggestedCategory: ProductCategory;
-}
-
+type Suggestions = ListingOutput;
 type FieldKey = keyof Suggestions;
 
 export default function ListingAssistant({
@@ -61,6 +53,7 @@ export default function ListingAssistant({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isLive, setIsLive] = useState(true);
+  const [thinInput, setThinInput] = useState(false);
   const [drafts, setDrafts] = useState<Suggestions | null>(null);
   const [applied, setApplied] = useState<Set<string>>(new Set());
   const [copied, setCopied] = useState<string | null>(null);
@@ -104,6 +97,7 @@ export default function ListingAssistant({
       }
 
       setIsLive(data.isLive !== false);
+      setThinInput(data.inputRichness === "thin");
       setDrafts(data.suggestions);
       emit("generation_succeeded", { section: section ?? "full" });
       if (section) emit("field_regenerated", { field: section });
@@ -263,6 +257,15 @@ export default function ListingAssistant({
           {!isLive && (
             <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3">
               <p className="text-xs text-amber-300">{t("mockNotice")}</p>
+            </div>
+          )}
+
+          {/* Explains a deliberately short result. Neutral styling on purpose:
+              writing less from less is correct behaviour, not an error, and it
+              must not read as a reprimand for the creator. */}
+          {thinInput && (
+            <div className="rounded-lg border border-gray-800 bg-[#0d0d0d] p-3">
+              <p className="text-xs leading-relaxed text-gray-400">{t("thinNotice")}</p>
             </div>
           )}
 
