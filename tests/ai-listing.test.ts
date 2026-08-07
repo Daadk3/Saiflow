@@ -365,6 +365,64 @@ describe("internal taxonomy never leaks", () => {
  * Regressions from the four-generation QA run. Each corresponds to something
  * a real generation actually produced.
  */
+/**
+ * The billable-usage cap.
+ *
+ * Read as source text rather than imported: lib/ai/usage.ts pulls in Prisma,
+ * which would need a live database, and this suite is deliberately dependency
+ * and database free. These pin the properties that matter without one.
+ */
+describe("daily generation cap", () => {
+  const usageSrc = readFileSync(new URL("../lib/ai/usage.ts", import.meta.url), "utf8");
+  const constant = (name: string) => {
+    const m = usageSrc.match(new RegExp(`export const ${name} = (\\d+);`));
+    assert.ok(m, `${name} must be a plain numeric constant`);
+    return Number(m![1]);
+  };
+
+  test("the beta full-generation cap is 10", () => {
+    assert.equal(constant("DAILY_FULL_GENERATIONS"), 10);
+  });
+
+  test("section regenerations are unchanged at 10", () => {
+    assert.equal(constant("DAILY_SECTION_REGENERATIONS"), 10);
+  });
+
+  test("both caps are positive", () => {
+    // A cap of 0 would disable the feature while reporting RATE_LIMITED, which
+    // looks identical to a user who has genuinely run out.
+    for (const name of ["DAILY_FULL_GENERATIONS", "DAILY_SECTION_REGENERATIONS"]) {
+      assert.ok(constant(name) > 0, `${name} must be positive`);
+    }
+  });
+
+  test("remaining counts can never go negative", () => {
+    assert.ok(/fullRemaining: Math\.max\(0,/.test(usageSrc));
+    assert.ok(/sectionRemaining: Math\.max\(0,/.test(usageSrc));
+  });
+
+  test("only successful generations consume the allowance", () => {
+    // A provider outage must not spend a creator's daily quota.
+    assert.ok(/status: "SUCCEEDED"/.test(usageSrc));
+    assert.equal(usageSrc.match(/status: "SUCCEEDED"/g)?.length, 2);
+  });
+
+  test("the cap is counted from the database, not memory", () => {
+    // The in-memory limiter resets per cold start, which is fine for shaping
+    // traffic and unacceptable for anything billable.
+    assert.ok(/prisma\.aiGeneration\.count/.test(usageSrc));
+    assert.ok(!/rateLimiters/.test(usageSrc));
+  });
+
+  test("the route checks the cap before calling the provider", () => {
+    const route = readFileSync(new URL("../app/api/ai/listing/route.ts", import.meta.url), "utf8");
+    const cap = route.indexOf("canGenerate");
+    const call = route.indexOf("generateJson(");
+    assert.ok(cap > 0 && call > 0, "both steps must exist");
+    assert.ok(cap < call, "the cap must be enforced before any billable call");
+  });
+});
+
 describe("category context implies no capability", () => {
   // Words that would let the model infer what a buyer can DO with the file.
   const CAPABILITY_WORDS = [

@@ -9,8 +9,21 @@
 
 import { prisma } from "@/lib/prisma";
 
-/** Private-beta caps, per user per rolling 24 hours. */
-export const DAILY_FULL_GENERATIONS = 5;
+/**
+ * Private-beta caps, per user per rolling 24 hours.
+ *
+ * This is a spend control, not a security boundary — nothing about
+ * authorisation or safety depends on the number. At roughly $0.002 per
+ * generation, ten per user per day is about two US cents.
+ *
+ * Raised from 5 to 10 for the beta/QA phase: five was too tight to run a
+ * five-test evaluation suite in one sitting, because the window is rolling
+ * rather than calendar-based, so a morning baseline run still blocks an
+ * evening batch. Revisit before opening the assistant beyond the beta
+ * allowlist, where the relevant number is cost per active seller rather than
+ * cost per tester.
+ */
+export const DAILY_FULL_GENERATIONS = 10;
 export const DAILY_SECTION_REGENERATIONS = 10;
 
 export interface UsageState {
