@@ -7,6 +7,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useTranslations } from "next-intl";
 import { UploadButton } from "@/lib/uploadthing";
+import { PRODUCT_CATEGORIES, CATEGORY_LABEL_KEYS } from "@/lib/categories";
 
 interface Product {
   id: string;
@@ -39,14 +40,13 @@ export default function EditProductPage() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
+  // Built from the shared taxonomy — see lib/categories.ts
   const categories = [
     { value: "", label: t("dashboard.product.categorySelectOption") },
-    { value: "ebooks", label: t("categories.ebooksGuides") },
-    { value: "courses", label: t("categories.onlineCourses") },
-    { value: "templates", label: t("categories.templatesThemes") },
-    { value: "music", label: t("categories.musicAudio") },
-    { value: "art", label: t("categories.artGraphics") },
-    { value: "software", label: t("categories.softwareApps") },
+    ...PRODUCT_CATEGORIES.map((c) => ({
+      value: c as string,
+      label: t(CATEGORY_LABEL_KEYS[c]),
+    })),
   ];
 
   const router = useRouter();

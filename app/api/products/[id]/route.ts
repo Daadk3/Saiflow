@@ -4,6 +4,7 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { authOptions } from "../../auth/authOptions";
 import { slugify } from "@/lib/slug";
+import { isProductCategory } from "@/lib/categories";
 
 // GET - Get a single product by ID (seller dashboard only)
 // SECURITY: this returns the full row including fileUrl (the paid asset),
@@ -88,6 +89,10 @@ export async function PUT(
 
     const { id } = await params;
     const { name, description, price, category, fileUrl, thumbnailUrl } = await req.json();
+
+    if (category && !isProductCategory(category)) {
+      return NextResponse.json({ error: "Invalid category" }, { status: 400 });
+    }
 
     // Get the user
     const user = await prisma.user.findFirst({

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { getLocale, getTranslations } from "next-intl/server";
 import { formatPrice } from "@/lib/formatPrice";
+import { CATEGORY_LABEL_KEYS, isProductCategory } from "@/lib/categories";
 
 export const dynamic = "force-dynamic";
 
@@ -23,15 +24,6 @@ interface Product {
   };
 }
 
-const CATEGORY_LABEL_KEYS: Record<string, string> = {
-  ebooks: "categories.ebooksGuides",
-  courses: "categories.onlineCourses",
-  templates: "categories.templatesThemes",
-  music: "categories.musicAudio",
-  art: "categories.artGraphics",
-  software: "categories.softwareApps",
-};
-
 type SortOption = "newest" | "popular" | "price-asc" | "price-desc";
 
 async function getProducts(options: {
@@ -52,7 +44,7 @@ async function getProducts(options: {
     moderationStatus: "APPROVED",
   };
 
-  if (category && category in CATEGORY_LABEL_KEYS) {
+  if (isProductCategory(category)) {
     where.category = category;
   }
 
@@ -137,7 +129,7 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
             <div>
               <p className="text-sm font-semibold text-teal-400 uppercase tracking-wide">{t('storefront.browse.eyebrow')}</p>
               <h1 className="text-3xl font-bold text-white mt-2">
-                {category && CATEGORY_LABEL_KEYS[category] ? t(CATEGORY_LABEL_KEYS[category]) : t('products.allProducts')}
+                {isProductCategory(category) ? t(CATEGORY_LABEL_KEYS[category]) : t('products.allProducts')}
               </h1>
               <p className="text-gray-400 mt-2">{t('storefront.shopView.showingProductsCount', { count: productCount })}</p>
             </div>
@@ -378,9 +370,9 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
                         {product.description && (
                           <p className="mt-2 text-gray-400 text-sm line-clamp-2"><bdi>{product.description}</bdi></p>
                         )}
-                        {product.category && (
+                        {isProductCategory(product.category) && (
                           <span className="inline-block px-3 py-1 bg-gray-800 text-gray-300 text-xs font-medium rounded-full mt-3">
-                            {CATEGORY_LABEL_KEYS[product.category] ? t(CATEGORY_LABEL_KEYS[product.category]) : t('products.imagePlaceholder')}
+                            {t(CATEGORY_LABEL_KEYS[product.category])}
                           </span>
                         )}
                         <div className="text-teal-400 font-bold text-xl mt-3">

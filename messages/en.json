@@ -717,5 +717,64 @@
         "created": "Created"
       }
     }
+  },
+  "ai": {
+    "open": "Improve with AI",
+    "title": "Improve with AI",
+    "optional": "Optional. You can create your product without it — nothing here is saved or published automatically.",
+    "close": "Close",
+    "language": "Generation language",
+    "lang": {
+      "ar": "العربية",
+      "en": "English"
+    },
+    "audience": "Who is this for?",
+    "audiencePlaceholder": "e.g. beginners learning Arabic calligraphy",
+    "details": "Paste product details (optional)",
+    "detailsPlaceholder": "What's inside, format, length, what the buyer gets…",
+    "generate": "Generate suggestions",
+    "generating": "Generating…",
+    "needTitle": "Enter a product title first.",
+    "apply": "Apply",
+    "reapply": "Apply again",
+    "regenerate": "Regenerate",
+    "regenerateAll": "Regenerate all",
+    "rejectAll": "Reject all",
+    "copy": "Copy",
+    "copied": "Copied ✓",
+    "appliedBadge": "Applied to listing ✓",
+    "suggestionOnly": "Suggestions only — not saved with the product. Copy anything you want to keep.",
+    "replaceConfirm": "This will replace text you already wrote. Continue?",
+    "noAutoSave": "Nothing is saved until you submit the form yourself. Review every suggestion before using it.",
+    "mockNotice": "No AI provider is configured, so this is placeholder text — not real assistance.",
+    "privacy": {
+      "heading": "Before you generate",
+      "external": "Your text is sent to an external AI provider for processing.",
+      "noPersonal": "Do not paste personal, confidential or customer information.",
+      "noFiles": "Your uploaded product file is never sent.",
+      "review": "Review and edit every suggestion — AI can be wrong."
+    },
+    "fields": {
+      "improvedTitle": "Improved title",
+      "shortSummary": "Short summary",
+      "fullDescription": "Full description",
+      "keyBenefits": "Key benefits",
+      "targetAudience": "Target audience",
+      "faq": "FAQ",
+      "cta": "Call to action",
+      "seoTitle": "SEO title",
+      "seoDescription": "SEO description",
+      "suggestedCategory": "Suggested category"
+    },
+    "errors": {
+      "UNAUTHENTICATED": "Please sign in again.",
+      "FORBIDDEN": "You don't have access to this shop.",
+      "FEATURE_DISABLED": "The AI assistant isn't enabled for your account yet.",
+      "INVALID_INPUT": "Check your inputs and try again.",
+      "RATE_LIMITED": "You've reached today's generation limit. Try again tomorrow.",
+      "PROVIDER_TIMEOUT": "The AI provider took too long. Try again.",
+      "PROVIDER_ERROR": "Couldn't generate suggestions right now. Try again.",
+      "INVALID_OUTPUT": "The response wasn't usable. Try generating again."
+    }
   }
 }
