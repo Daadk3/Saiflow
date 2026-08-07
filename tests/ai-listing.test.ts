@@ -12,6 +12,7 @@
 
 import { test, describe } from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 
 import {
   listingInputSchema,
@@ -194,6 +195,65 @@ describe("feature flag", () => {
     process.env.AI_LISTING_ASSISTANT_ENABLED = "true";
     assert.equal(isAiAssistantEnabled(null), false);
     reset();
+  });
+});
+
+/**
+ * The feature gate must have exactly one definition.
+ *
+ * The assistant is gated in two places — the API refuses the request, and the
+ * UI declines to offer it. Those must never be able to disagree, which means
+ * the environment variable may be read in exactly one file. A second reader
+ * (a NEXT_PUBLIC_ mirror, an inline process.env check in a component) is how
+ * a feature ends up visible while the server refuses it.
+ */
+describe("feature gate has a single source of truth", () => {
+  const read = (p: string) => readFileSync(new URL(p, import.meta.url), "utf8");
+
+  test("only lib/ai/flag.ts reads the environment variable", () => {
+    const offenders = [
+      "../app/api/auth/authOptions.ts",
+      "../app/api/ai/listing/route.ts",
+      "../app/dashboard/shop/[slug]/add-product/page.tsx",
+      "../components/ai/ListingAssistant.tsx",
+    ].filter((p) => read(p).includes("AI_LISTING_ASSISTANT_ENABLED"));
+
+    assert.deepEqual(
+      offenders,
+      [],
+      `these must call isAiAssistantEnabled instead of reading the variable: ${offenders.join(", ")}`
+    );
+  });
+
+  test("both gates call the same function", () => {
+    for (const p of ["../app/api/auth/authOptions.ts", "../app/api/ai/listing/route.ts"]) {
+      assert.ok(
+        read(p).includes("isAiAssistantEnabled"),
+        `${p} must derive the gate from lib/ai/flag`
+      );
+    }
+  });
+
+  test("no NEXT_PUBLIC mirror of the flag exists", () => {
+    for (const p of [
+      "../app/dashboard/shop/[slug]/add-product/page.tsx",
+      "../components/ai/ListingAssistant.tsx",
+      "../lib/ai/flag.ts",
+    ]) {
+      assert.ok(!read(p).includes("NEXT_PUBLIC"), `${p} must not expose a client-side flag`);
+    }
+  });
+
+  test("the assistant renders only behind the session gate", () => {
+    const page = read("../app/dashboard/shop/[slug]/add-product/page.tsx");
+    const idx = page.indexOf("<ListingAssistant");
+    assert.ok(idx > 0, "assistant should still be mounted on the page");
+    // The guard must appear immediately before the element, not merely
+    // somewhere in the file.
+    assert.ok(
+      page.slice(0, idx).trimEnd().endsWith("{aiAssistantEnabled && ("),
+      "ListingAssistant must be wrapped in the session-flag guard"
+    );
   });
 });
 

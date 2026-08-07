@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import bcrypt from "bcrypt";
 import { rateLimiters } from "@/lib/rate-limit";
 import { isAdminEmail } from "@/lib/admin";
+import { isAiAssistantEnabled } from "@/lib/ai/flag";
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -120,6 +121,15 @@ export const authOptions: NextAuthOptions = {
         (session.user as { isAdmin?: boolean }).isAdmin = isAdminEmail(
           session.user.email
         );
+        // Same contract for the AI assistant: this decides only whether the
+        // creator is offered the option. /api/ai/listing calls the identical
+        // isAiAssistantEnabled on every request, so this cannot grant access —
+        // it exists so that a disabled feature is absent rather than visibly
+        // broken. Computed here rather than in the jwt callback so that
+        // changing the environment variable takes effect without forcing
+        // everyone to sign in again.
+        (session.user as { aiAssistantEnabled?: boolean }).aiAssistantEnabled =
+          isAiAssistantEnabled(session.user.email);
       }
       return session;
     },

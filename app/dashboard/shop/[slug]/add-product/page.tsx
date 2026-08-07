@@ -38,7 +38,11 @@ export default function AddProductPage() {
   const router = useRouter();
   const params = useParams();
   const slug = params.slug as string;
-  const { status } = useSession();
+  const { data: session, status } = useSession();
+  // Server-computed in the NextAuth session callback from the same flag the
+  // API enforces. When it is false the assistant is not rendered at all, so a
+  // disabled feature is invisible rather than a button that always errors.
+  const aiAssistantEnabled = session?.user?.aiAssistantEnabled === true;
 
   useEffect(() => {
     if (status === "unauthenticated") {
@@ -375,25 +379,28 @@ export default function AddProductPage() {
 
               {/* Optional AI assistant. Nothing here saves or publishes: it
                   hands values back to this form and the creator submits below
-                  through the ordinary workflow. */}
-              <ListingAssistant
-                shopId={shopId}
-                title={name}
-                category={category}
-                currentDescription={description}
-                onApplyTitle={setName}
-                onApplyDescription={setDescription}
-                onApplyCategory={(c: ProductCategory) => setCategory(c)}
-                onEvent={(evt, detail) => {
-                  // Privacy-respecting analytics: event name and field only,
-                  // never creator text.
-                  if (typeof window !== "undefined") {
-                    window.dispatchEvent(
-                      new CustomEvent("saiflow:ai", { detail: { evt, ...detail } })
-                    );
-                  }
-                }}
-              />
+                  through the ordinary workflow. Rendered only when the server
+                  says the feature is available for this account. */}
+              {aiAssistantEnabled && (
+                <ListingAssistant
+                  shopId={shopId}
+                  title={name}
+                  category={category}
+                  currentDescription={description}
+                  onApplyTitle={setName}
+                  onApplyDescription={setDescription}
+                  onApplyCategory={(c: ProductCategory) => setCategory(c)}
+                  onEvent={(evt, detail) => {
+                    // Privacy-respecting analytics: event name and field only,
+                    // never creator text.
+                    if (typeof window !== "undefined") {
+                      window.dispatchEvent(
+                        new CustomEvent("saiflow:ai", { detail: { evt, ...detail } })
+                      );
+                    }
+                  }}
+                />
+              )}
 
               {/* Seller certification — required before every upload */}
               <div className="p-4 bg-[#111] border border-white/10 rounded-xl">
