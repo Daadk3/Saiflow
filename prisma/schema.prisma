@@ -279,3 +279,42 @@ model Rating {
   @@index([toUserId])
   @@index([productId])
 }
+/// AI Listing Assistant — one row per generation attempt.
+/// Powers durable per-user usage limits, auditability and quality measurement.
+/// Deliberately NOT ModerationEvent: moderation decisions and AI generations
+/// are different kinds of fact and must not share an audit trail.
+/// Stores an input HASH, never the creator's raw text.
+model AiGeneration {
+  id            String   @id @default(cuid())
+  userId        String
+  shopId        String
+  productId     String?
+  provider      String
+  model         String
+  promptVersion String
+  language      String
+  status        AiGenerationStatus
+  /// Which single section was regenerated, null for a full generation.
+  section       String?
+  /// SHA-256 of the creator input — enough to detect repeats, never the text.
+  inputHash     String
+  /// Validated structured suggestions. Never published; the creator applies
+  /// fields manually through the ordinary form.
+  output        Json?
+  inputTokens   Int?
+  outputTokens  Int?
+  latencyMs     Int?
+  errorCode     String?
+  /// Compact field-level analytics: { accepted: [], edited: [], regenerated: [] }
+  fieldEvents   Json?
+  createdAt     DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@index([shopId])
+  @@index([status])
+}
+
+enum AiGenerationStatus {
+  SUCCEEDED
+  FAILED
+}
