@@ -69,6 +69,101 @@ export const listingOutputSchema = z.object({
 
 export type ListingOutput = z.infer<typeof listingOutputSchema>;
 
+/**
+ * The same output contract expressed as JSON Schema, for providers that
+ * support schema-constrained decoding (OpenAI Structured Outputs).
+ *
+ * Kept beside the Zod schema on purpose: the two must describe the same
+ * object, and a reviewer should be able to check that in one screen.
+ *
+ * Two deliberate differences from the Zod schema:
+ *
+ * 1. No length or item-count keywords. OpenAI's strict mode rejects
+ *    `minLength`, `maxLength`, `minItems` and `maxItems` with a 400, and would
+ *    not enforce them even if accepted — strict mode constrains shape, not
+ *    content. The limits therefore live in the descriptions, where the model
+ *    can act on them, and stay enforced by Zod, which is the only layer that
+ *    actually guarantees them.
+ * 2. Every property appears in `required` and every object sets
+ *    `additionalProperties: false`, both of which strict mode demands.
+ *
+ * Structured Outputs removes malformed-JSON and missing-field failures. It
+ * does not remove the need to validate: Zod still rejects over-long fields and
+ * remains the last word on what may reach a creator.
+ */
+export const LISTING_JSON_SCHEMA = {
+  type: "object",
+  additionalProperties: false,
+  properties: {
+    improvedTitle: {
+      type: "string",
+      description: "Improved product title, 2-200 characters.",
+    },
+    shortSummary: {
+      type: "string",
+      description: "One-sentence summary, 10-300 characters.",
+    },
+    fullDescription: {
+      type: "string",
+      description:
+        "Full listing description in plain text, 30-4000 characters. No Markdown, no HTML.",
+    },
+    keyBenefits: {
+      type: "array",
+      description: "Between 3 and 6 concrete benefits, each 3-200 characters.",
+      items: { type: "string" },
+    },
+    targetAudience: {
+      type: "string",
+      description: "Who the product is for, 3-300 characters.",
+    },
+    faq: {
+      type: "array",
+      description: "Between 2 and 5 question-and-answer pairs.",
+      items: {
+        type: "object",
+        additionalProperties: false,
+        properties: {
+          question: { type: "string", description: "3-200 characters." },
+          answer: { type: "string", description: "3-600 characters." },
+        },
+        required: ["question", "answer"],
+      },
+    },
+    cta: {
+      type: "string",
+      description: "Short call to action, 2-120 characters.",
+    },
+    seoTitle: {
+      type: "string",
+      description:
+        "Search-engine title. Must not exceed 60 characters — count them.",
+    },
+    seoDescription: {
+      type: "string",
+      description:
+        "Search-engine description. Must not exceed 160 characters — count them.",
+    },
+    suggestedCategory: {
+      type: "string",
+      description: "Must be one of the approved marketplace categories.",
+      enum: [...PRODUCT_CATEGORIES],
+    },
+  },
+  required: [
+    "improvedTitle",
+    "shortSummary",
+    "fullDescription",
+    "keyBenefits",
+    "targetAudience",
+    "faq",
+    "cta",
+    "seoTitle",
+    "seoDescription",
+    "suggestedCategory",
+  ],
+} as const;
+
 /** Machine-readable error codes. Provider errors are never passed through. */
 export const AI_ERROR_CODES = [
   "UNAUTHENTICATED",

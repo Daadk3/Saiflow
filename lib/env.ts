@@ -23,6 +23,9 @@ export const env = createEnv({
     AI_PROVIDER: z.enum(["anthropic", "openai", "mock"]).optional(),
     AI_MODEL: z.string().optional(),
     AI_API_KEY: z.string().optional(),
+    // Provider-conventional key names, accepted in place of AI_API_KEY.
+    OPENAI_API_KEY: z.string().optional(),
+    ANTHROPIC_API_KEY: z.string().optional(),
     NODE_ENV: z
       .enum(["development", "test", "production"])
       .default("development"),
@@ -62,6 +65,8 @@ export const env = createEnv({
     AI_PROVIDER: process.env.AI_PROVIDER,
     AI_MODEL: process.env.AI_MODEL,
     AI_API_KEY: process.env.AI_API_KEY,
+    OPENAI_API_KEY: process.env.OPENAI_API_KEY,
+    ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY,
     NODE_ENV: process.env.NODE_ENV,
     PRE_LAUNCH_MODE: process.env.PRE_LAUNCH_MODE,
     NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY:

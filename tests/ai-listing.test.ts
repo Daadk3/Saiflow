@@ -13,7 +13,12 @@
 import { test, describe } from "node:test";
 import assert from "node:assert/strict";
 
-import { listingInputSchema, listingOutputSchema, MAX_DETAILS_CHARS } from "../lib/ai/schema.ts";
+import {
+  listingInputSchema,
+  listingOutputSchema,
+  LISTING_JSON_SCHEMA,
+  MAX_DETAILS_CHARS,
+} from "../lib/ai/schema.ts";
 import { buildSystemPrompt, buildUserPrompt, PROMPT_VERSION } from "../lib/ai/prompt.ts";
 import { extractJson, getProviderName, isLiveProvider } from "../lib/ai/provider.ts";
 import { isProductCategory, PRODUCT_CATEGORIES } from "../lib/categories.ts";
@@ -201,6 +206,26 @@ describe("provider", () => {
     delete process.env.AI_PROVIDER;
   });
 
+  test("accepts the provider's conventional key name", () => {
+    // An operator who sets OPENAI_API_KEY must not get a silent mock fallback.
+    delete process.env.AI_API_KEY;
+    process.env.AI_PROVIDER = "openai";
+    process.env.OPENAI_API_KEY = "test-key-not-real";
+    assert.equal(getProviderName(), "openai");
+    assert.equal(isLiveProvider(), true);
+    delete process.env.OPENAI_API_KEY;
+    delete process.env.AI_PROVIDER;
+  });
+
+  test("still accepts the generic key name", () => {
+    delete process.env.OPENAI_API_KEY;
+    process.env.AI_PROVIDER = "openai";
+    process.env.AI_API_KEY = "test-key-not-real";
+    assert.equal(getProviderName(), "openai");
+    delete process.env.AI_API_KEY;
+    delete process.env.AI_PROVIDER;
+  });
+
   test("extracts JSON from a fenced response", () => {
     assert.equal(extractJson('```json\n{"a":1}\n```'), '{"a":1}');
   });
@@ -216,5 +241,160 @@ describe("provider", () => {
     const parsed = listingOutputSchema.safeParse(JSON.parse(res.json));
     assert.equal(parsed.success, true, "mock must satisfy the same schema as a real provider");
     assert.equal(res.provider, "mock");
+  });
+});
+
+/**
+ * The OpenAI request body and structured-output schema.
+ *
+ * These exist because a body that looks reasonable can still be rejected
+ * outright by the API. Sending `max_tokens` to a GPT-5 model, or a schema
+ * carrying `maxLength`, both produce a 400 on the very first real call — a
+ * failure no amount of contract testing below this layer would reveal.
+ */
+describe("openai request contract", () => {
+  const withStubbedFetch = async (
+    respond: (body: Record<string, unknown>) => unknown,
+    run: (calls: Record<string, unknown>[]) => Promise<void>
+  ) => {
+    const calls: Record<string, unknown>[] = [];
+    const realFetch = globalThis.fetch;
+    process.env.AI_PROVIDER = "openai";
+    process.env.AI_API_KEY = "test-key-not-real";
+    process.env.AI_MODEL = "gpt-5-mini";
+
+    globalThis.fetch = (async (_url: string, init: { body: string }) => {
+      const body = JSON.parse(init.body);
+      calls.push(body);
+      return {
+        ok: true,
+        status: 200,
+        json: async () => respond(body),
+      };
+    }) as unknown as typeof fetch;
+
+    try {
+      await run(calls);
+    } finally {
+      globalThis.fetch = realFetch;
+      delete process.env.AI_PROVIDER;
+      delete process.env.AI_API_KEY;
+      delete process.env.AI_MODEL;
+    }
+  };
+
+  const okResponse = () => ({
+    choices: [
+      { finish_reason: "stop", message: { content: JSON.stringify(validOutput) } },
+    ],
+    usage: { prompt_tokens: 100, completion_tokens: 200 },
+  });
+
+  test("sends max_completion_tokens, never max_tokens", async () => {
+    await withStubbedFetch(okResponse, async (calls) => {
+      const { generateJson } = await import("../lib/ai/provider.ts");
+      await generateJson({ system: "s", user: "u" });
+      assert.equal(calls.length, 1);
+      assert.ok(calls[0].max_completion_tokens, "must set max_completion_tokens");
+      assert.equal(
+        calls[0].max_tokens,
+        undefined,
+        "max_tokens is rejected outright by GPT-5 reasoning models"
+      );
+    });
+  });
+
+  test("omits temperature, which reasoning models reject", async () => {
+    await withStubbedFetch(okResponse, async (calls) => {
+      const { generateJson } = await import("../lib/ai/provider.ts");
+      await generateJson({ system: "s", user: "u" });
+      assert.equal(calls[0].temperature, undefined);
+    });
+  });
+
+  test("requests schema-constrained structured output", async () => {
+    await withStubbedFetch(okResponse, async (calls) => {
+      const { generateJson } = await import("../lib/ai/provider.ts");
+      await generateJson({ system: "s", user: "u" });
+      const rf = calls[0].response_format as {
+        type: string;
+        json_schema: { name: string; strict: boolean };
+      };
+      assert.equal(rf.type, "json_schema");
+      assert.equal(rf.json_schema.strict, true);
+      assert.ok(rf.json_schema.name, "strict mode requires a schema name");
+    });
+  });
+
+  test("treats a safety refusal as a failed call, not malformed JSON", async () => {
+    await withStubbedFetch(
+      () => ({ choices: [{ finish_reason: "stop", message: { refusal: "I cannot help." } }] }),
+      async () => {
+        const { generateJson } = await import("../lib/ai/provider.ts");
+        await assert.rejects(() => generateJson({ system: "s", user: "u" }), /refused/);
+      }
+    );
+  });
+
+  test("names a truncated response precisely", async () => {
+    await withStubbedFetch(
+      () => ({ choices: [{ finish_reason: "length", message: { content: '{"a":' } }] }),
+      async () => {
+        const { generateJson } = await import("../lib/ai/provider.ts");
+        await assert.rejects(() => generateJson({ system: "s", user: "u" }), /truncated/);
+      }
+    );
+  });
+});
+
+describe("structured-output schema", () => {
+  test("carries no keyword that strict mode rejects", () => {
+    // OpenAI returns a 400 if the schema contains these, so a single stray
+    // keyword breaks every generation.
+    const forbidden = [
+      "minLength",
+      "maxLength",
+      "minItems",
+      "maxItems",
+      "pattern",
+      "format",
+      "minimum",
+      "maximum",
+      "uniqueItems",
+    ];
+    const serialized = JSON.stringify(LISTING_JSON_SCHEMA);
+    for (const keyword of forbidden) {
+      assert.ok(
+        !serialized.includes(`"${keyword}"`),
+        `strict mode rejects "${keyword}"`
+      );
+    }
+  });
+
+  test("describes exactly the fields Zod expects", () => {
+    // Drift between the two schemas would mean the model is constrained to a
+    // shape the validator then rejects.
+    const jsonKeys = Object.keys(LISTING_JSON_SCHEMA.properties).sort();
+    const zodKeys = Object.keys(listingOutputSchema.shape).sort();
+    assert.deepEqual(jsonKeys, zodKeys);
+  });
+
+  test("marks every property required, as strict mode demands", () => {
+    assert.deepEqual(
+      [...LISTING_JSON_SCHEMA.required].sort(),
+      Object.keys(LISTING_JSON_SCHEMA.properties).sort()
+    );
+  });
+
+  test("forbids additional properties at every level", () => {
+    assert.equal(LISTING_JSON_SCHEMA.additionalProperties, false);
+    assert.equal(LISTING_JSON_SCHEMA.properties.faq.items.additionalProperties, false);
+  });
+
+  test("constrains the category to the approved taxonomy", () => {
+    assert.deepEqual(
+      [...LISTING_JSON_SCHEMA.properties.suggestedCategory.enum],
+      [...PRODUCT_CATEGORIES]
+    );
   });
 });

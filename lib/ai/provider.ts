@@ -18,7 +18,18 @@
  * Never logs prompts, completions, secrets or personal data.
  */
 
-const TIMEOUT_MS = 20_000; // comfortably under Vercel's 30s function limit
+import { LISTING_JSON_SCHEMA } from "@/lib/ai/schema";
+
+const TIMEOUT_MS = 25_000; // under the route's 30s Vercel function limit
+
+/**
+ * Output budget. On OpenAI reasoning models (the GPT-5 family) hidden
+ * reasoning tokens are billed against this same allowance, so a budget sized
+ * only for the visible answer can be spent entirely on reasoning and return
+ * empty content with `finish_reason: "length"`. The listing itself needs
+ * roughly 1200 tokens; the rest is headroom for reasoning.
+ */
+const MAX_OUTPUT_TOKENS = 4000;
 
 export type ProviderName = "anthropic" | "openai" | "mock";
 
@@ -32,14 +43,49 @@ export interface ProviderResult {
 }
 
 export class ProviderTimeoutError extends Error {}
-export class ProviderCallError extends Error {}
+
+export class ProviderCallError extends Error {
+  /**
+   * Whether trying again could plausibly succeed. A 400 means the request
+   * itself is wrong, so repeating it verbatim only doubles the creator's wait
+   * for a guaranteed second failure.
+   */
+  readonly retryable: boolean;
+  constructor(message: string, retryable = false) {
+    super(message);
+    this.retryable = retryable;
+  }
+}
+
+/** Rate limiting and server faults are transient; everything else is not. */
+function isRetryableStatus(status: number): boolean {
+  return status === 408 || status === 429 || status >= 500;
+}
+
+/**
+ * Resolves the API key, accepting either the provider's conventional variable
+ * name or the generic one.
+ *
+ * Reading only `AI_API_KEY` would mean an operator who sets `OPENAI_API_KEY` —
+ * the name OpenAI's own documentation and tooling use — gets a silent fallback
+ * to the mock: the flag is on, the key is present, and the assistant still
+ * returns placeholder text with nothing explaining why. Accepting both names
+ * removes a configuration trap rather than documenting it.
+ */
+function getApiKey(provider: Exclude<ProviderName, "mock">): string | undefined {
+  const specific =
+    provider === "openai"
+      ? process.env.OPENAI_API_KEY
+      : process.env.ANTHROPIC_API_KEY;
+  return specific || process.env.AI_API_KEY || undefined;
+}
 
 export function getProviderName(): ProviderName {
   const raw = (process.env.AI_PROVIDER ?? "").toLowerCase();
   if (raw === "anthropic" || raw === "openai") {
     // A provider is only usable with a key; otherwise fall back to the mock
     // rather than failing at request time.
-    return process.env.AI_API_KEY ? raw : "mock";
+    return getApiKey(raw) ? raw : "mock";
   }
   return "mock";
 }
@@ -72,11 +118,13 @@ export async function generateJson(opts: {
       return await callProvider(provider, opts);
     } catch (err) {
       if (err instanceof ProviderTimeoutError) throw err; // never retry a timeout
+      // A rejected request will be rejected identically the second time.
+      if (err instanceof ProviderCallError && !err.retryable) throw err;
       lastError = err;
     }
   }
   throw new ProviderCallError(
-    lastError instanceof Error ? lastError.name : "provider_failed"
+    lastError instanceof Error ? lastError.message : "provider_failed"
   );
 }
 
@@ -84,7 +132,7 @@ async function callProvider(
   provider: Exclude<ProviderName, "mock">,
   opts: { system: string; user: string }
 ): Promise<ProviderResult> {
-  const key = process.env.AI_API_KEY;
+  const key = getApiKey(provider);
   if (!key) throw new ProviderCallError("missing_key");
   const model = getModelName();
 
@@ -118,8 +166,26 @@ async function callProvider(
             },
             body: JSON.stringify({
               model,
-              max_tokens: 2000,
-              response_format: { type: "json_object" },
+              // GPT-5 reasoning models reject `max_tokens` outright with a 400
+              // and require this field instead.
+              max_completion_tokens: MAX_OUTPUT_TOKENS,
+              // Writing a listing from facts the creator supplied is a
+              // formatting task, not a reasoning one. Low effort keeps the
+              // creator's wait and the per-generation cost down.
+              reasoning_effort: "low",
+              // Schema-constrained decoding: the model cannot return a shape
+              // other than this one. Zod still enforces the length limits,
+              // which strict mode does not support.
+              response_format: {
+                type: "json_schema",
+                json_schema: {
+                  name: "listing_suggestions",
+                  strict: true,
+                  schema: LISTING_JSON_SCHEMA,
+                },
+              },
+              // `temperature` is deliberately absent: reasoning models reject
+              // it, and the default is what we want anyway.
               messages: [
                 { role: "system", content: opts.system },
                 { role: "user", content: opts.user },
@@ -129,7 +195,7 @@ async function callProvider(
 
     if (!res.ok) {
       // Status only — never the provider's response body, which can echo input.
-      throw new ProviderCallError(`http_${res.status}`);
+      throw new ProviderCallError(`http_${res.status}`, isRetryableStatus(res.status));
     }
 
     const data = await res.json();
@@ -142,8 +208,25 @@ async function callProvider(
         outputTokens: data?.usage?.output_tokens,
       };
     }
+
+    const choice = data?.choices?.[0];
+
+    // The model may decline on safety grounds. A refusal is prose, not the
+    // schema, so surface it as a failed call rather than letting it fall
+    // through and fail confusingly as malformed JSON.
+    if (choice?.message?.refusal) {
+      throw new ProviderCallError("refused", false);
+    }
+
+    // Reasoning tokens share the output budget, so an exhausted allowance
+    // yields truncated or empty content. Name it precisely — "invalid JSON"
+    // would send the next reader looking in the wrong place.
+    if (choice?.finish_reason === "length") {
+      throw new ProviderCallError("truncated", false);
+    }
+
     return {
-      json: extractJson(data?.choices?.[0]?.message?.content ?? ""),
+      json: extractJson(choice?.message?.content ?? ""),
       model,
       provider,
       inputTokens: data?.usage?.prompt_tokens,
