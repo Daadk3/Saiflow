@@ -278,6 +278,166 @@ describe("safety fixtures survive the v2 prompt", () => {
   });
 });
 
+/**
+ * The defects the one real generation actually exhibited.
+ *
+ * Each test below corresponds to something observed in production output, not
+ * something imagined. They verify the instructions exist and that creator
+ * facts survive prompt construction — they cannot verify the model obeys.
+ * That needs live generations read by a human.
+ */
+describe("concrete fact preservation", () => {
+  const CONTENTS = {
+    weekly: "طريقة أسبوعية للتخطيط",
+    priorities: "نموذج لترتيب الأولويات",
+    checklist: "قائمة مراجعة يومية",
+    pain: "تقليل التشتت",
+  };
+
+  const withContents = {
+    ...validInput,
+    shortDescription: `دليل مبسط يساعد المستقلين على ترتيب مهامهم اليومية و${CONTENTS.pain}.`,
+    details: `يتضمن الدليل ${CONTENTS.weekly}، و${CONTENTS.priorities}، و${CONTENTS.checklist}.`,
+  };
+
+  test("all three named contents survive prompt construction", () => {
+    const p = buildUserPrompt(withContents);
+    for (const [name, text] of Object.entries(CONTENTS)) {
+      assert.ok(p.includes(text), `creator content lost before the model saw it: ${name}`);
+    }
+  });
+
+  test("the fidelity rule is present and binding", () => {
+    const sys = buildSystemPrompt("ar");
+    assert.ok(sys.includes("CONTENT FIDELITY"));
+    assert.ok(/as binding as the honesty rules/i.test(sys));
+  });
+
+  test("abstraction of named contents is forbidden by example", () => {
+    // The exact substitution the real generation made.
+    const sys = buildSystemPrompt("ar");
+    assert.ok(sys.includes("إطار عملي"), "must name the abstraction that was observed");
+    assert.ok(/must not become/i.test(sys));
+  });
+
+  test("preserving facts never licenses inventing them", () => {
+    const sys = buildSystemPrompt("ar");
+    assert.ok(/Preserve what they stated; add nothing/i.test(sys));
+    assert.ok(sys.includes("Never invent social proof"), "honesty rules must survive");
+  });
+});
+
+describe("internal taxonomy never leaks", () => {
+  test("no raw category slug is sent to the model", () => {
+    for (const category of PRODUCT_CATEGORIES) {
+      const p = buildUserPrompt({ ...validInput, category });
+      assert.ok(
+        !p.includes(`: ${category}`) && !p.includes(`category: ${category}`),
+        `raw slug "${category}" reached the prompt`
+      );
+    }
+  });
+
+  test("the category is described by meaning instead", () => {
+    const p = buildUserPrompt({ ...validInput, category: "ebooks" });
+    assert.ok(/marketplace section for/.test(p));
+    assert.ok(/written material|guide|ebook or reading resource/i.test(p));
+  });
+
+  test("the model is told not to name our sections to buyers", () => {
+    const sys = buildSystemPrompt("ar");
+    assert.ok(/NEVER expose our internal structure/i.test(sys));
+    assert.ok(/Do not name, translate or quote\s+the marketplace section/i.test(sys));
+  });
+
+  test("delivery format may not be claimed unless supplied", () => {
+    const sys = buildSystemPrompt("ar");
+    assert.ok(
+      /Never state a delivery format, file type, page count, duration\s+or platform unless the creator supplied it/i.test(sys)
+    );
+  });
+});
+
+describe("faq, repetition, arabic and seo rules", () => {
+  test("FAQ restatement is explicitly rejected", () => {
+    const sys = buildSystemPrompt("ar");
+    assert.ok(sys.includes("FAQ RULES"));
+    assert.ok(sys.includes("ما هذا المنتج؟"), "must name the observed bad question");
+    assert.ok(/restates the title, the summary\s+or the audience/i.test(sys));
+  });
+
+  test("FAQ may not invent an answer just to have one", () => {
+    const sys = buildSystemPrompt("ar");
+    assert.ok(/Never invent a format, quantity, duration, compatibility/i.test(sys));
+  });
+
+  test("audience repetition is capped", () => {
+    const sys = buildSystemPrompt("ar");
+    assert.ok(/at most twice across the whole listing/i.test(sys));
+  });
+
+  test("forced synonyms are discouraged over clumsy Arabic", () => {
+    const sys = buildSystemPrompt("ar");
+    assert.ok(/clumsy Arabic is worse than a repeated word/i.test(sys));
+  });
+
+  test("observed calques are named as negative examples, Arabic only", () => {
+    const ar = buildSystemPrompt("ar");
+    for (const calque of ["بشكل أكثر", "مثالي لمن", "الفوضى الزمنية"]) {
+      assert.ok(ar.includes(calque), `missing negative example: ${calque}`);
+    }
+    // English listings should not carry Arabic style notes.
+    assert.ok(!buildSystemPrompt("en").includes("الفوضى الزمنية"));
+  });
+
+  test("partial tashkeel is discouraged", () => {
+    assert.ok(/Do not scatter partial tashkeel/i.test(buildSystemPrompt("ar")));
+  });
+
+  test("seoDescription must not duplicate shortSummary", () => {
+    const sys = buildSystemPrompt("ar");
+    assert.ok(/must NOT be a near-duplicate of shortSummary/i.test(sys));
+  });
+
+  test("SEO may vary phrasing but never claim search data", () => {
+    const sys = buildSystemPrompt("ar");
+    assert.ok(sys.includes("تنظيم الوقت") && sys.includes("إدارة الوقت"));
+    assert.ok(/Never claim or imply\s+search volume, competitiveness or ranking/i.test(sys));
+  });
+});
+
+describe("input richness stays internal", () => {
+  test("the API does not return a richness signal to the client", () => {
+    const route = readFileSync(new URL("../app/api/ai/listing/route.ts", import.meta.url), "utf8");
+    assert.ok(!route.includes("inputRichness"), "richness must not reach the creator");
+  });
+
+  test("no thin-input notice is rendered or translated", () => {
+    const ui = readFileSync(
+      new URL("../components/ai/ListingAssistant.tsx", import.meta.url),
+      "utf8"
+    );
+    assert.ok(!ui.includes("thinNotice"));
+    for (const f of ["../messages/ar.json", "../messages/en.json"]) {
+      assert.ok(!readFileSync(new URL(f, import.meta.url), "utf8").includes("thinNotice"));
+    }
+  });
+
+  test("the real 241-char Arabic input shows why it must stay internal", () => {
+    // Three concrete contents, yet under the character threshold. Telling this
+    // seller their details were "limited" would blame them for the model's
+    // failure to use what they supplied.
+    const real = {
+      shortDescription: "دليل مبسط يساعد المستقلين على ترتيب مهامهم اليومية وتقليل التشتت.",
+      targetAudience: "المستقلون وأصحاب المشاريع الصغيرة في العالم العربي.",
+      details:
+        "يتضمن الدليل طريقة أسبوعية للتخطيط، نموذجًا لترتيب الأولويات، وقائمة مراجعة يومية. لا يحتوي على وعود مالية أو نتائج مضمونة.",
+    };
+    assert.equal(assessInputRichness(real), "thin");
+    assert.ok(real.details.includes("قائمة مراجعة يومية"), "yet it names concrete contents");
+  });
+});
+
 describe("taxonomy", () => {
   test("exactly six approved categories", () => {
     assert.equal(PRODUCT_CATEGORIES.length, 6);

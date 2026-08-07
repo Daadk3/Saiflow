@@ -53,7 +53,6 @@ export default function ListingAssistant({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isLive, setIsLive] = useState(true);
-  const [thinInput, setThinInput] = useState(false);
   const [drafts, setDrafts] = useState<Suggestions | null>(null);
   const [applied, setApplied] = useState<Set<string>>(new Set());
   const [copied, setCopied] = useState<string | null>(null);
@@ -97,7 +96,6 @@ export default function ListingAssistant({
       }
 
       setIsLive(data.isLive !== false);
-      setThinInput(data.inputRichness === "thin");
       setDrafts(data.suggestions);
       emit("generation_succeeded", { section: section ?? "full" });
       if (section) emit("field_regenerated", { field: section });
@@ -260,20 +258,12 @@ export default function ListingAssistant({
             </div>
           )}
 
-          {/* Explains a deliberately short result. Neutral styling on purpose:
-              writing less from less is correct behaviour, not an error, and it
-              must not read as a reprimand for the creator. */}
-          {thinInput && (
-            <div className="rounded-lg border border-gray-800 bg-[#0d0d0d] p-3">
-              <p className="text-xs leading-relaxed text-gray-400">{t("thinNotice")}</p>
-            </div>
-          )}
-
           <Applicable
             label={t("fields.improvedTitle")} value={drafts.improvedTitle}
             onChange={(v) => edit("improvedTitle", v)}
             onApply={() => apply("improvedTitle")} onRegenerate={() => generate("improvedTitle")}
             appliedLabel={applied.has("improvedTitle") ? t("appliedBadge") : null}
+            unchanged={drafts.improvedTitle.trim() === title.trim()}
             t={t}
           />
           <Applicable
@@ -348,11 +338,11 @@ export default function ListingAssistant({
 }
 
 function Applicable({
-  label, value, multiline, rows = 3, onChange, onApply, onRegenerate, appliedLabel, t,
+  label, value, multiline, rows = 3, onChange, onApply, onRegenerate, appliedLabel, unchanged, t,
 }: {
   label: string; value: string; multiline?: boolean; rows?: number;
   onChange: (v: string) => void; onApply: () => void; onRegenerate: () => void;
-  appliedLabel: string | null; t: (k: string) => string;
+  appliedLabel: string | null; unchanged?: boolean; t: (k: string) => string;
 }) {
   return (
     <div className="rounded-lg border border-gray-800 bg-[#0d0d0d] p-3">
@@ -360,10 +350,16 @@ function Applicable({
         <span className="text-xs font-medium text-gray-400">{label}</span>
         <div className="flex items-center gap-1.5">
           {appliedLabel && <span className="text-[11px] text-teal-400">{appliedLabel}</span>}
-          <button type="button" onClick={onApply}
-            className="rounded border border-teal-500/40 px-2 py-1 text-[11px] text-teal-300 hover:bg-teal-500/10">
-            {appliedLabel ? t("reapply") : t("apply")}
-          </button>
+          {/* An Apply button that changes nothing teaches the creator the
+              assistant is theatre. Say so instead, and still allow a retry. */}
+          {unchanged ? (
+            <span className="text-[11px] text-gray-500">{t("titleUnchanged")}</span>
+          ) : (
+            <button type="button" onClick={onApply}
+              className="rounded border border-teal-500/40 px-2 py-1 text-[11px] text-teal-300 hover:bg-teal-500/10">
+              {appliedLabel ? t("reapply") : t("apply")}
+            </button>
+          )}
           <button type="button" onClick={onRegenerate}
             className="rounded border border-gray-700 px-2 py-1 text-[11px] text-gray-400 hover:bg-white/5">
             {t("regenerate")}

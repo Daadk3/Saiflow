@@ -5,12 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { authOptions } from "../../auth/authOptions";
 import { isAiAssistantEnabled } from "@/lib/ai/flag";
 import { listingInputSchema, listingOutputSchema, type AiErrorCode } from "@/lib/ai/schema";
-import {
-  assessInputRichness,
-  buildSystemPrompt,
-  buildUserPrompt,
-  PROMPT_VERSION,
-} from "@/lib/ai/prompt";
+import { buildSystemPrompt, buildUserPrompt, PROMPT_VERSION } from "@/lib/ai/prompt";
 import {
   generateJson,
   getModelName,
@@ -122,12 +117,6 @@ export async function POST(req: Request) {
     return NextResponse.json({
       generationId: generation.id,
       suggestions: output.data,
-      /**
-       * How much fact the creator gave us, so the UI can explain a short
-       * result rather than leaving the creator to wonder. Derived from the
-       * request that just ran; nothing about it is stored.
-       */
-      inputRichness: assessInputRichness(input),
       /** False when no vendor is configured — the UI must say so plainly. */
       isLive: isLiveProvider(),
       usage: {

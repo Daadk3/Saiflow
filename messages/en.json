@@ -776,6 +776,6 @@
       "PROVIDER_ERROR": "Couldn't generate suggestions right now. Try again.",
       "INVALID_OUTPUT": "The response wasn't usable. Try generating again."
     },
-    "thinNotice": "We kept the description concise because the product details were limited. Add more specifics and we can strengthen it."
+    "titleUnchanged": "Your title was already strong — no change suggested"
   }
 }
