@@ -7,7 +7,8 @@ import Link from "next/link";
 import Image from "next/image";
 import { useTranslations } from "next-intl";
 import { UploadButton } from "@/lib/uploadthing";
-import { PRODUCT_CATEGORIES, CATEGORY_LABEL_KEYS } from "@/lib/categories";
+import { PRODUCT_CATEGORIES, CATEGORY_LABEL_KEYS, type ProductCategory } from "@/lib/categories";
+import ListingAssistant from "@/components/ai/ListingAssistant";
 
 export default function AddProductPage() {
   const t = useTranslations();
@@ -371,6 +372,28 @@ export default function AddProductPage() {
                   </div>
                 )}
               </div>
+
+              {/* Optional AI assistant. Nothing here saves or publishes: it
+                  hands values back to this form and the creator submits below
+                  through the ordinary workflow. */}
+              <ListingAssistant
+                shopId={shopId}
+                title={name}
+                category={category}
+                currentDescription={description}
+                onApplyTitle={setName}
+                onApplyDescription={setDescription}
+                onApplyCategory={(c: ProductCategory) => setCategory(c)}
+                onEvent={(evt, detail) => {
+                  // Privacy-respecting analytics: event name and field only,
+                  // never creator text.
+                  if (typeof window !== "undefined") {
+                    window.dispatchEvent(
+                      new CustomEvent("saiflow:ai", { detail: { evt, ...detail } })
+                    );
+                  }
+                }}
+              />
 
               {/* Seller certification — required before every upload */}
               <div className="p-4 bg-[#111] border border-white/10 rounded-xl">
