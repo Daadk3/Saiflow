@@ -93,9 +93,27 @@ export default function PrivacyPage() {
               </p>
             </section>
 
+            {/* AI-assisted listing */}
+            <section>
+              <h2 className="text-2xl font-bold text-white mb-4">5. AI-Assisted Listing Content</h2>
+              <p className="mb-3">
+                Sellers may optionally use our AI listing assistant when creating a product. It is entirely optional, and products can be created without it.
+              </p>
+              <ul className="list-disc pl-6 space-y-2 mb-3">
+                <li><strong>What is sent:</strong> only the listing text the seller types or pastes into the assistant — the product title, short description, intended audience and any details they choose to paste, together with the selected category and language.</li>
+                <li><strong>What is never sent:</strong> uploaded product files, customer data, order information, and any other account data. The assistant does not read files.</li>
+                <li><strong>Purpose:</strong> to generate draft listing text that the seller reviews, edits and applies manually. Nothing generated is saved or published automatically.</li>
+                <li><strong>External processing:</strong> this text is processed by a third-party AI provider acting as a processor on our behalf. Sellers are asked not to paste personal or confidential information.</li>
+                <li><strong>Retention:</strong> we store a cryptographic hash of the input rather than the input itself, along with the generated suggestions, the model name and basic timing, so we can enforce usage limits and audit the feature. We do not retain the raw text the seller submitted.</li>
+              </ul>
+              <p>
+                We do not make any claim about whether a provider uses submitted text for model training; sellers should not submit confidential material to the assistant.
+              </p>
+            </section>
+
             {/* Cookies */}
             <section>
-              <h2 className="text-2xl font-bold text-white mb-4">5. Cookies</h2>
+              <h2 className="text-2xl font-bold text-white mb-4">6. Cookies</h2>
               <p>
                 We use cookies and similar tracking technologies to track activity on our Service and hold certain information. Cookies are files with a small amount of data that may include an anonymous unique identifier. You can instruct your browser to refuse all cookies or to indicate when a cookie is being sent. However, if you do not accept cookies, you may not be able to use some portions of our Service.
               </p>
@@ -103,7 +121,7 @@ export default function PrivacyPage() {
 
             {/* Your Rights */}
             <section>
-              <h2 className="text-2xl font-bold text-white mb-4">6. Your Rights</h2>
+              <h2 className="text-2xl font-bold text-white mb-4">7. Your Rights</h2>
               <p className="mb-3">
                 Under the Saudi Personal Data Protection Law (PDPL), and other laws that may apply to you, you have rights regarding your personal information, including:
               </p>
@@ -124,7 +142,7 @@ export default function PrivacyPage() {
 
             {/* Data Retention */}
             <section>
-              <h2 className="text-2xl font-bold text-white mb-4">7. Data Retention</h2>
+              <h2 className="text-2xl font-bold text-white mb-4">8. Data Retention</h2>
               <p>
                 We retain your personal information for as long as necessary to provide the Service and fulfill the purposes outlined in this Privacy Policy, unless a longer retention period is required or permitted by law. When you delete your account, we will delete or anonymize your personal information, except where we are required to retain it for legal or business purposes.
               </p>
@@ -132,7 +150,7 @@ export default function PrivacyPage() {
 
             {/* Children's Privacy */}
             <section>
-              <h2 className="text-2xl font-bold text-white mb-4">8. Children&apos;s Privacy</h2>
+              <h2 className="text-2xl font-bold text-white mb-4">9. Children&apos;s Privacy</h2>
               <p>
                 Our Service is not intended for children under the age of 13. We do not knowingly collect personal information from children under 13. If you are a parent or guardian and believe your child has provided us with personal information, please contact us immediately.
               </p>
@@ -140,7 +158,7 @@ export default function PrivacyPage() {
 
             {/* Changes to Privacy Policy */}
             <section>
-              <h2 className="text-2xl font-bold text-white mb-4">9. Changes to Privacy Policy</h2>
+              <h2 className="text-2xl font-bold text-white mb-4">10. Changes to Privacy Policy</h2>
               <p>
                 We may update our Privacy Policy from time to time. We will notify you of any changes by posting the new Privacy Policy on this page and updating the &quot;Last updated&quot; date. You are advised to review this Privacy Policy periodically for any changes.
               </p>
@@ -148,7 +166,7 @@ export default function PrivacyPage() {
 
             {/* Contact Us */}
             <section>
-              <h2 className="text-2xl font-bold text-white mb-4">10. Contact Us</h2>
+              <h2 className="text-2xl font-bold text-white mb-4">11. Contact Us</h2>
               <p>
                 If you have any questions about this Privacy Policy, please contact us at{" "}
                 <a href="mailto:support@saiflow.io" className="text-teal-400 hover:text-teal-300 underline">

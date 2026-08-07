@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "backfill:product-slugs:dry": "node scripts/backfill-empty-product-slugs.ts",
-    "backfill:product-slugs:apply": "node scripts/backfill-empty-product-slugs.ts --apply"
+    "backfill:product-slugs:apply": "node scripts/backfill-empty-product-slugs.ts --apply",
+    "test": "node --import ./tests/register.mjs --test tests/*.test.ts"
   },
   "dependencies": {
     "@prisma/client": "^6.19.0",
