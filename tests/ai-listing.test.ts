@@ -467,6 +467,28 @@ describe("category context implies no capability", () => {
     assert.ok(/Never infer a capability from\s+the section/i.test(sys));
   });
 
+  test("no named resource may be granted a capability either", () => {
+    // QA: creator said «ثلاثة قوالب جاهزة»; output claimed «خطة نشر قابلة
+    // للتعديل». The section no longer implies capability, but an included
+    // resource still invited the same inference one level down.
+    const sys = buildSystemPrompt("ar");
+    assert.ok(/A noun names a thing; it\s+never grants that thing an ability/i.test(sys));
+    for (const noun of ["template", "checklist", "worksheet", "planner", "roadmap",
+      "framework", "schedule", "example", "document", "resource"]) {
+      assert.ok(sys.includes(noun), `missing covered noun: ${noun}`);
+    }
+    for (const cap of ["editable", "customisable", "reusable", "fillable", "printable",
+      "digital", "interactive", "automatic", "compatible", "downloadable"]) {
+      assert.ok(sys.includes(cap), `missing forbidden capability: ${cap}`);
+    }
+  });
+
+  test("the observed Arabic example is spelled out", () => {
+    const sys = buildSystemPrompt("ar");
+    assert.ok(sys.includes("ثلاثة قوالب جاهزة"), "must name the phrase QA produced");
+    assert.ok(/It does NOT mean they can be\s+edited/i.test(sys));
+  });
+
   test("an explicit 'not editable' statement reaches the model intact", () => {
     const p = buildUserPrompt({
       ...validInput,
@@ -515,9 +537,20 @@ describe("title discipline", () => {
   test("specification dumping is forbidden", () => {
     const sys = buildSystemPrompt("ar");
     assert.ok(sys.includes("TITLE:"));
-    assert.ok(/no parenthetical lists/i.test(sys));
     assert.ok(/no strings of\s+comma-separated specs/i.test(sys));
-    assert.ok(/no stacking page count with format with dimensions/i.test(sys));
+    assert.ok(/no\s+stacking page count with format with dimensions/i.test(sys));
+  });
+
+  test("parentheses are banned outright, not just for lists", () => {
+    // QA produced «قالب عرض تقديمي احترافي (كانفا)» — a single qualifier, so
+    // the earlier "no parenthetical lists" wording did not catch it.
+    const sys = buildSystemPrompt("ar");
+    assert.ok(/NO PARENTHESES\. Not for a list, not for a single qualifier/i.test(sys));
+    assert.ok(sys.includes("قالب عرض تقديمي احترافي لكانفا"), "must show the preferred form");
+  });
+
+  test("the read-aloud test is stated", () => {
+    assert.ok(/sounds like a catalogue entry rather than\s+something a person would say/i.test(buildSystemPrompt("ar")));
   });
 
   test("at most one differentiator, and specs live elsewhere", () => {

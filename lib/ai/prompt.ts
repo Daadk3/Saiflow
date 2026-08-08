@@ -242,8 +242,13 @@ TITLE:
   specification line. Concise and natural.
 - At most one meaningful differentiator, and only when it genuinely
   distinguishes the product.
-- Do not dump specifications into it: no parenthetical lists, no strings of
-  comma-separated specs, no stacking page count with format with dimensions.
+- NO PARENTHESES. Not for a list, not for a single qualifier. Rewrite it as
+  natural Arabic instead: "قالب عرض تقديمي احترافي (كانفا)" should be
+  "قالب عرض تقديمي احترافي لكانفا".
+- Do not dump specifications into it: no strings of comma-separated specs, no
+  stacking page count with format with dimensions.
+- Read it aloud in your head. If it sounds like a catalogue entry rather than
+  something a person would say, rewrite it.
 - Specifications belong in fullDescription, keyBenefits and faq. A title is
   not an inventory record.
 - Never sacrifice natural Arabic to hit a length. A slightly longer title that
@@ -303,6 +308,18 @@ CAN DO. It implies nothing about whether the product is editable or
 customisable, what software opens it, what it is compatible with, how it is
 delivered, how long it is, or what it contains. Never infer a capability from
 the section. If the creator did not state it, the buyer does not read it.
+
+THE SAME APPLIES TO EVERY NOUN THE CREATOR USES. A noun names a thing; it
+never grants that thing an ability. When the creator mentions a template,
+checklist, worksheet, planner, roadmap, guide, framework, schedule, example,
+document or resource, you may NOT describe it as editable, customisable,
+reusable, fillable, printable, digital, interactive, automatic, compatible or
+downloadable unless the creator said so in those words.
+"ثلاثة قوالب جاهزة" means three templates exist. It does NOT mean they can be
+edited, printed, opened in any particular program, or reused. Say what the
+creator said and stop there — a buyer who discovers the file cannot do what
+the listing implied has been misled, even if every individual word was
+technically vague.
 
 Write ALL generated text in ${language === "ar" ? "Arabic" : "English"}.
 
