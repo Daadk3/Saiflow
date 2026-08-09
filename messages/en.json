@@ -730,8 +730,8 @@
     },
     "audience": "Who is this for?",
     "audiencePlaceholder": "e.g. beginners learning Arabic calligraphy",
-    "details": "Paste product details (optional)",
-    "detailsPlaceholder": "What's inside, format, length, what the buyer gets…",
+    "details": "What exactly does the product include? (optional)",
+    "detailsPlaceholder": "e.g. 30 pages, 12 exercises, PDF file, ready-made templates, a daily checklist.",
     "generate": "Generate suggestions",
     "generating": "Generating…",
     "needTitle": "Enter a product title first.",
@@ -775,6 +775,7 @@
       "PROVIDER_TIMEOUT": "The AI provider took too long. Try again.",
       "PROVIDER_ERROR": "Couldn't generate suggestions right now. Try again.",
       "INVALID_OUTPUT": "The response wasn't usable. Try generating again."
-    }
+    },
+    "titleUnchanged": "Your title was already strong — no change suggested"
   }
 }

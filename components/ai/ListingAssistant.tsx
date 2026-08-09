@@ -3,6 +3,10 @@
 import { useState } from "react";
 import { useTranslations } from "next-intl";
 import type { ProductCategory } from "@/lib/categories";
+// The output shape has exactly one definition — the Zod contract the API
+// validates against. A hand-copied interface here could drift from it
+// silently, and the UI would be the last place anyone looked.
+import type { ListingOutput } from "@/lib/ai/schema";
 
 /**
  * AI Listing Assistant — optional, inline, human-in-the-loop.
@@ -18,19 +22,7 @@ import type { ProductCategory } from "@/lib/categories";
 
 type Lang = "ar" | "en";
 
-interface Suggestions {
-  improvedTitle: string;
-  shortSummary: string;
-  fullDescription: string;
-  keyBenefits: string[];
-  targetAudience: string;
-  faq: { question: string; answer: string }[];
-  cta: string;
-  seoTitle: string;
-  seoDescription: string;
-  suggestedCategory: ProductCategory;
-}
-
+type Suggestions = ListingOutput;
 type FieldKey = keyof Suggestions;
 
 export default function ListingAssistant({
@@ -271,6 +263,7 @@ export default function ListingAssistant({
             onChange={(v) => edit("improvedTitle", v)}
             onApply={() => apply("improvedTitle")} onRegenerate={() => generate("improvedTitle")}
             appliedLabel={applied.has("improvedTitle") ? t("appliedBadge") : null}
+            unchanged={drafts.improvedTitle.trim() === title.trim()}
             t={t}
           />
           <Applicable
@@ -345,11 +338,11 @@ export default function ListingAssistant({
 }
 
 function Applicable({
-  label, value, multiline, rows = 3, onChange, onApply, onRegenerate, appliedLabel, t,
+  label, value, multiline, rows = 3, onChange, onApply, onRegenerate, appliedLabel, unchanged, t,
 }: {
   label: string; value: string; multiline?: boolean; rows?: number;
   onChange: (v: string) => void; onApply: () => void; onRegenerate: () => void;
-  appliedLabel: string | null; t: (k: string) => string;
+  appliedLabel: string | null; unchanged?: boolean; t: (k: string) => string;
 }) {
   return (
     <div className="rounded-lg border border-gray-800 bg-[#0d0d0d] p-3">
@@ -357,10 +350,16 @@ function Applicable({
         <span className="text-xs font-medium text-gray-400">{label}</span>
         <div className="flex items-center gap-1.5">
           {appliedLabel && <span className="text-[11px] text-teal-400">{appliedLabel}</span>}
-          <button type="button" onClick={onApply}
-            className="rounded border border-teal-500/40 px-2 py-1 text-[11px] text-teal-300 hover:bg-teal-500/10">
-            {appliedLabel ? t("reapply") : t("apply")}
-          </button>
+          {/* An Apply button that changes nothing teaches the creator the
+              assistant is theatre. Say so instead, and still allow a retry. */}
+          {unchanged ? (
+            <span className="text-[11px] text-gray-500">{t("titleUnchanged")}</span>
+          ) : (
+            <button type="button" onClick={onApply}
+              className="rounded border border-teal-500/40 px-2 py-1 text-[11px] text-teal-300 hover:bg-teal-500/10">
+              {appliedLabel ? t("reapply") : t("apply")}
+            </button>
+          )}
           <button type="button" onClick={onRegenerate}
             className="rounded border border-gray-700 px-2 py-1 text-[11px] text-gray-400 hover:bg-white/5">
             {t("regenerate")}
