@@ -715,7 +715,8 @@
         "reviewSource": "Review source",
         "reports": "Reports",
         "created": "Created"
-      }
+      },
+      "inspectFile": "Inspect file"
     }
   },
   "ai": {

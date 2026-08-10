@@ -188,6 +188,7 @@ export default async function AdminProductsPage({
                             productId={p.id}
                             productName={p.name}
                             publicHref={`/shop/${p.shopSlug}/product/${p.slug}`}
+                            fileHref={p.fileUrl}
                           />
                         )}
                       </td>
@@ -235,6 +236,7 @@ export default async function AdminProductsPage({
                         productId={p.id}
                         productName={p.name}
                         publicHref={`/shop/${p.shopSlug}/product/${p.slug}`}
+                        fileHref={p.fileUrl}
                       />
                     </div>
                   )}
