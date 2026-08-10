@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { rateLimiters, getClientIp } from "@/lib/rate-limit";
+import { getAdminEmails } from "@/lib/admin";
 import { Resend } from "resend";
 
 // Public product reporting (Trust & Safety Tier 0).
@@ -69,10 +70,20 @@ export async function POST(
 
     // Notify admin. Best-effort: a failed email must never lose the report
     // (the audit record above is already committed).
+    //
+    // Recipients come from ADMIN_EMAILS — the same list that grants moderation
+    // authority — so whoever can action a report is who gets told about it.
+    // support@saiflow.io remains the fallback because that route is verified
+    // working end to end; an unset variable must not silently send to nobody.
     try {
-      await new Resend(process.env.RESEND_API_KEY).emails.send({
+      const recipients = getAdminEmails();
+      const to = recipients.length > 0 ? recipients : ["support@saiflow.io"];
+
+      const { error: emailApiError } = await new Resend(
+        process.env.RESEND_API_KEY
+      ).emails.send({
         from: "Saiflow <noreply@saiflow.io>",
-        to: "support@saiflow.io",
+        to,
         subject: `[Report] ${category} — ${product.name}`,
         text:
           `Product reported.\n\n` +
@@ -82,7 +93,18 @@ export async function POST(
           `Details: ${details?.trim() || "—"}\n\n` +
           `Review queue: /dashboard/moderation`,
       });
+
+      // The SDK RESOLVES with { data, error } for API-level failures — it does
+      // not throw — so the catch below would never see them. Without this the
+      // report notification could fail silently and indefinitely.
+      // Addresses are deliberately not logged: ADMIN_EMAILS is sensitive.
+      if (emailApiError) {
+        console.error(
+          `[report] notification rejected by provider: ${emailApiError.name} (${emailApiError.statusCode}) — ${emailApiError.message} [recipients=${to.length}]`
+        );
+      }
     } catch (emailError) {
+      // Transport-level faults only: network failure, timeout, bad key.
       console.error("Report notification email failed:", emailError);
     }
 
