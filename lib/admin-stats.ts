@@ -10,6 +10,7 @@
  */
 
 import { prisma } from "@/lib/prisma";
+import { isAllowedAssetUrl } from "@/lib/validations";
 import type { ModerationStatus, Prisma } from "@prisma/client";
 
 /* ------------------------------------------------------------------ */
@@ -157,6 +158,16 @@ export interface DirectoryRow {
   reportCount: number;
   humanReviewed: boolean;
   hasFile: boolean;
+  /**
+   * The deliverable, for admin inspection during review — null unless the
+   * stored URL still satisfies the upload allowlist.
+   *
+   * Re-checked on read rather than trusted from the row: the allowlist was
+   * added after the earliest products were created, so a legacy value could
+   * predate it. Filtering here means a non-conforming URL never reaches the
+   * browser at all, instead of relying on the client to decline to render it.
+   */
+  fileUrl: string | null;
 }
 
 export interface DirectoryPage {
@@ -267,6 +278,7 @@ export async function getProductsDirectory(opts: {
         reportCount: p._count.moderationEvents,
         humanReviewed: latest != null && latest.newStatus === p.moderationStatus,
         hasFile: p.fileUrl != null,
+        fileUrl: isAllowedAssetUrl(p.fileUrl) ? p.fileUrl : null,
       };
     }),
   };

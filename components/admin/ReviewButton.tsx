@@ -16,10 +16,20 @@ export default function ReviewButton({
   productId,
   productName,
   publicHref,
+  fileHref,
 }: {
   productId: string;
   productName: string;
   publicHref: string;
+  /**
+   * The seller's deliverable, for inspection before a decision.
+   *
+   * Already allowlist-checked server-side in lib/admin-stats.ts, so a value
+   * here is a storage URL and nothing else. "Open" shows the listing as a
+   * buyer sees it; this shows what the buyer would actually receive —
+   * approving without the second is guesswork.
+   */
+  fileHref?: string | null;
 }) {
   const t = useTranslations("admin.directory");
   const router = useRouter();
@@ -78,6 +88,16 @@ export default function ReviewButton({
         >
           {t("open")}
         </a>
+        {fileHref && (
+          <a
+            href={fileHref}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="rounded-lg border border-gray-700 px-2.5 py-1.5 text-xs text-gray-300 hover:bg-white/5"
+          >
+            {t("inspectFile")}
+          </a>
+        )}
         <button
           onClick={() => decide("APPROVED")}
           disabled={busy}
