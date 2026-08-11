@@ -178,6 +178,11 @@ model Product {
   thumbnailUrl String?
   images       String[]
   fileUrl      String?
+  /// Storage object key, ALWAYS derived server-side from fileUrl — never
+  /// accepted from a client. This is the identity anchor for every
+  /// file-safety decision: every upload mints a new key, so a replaced file
+  /// cannot inherit the previous file's verdict.
+  fileKey      String?
   isActive     Boolean  @default(true)
   isDigital    Boolean  @default(true)
 
@@ -187,6 +192,26 @@ model Product {
   // Timestamp of the seller's certification/legal-responsibility acceptance
   // (required at upload; enforced by the products API).
   certifiedAt      DateTime?
+
+  // ---------------------------------------------------------------------
+  // File safety. Written by the scanner from Stage C; the columns exist now
+  // so the identity binding below is in place before any verdict can be.
+  // ---------------------------------------------------------------------
+  /// Verdict for the file identified by fileScanKey — NOT necessarily the
+  /// file currently attached. Reading this field alone is always a bug.
+  fileScanStatus   FileScanStatus @default(PENDING_SCAN)
+  /// The key the verdict was issued for. The safety predicate is
+  ///   fileScanStatus == SAFE && fileScanKey == fileKey && fileKey != null
+  /// so a stale SAFE cannot survive a file replacement even if a future write
+  /// path forgets to reset the status. Fail-closed by data shape.
+  fileScanKey      String?
+  /// SHA-256 computed by us over the bytes actually scanned. The storage
+  /// provider's own hash is MD5, which is collision-attackable and so is
+  /// never used as an identity check.
+  fileScanSha256   String?
+  fileScanAt       DateTime?
+  /// Bounded-retry counter, persisted so a crash loop cannot reset it.
+  fileScanAttempts Int            @default(0)
 
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
@@ -203,6 +228,18 @@ model Product {
   @@index([moderationStatus])
   @@index([category])
   @@index([createdAt])
+  @@index([fileScanStatus])
+}
+
+/// Deliberately four states. QUARANTINED would behave identically to UNSAFE at
+/// every gate; RETRYING is an attempt count, not a state; and EXPIRED /
+/// SUPERSEDED cannot arise, because a superseded verdict is invalidated by the
+/// fileScanKey != fileKey comparison rather than recorded as a status.
+enum FileScanStatus {
+  PENDING_SCAN
+  SAFE
+  UNSAFE
+  SCAN_ERROR
 }
 
 enum ModerationStatus {

@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { authOptions } from "../../auth/authOptions";
 import { slugify } from "@/lib/slug";
 import { isProductCategory } from "@/lib/categories";
+import { isAllowedAssetUrl, extractAssetKey } from "@/lib/validations";
 
 // GET - Get a single product by ID (seller dashboard only)
 // SECURITY: this returns the full row including fileUrl (the paid asset),
@@ -94,6 +95,35 @@ export async function PUT(
       return NextResponse.json({ error: "Invalid category" }, { status: 400 });
     }
 
+    /**
+     * Asset URLs were previously written straight through on this route, while
+     * the create route validated them. That gap let a shop member store an
+     * arbitrary URL, which downstream code trusts: the download route redirects
+     * to it, and checkout fetches it server-side.
+     *
+     * Both are validated here now, and the deliverable's key is derived rather
+     * than trusted, exactly as on create.
+     */
+    let nextFileKey: string | null | undefined;
+    if (fileUrl !== undefined) {
+      if (fileUrl === null || fileUrl === "") {
+        nextFileKey = null;
+      } else {
+        nextFileKey = extractAssetKey(fileUrl);
+        if (!nextFileKey) {
+          return NextResponse.json({ error: "Invalid file URL" }, { status: 400 });
+        }
+      }
+    }
+    if (
+      thumbnailUrl !== undefined &&
+      thumbnailUrl !== null &&
+      thumbnailUrl !== "" &&
+      !isAllowedAssetUrl(thumbnailUrl)
+    ) {
+      return NextResponse.json({ error: "Invalid thumbnail URL" }, { status: 400 });
+    }
+
     // Get the user
     const user = await prisma.user.findFirst({
       where: { email: { equals: session.user.email, mode: "insensitive" } },
@@ -141,7 +171,21 @@ export async function PUT(
       slug = slugify(name, "product");
     }
 
-    // Update the product
+    /**
+     * A replaced deliverable must not inherit the previous file's verdict.
+     *
+     * Every upload mints a new storage key, so comparing keys detects the
+     * replacement, and the whole scan record is cleared back to PENDING_SCAN.
+     * This is belt-and-braces rather than the primary defence: the safety
+     * predicate also requires fileScanKey == fileKey, so even if this reset
+     * were removed the stale SAFE still could not authorise anything.
+     *
+     * Legacy rows carry a fileUrl but no fileKey, so re-saving one backfills
+     * its key and leaves it — correctly — unscanned.
+     */
+    const fileChanged =
+      nextFileKey !== undefined && nextFileKey !== product.fileKey;
+
     const updatedProduct = await prisma.product.update({
       where: { id },
       data: {
@@ -150,8 +194,19 @@ export async function PUT(
         description: description !== undefined ? description : product.description,
         price: price !== undefined ? price : product.price,
         category: category !== undefined ? (category || null) : product.category,
-        fileUrl: fileUrl !== undefined ? fileUrl : product.fileUrl,
-        thumbnailUrl: thumbnailUrl !== undefined ? thumbnailUrl : product.thumbnailUrl,
+        fileUrl: fileUrl !== undefined ? fileUrl || null : product.fileUrl,
+        thumbnailUrl:
+          thumbnailUrl !== undefined ? thumbnailUrl || null : product.thumbnailUrl,
+        ...(nextFileKey !== undefined ? { fileKey: nextFileKey } : {}),
+        ...(fileChanged
+          ? {
+              fileScanStatus: "PENDING_SCAN" as const,
+              fileScanKey: null,
+              fileScanSha256: null,
+              fileScanAt: null,
+              fileScanAttempts: 0,
+            }
+          : {}),
       },
     });
 

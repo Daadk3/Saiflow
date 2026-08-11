@@ -24,6 +24,32 @@ export function isAllowedAssetUrl(url: unknown): url is string {
   }
 }
 
+/**
+ * The storage object key behind an asset URL, or null if the URL is not one of
+ * ours or is not shaped like a stored object.
+ *
+ * Deriving the key rather than accepting it from the client is the whole point.
+ * A client-supplied key could be pointed at a different object than the URL it
+ * claims to describe, which would let a seller attach one file's SAFE verdict
+ * to another file's bytes. Because the key is parsed out of the same string
+ * that is stored as `fileUrl`, the two can never disagree.
+ *
+ * Accepts exactly `https://<allowed-host>/f/<key>` — one path segment after
+ * `/f/`, nothing more. Anything else returns null and the caller rejects.
+ */
+export function extractAssetKey(url: unknown): string | null {
+  if (!isAllowedAssetUrl(url)) return null;
+  try {
+    const { pathname } = new URL(url);
+    const segments = pathname.split("/").filter(Boolean);
+    if (segments.length !== 2 || segments[0] !== "f") return null;
+    const key = segments[1];
+    return /^[A-Za-z0-9_-]{8,128}$/.test(key) ? key : null;
+  } catch {
+    return null;
+  }
+}
+
 // Auth schemas
 export const signupSchema = z.object({
   name: z

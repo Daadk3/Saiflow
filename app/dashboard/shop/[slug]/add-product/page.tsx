@@ -207,22 +207,27 @@ export default function AddProductPage() {
                       </svg>
                     </div>
                     <p className="text-gray-400 text-sm mb-2">{t("dashboard.product.thumbnailUploadCta")}</p>
-                    <UploadButton
-                      endpoint="productThumbnail"
-                      onClientUploadComplete={(res) => {
-                        if (res?.[0]) {
-                          // Use ufsUrl for v7+ or fall back to url
-                          setThumbnailUrl(res[0].ufsUrl || res[0].url);
-                        }
-                      }}
-                      onUploadError={(error: Error) => {
-                        setError(t("dashboard.product.thumbnailUploadFailed", { message: error.message }));
-                      }}
-                      appearance={{
-                        button: "bg-gray-700 hover:bg-gray-600 text-white font-medium px-4 py-2 rounded-lg transition-colors text-sm ut-uploading:bg-gray-700/50",
-                        allowedContent: "text-gray-500 text-xs mt-2",
-                      }}
-                    />
+                    {/* Uploads are authorised per shop, so the control only
+                        appears once the shop has resolved. */}
+                    {shopId && (
+                      <UploadButton
+                        endpoint="productThumbnail"
+                        input={{ shopId }}
+                        onClientUploadComplete={(res) => {
+                          if (res?.[0]) {
+                            // Use ufsUrl for v7+ or fall back to url
+                            setThumbnailUrl(res[0].ufsUrl || res[0].url);
+                          }
+                        }}
+                        onUploadError={(error: Error) => {
+                          setError(t("dashboard.product.thumbnailUploadFailed", { message: error.message }));
+                        }}
+                        appearance={{
+                          button: "bg-gray-700 hover:bg-gray-600 text-white font-medium px-4 py-2 rounded-lg transition-colors text-sm ut-uploading:bg-gray-700/50",
+                          allowedContent: "text-gray-500 text-xs mt-2",
+                        }}
+                      />
+                    )}
                   </div>
                 )}
               </div>
@@ -356,22 +361,25 @@ export default function AddProductPage() {
                         </svg>
                       </div>
                       <p className="text-gray-400 mb-2">{t("dashboard.product.dragDropInstruction")}</p>
-                      <UploadButton
-                        endpoint="productFile"
-                        onClientUploadComplete={(res) => {
-                          if (res?.[0]) {
-                            setFileUrl(res[0].ufsUrl || res[0].url);
-                            setFileName(res[0].name);
-                          }
-                        }}
-                        onUploadError={(error: Error) => {
-                          setError(t("dashboard.product.fileUploadFailed", { message: error.message }));
-                        }}
-                        appearance={{
-                          button: "bg-teal-500 hover:bg-teal-400 text-white font-medium px-6 py-2 rounded-lg transition-colors ut-uploading:bg-teal-500/50",
-                          allowedContent: "text-gray-500 text-xs mt-2",
-                        }}
-                      />
+                      {shopId && (
+                        <UploadButton
+                          endpoint="productFile"
+                          input={{ shopId }}
+                          onClientUploadComplete={(res) => {
+                            if (res?.[0]) {
+                              setFileUrl(res[0].ufsUrl || res[0].url);
+                              setFileName(res[0].name);
+                            }
+                          }}
+                          onUploadError={(error: Error) => {
+                            setError(t("dashboard.product.fileUploadFailed", { message: error.message }));
+                          }}
+                          appearance={{
+                            button: "bg-teal-500 hover:bg-teal-400 text-white font-medium px-6 py-2 rounded-lg transition-colors ut-uploading:bg-teal-500/50",
+                            allowedContent: "text-gray-500 text-xs mt-2",
+                          }}
+                        />
+                      )}
                     </div>
                   </div>
                 )}

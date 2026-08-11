@@ -59,21 +59,49 @@ const rasterImages = <const C extends { maxFileSize: string }>(config: C) => ({
  * scanner can fetch and forward a file inside one serverless invocation. The
  * largest asset in production today is under 2MB.
  */
-export const PRODUCT_FILE_CONFIG = {
-  // Documents
-  pdf: { maxFileSize: "32MB" },
-  "application/epub+zip": { maxFileSize: "32MB" },
-  // Archives — ZIP only
-  "application/zip": { maxFileSize: "128MB" },
-  // Audio
-  audio: { maxFileSize: "128MB" },
-  // Video
-  video: { maxFileSize: "256MB" },
-  // Images — raster only, never SVG
-  ...rasterImages({ maxFileSize: "32MB" }),
+
+/**
+ * Applied to every deliverable type.
+ *
+ * `acl: "private"` is the point of this stage: the object is not readable by
+ * URL at all, so an upload no longer mints a permanent public link to
+ * unreviewed, unscanned seller content. Reads require a short-lived signed
+ * URL minted server-side.
+ *
+ * `contentDisposition: "attachment"` is defence in depth behind that. Should a
+ * signed URL ever be opened in a browser, the file downloads instead of
+ * rendering — so seller-supplied content cannot execute in the opener's tab.
+ * PR #35 removed the types that made that dangerous; this removes the
+ * behaviour itself.
+ *
+ * Requires per-request ACL override to be enabled on the UploadThing app, and
+ * a paid plan. Both are in place.
+ */
+const PRIVATE_DELIVERABLE = {
+  acl: "private",
+  contentDisposition: "attachment",
 } as const;
 
-/** Listing artwork. Public the moment it is uploaded, so raster-only too. */
+export const PRODUCT_FILE_CONFIG = {
+  // Documents
+  pdf: { maxFileSize: "32MB", ...PRIVATE_DELIVERABLE },
+  "application/epub+zip": { maxFileSize: "32MB", ...PRIVATE_DELIVERABLE },
+  // Archives — ZIP only
+  "application/zip": { maxFileSize: "128MB", ...PRIVATE_DELIVERABLE },
+  // Audio
+  audio: { maxFileSize: "128MB", ...PRIVATE_DELIVERABLE },
+  // Video
+  video: { maxFileSize: "256MB", ...PRIVATE_DELIVERABLE },
+  // Images — raster only, never SVG
+  ...rasterImages({ maxFileSize: "32MB", ...PRIVATE_DELIVERABLE }),
+} as const;
+
+/**
+ * Listing artwork. Deliberately left `public-read` — a thumbnail exists to be
+ * shown on a public product page, and signing it would break image
+ * optimisation for no security gain. Raster-only still applies, which is what
+ * makes leaving it public acceptable.
+ */
 export const PRODUCT_THUMBNAIL_CONFIG = {
   ...rasterImages({ maxFileSize: "16MB", maxFileCount: 1 }),
 } as const;

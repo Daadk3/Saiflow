@@ -4,7 +4,7 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { authOptions } from "../auth/authOptions";
 import { slugify } from "@/lib/slug";
-import { isAllowedAssetUrl } from "@/lib/validations";
+import { isAllowedAssetUrl, extractAssetKey } from "@/lib/validations";
 import { isProductCategory } from "@/lib/categories";
 
 // POST - Create a new product
@@ -57,7 +57,12 @@ export async function POST(req: Request) {
         { status: 400 }
       );
     }
-    if (fileUrl && !isAllowedAssetUrl(fileUrl)) {
+    // The deliverable's storage key is derived from the URL, never accepted
+    // from the client, so `fileUrl` and `fileKey` can never describe different
+    // objects. extractAssetKey re-applies the host allowlist internally, so a
+    // null result means "not one of our objects" and is rejected.
+    const fileKey = fileUrl ? extractAssetKey(fileUrl) : null;
+    if (fileUrl && !fileKey) {
       return NextResponse.json(
         { error: "Invalid file URL" },
         { status: 400 }
@@ -130,10 +135,14 @@ export async function POST(req: Request) {
           category: category || null,
           shopId,
           fileUrl,
+          fileKey,
           thumbnailUrl,
           currency: "SAR",
           certifiedAt: now,
-          // moderationStatus defaults to PENDING via schema
+          // moderationStatus defaults to PENDING via schema.
+          // fileScanStatus defaults to PENDING_SCAN, and fileScanKey stays
+          // null — so the safety predicate is false for a brand-new product
+          // without anything here having to say so.
         },
       });
       await tx.moderationEvent.create({
