@@ -4,7 +4,7 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { authOptions } from "../auth/authOptions";
 import { slugify } from "@/lib/slug";
-import { isAllowedAssetUrl, extractAssetKey } from "@/lib/validations";
+import { isAllowedAssetUrl, extractOwnAssetKey } from "@/lib/validations";
 import { isProductCategory } from "@/lib/categories";
 
 // POST - Create a new product
@@ -59,9 +59,14 @@ export async function POST(req: Request) {
     }
     // The deliverable's storage key is derived from the URL, never accepted
     // from the client, so `fileUrl` and `fileKey` can never describe different
-    // objects. extractAssetKey re-applies the host allowlist internally, so a
-    // null result means "not one of our objects" and is rejected.
-    const fileKey = fileUrl ? extractAssetKey(fileUrl) : null;
+    // objects.
+    //
+    // extractOwnAssetKey additionally requires the URL to sit on SaiFlow's own
+    // UploadThing app. Without that, a shop member could reference a file
+    // uploaded to a personal UploadThing account and bypass the type and size
+    // allowlist completely. A new product has no legacy value to preserve, so
+    // the strict check always applies here.
+    const fileKey = fileUrl ? extractOwnAssetKey(fileUrl) : null;
     if (fileUrl && !fileKey) {
       return NextResponse.json(
         { error: "Invalid file URL" },

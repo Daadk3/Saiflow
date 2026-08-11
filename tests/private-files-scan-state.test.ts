@@ -17,7 +17,13 @@ import { test, describe } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
-import { extractAssetKey, isAllowedAssetUrl } from "../lib/validations.ts";
+import {
+  extractAssetKey,
+  extractOwnAssetKey,
+  isAllowedAssetUrl,
+  ownAssetHost,
+} from "../lib/validations.ts";
+import { isDeliverableSafe } from "../lib/file-safety.ts";
 import {
   PRODUCT_FILE_CONFIG,
   PRODUCT_THUMBNAIL_CONFIG,
@@ -235,7 +241,8 @@ describe("the migration cannot fabricate a verdict", () => {
 
 describe("create binds the key it stores", () => {
   test("the key is derived from the URL, not read from the body", () => {
-    assert.ok(createRoute.includes("extractAssetKey(fileUrl)"));
+    // Strict extractor: derived AND pinned to our own app.
+    assert.ok(createRoute.includes("extractOwnAssetKey(fileUrl)"));
     // fileKey must not be destructured from the request body.
     const body = createRoute.slice(0, createRoute.indexOf("await req.json()"));
     assert.ok(!/\bfileKey\b/.test(body), "fileKey must not come from the client");
@@ -256,7 +263,8 @@ describe("edit closes the arbitrary-URL gap and invalidates stale verdicts", () 
   test("fileUrl is validated on the edit path", () => {
     // The Stage A finding: this route previously wrote fileUrl straight
     // through, which the download redirect and the checkout HEAD both trust.
-    assert.ok(editRoute.includes("extractAssetKey(fileUrl)"));
+    // A changed value now goes through the strict, app-pinned extractor.
+    assert.ok(editRoute.includes("extractOwnAssetKey(submittedFileUrl)"));
     assert.ok(editRoute.includes('{ error: "Invalid file URL" }'));
   });
 
@@ -373,5 +381,185 @@ describe("pre-launch and buyer access are untouched", () => {
 
   test("PRE_LAUNCH_MODE is still declared", () => {
     assert.ok(read("../lib/env.ts").includes("PRE_LAUNCH_MODE"));
+  });
+});
+
+/* ------------------------------------------------------------------ */
+/* Writes must land on OUR UploadThing app                             */
+/* ------------------------------------------------------------------ */
+
+describe("write-path host pinning", () => {
+  // A fixed app id is passed explicitly so the test never depends on the
+  // environment, and never reads a configured value.
+  const APP = "z09wl7xuez";
+  const OURS = `https://${APP}.ufs.sh/f/abcd1234EFGH`;
+
+  test("the expected host is <appId>.ufs.sh", () => {
+    assert.equal(ownAssetHost(APP), "z09wl7xuez.ufs.sh");
+    assert.equal(ownAssetHost("  Z09WL7XUEZ  "), "z09wl7xuez.ufs.sh");
+  });
+
+  test("a file on our own app is accepted", () => {
+    assert.equal(extractOwnAssetKey(OURS, APP), "abcd1234EFGH");
+  });
+
+  test("a foreign UploadThing tenant is REJECTED", () => {
+    // The case this whole change exists for: a seller uploading to their own
+    // personal UploadThing account, then pointing a product at it. The file
+    // never passed our type or size allowlist.
+    assert.equal(
+      extractOwnAssetKey("https://attacker9xyz.ufs.sh/f/abcd1234EFGH", APP),
+      null
+    );
+    assert.equal(
+      extractOwnAssetKey("https://z09wl7xuez-evil.ufs.sh/f/abcd1234EFGH", APP),
+      null
+    );
+    assert.equal(
+      extractOwnAssetKey("https://sub.z09wl7xuez.ufs.sh/f/abcd1234EFGH", APP),
+      null
+    );
+  });
+
+  test("the shared utfs.io domain is REJECTED for writes", () => {
+    // utfs.io is shared by every UploadThing tenant, so a URL there can never
+    // demonstrate that the object is ours.
+    assert.equal(extractOwnAssetKey("https://utfs.io/f/abcd1234EFGH", APP), null);
+  });
+
+  test("other allowlisted read hosts are rejected for writes", () => {
+    assert.equal(
+      extractOwnAssetKey("https://x.uploadthing.com/f/abcd1234EFGH", APP),
+      null
+    );
+  });
+
+  test("an unconfigured app id fails CLOSED", () => {
+    // Never "allow anything" when the app id is missing.
+    assert.equal(ownAssetHost(""), null);
+    assert.equal(ownAssetHost(undefined), process.env.UPLOADTHING_APP_ID ? ownAssetHost() : null);
+    assert.equal(extractOwnAssetKey(OURS, ""), null);
+  });
+
+  test("everything extractAssetKey rejects, extractOwnAssetKey rejects too", () => {
+    for (const bad of [
+      "https://evil.example.com/f/abcd1234EFGH",
+      "https://utfs.io.evil.com/f/abcd1234EFGH",
+      "http://z09wl7xuez.ufs.sh/f/abcd1234EFGH",
+      `https://${APP}.ufs.sh/f/abcd1234EFGH/extra`,
+      `https://${APP}.ufs.sh/f/short`,
+      "javascript:alert(1)",
+      null,
+      undefined,
+    ]) {
+      assert.equal(extractOwnAssetKey(bad, APP), null, `must reject ${String(bad)}`);
+    }
+  });
+
+  test("reads are unaffected — legacy hosts still resolve", () => {
+    // admin-stats and thumbnails still use the permissive reader, so the
+    // legacy utfs.io rows keep rendering and stay inspectable.
+    assert.equal(extractAssetKey("https://utfs.io/f/abcd1234EFGH"), "abcd1234EFGH");
+    assert.equal(isAllowedAssetUrl("https://utfs.io/f/abcd1234EFGH"), true);
+  });
+});
+
+describe("write paths use the strict extractor", () => {
+  test("create always pins to our app", () => {
+    assert.ok(createRoute.includes("extractOwnAssetKey(fileUrl)"));
+    assert.ok(
+      !createRoute.includes("extractAssetKey(fileUrl)"),
+      "create must not use the permissive reader"
+    );
+  });
+
+  test("edit pins only when the value actually changes", () => {
+    assert.ok(/const fileUrlChanged\s*=/.test(editRoute));
+    assert.ok(editRoute.includes("extractOwnAssetKey(submittedFileUrl)"));
+    // The unchanged branch must stay permissive, or legacy rows become
+    // uneditable — the edit form echoes the stored URL back on every save.
+    assert.ok(
+      /if \(!fileUrlChanged\)[\s\S]*?extractAssetKey\(product\.fileUrl\)/.test(editRoute)
+    );
+  });
+
+  test("edit still validates after ownership is proven", () => {
+    assert.ok(
+      editRoute.indexOf("You don't have permission to edit this product") <
+        editRoute.indexOf("extractOwnAssetKey(submittedFileUrl)"),
+      "URL validation must not run before the ownership check"
+    );
+  });
+});
+
+/* ------------------------------------------------------------------ */
+/* The safety predicate                                                */
+/* ------------------------------------------------------------------ */
+
+describe("isDeliverableSafe", () => {
+  const KEY = "abcd1234EFGH";
+
+  test("the one true case", () => {
+    assert.equal(
+      isDeliverableSafe({
+        fileKey: KEY,
+        fileScanStatus: "SAFE",
+        fileScanKey: KEY,
+      }),
+      true
+    );
+  });
+
+  test("null fileKey with null fileScanKey is NOT safe", () => {
+    // The footgun this function exists for: `null === null` is true, so a
+    // fileless product would satisfy a naive key comparison.
+    assert.equal(
+      isDeliverableSafe({
+        fileKey: null,
+        fileScanStatus: "SAFE",
+        fileScanKey: null,
+      }),
+      false
+    );
+  });
+
+  test("a verdict for a different key is NOT safe", () => {
+    // The replaced-file case: the verdict belongs to the previous upload.
+    assert.equal(
+      isDeliverableSafe({
+        fileKey: "newKey9999AA",
+        fileScanStatus: "SAFE",
+        fileScanKey: KEY,
+      }),
+      false
+    );
+  });
+
+  test("SAFE with no attached file is NOT safe", () => {
+    assert.equal(
+      isDeliverableSafe({ fileKey: null, fileScanStatus: "SAFE", fileScanKey: KEY }),
+      false
+    );
+  });
+
+  test("every non-SAFE status is not safe", () => {
+    for (const status of ["PENDING_SCAN", "UNSAFE", "SCAN_ERROR"] as const) {
+      assert.equal(
+        isDeliverableSafe({ fileKey: KEY, fileScanStatus: status, fileScanKey: KEY }),
+        false,
+        `${status} must not be safe`
+      );
+    }
+  });
+
+  test("an unscanned product with a file is not safe", () => {
+    assert.equal(
+      isDeliverableSafe({
+        fileKey: KEY,
+        fileScanStatus: "PENDING_SCAN",
+        fileScanKey: null,
+      }),
+      false
+    );
   });
 });

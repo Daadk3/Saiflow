@@ -5,7 +5,11 @@ import { prisma } from "@/lib/prisma";
 import { authOptions } from "../../auth/authOptions";
 import { slugify } from "@/lib/slug";
 import { isProductCategory } from "@/lib/categories";
-import { isAllowedAssetUrl, extractAssetKey } from "@/lib/validations";
+import {
+  isAllowedAssetUrl,
+  extractAssetKey,
+  extractOwnAssetKey,
+} from "@/lib/validations";
 
 // GET - Get a single product by ID (seller dashboard only)
 // SECURITY: this returns the full row including fileUrl (the paid asset),
@@ -101,20 +105,9 @@ export async function PUT(
      * arbitrary URL, which downstream code trusts: the download route redirects
      * to it, and checkout fetches it server-side.
      *
-     * Both are validated here now, and the deliverable's key is derived rather
-     * than trusted, exactly as on create.
+     * The deliverable is validated below, once the stored row is available —
+     * see the note there for why that ordering is required.
      */
-    let nextFileKey: string | null | undefined;
-    if (fileUrl !== undefined) {
-      if (fileUrl === null || fileUrl === "") {
-        nextFileKey = null;
-      } else {
-        nextFileKey = extractAssetKey(fileUrl);
-        if (!nextFileKey) {
-          return NextResponse.json({ error: "Invalid file URL" }, { status: 400 });
-        }
-      }
-    }
     if (
       thumbnailUrl !== undefined &&
       thumbnailUrl !== null &&
@@ -163,6 +156,40 @@ export async function PUT(
         { error: "You don't have permission to edit this product" },
         { status: 403 }
       );
+    }
+
+    /**
+     * Deliverable validation, deliberately placed after the row is loaded and
+     * ownership is proven.
+     *
+     * A NEW deliverable must sit on SaiFlow's own UploadThing app, so a shop
+     * member cannot point a product at a file uploaded to a personal account
+     * and bypass the type and size allowlist.
+     *
+     * An UNCHANGED value is exempt, and that exemption is load-bearing rather
+     * than a convenience: the edit form preloads the stored URL into its state
+     * and echoes it back on every save. Enforcing the strict host on an
+     * unchanged value would make the products still hosted on the legacy shared
+     * `utfs.io` domain permanently uneditable.
+     */
+    const submittedFileUrl = fileUrl === undefined ? undefined : fileUrl || null;
+    const fileUrlChanged =
+      submittedFileUrl !== undefined && submittedFileUrl !== product.fileUrl;
+
+    let nextFileKey: string | null | undefined;
+    if (submittedFileUrl !== undefined) {
+      if (!fileUrlChanged) {
+        // Same file as before. Derive the key with the permissive reader so a
+        // legacy row backfills its key instead of being rejected.
+        nextFileKey = product.fileKey ?? extractAssetKey(product.fileUrl);
+      } else if (submittedFileUrl === null) {
+        nextFileKey = null;
+      } else {
+        nextFileKey = extractOwnAssetKey(submittedFileUrl);
+        if (!nextFileKey) {
+          return NextResponse.json({ error: "Invalid file URL" }, { status: 400 });
+        }
+      }
     }
 
     // Create new slug if name changed (falls back to a random handle for non-Latin names)

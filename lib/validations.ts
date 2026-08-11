@@ -50,6 +50,59 @@ export function extractAssetKey(url: unknown): string | null {
   }
 }
 
+/**
+ * SaiFlow's own storage host, `<appId>.ufs.sh`.
+ *
+ * Verified against the installed `uploadthing` 7.7.4: file URLs are built as
+ * `https://<appId>.<ufsHost>/f/<key>`, where `ufsHost` defaults to `"ufs.sh"`
+ * and the app id is placed in the subdomain
+ * (`UfsHost` / `UfsAppIdLocation` in `dist/upload-builder`). SaiFlow overrides
+ * neither, so the default form applies.
+ *
+ * Returns null when the app id is unconfigured. Callers MUST read that as
+ * "reject", never as "allow anything".
+ */
+export function ownAssetHost(
+  appId: string | undefined = process.env.UPLOADTHING_APP_ID
+): string | null {
+  const id = appId?.trim().toLowerCase();
+  return id ? `${id}.ufs.sh` : null;
+}
+
+/**
+ * Key extraction for a value being WRITTEN to a product.
+ *
+ * Deliberately stricter than `extractAssetKey`, which only proves a URL is
+ * shaped like an UploadThing object. That check accepts *any* tenant's
+ * subdomain and the shared `utfs.io` domain, so a seller could point a
+ * deliverable at a file uploaded to their own personal UploadThing account —
+ * bypassing the type and size allowlist entirely, because such a file never
+ * travelled through our upload route.
+ *
+ * A write must therefore land on our own app host. `utfs.io` is excluded on
+ * purpose: it is shared by every UploadThing tenant, so a URL there can never
+ * demonstrate ownership. Existing `utfs.io` rows keep working because callers
+ * apply this check only to values that actually change.
+ *
+ * Fails closed when the app id is unconfigured.
+ */
+export function extractOwnAssetKey(
+  url: unknown,
+  appId?: string
+): string | null {
+  const host = ownAssetHost(appId);
+  if (!host) return null;
+
+  const key = extractAssetKey(url);
+  if (!key) return null;
+
+  try {
+    return new URL(url as string).hostname.toLowerCase() === host ? key : null;
+  } catch {
+    return null;
+  }
+}
+
 // Auth schemas
 export const signupSchema = z.object({
   name: z
