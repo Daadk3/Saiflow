@@ -1519,3 +1519,169 @@ describe("EPUB identity is proven from content, not from entry names", () => {
     assert.equal(resolveContentPolicy(zip)!.allowHtml, false);
   });
 });
+
+/* ------------------------------------------------------------------ */
+/* Live-response regression: FoundViruses null                         */
+/* ------------------------------------------------------------------ */
+
+describe("the real Cloudmersive clean response parses", () => {
+  /**
+   * The exact field set returned by a live 200 from
+   * POST /virus/scan/file/advanced for a clean PDF, captured during Stage C
+   * Preview QA.
+   *
+   * Two fields here are present in reality but absent from the vendor
+   * documentation this parser was written against: ContainsUnwantedAction and
+   * ContentInformation. They are reproduced so the fixture stays faithful.
+   * ContainsUnwantedAction is a threat flag we do NOT yet act on — tracked
+   * separately as a hardening follow-up, deliberately not addressed here.
+   *
+   * The one that mattered: FoundViruses is `null`, not `[]` and not omitted.
+   * The previous guard accepted only "absent or array", so it rejected every
+   * clean scan as unparseable and produced provider_bad_response_terminal.
+   */
+  const liveShape = (over: Record<string, unknown> = {}) => ({
+    CleanResult: true,
+    ContainsExecutable: false,
+    ContainsHtml: false,
+    ContainsInsecureDeserialization: false,
+    ContainsInvalidFile: false,
+    ContainsMacros: false,
+    ContainsOleEmbeddedObject: false,
+    ContainsPasswordProtectedFile: false,
+    ContainsRestrictedFileFormat: false,
+    ContainsScript: false,
+    ContainsUnsafeArchive: false,
+    ContainsUnwantedAction: false,
+    ContainsXmlExternalEntities: false,
+    ContentInformation: {},
+    FoundViruses: null,
+    VerifiedFileFormat: ".pdf",
+    ...over,
+  });
+
+  const scanWith = async (body: unknown) => {
+    const prevKey = process.env.CLOUDMERSIVE_API_KEY;
+    const prevFetch = globalThis.fetch;
+    process.env.CLOUDMERSIVE_API_KEY = "test-key-not-a-real-secret";
+    globalThis.fetch = (async () =>
+      new Response(JSON.stringify(body), { status: 200 })) as typeof fetch;
+    try {
+      return await cloudmersiveProvider.scan({
+        bytes: new Uint8Array([1, 2, 3]),
+        fileName: "x.pdf",
+        restrictToExtensions: [".pdf"],
+        allowHtml: false,
+      });
+    } finally {
+      globalThis.fetch = prevFetch;
+      if (prevKey === undefined) delete process.env.CLOUDMERSIVE_API_KEY;
+      else process.env.CLOUDMERSIVE_API_KEY = prevKey;
+    }
+  };
+
+  test("REGRESSION: the captured live response is accepted", () => {
+    // The exact payload that failed in Preview.
+    return scanWith(liveShape()).then((res) => {
+      assert.equal(res.ok, true, "the real clean response must parse");
+      if (res.ok) {
+        assert.equal(res.findings.clean, true);
+        assert.equal(res.findings.verifiedFileFormat, ".pdf");
+        assert.deepEqual(res.findings.virusNames, [], "null means no names");
+      }
+    });
+  });
+
+  test("it reaches ALLOW end to end", async () => {
+    const res = await scanWith(liveShape());
+    assert.equal(res.ok, true);
+    if (res.ok) {
+      const verdict = verdictFromFindings(res.findings, {
+        kind: "pdf",
+        restrictToExtensions: [".pdf"],
+        allowHtml: false,
+      });
+      assert.equal(verdict.outcome, "ALLOW");
+    }
+  });
+
+  for (const [label, value] of [
+    ["null", null],
+    ["an empty array", []],
+  ] as const) {
+    test(`FoundViruses as ${label} is accepted`, async () => {
+      const res = await scanWith(liveShape({ FoundViruses: value }));
+      assert.equal(res.ok, true, label);
+    });
+  }
+
+  test("FoundViruses absent is accepted", async () => {
+    const body = liveShape() as Record<string, unknown>;
+    delete body.FoundViruses;
+    const res = await scanWith(body);
+    assert.equal(res.ok, true);
+  });
+
+  for (const [label, value] of [
+    ["a string", "eicar"],
+    ["a number", 123],
+    ["an object", {}],
+    ["a boolean", true],
+  ] as const) {
+    test(`FoundViruses as ${label} is still REJECTED`, async () => {
+      const res = await scanWith(liveShape({ FoundViruses: value }));
+      assert.equal(res.ok, false, label);
+      assert.equal(res.ok === false && res.failure, "bad_response");
+    });
+  }
+
+  test("null FoundViruses with CleanResult false is still MALWARE", async () => {
+    // The relaxation must not create a bypass: the verdict comes from
+    // CleanResult, never from the absence of virus names.
+    const res = await scanWith(liveShape({ CleanResult: false, FoundViruses: null }));
+    assert.equal(res.ok, true, "it should parse");
+    if (res.ok) {
+      assert.equal(res.findings.clean, false);
+      const verdict = verdictFromFindings(res.findings, {
+        kind: "pdf",
+        restrictToExtensions: [".pdf"],
+        allowHtml: false,
+      });
+      assert.equal(verdict.outcome, "REJECT");
+      assert.equal((verdict as { reason: string }).reason, "malware");
+    }
+  });
+
+  test("virus names are still extracted when an array IS supplied", async () => {
+    const res = await scanWith(
+      liveShape({
+        CleanResult: false,
+        FoundViruses: [{ FileName: "x.pdf", VirusName: "Eicar-Test-Signature" }],
+      })
+    );
+    assert.equal(res.ok, true);
+    if (res.ok) assert.deepEqual(res.findings.virusNames, ["Eicar-Test-Signature"]);
+  });
+
+  test("every OTHER strict check is unchanged by this fix", async () => {
+    // Only FoundViruses was relaxed. CleanResult, the threat flags and
+    // VerifiedFileFormat must all still reject on type or absence.
+    const cases: [string, Record<string, unknown>][] = [
+      ["CleanResult as string", { CleanResult: "true" }],
+      ["threat flag as string", { ContainsExecutable: "false" }],
+      ["threat flag null", { ContainsScript: null }],
+      ["VerifiedFileFormat null", { VerifiedFileFormat: null }],
+      ["VerifiedFileFormat empty", { VerifiedFileFormat: "  " }],
+    ];
+    for (const [label, over] of cases) {
+      const res = await scanWith(liveShape(over));
+      assert.equal(res.ok, false, label);
+      assert.equal(res.ok === false && res.failure, "bad_response", label);
+    }
+
+    const missingFlag = liveShape() as Record<string, unknown>;
+    delete missingFlag.ContainsMacros;
+    const res = await scanWith(missingFlag);
+    assert.equal(res.ok, false, "a missing threat flag must still reject");
+  });
+});

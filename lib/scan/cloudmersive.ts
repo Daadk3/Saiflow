@@ -83,8 +83,25 @@ function parseFindings(payload: unknown): ScanFindings | null {
   const verifiedFileFormat = raw.VerifiedFileFormat.trim();
   if (verifiedFileFormat === "") return null;
 
-  // FoundViruses is optional in shape but must be an array when present.
-  if (raw.FoundViruses !== undefined && !Array.isArray(raw.FoundViruses)) return null;
+  // FoundViruses may be absent, explicitly null, or an array.
+  //
+  // Cloudmersive sends `null` — not an empty array, and not omission — when a
+  // scan finds nothing, so this IS the ordinary clean-scan case. The previous
+  // guard accepted only "absent or array" and so rejected every clean response
+  // as unparseable, which is what produced provider_bad_response_terminal on
+  // the first real scan in Preview.
+  //
+  // Accepting null cannot weaken the verdict. FoundViruses supplies virus
+  // NAMES for the audit trail only; the malware decision is CleanResult, still
+  // required above as a strict boolean, and verdictFromFindings rejects on
+  // !clean before it reads anything else. A wrong-typed value is still refused.
+  if (
+    raw.FoundViruses !== undefined &&
+    raw.FoundViruses !== null &&
+    !Array.isArray(raw.FoundViruses)
+  ) {
+    return null;
+  }
   const viruses = Array.isArray(raw.FoundViruses)
     ? raw.FoundViruses.flatMap((v) => {
         if (typeof v !== "object" || v === null) return [];
