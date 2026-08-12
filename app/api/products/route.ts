@@ -5,6 +5,10 @@ import { prisma } from "@/lib/prisma";
 import { authOptions } from "../auth/authOptions";
 import { slugify } from "@/lib/slug";
 import { isAllowedAssetUrl, extractOwnAssetKey } from "@/lib/validations";
+import {
+  verifyDeliverableProvenance,
+  attachedScanFields,
+} from "@/lib/file-safety";
 import { isProductCategory } from "@/lib/categories";
 
 // POST - Create a new product
@@ -124,6 +128,27 @@ export async function POST(req: Request) {
       );
     }
 
+    /**
+     * Provenance: the key must have been uploaded through the product-file
+     * route, for THIS shop. Host pinning proved the object is SaiFlow's; this
+     * proves it is this seller's, and that it was not uploaded as a logo or
+     * thumbnail under different size and ACL rules.
+     *
+     * Checked after shop membership, so an outsider is refused before any
+     * lookup reveals whether a key exists.
+     */
+    let scanFields = {};
+    if (fileKey) {
+      const provenance = await verifyDeliverableProvenance(fileKey, shopId);
+      if (!provenance.ok) {
+        return NextResponse.json(
+          { error: "This file cannot be attached to a product." },
+          { status: 400 }
+        );
+      }
+      scanFields = attachedScanFields(provenance.asset);
+    }
+
     // Create slug from name (falls back to a random handle for non-Latin names)
     const slug = slugify(name, "product");
 
@@ -141,6 +166,7 @@ export async function POST(req: Request) {
           shopId,
           fileUrl,
           fileKey,
+          ...scanFields,
           thumbnailUrl,
           currency: "SAR",
           certifiedAt: now,

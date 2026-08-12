@@ -99,10 +99,12 @@ describe("PR #35 type hardening survives the ACL change", () => {
     assert.ok(!("application/x-rar-compressed" in PRODUCT_FILE_CONFIG));
   });
 
-  test("ceilings are unchanged", () => {
+  test("ceilings are unchanged apart from the Stage C video cut", () => {
     const c = PRODUCT_FILE_CONFIG as unknown as Record<string, Entry>;
     assert.equal(c["application/zip"].maxFileSize, "128MB");
-    assert.equal(c.video.maxFileSize, "256MB");
+    // 256MB -> 128MB in Stage C, so every accepted deliverable fits inside
+    // MAX_SCANNABLE_BYTES.
+    assert.equal(c.video.maxFileSize, "128MB");
     assert.equal(c.pdf.maxFileSize, "32MB");
   });
 });
@@ -274,8 +276,17 @@ describe("edit closes the arbitrary-URL gap and invalidates stale verdicts", () 
   });
 
   test("a changed key resets the whole scan record", () => {
+    // Stage C rewrites the record from the NEW file's own provenance row
+    // rather than hardcoding PENDING_SCAN, so a file already scanned between
+    // upload and save keeps its real verdict. Either way nothing is inherited
+    // from the previous file.
     assert.ok(/nextFileKey !== undefined && nextFileKey !== product\.fileKey/.test(editRoute));
-    const reset = editRoute.slice(editRoute.indexOf("fileChanged"));
+    assert.ok(
+      editRoute.includes("replacementScanFields = attachedScanFields(provenance.asset)"),
+      "a replacement must take its scan state from the new file's provenance"
+    );
+    // Removing the file clears every column outright.
+    const removal = editRoute.slice(editRoute.indexOf("File removed"));
     for (const field of [
       'fileScanStatus: "PENDING_SCAN"',
       "fileScanKey: null",
@@ -283,8 +294,12 @@ describe("edit closes the arbitrary-URL gap and invalidates stale verdicts", () 
       "fileScanAt: null",
       "fileScanAttempts: 0",
     ]) {
-      assert.ok(reset.includes(field), `reset must clear ${field}`);
+      assert.ok(removal.includes(field), `removal must clear ${field}`);
     }
+    assert.ok(
+      editRoute.includes("fileChanged && replacementScanFields"),
+      "the rewrite must only apply when the key actually changed"
+    );
   });
 
   test("edit never writes a verdict", () => {
@@ -328,9 +343,10 @@ describe("uploads require membership of the named shop", () => {
   });
 
   test("the upload callback logs identifiers, not the asset URL", () => {
-    const complete = core.slice(core.indexOf("ourFileRouter"));
-    assert.ok(!/console\.log\([^)]*file\.ufsUrl/.test(complete));
-    assert.ok(complete.includes("file.key"));
+    // Stage C moved the callback body into recordProvenance, so assert against
+    // the whole module rather than the router block.
+    assert.ok(!/console\.log\([^)]*file\.ufsUrl/.test(core));
+    assert.ok(core.includes("key=${file.key}"));
   });
 });
 

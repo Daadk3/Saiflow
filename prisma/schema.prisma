@@ -135,8 +135,9 @@ model Shop {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  shopUsers ShopUser[]
-  products  Product[]
+  shopUsers  ShopUser[]
+  products   Product[]
+  fileAssets FileAsset[]
 
   @@index([slug])
   @@index([isActive])
@@ -242,6 +243,62 @@ enum FileScanStatus {
   SCAN_ERROR
 }
 
+/// Which upload route produced an object. Provenance is worthless without it:
+/// a key uploaded as a shop logo must never be attachable as a deliverable.
+enum UploadRoute {
+  PRODUCT_FILE
+  PRODUCT_THUMBNAIL
+  SHOP_LOGO
+  SHOP_COVER
+}
+
+/// Upload provenance: proof of who put an object in our storage, for which
+/// shop, through which route — plus the scan verdict for its bytes.
+///
+/// This record is written ONLY by `onUploadComplete`, from middleware metadata
+/// the server established itself. It is never created or amended from a client
+/// payload, which is what makes it usable as an authorisation source.
+///
+/// It exists as its own model rather than as columns on Product because at
+/// upload time no Product exists yet — the product is created afterwards by
+/// POST /api/products. The scan verdict therefore has to live somewhere keyed
+/// by the storage object, and Product copies it in at attach time.
+model FileAsset {
+  /// The UploadThing object key. Natural primary key: unique per upload, and
+  /// the same value Product.fileKey binds to.
+  key          String      @id
+  shopId       String
+  route        UploadRoute
+  /// Recorded for audit, deliberately without a foreign key so that provenance
+  /// outlives account deletion — the same convention ModerationEvent.actor uses.
+  uploadedById String
+  /// Client-declared metadata. Untrusted hints kept for triage only; the scan
+  /// pipeline verifies the format from the bytes.
+  name         String
+  size         Int
+  declaredType String
+
+  scanStatus   FileScanStatus @default(PENDING_SCAN)
+  /// SHA-256 over the exact bytes submitted to the scanner.
+  scanSha256   String?
+  scanAt       DateTime?
+  /// Bounded-retry counter, persisted so a crash loop cannot reset it.
+  scanAttempts Int            @default(0)
+  /// Short reason category (e.g. "malware", "format_mismatch"). Never the
+  /// provider's raw payload, and never file contents.
+  scanReason   String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  shop Shop @relation(fields: [shopId], references: [id], onDelete: Cascade)
+
+  @@index([shopId])
+  @@index([scanStatus])
+  @@index([route])
+  @@index([createdAt])
+}
+
 enum ModerationStatus {
   PENDING
   APPROVED
@@ -254,6 +311,10 @@ enum ModerationAction {
   REJECTED
   RESUBMITTED
   REPORTED
+  /// An automated file-safety verdict. Never changes moderationStatus on its
+  /// own — it records what the scanner concluded, and the gates read the
+  /// scan columns rather than this event.
+  SCANNED
 }
 
 // Append-only audit log of every moderation decision.

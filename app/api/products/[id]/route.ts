@@ -10,6 +10,10 @@ import {
   extractAssetKey,
   extractOwnAssetKey,
 } from "@/lib/validations";
+import {
+  verifyDeliverableProvenance,
+  attachedScanFields,
+} from "@/lib/file-safety";
 
 // GET - Get a single product by ID (seller dashboard only)
 // SECURITY: this returns the full row including fileUrl (the paid asset),
@@ -192,6 +196,43 @@ export async function PUT(
       }
     }
 
+    /**
+     * Provenance for a REPLACEMENT deliverable.
+     *
+     * Host pinning proved the new key is SaiFlow's; this proves it was
+     * uploaded through the product-file route for THIS product's shop. Without
+     * it, a seller who learned another shop's key could attach it here.
+     *
+     * The scan record that follows comes from the file's own FileAsset row
+     * rather than being assumed: normally PENDING_SCAN, but already SAFE if the
+     * worker settled it between upload and save.
+     */
+    let replacementScanFields: Record<string, unknown> | null = null;
+    if (fileUrlChanged) {
+      if (nextFileKey) {
+        const provenance = await verifyDeliverableProvenance(
+          nextFileKey,
+          product.shopId
+        );
+        if (!provenance.ok) {
+          return NextResponse.json(
+            { error: "This file cannot be attached to a product." },
+            { status: 400 }
+          );
+        }
+        replacementScanFields = attachedScanFields(provenance.asset);
+      } else {
+        // File removed: clear the record so nothing survives pointing at it.
+        replacementScanFields = {
+          fileScanStatus: "PENDING_SCAN" as const,
+          fileScanKey: null,
+          fileScanSha256: null,
+          fileScanAt: null,
+          fileScanAttempts: 0,
+        };
+      }
+    }
+
     // Create new slug if name changed (falls back to a random handle for non-Latin names)
     let slug = product.slug;
     if (name && name !== product.name) {
@@ -201,11 +242,11 @@ export async function PUT(
     /**
      * A replaced deliverable must not inherit the previous file's verdict.
      *
-     * Every upload mints a new storage key, so comparing keys detects the
-     * replacement, and the whole scan record is cleared back to PENDING_SCAN.
-     * This is belt-and-braces rather than the primary defence: the safety
-     * predicate also requires fileScanKey == fileKey, so even if this reset
-     * were removed the stale SAFE still could not authorise anything.
+     * Every upload mints a new storage key, so a key change is what detects the
+     * replacement, and the scan record is rewritten from the NEW file's own
+     * provenance row. This is belt-and-braces rather than the primary defence:
+     * the safety predicate also requires fileScanKey == fileKey, so even if
+     * this were removed a stale SAFE still could not authorise anything.
      *
      * Legacy rows carry a fileUrl but no fileKey, so re-saving one backfills
      * its key and leaves it — correctly — unscanned.
@@ -225,15 +266,7 @@ export async function PUT(
         thumbnailUrl:
           thumbnailUrl !== undefined ? thumbnailUrl || null : product.thumbnailUrl,
         ...(nextFileKey !== undefined ? { fileKey: nextFileKey } : {}),
-        ...(fileChanged
-          ? {
-              fileScanStatus: "PENDING_SCAN" as const,
-              fileScanKey: null,
-              fileScanSha256: null,
-              fileScanAt: null,
-              fileScanAttempts: 0,
-            }
-          : {}),
+        ...(fileChanged && replacementScanFields ? replacementScanFields : {}),
       },
     });
 

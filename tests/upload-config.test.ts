@@ -213,7 +213,7 @@ describe("size ceilings are the ones the server will enforce", () => {
   // constant alone would not prove the limit reaches the file.
   const expected: [string, string, string, string][] = [
     ["ZIP", "pack.zip", "application/zip", "128MB"],
-    ["video", "lesson.mp4", "video/mp4", "256MB"],
+    ["video", "lesson.mp4", "video/mp4", "128MB"],
     ["audio", "track.mp3", "audio/mpeg", "128MB"],
     ["PDF", "guide.pdf", "application/pdf", "32MB"],
     ["EPUB", "book.epub", "application/epub+zip", "32MB"],
@@ -232,6 +232,10 @@ describe("size ceilings are the ones the server will enforce", () => {
   test("ZIP and video were reduced from 512MB", () => {
     assert.notEqual(PRODUCT_FILE_CONFIG["application/zip"].maxFileSize, "512MB");
     assert.notEqual(PRODUCT_FILE_CONFIG.video.maxFileSize, "512MB");
+    // Stage C cut video again, 256MB -> 128MB, so that every accepted
+    // deliverable fits inside MAX_SCANNABLE_BYTES. A ceiling above the
+    // scannable limit would accept uploads that can never become sellable.
+    assert.notEqual(PRODUCT_FILE_CONFIG.video.maxFileSize, "256MB");
   });
 
   test("the image routes keep their existing ceilings and single-file limit", () => {

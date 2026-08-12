@@ -90,8 +90,12 @@ export const PRODUCT_FILE_CONFIG = {
   "application/zip": { maxFileSize: "128MB", ...PRIVATE_DELIVERABLE },
   // Audio
   audio: { maxFileSize: "128MB", ...PRIVATE_DELIVERABLE },
-  // Video
-  video: { maxFileSize: "256MB", ...PRIVATE_DELIVERABLE },
+  // Video. Reduced 256MB -> 128MB in Stage C so that every accepted
+  // deliverable fits within MAX_SCANNABLE_BYTES: the scanner moves each file
+  // twice (storage -> here -> provider), and anything it cannot finish is
+  // recorded SCAN_ERROR and can never be sold. A ceiling above the scannable
+  // limit would mean accepting uploads that are unsellable by construction.
+  video: { maxFileSize: "128MB", ...PRIVATE_DELIVERABLE },
   // Images — raster only, never SVG
   ...rasterImages({ maxFileSize: "32MB", ...PRIVATE_DELIVERABLE }),
 } as const;

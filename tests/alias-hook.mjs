@@ -1,11 +1,13 @@
 /**
- * Resolves the project's `@/*` TypeScript path alias for Node's test runner.
+ * Teaches Node's test runner the two module-resolution conventions the app
+ * relies on but the plain ESM resolver does not implement.
  *
- * tsconfig maps `@/*` to the repository root, but that alias is a
- * TypeScript/bundler concept Node knows nothing about. This hook teaches the
- * ESM loader the same mapping so tests can import application modules exactly
- * as the app does — no source changes, no test-only import conventions and no
- * new dependency.
+ * 1. The `@/*` TypeScript path alias, which tsconfig maps to the repo root.
+ * 2. Extensionless relative imports (`./archive`), which TypeScript and the
+ *    Next.js bundler resolve to `.ts`/`.tsx` but Node does not.
+ *
+ * Both exist so tests can import application modules exactly as the app does —
+ * no source changes, no test-only import conventions, no new dependency.
  */
 import { pathToFileURL } from "node:url";
 import { dirname, resolve as resolvePath } from "node:path";
@@ -13,17 +15,40 @@ import { fileURLToPath } from "node:url";
 
 const ROOT = resolvePath(dirname(fileURLToPath(import.meta.url)), "..");
 
-export async function resolve(specifier, context, nextResolve) {
-  if (specifier.startsWith("@/")) {
-    const target = resolvePath(ROOT, specifier.slice(2));
-    // Try the literal path first, then the TypeScript extensions the repo uses.
-    for (const candidate of [target, `${target}.ts`, `${target}.tsx`, `${target}/index.ts`]) {
-      try {
-        return await nextResolve(pathToFileURL(candidate).href, context);
-      } catch {
-        // try the next candidate
-      }
+/** Candidate paths for a base path, in TypeScript's own resolution order. */
+const candidates = (base) => [base, `${base}.ts`, `${base}.tsx`, `${base}/index.ts`];
+
+async function tryCandidates(base, context, nextResolve) {
+  for (const candidate of candidates(base)) {
+    try {
+      return await nextResolve(pathToFileURL(candidate).href, context);
+    } catch {
+      // try the next candidate
     }
   }
+  return null;
+}
+
+export async function resolve(specifier, context, nextResolve) {
+  if (specifier.startsWith("@/")) {
+    const resolved = await tryCandidates(
+      resolvePath(ROOT, specifier.slice(2)),
+      context,
+      nextResolve
+    );
+    if (resolved) return resolved;
+  }
+
+  // Relative specifier with no extension, resolved against the importing file.
+  if (
+    (specifier.startsWith("./") || specifier.startsWith("../")) &&
+    !/\.[a-z]+$/i.test(specifier) &&
+    context.parentURL?.startsWith("file:")
+  ) {
+    const base = resolvePath(dirname(fileURLToPath(context.parentURL)), specifier);
+    const resolved = await tryCandidates(base, context, nextResolve);
+    if (resolved) return resolved;
+  }
+
   return nextResolve(specifier, context);
 }
