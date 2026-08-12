@@ -17,8 +17,13 @@
 export interface ScanFindings {
   /** The provider's own overall verdict. Necessary, never sufficient. */
   clean: boolean;
-  /** Format established from content by the provider, e.g. ".pdf". */
-  verifiedFileFormat: string | null;
+  /**
+   * Format established from content by the provider, e.g. ".pdf".
+   *
+   * Non-optional: a response without it is rejected as unparseable rather than
+   * accepted with the check skipped.
+   */
+  verifiedFileFormat: string;
   containsExecutable: boolean;
   containsInvalidFile: boolean;
   containsScript: boolean;

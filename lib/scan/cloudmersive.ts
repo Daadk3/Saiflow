@@ -33,29 +33,58 @@ function apiKey(): string | undefined {
 const bool = (value: boolean) => (value ? "true" : "false");
 
 /**
- * Coerce one response field to a boolean, treating anything unexpected as
- * "threat present".
+ * Threat flags that must be present and must be real booleans.
  *
- * This is the fail-closed rule applied at field level: if the provider omits a
- * flag or returns something we do not understand, the safe reading is that the
- * threat may be there, not that it is absent.
+ * Earlier this parser coerced: a missing flag was read as "threat present",
+ * and the string `"false"` was accepted as false. Both were wrong in the same
+ * way — they invented a verdict out of a payload we did not actually
+ * understand. A response we cannot parse is not a scan result, so it becomes
+ * SCAN_ERROR and the file stays unsellable until a real answer arrives.
  */
-function threatFlag(value: unknown): boolean {
-  if (typeof value === "boolean") return value;
-  if (value === null || value === undefined) return true;
-  if (typeof value === "string") return value.toLowerCase() !== "false";
-  return true;
-}
+const REQUIRED_THREAT_FLAGS = [
+  "ContainsExecutable",
+  "ContainsInvalidFile",
+  "ContainsScript",
+  "ContainsPasswordProtectedFile",
+  "ContainsRestrictedFileFormat",
+  "ContainsMacros",
+  "ContainsXmlExternalEntities",
+  "ContainsInsecureDeserialization",
+  "ContainsHtml",
+  "ContainsUnsafeArchive",
+  "ContainsOleEmbeddedObject",
+] as const;
 
+/**
+ * Parse strictly. Returns null — meaning "no usable verdict" — unless every
+ * required field is present with exactly the expected type.
+ *
+ * DOCUMENTED POLICY, because the distinction matters:
+ *   - a payload we cannot parse  -> SCAN_ERROR (we never got a verdict)
+ *   - a payload we can parse that disagrees with policy -> UNSAFE
+ * Neither can ever produce SAFE.
+ */
 function parseFindings(payload: unknown): ScanFindings | null {
-  if (typeof payload !== "object" || payload === null) return null;
+  if (typeof payload !== "object" || payload === null || Array.isArray(payload)) {
+    return null;
+  }
   const raw = payload as Record<string, unknown>;
 
-  // CleanResult is the one field we refuse to guess: without an explicit
-  // boolean there is no verdict at all, so the caller must treat it as an
-  // error rather than as a threat or a pass.
   if (typeof raw.CleanResult !== "boolean") return null;
 
+  for (const flag of REQUIRED_THREAT_FLAGS) {
+    if (typeof raw[flag] !== "boolean") return null;
+  }
+
+  // Content-verified format is required. Without it we would be trusting the
+  // provider's overall verdict and our own sniffing alone, with nothing
+  // independently confirming what the bytes actually are.
+  if (typeof raw.VerifiedFileFormat !== "string") return null;
+  const verifiedFileFormat = raw.VerifiedFileFormat.trim();
+  if (verifiedFileFormat === "") return null;
+
+  // FoundViruses is optional in shape but must be an array when present.
+  if (raw.FoundViruses !== undefined && !Array.isArray(raw.FoundViruses)) return null;
   const viruses = Array.isArray(raw.FoundViruses)
     ? raw.FoundViruses.flatMap((v) => {
         if (typeof v !== "object" || v === null) return [];
@@ -64,21 +93,22 @@ function parseFindings(payload: unknown): ScanFindings | null {
       })
     : [];
 
+  const flag = (name: (typeof REQUIRED_THREAT_FLAGS)[number]) => raw[name] as boolean;
+
   return {
     clean: raw.CleanResult,
-    verifiedFileFormat:
-      typeof raw.VerifiedFileFormat === "string" ? raw.VerifiedFileFormat : null,
-    containsExecutable: threatFlag(raw.ContainsExecutable),
-    containsInvalidFile: threatFlag(raw.ContainsInvalidFile),
-    containsScript: threatFlag(raw.ContainsScript),
-    containsPasswordProtectedFile: threatFlag(raw.ContainsPasswordProtectedFile),
-    containsRestrictedFileFormat: threatFlag(raw.ContainsRestrictedFileFormat),
-    containsMacros: threatFlag(raw.ContainsMacros),
-    containsXmlExternalEntities: threatFlag(raw.ContainsXmlExternalEntities),
-    containsInsecureDeserialization: threatFlag(raw.ContainsInsecureDeserialization),
-    containsHtml: threatFlag(raw.ContainsHtml),
-    containsUnsafeArchive: threatFlag(raw.ContainsUnsafeArchive),
-    containsOleEmbeddedObject: threatFlag(raw.ContainsOleEmbeddedObject),
+    verifiedFileFormat,
+    containsExecutable: flag("ContainsExecutable"),
+    containsInvalidFile: flag("ContainsInvalidFile"),
+    containsScript: flag("ContainsScript"),
+    containsPasswordProtectedFile: flag("ContainsPasswordProtectedFile"),
+    containsRestrictedFileFormat: flag("ContainsRestrictedFileFormat"),
+    containsMacros: flag("ContainsMacros"),
+    containsXmlExternalEntities: flag("ContainsXmlExternalEntities"),
+    containsInsecureDeserialization: flag("ContainsInsecureDeserialization"),
+    containsHtml: flag("ContainsHtml"),
+    containsUnsafeArchive: flag("ContainsUnsafeArchive"),
+    containsOleEmbeddedObject: flag("ContainsOleEmbeddedObject"),
     virusNames: viruses,
   };
 }
@@ -95,11 +125,16 @@ export const cloudmersiveProvider: ScanProvider = {
     if (!key) return { ok: false, failure: "unconfigured" };
 
     const form = new FormData();
-    // Copy into a fresh buffer so the Blob owns exactly these bytes — the same
-    // bytes the caller hashes.
+    // No defensive copy: the Blob constructor already copies, and at a 128MB
+    // ceiling a redundant slice() would add another full-size buffer to peak
+    // memory for no benefit.
     form.append(
       "inputFile",
-      new Blob([request.bytes.slice()]),
+      // Cast rather than copy. TypeScript widens Uint8Array's backing store to
+      // ArrayBufferLike, which BlobPart does not accept; the runtime value is
+      // always ArrayBuffer-backed. Satisfying the type by re-slicing would add
+      // a second full-size buffer to peak memory at the 128MB ceiling.
+      new Blob([request.bytes as unknown as BlobPart]),
       request.fileName || "upload.bin"
     );
 

@@ -33,6 +33,8 @@ import {
   structuralVerdict,
   verdictFromFindings,
   isEpubLayout,
+  formatMatchesPolicy,
+  normaliseFormat,
 } from "../lib/scan/policy.ts";
 import { cloudmersiveProvider } from "../lib/scan/cloudmersive.ts";
 import { isRetryableFailure, type ScanFindings } from "../lib/scan/provider.ts";
@@ -76,56 +78,111 @@ interface ZipSpec {
   symlink?: boolean;
 }
 
+interface ZipOptions {
+  /** Append a second, well-formed EOCD declaring zero entries. */
+  forgeTrailingEocd?: boolean;
+  /** Declare a different entry count than the directory actually contains. */
+  lieAboutCount?: number;
+  /** Break the cdOffset + cdSize === eocd invariant. */
+  shiftCdOffset?: number;
+  /** Claim a comment that does not reach EOF. */
+  bogusCommentLen?: number;
+  /** Corrupt the local file header a directory entry points at. */
+  breakLocalHeader?: boolean;
+  /** Make a local header carry a different name than the directory entry. */
+  mismatchLocalName?: boolean;
+  /** Trailing bytes after the EOCD. */
+  trailingJunk?: number;
+}
+
 /**
- * Build a structurally valid ZIP: a local-header signature so the sniffer sees
- * a ZIP, then a real central directory and EOCD for the parser to read. No
- * entry data — the parser only reads structure.
+ * Build a real ZIP: local file headers with data, a central directory whose
+ * entries point at them, and an EOCD. The hardened parser cross-checks all
+ * three, so a fixture that only fakes the directory would be rejected for the
+ * wrong reason.
  */
-function makeZip(specs: ZipSpec[]): Uint8Array {
-  const prefix = new Uint8Array(30);
-  prefix.set([0x50, 0x4b, 0x03, 0x04]); // PK\x03\x04
+function makeZip(specs: ZipSpec[], opts: ZipOptions = {}): Uint8Array {
+  const enc = new TextEncoder();
+  const locals: Uint8Array[] = [];
+  const cds: Uint8Array[] = [];
+  let offset = 0;
 
-  const cdParts: Uint8Array[] = [];
-  for (const s of specs) {
-    const nameBytes = new TextEncoder().encode(s.name);
-    const buf = new Uint8Array(46 + nameBytes.length);
-    const dv = new DataView(buf.buffer);
-    dv.setUint32(0, 0x02014b50, true);
-    dv.setUint16(8, s.encrypted ? 1 : 0, true); // general purpose flags
-    dv.setUint32(20, s.compressedSize ?? 100, true);
-    dv.setUint32(24, s.uncompressedSize ?? 100, true);
-    dv.setUint16(28, nameBytes.length, true);
-    // External attributes: unix mode in the high 16 bits.
-    dv.setUint32(38, ((s.symlink ? 0xa1ff : 0x81a4) << 16) >>> 0, true);
-    buf.set(nameBytes, 46);
-    cdParts.push(buf);
-  }
+  specs.forEach((s, index) => {
+    const name = enc.encode(s.name);
+    const localName =
+      opts.mismatchLocalName && index === 0 ? enc.encode("x".repeat(s.name.length)) : name;
+    const data = new Uint8Array(s.compressedSize ?? 8);
 
-  const cdSize = cdParts.reduce((n, p) => n + p.length, 0);
-  const cdOffset = prefix.length;
+    const lh = new Uint8Array(30 + localName.length);
+    const ldv = new DataView(lh.buffer);
+    const isLast = index === specs.length - 1;
+    ldv.setUint32(0, opts.breakLocalHeader && isLast ? 0xdeadbeef : 0x04034b50, true);
+    ldv.setUint16(6, s.encrypted ? 1 : 0, true);
+    ldv.setUint32(18, data.length, true);
+    ldv.setUint32(22, s.uncompressedSize ?? data.length, true);
+    ldv.setUint16(26, localName.length, true);
+    lh.set(localName, 30);
 
-  const eocd = new Uint8Array(22);
-  const edv = new DataView(eocd.buffer);
-  edv.setUint32(0, 0x06054b50, true);
-  edv.setUint16(8, specs.length, true);
-  edv.setUint16(10, specs.length, true);
-  edv.setUint32(12, cdSize, true);
-  edv.setUint32(16, cdOffset, true);
+    const cd = new Uint8Array(46 + name.length);
+    const cdv = new DataView(cd.buffer);
+    cdv.setUint32(0, 0x02014b50, true);
+    cdv.setUint16(8, s.encrypted ? 1 : 0, true);
+    cdv.setUint32(20, s.compressedSize ?? data.length, true);
+    cdv.setUint32(24, s.uncompressedSize ?? data.length, true);
+    cdv.setUint16(28, name.length, true);
+    cdv.setUint32(38, (((s.symlink ? 0xa1ff : 0x81a4) << 16) >>> 0), true);
+    cdv.setUint32(42, offset, true);
+    cd.set(name, 46);
 
-  const total = new Uint8Array(prefix.length + cdSize + eocd.length);
-  total.set(prefix, 0);
-  let off = prefix.length;
-  for (const p of cdParts) {
-    total.set(p, off);
-    off += p.length;
-  }
-  total.set(eocd, off);
-  return total;
+    locals.push(lh, data);
+    cds.push(cd);
+    offset += lh.length + data.length;
+  });
+
+  const cat = (parts: Uint8Array[]) => {
+    const total = new Uint8Array(parts.reduce((n, x) => n + x.length, 0));
+    let o = 0;
+    for (const x of parts) {
+      total.set(x, o);
+      o += x.length;
+    }
+    return total;
+  };
+
+  const localPart = cat(locals);
+  const cdPart = cat(cds);
+
+  const eocd = (count: number, size: number, off: number, commentLen = 0) => {
+    const e = new Uint8Array(22);
+    const d = new DataView(e.buffer);
+    d.setUint32(0, 0x06054b50, true);
+    d.setUint16(8, count, true);
+    d.setUint16(10, count, true);
+    d.setUint32(12, size, true);
+    d.setUint32(16, off, true);
+    d.setUint16(20, commentLen, true);
+    return e;
+  };
+
+  const parts: Uint8Array[] = [
+    localPart,
+    cdPart,
+    eocd(
+      opts.lieAboutCount ?? specs.length,
+      cdPart.length,
+      localPart.length + (opts.shiftCdOffset ?? 0),
+      opts.bogusCommentLen ?? 0
+    ),
+  ];
+  if (opts.forgeTrailingEocd) parts.push(eocd(0, 0, 0));
+  if (opts.trailingJunk) parts.push(new Uint8Array(opts.trailingJunk));
+  return cat(parts);
 }
 
 const cleanFindings = (over: Partial<ScanFindings> = {}): ScanFindings => ({
   clean: true,
-  verifiedFileFormat: null,
+  // Now required: a response without a content-verified format is unparseable.
+  verifiedFileFormat: ".pdf",
   containsExecutable: false,
   containsInvalidFile: false,
   containsScript: false,
@@ -390,9 +447,17 @@ describe("provider findings are reconciled with policy", () => {
   }
 
   test("HTML is allowed only inside an EPUB", () => {
-    const findings = cleanFindings({ containsHtml: true });
-    assert.equal(verdictFromFindings(findings, pdfPolicy).outcome, "REJECT");
-    assert.equal(verdictFromFindings(findings, epubPolicy).outcome, "ALLOW");
+    assert.equal(
+      verdictFromFindings(cleanFindings({ containsHtml: true }), pdfPolicy).outcome,
+      "REJECT"
+    );
+    assert.equal(
+      verdictFromFindings(
+        cleanFindings({ containsHtml: true, verifiedFileFormat: ".epub" }),
+        epubPolicy
+      ).outcome,
+      "ALLOW"
+    );
   });
 
   test("a content-verified format that disagrees with ours is rejected", () => {
@@ -520,24 +585,16 @@ describe("Cloudmersive failure mapping", () => {
 
   test("missing threat flags are read as THREAT PRESENT", async () => {
     await withKey(async () => {
-      // CleanResult true but every other field absent: fail closed per field,
-      // so this must not come back as a clean set of findings.
+      // CleanResult true but every other field absent. Coercing this into
+      // "threat present" would be inventing a verdict out of a payload we do
+      // not understand, so it is a parse failure -> SCAN_ERROR, never SAFE.
       globalThis.fetch = (async () =>
         new Response(JSON.stringify({ CleanResult: true }), {
           status: 200,
         })) as typeof fetch;
       const res = await cloudmersiveProvider.scan(req);
-      assert.equal(res.ok, true);
-      if (res.ok) {
-        assert.equal(res.findings.containsExecutable, true);
-        assert.equal(res.findings.containsScript, true);
-        const verdict = verdictFromFindings(res.findings, {
-          kind: "pdf",
-          restrictToExtensions: [".pdf"],
-          allowHtml: false,
-        });
-        assert.equal(verdict.outcome, "REJECT");
-      }
+      assert.equal(res.ok, false);
+      assert.equal(res.ok === false && res.failure, "bad_response");
     });
   });
 
@@ -751,9 +808,9 @@ describe("verdict writes are bound to the scanned key", () => {
   });
 
   test("SAFE is written on exactly one path", () => {
-    // `status: "SAFE",` is an argument; `status: "SAFE" | ...` is the type
-    // union on persistVerdict, which must not be counted.
-    const safeWrites = runSrc.match(/status: "SAFE",/g) ?? [];
+    // Every verdict goes through settle(); count only the SAFE one. The type
+    // union on finalizeVerdict must not be counted.
+    const safeWrites = runSrc.match(/settle\("SAFE"/g) ?? [];
     assert.equal(safeWrites.length, 1, "only one place may write SAFE");
   });
 
@@ -765,7 +822,7 @@ describe("verdict writes are bound to the scanned key", () => {
     ]) {
       assert.ok(runSrc.includes(reason), `missing failure path: ${reason}`);
     }
-    assert.ok(runSrc.includes('status: "SCAN_ERROR"'));
+    assert.ok(runSrc.includes('settle("SCAN_ERROR"'));
   });
 
   test("an unconfigured provider records nothing", () => {
@@ -895,5 +952,430 @@ describe("Stage A/B guarantees still hold", () => {
     const dl = read("../app/api/download/[productId]/route.ts");
     assert.ok(dl.includes("Not authorized to download this product"));
     assert.ok(!dl.includes("fileScanStatus"));
+  });
+});
+
+/* ================================================================== */
+/* Fugu remediation regressions                                        */
+/* ================================================================== */
+
+/* ------------------------------------------------------------------ */
+/* C1 — forged ZIP structure                                           */
+/* ------------------------------------------------------------------ */
+
+describe("C1: a forged central directory cannot launder archive contents", () => {
+  const withExe = [{ name: "setup.exe" }];
+
+  test("the honest archive is rejected for its contents", () => {
+    const zip = makeZip(withExe);
+    const policy = resolveContentPolicy(zip)!;
+    const verdict = structuralVerdict(zip, policy);
+    assert.equal((verdict as { reason: string }).reason, "archive_executable");
+  });
+
+  test("REGRESSION: an appended EOCD claiming zero entries no longer passes", () => {
+    // Before the fix this parsed as an empty archive and returned ALLOW, so an
+    // archive containing setup.exe was accepted as structurally clean.
+    const zip = makeZip(withExe, { forgeTrailingEocd: true });
+    const dir = readZipCentralDirectory(zip);
+    assert.equal(dir.ok, false, "the forgery must not parse");
+
+    const policy = resolveContentPolicy(zip)!;
+    const verdict = structuralVerdict(zip, policy);
+    assert.equal(verdict.outcome, "REJECT");
+    assert.equal((verdict as { reason: string }).reason, "archive_malformed");
+  });
+
+  const structuralForgeries: [string, ZipSpec[], Parameters<typeof makeZip>[1]][] = [
+    ["EOCD comment does not reach EOF", withExe, { bogusCommentLen: 5 }],
+    ["trailing bytes after the EOCD", withExe, { trailingJunk: 16 }],
+    ["declared entry count disagrees with the directory", withExe, { lieAboutCount: 0 }],
+    ["entry count too high", withExe, { lieAboutCount: 5 }],
+    ["cdOffset + cdSize does not land on the EOCD", withExe, { shiftCdOffset: 4 }],
+    // Two entries so the first local header stays intact and the file is still
+    // recognised as a ZIP — isolating the local-header cross-check.
+    [
+      "a directory entry points at no local header",
+      [{ name: "readme.txt" }, { name: "setup.exe" }],
+      { breakLocalHeader: true },
+    ],
+    ["a local header carries a different name", withExe, { mismatchLocalName: true }],
+  ];
+
+  for (const [label, specs, opts] of structuralForgeries) {
+    test(`rejected: ${label}`, () => {
+      const zip = makeZip(specs, opts);
+      const dir = readZipCentralDirectory(zip);
+      assert.equal(dir.ok, false, label);
+      const policy = resolveContentPolicy(zip);
+      // Either the family is no longer recognisable at all, or the structural
+      // pass rejects it. Both are fail-closed.
+      if (policy) {
+        assert.equal(structuralVerdict(zip, policy).outcome, "REJECT");
+      }
+    });
+  }
+
+  test("every forgery fails CLOSED, never as an empty allow", () => {
+    for (const [, specs, opts] of structuralForgeries) {
+      const zip = makeZip(specs, opts);
+      const dir = readZipCentralDirectory(zip);
+      // The dangerous outcome is ok:true with no entries — that is what
+      // silently allowed forbidden contents.
+      assert.ok(!(dir.ok && dir.entries.length === 0), "must not parse as empty");
+    }
+  });
+
+  test("a genuine archive still parses after hardening", () => {
+    const zip = makeZip([{ name: "art.png" }, { name: "notes/readme.txt" }]);
+    const dir = readZipCentralDirectory(zip);
+    assert.ok(dir.ok && dir.entries.length === 2);
+    assert.equal(structuralVerdict(zip, resolveContentPolicy(zip)!).outcome, "ALLOW");
+  });
+
+  test("a genuine EPUB still parses and keeps its own policy", () => {
+    const epub = makeZip([
+      { name: "mimetype" },
+      { name: "META-INF/container.xml" },
+      { name: "OEBPS/ch1.xhtml" },
+    ]);
+    const policy = resolveContentPolicy(epub)!;
+    assert.equal(policy.kind, "epub");
+    assert.equal(structuralVerdict(epub, policy).outcome, "ALLOW");
+  });
+});
+
+/* ------------------------------------------------------------------ */
+/* C2 — queue eligibility and quota                                    */
+/* ------------------------------------------------------------------ */
+
+describe("C2: only real deliverables consume scanner quota", () => {
+  test("the queue selects PRODUCT_FILE only", () => {
+    const queue = runSrc.slice(runSrc.indexOf("export async function findScannableKeys"));
+    assert.ok(/route: "PRODUCT_FILE"/.test(queue), "queue must filter by route");
+  });
+
+  test("an explicit request for a non-deliverable is refused", () => {
+    // Thumbnails, logos and covers must not be scannable even by key.
+    assert.ok(runSrc.includes('asset.route !== "PRODUCT_FILE"'));
+    assert.ok(runSrc.includes("SKIPPED_WRONG_ROUTE"));
+    const routeCheck = runSrc.indexOf('asset.route !== "PRODUCT_FILE"');
+    assert.ok(routeCheck < runSrc.indexOf("claimScan(key, now)"), "before any claim");
+  });
+
+  test("the claim statement itself is route-scoped", () => {
+    // Defence in depth: even a caller that skipped the check above cannot
+    // claim a non-deliverable.
+    const claim = runSrc.slice(runSrc.indexOf("async function claimScan"));
+    assert.ok(/route: "PRODUCT_FILE"/.test(claim));
+  });
+
+  test("an unattached upload is never sent to the provider", () => {
+    // Abandoned uploads would otherwise let any seller burn quota at will.
+    assert.ok(runSrc.includes("SKIPPED_NOT_ATTACHED"));
+    const attachCheck = runSrc.indexOf("SKIPPED_NOT_ATTACHED");
+    assert.ok(attachCheck < runSrc.indexOf("claimScan(key, now)"));
+  });
+
+  test("attachment must be in the same shop as the upload's provenance", () => {
+    assert.ok(/fileKey: key, shopId: asset\.shopId/.test(runSrc));
+    const queue = runSrc.slice(runSrc.indexOf("export async function findScannableKeys"));
+    assert.ok(queue.includes("shopByKey.get(p.fileKey) === p.shopId"));
+  });
+});
+
+/* ------------------------------------------------------------------ */
+/* C3 — atomic claim and finalisation                                  */
+/* ------------------------------------------------------------------ */
+
+describe("C3: exactly one worker may claim and finalise a scan", () => {
+  test("the claim is a single conditional UPDATE, not read-then-write", () => {
+    const claim = runSrc.slice(
+      runSrc.indexOf("async function claimScan"),
+      runSrc.indexOf("async function finalizeVerdict")
+    );
+    assert.ok(claim.includes("prisma.fileAsset.updateMany"), "must be updateMany");
+    assert.ok(claim.includes("result.count === 1"), "only the winner proceeds");
+    // The attempt increment and the bound are the same statement, so attempts
+    // cannot exceed the maximum under concurrency.
+    assert.ok(claim.includes("scanAttempts: { lt: MAX_SCAN_ATTEMPTS }"));
+    assert.ok(claim.includes("scanAttempts: { increment: 1 }"));
+    assert.ok(!/fileAsset\.update\(/.test(claim), "no unconditional update");
+  });
+
+  test("a claim carries a unique token and a lease", () => {
+    assert.ok(runSrc.includes("randomUUID()"));
+    assert.ok(runSrc.includes("scanClaimToken: token"));
+    assert.ok(runSrc.includes("scanClaimedAt: now"));
+    assert.ok(runSrc.includes("scanClaimedAt: { lt: leaseCutoff }"), "stale leases reclaimable");
+  });
+
+  test("settled verdicts can never be reclaimed", () => {
+    const claim = runSrc.slice(
+      runSrc.indexOf("async function claimScan"),
+      runSrc.indexOf("async function finalizeVerdict")
+    );
+    assert.ok(claim.includes('scanStatus: { in: ["PENDING_SCAN", "SCAN_ERROR"] }'));
+  });
+
+  test("finalisation requires the claim to still be current", () => {
+    const finalize = runSrc.slice(runSrc.indexOf("async function finalizeVerdict"));
+    assert.ok(finalize.includes("scanClaimToken: token"), "token must be re-checked");
+    assert.ok(finalize.includes("finalized.count !== 1"), "stale worker writes nothing");
+  });
+
+  test("a terminal UNSAFE cannot be overwritten by a later SAFE", () => {
+    const finalize = runSrc.slice(runSrc.indexOf("async function finalizeVerdict"));
+    // The status guard excludes SAFE and UNSAFE, so once either is recorded no
+    // further finalisation matches.
+    assert.ok(finalize.includes('scanStatus: { in: ["PENDING_SCAN", "SCAN_ERROR"] }'));
+  });
+
+  test("product propagation happens only after a successful finalisation", () => {
+    const finalize = runSrc.slice(runSrc.indexOf("async function finalizeVerdict"));
+    const guard = finalize.indexOf("finalized.count !== 1");
+    const propagate = finalize.indexOf("tx.product.updateMany");
+    assert.ok(guard > 0 && propagate > 0);
+    assert.ok(guard < propagate, "the guard must precede propagation");
+    assert.ok(finalize.includes("prisma.$transaction"));
+  });
+
+  test("a stale worker reports STALE_CLAIM rather than a verdict", () => {
+    assert.ok(runSrc.includes('return { key, outcome: "STALE_CLAIM" }'));
+  });
+
+  test("backoff is decided by the database, not by a prior read", () => {
+    assert.ok(runSrc.includes("backoffClauses(now)"));
+    const clauses = runSrc.slice(runSrc.indexOf("function backoffClauses"));
+    assert.ok(clauses.includes("2 ** attempts * 60_000"));
+  });
+});
+
+/* ------------------------------------------------------------------ */
+/* C4 — strict provider validation                                     */
+/* ------------------------------------------------------------------ */
+
+describe("C4: provider payloads are validated strictly", () => {
+  const withKey = async (body: unknown, status = 200) => {
+    const prevKey = process.env.CLOUDMERSIVE_API_KEY;
+    const prevFetch = globalThis.fetch;
+    process.env.CLOUDMERSIVE_API_KEY = "test-key-not-a-real-secret";
+    globalThis.fetch = (async () =>
+      new Response(typeof body === "string" ? body : JSON.stringify(body), {
+        status,
+      })) as typeof fetch;
+    try {
+      return await cloudmersiveProvider.scan({
+        bytes: new Uint8Array([1, 2, 3]),
+        fileName: "x.pdf",
+        restrictToExtensions: [".pdf"],
+        allowHtml: false,
+      });
+    } finally {
+      globalThis.fetch = prevFetch;
+      if (prevKey === undefined) delete process.env.CLOUDMERSIVE_API_KEY;
+      else process.env.CLOUDMERSIVE_API_KEY = prevKey;
+    }
+  };
+
+  const complete = (over: Record<string, unknown> = {}) => ({
+    CleanResult: true,
+    ContainsExecutable: false,
+    ContainsInvalidFile: false,
+    ContainsScript: false,
+    ContainsPasswordProtectedFile: false,
+    ContainsRestrictedFileFormat: false,
+    ContainsMacros: false,
+    ContainsXmlExternalEntities: false,
+    ContainsInsecureDeserialization: false,
+    ContainsHtml: false,
+    ContainsUnsafeArchive: false,
+    ContainsOleEmbeddedObject: false,
+    VerifiedFileFormat: ".pdf",
+    ...over,
+  });
+
+  test("a complete, well-typed clean payload parses", async () => {
+    const res = await withKey(complete());
+    assert.equal(res.ok, true);
+    if (res.ok) assert.equal(res.findings.verifiedFileFormat, ".pdf");
+  });
+
+  const rejected: [string, unknown][] = [
+    ['string "false" instead of a boolean', complete({ ContainsExecutable: "false" })],
+    ['string "true" instead of a boolean', complete({ ContainsScript: "true" })],
+    ["null threat flag", complete({ ContainsMacros: null })],
+    ["numeric threat flag", complete({ ContainsHtml: 0 })],
+    ["missing threat flag", (() => { const c = complete() as Record<string, unknown>; delete c.ContainsUnsafeArchive; return c; })()],
+    ["CleanResult as a string", complete({ CleanResult: "true" })],
+    ["CleanResult missing", (() => { const c = complete() as Record<string, unknown>; delete c.CleanResult; return c; })()],
+    ["VerifiedFileFormat missing", (() => { const c = complete() as Record<string, unknown>; delete c.VerifiedFileFormat; return c; })()],
+    ["VerifiedFileFormat null", complete({ VerifiedFileFormat: null })],
+    ["VerifiedFileFormat empty", complete({ VerifiedFileFormat: "   " })],
+    ["VerifiedFileFormat wrong type", complete({ VerifiedFileFormat: 42 })],
+    ["FoundViruses not an array", complete({ FoundViruses: "Eicar" })],
+    ["payload is an array", [complete()]],
+    ["payload is null", null],
+  ];
+
+  for (const [label, body] of rejected) {
+    test(`REJECTED as unparseable: ${label}`, async () => {
+      const res = await withKey(body);
+      assert.equal(res.ok, false, label);
+      assert.equal(res.ok === false && res.failure, "bad_response");
+    });
+  }
+
+  test("partial JSON body is unparseable", async () => {
+    const res = await withKey('{"CleanResult": true, "Contains');
+    assert.equal(res.ok === false && res.failure, "bad_response");
+  });
+
+  test("no coercion path survives anywhere in the provider", () => {
+    const src = read("../lib/scan/cloudmersive.ts");
+    assert.ok(!src.includes('toLowerCase() !== "false"'), "string coercion removed");
+    assert.ok(src.includes('typeof raw.CleanResult !== "boolean"'));
+    assert.ok(src.includes("REQUIRED_THREAT_FLAGS"));
+  });
+});
+
+describe("C4: verified format must be recognised, with explicit aliases", () => {
+  const pdf = { kind: "pdf" as const, restrictToExtensions: [".pdf"], allowHtml: false };
+  const epub = { kind: "epub" as const, restrictToExtensions: [".epub"], allowHtml: true };
+  const zip = { kind: "zip" as const, restrictToExtensions: [".zip"], allowHtml: false };
+  const jpeg = { kind: "image" as const, restrictToExtensions: [".jpg", ".jpeg"], allowHtml: false };
+  const heic = { kind: "image" as const, restrictToExtensions: [".heic", ".heif"], allowHtml: false };
+
+  test("an unknown format is rejected even when everything else is clean", () => {
+    for (const value of [".xyz", "exe", ".docx", "not-a-format"]) {
+      const verdict = verdictFromFindings(
+        cleanFindings({ verifiedFileFormat: value }),
+        pdf
+      );
+      assert.equal(verdict.outcome, "REJECT", value);
+      assert.equal((verdict as { reason: string }).reason, "format_mismatch");
+    }
+  });
+
+  test("a recognised format for the wrong policy is rejected", () => {
+    assert.equal(
+      verdictFromFindings(cleanFindings({ verifiedFileFormat: ".mp4" }), pdf).outcome,
+      "REJECT"
+    );
+  });
+
+  test("dot and case are normalised", () => {
+    for (const value of ["pdf", ".PDF", "  .Pdf  "]) {
+      assert.equal(normaliseFormat(value), ".pdf");
+      assert.equal(
+        verdictFromFindings(cleanFindings({ verifiedFileFormat: value }), pdf).outcome,
+        "ALLOW",
+        value
+      );
+    }
+  });
+
+  test("jpg and jpeg are aliases", () => {
+    assert.ok(formatMatchesPolicy(".jpg", jpeg));
+    assert.ok(formatMatchesPolicy(".jpeg", jpeg));
+  });
+
+  test("heic and heif are aliases", () => {
+    assert.ok(formatMatchesPolicy(".heic", heic));
+    assert.ok(formatMatchesPolicy(".heif", heic));
+  });
+
+  test("an EPUB may verify as .zip, because it is one", () => {
+    // Safe only because our own structural pass already proved the EPUB
+    // layout before this policy was selected.
+    assert.ok(formatMatchesPolicy(".epub", epub));
+    assert.ok(formatMatchesPolicy(".zip", epub));
+  });
+
+  test("the EPUB alias is NOT reversible", () => {
+    // Plain-ZIP policy must not accept a file verified as an EPUB.
+    assert.ok(!formatMatchesPolicy(".epub", zip));
+    assert.ok(formatMatchesPolicy(".zip", zip));
+  });
+
+  test("a clean provider verdict is never sufficient on its own", () => {
+    // Clean, but the content-verified format contradicts the policy.
+    const verdict = verdictFromFindings(
+      cleanFindings({ clean: true, verifiedFileFormat: ".zip" }),
+      pdf
+    );
+    assert.equal(verdict.outcome, "REJECT");
+  });
+});
+
+/* ------------------------------------------------------------------ */
+/* N1 — attach/verdict race                                            */
+/* ------------------------------------------------------------------ */
+
+describe("N1: a product cannot be stranded in PENDING_SCAN", () => {
+  const safetySrc = read("../lib/file-safety.ts");
+
+  test("reconciliation runs after both write paths", () => {
+    assert.ok(createSrc.includes("reconcileProductScanState(product.id, fileKey)"));
+    assert.ok(editSrc.includes("reconcileProductScanState(updatedProduct.id, nextFileKey)"));
+  });
+
+  test("it copies the asset's verdict and never invents one", () => {
+    const fn = safetySrc.slice(safetySrc.indexOf("export async function reconcileProductScanState"));
+    assert.ok(fn.includes("fileScanStatus: asset.scanStatus"));
+    assert.ok(!/fileScanStatus: "SAFE"/.test(fn), "must never fabricate SAFE");
+  });
+
+  test("it is key-bound, so a replaced file is untouched", () => {
+    const fn = safetySrc.slice(safetySrc.indexOf("export async function reconcileProductScanState"));
+    assert.ok(/where: \{ id: productId, fileKey, fileScanStatus: "PENDING_SCAN" \}/.test(fn));
+  });
+
+  test("it only transitions out of PENDING_SCAN, so it cannot overwrite a verdict", () => {
+    const fn = safetySrc.slice(safetySrc.indexOf("export async function reconcileProductScanState"));
+    assert.ok(fn.includes('fileScanStatus: "PENDING_SCAN"'));
+    assert.ok(fn.includes("updated.count !== 1"));
+  });
+
+  test("an unscanned asset is a no-op", () => {
+    const fn = safetySrc.slice(safetySrc.indexOf("export async function reconcileProductScanState"));
+    assert.ok(fn.includes('asset.scanStatus === "PENDING_SCAN"'));
+  });
+
+  test("the audit event matches the reconciled verdict", () => {
+    const fn = safetySrc.slice(safetySrc.indexOf("export async function reconcileProductScanState"));
+    assert.ok(fn.includes('action: "SCANNED"'));
+    assert.ok(fn.includes("actor: SCAN_AUDIT_ACTOR"));
+    assert.ok(fn.includes("previousStatus: product.moderationStatus"));
+    assert.ok(fn.includes("newStatus: product.moderationStatus"));
+  });
+
+  test("a reconciliation failure cannot fail the seller's save", () => {
+    // The product is already stored and already fail-closed.
+    assert.ok(createSrc.includes("[scan] reconcile after create failed"));
+    assert.ok(editSrc.includes("[scan] reconcile after edit failed"));
+  });
+});
+
+/* ------------------------------------------------------------------ */
+/* Memory                                                              */
+/* ------------------------------------------------------------------ */
+
+describe("the 128MB path avoids redundant full-size copies", () => {
+  test("hashing does not copy the buffer", () => {
+    assert.ok(!runSrc.includes("Buffer.from(bytes)"), "update() takes a Uint8Array");
+    assert.ok(runSrc.includes("update(bytes)"));
+  });
+
+  test("the provider does not slice before the Blob copy", () => {
+    const src = read("../lib/scan/cloudmersive.ts");
+    assert.ok(!src.includes("request.bytes.slice()"));
+  });
+
+  test("the scannable ceiling matches the upload ceiling", () => {
+    const storage = read("../lib/storage/provider.ts");
+    assert.ok(storage.includes("128 * 1024 * 1024"));
+    const cfg = read("../lib/upload-config.ts");
+    assert.ok(!cfg.includes('"256MB"'), "no upload may exceed the scannable limit");
   });
 });

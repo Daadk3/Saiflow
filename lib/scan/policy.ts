@@ -199,13 +199,66 @@ export function verdictFromFindings(
 
   // The provider's content-verified format must agree with what we sniffed.
   // Disagreement means one of the two was fooled, which is reason enough.
-  if (findings.verifiedFileFormat) {
-    const verified = findings.verifiedFileFormat.toLowerCase();
-    const normalised = verified.startsWith(".") ? verified : `.${verified}`;
-    if (!policy.restrictToExtensions.includes(normalised)) {
-      return { outcome: "REJECT", reason: "format_mismatch" };
-    }
+  if (!formatMatchesPolicy(findings.verifiedFileFormat, policy)) {
+    return { outcome: "REJECT", reason: "format_mismatch" };
   }
 
   return { outcome: "ALLOW" };
+}
+
+/**
+ * Formats SaiFlow ever accepts. A verified format outside this set is
+ * unrecognised, and unrecognised is a rejection rather than a shrug.
+ */
+const RECOGNISED_FORMATS = new Set([
+  ".pdf", ".epub", ".zip",
+  ".jpg", ".jpeg", ".png", ".webp", ".gif", ".avif", ".heic", ".heif",
+  ".mp3", ".wav", ".m4a", ".flac", ".ogg",
+  ".mp4", ".mov", ".webm", ".mkv", ".avi",
+]);
+
+/**
+ * Aliases, stated explicitly rather than guessed at.
+ *
+ * Two cases are real and neither is cosmetic:
+ *   - `.jpg`/`.jpeg` and `.heic`/`.heif` name the same format.
+ *   - An EPUB *is* a ZIP container, so a content-based verifier may reasonably
+ *     report `.zip` for one. Accepting that under EPUB policy is safe because
+ *     our own structural pass already proved the EPUB layout — `mimetype` plus
+ *     `META-INF/container.xml` — before this policy was chosen. The reverse is
+ *     NOT allowed: plain-ZIP policy does not accept `.epub`.
+ */
+const FORMAT_ALIASES: Record<string, string[]> = {
+  ".jpg": [".jpg", ".jpeg"],
+  ".jpeg": [".jpg", ".jpeg"],
+  ".heic": [".heic", ".heif"],
+  ".heif": [".heic", ".heif"],
+  ".epub": [".epub", ".zip"],
+};
+
+/** Lowercase, with a leading dot. */
+export function normaliseFormat(raw: string): string {
+  const lower = raw.trim().toLowerCase();
+  return lower.startsWith(".") ? lower : `.${lower}`;
+}
+
+/**
+ * Whether the provider's content-verified format is compatible with the policy
+ * we selected from the bytes.
+ */
+export function formatMatchesPolicy(
+  verifiedFileFormat: string,
+  policy: Pick<ContentPolicy, "restrictToExtensions">
+): boolean {
+  const verified = normaliseFormat(verifiedFileFormat);
+  if (!RECOGNISED_FORMATS.has(verified)) return false;
+
+  const accepted = new Set<string>();
+  for (const ext of policy.restrictToExtensions) {
+    const normalised = normaliseFormat(ext);
+    accepted.add(normalised);
+    for (const alias of FORMAT_ALIASES[normalised] ?? []) accepted.add(alias);
+  }
+
+  return accepted.has(verified);
 }

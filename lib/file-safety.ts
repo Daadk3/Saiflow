@@ -169,3 +169,83 @@ export function attachedScanFields(asset: {
     fileScanAttempts: 0,
   };
 }
+
+/**
+ * Recorded as the actor on scan audit events.
+ *
+ * There is exactly one provider, and the FileAsset row does not store which
+ * engine produced its verdict, so this constant is the single place the
+ * attribution is written when reconciling.
+ */
+export const SCAN_AUDIT_ACTOR = "scanner:cloudmersive";
+
+/**
+ * Settle a product whose attachment crossed paths with the scan.
+ *
+ * THE RACE. Attaching a file reads the FileAsset, then writes the product. If
+ * the worker finalises in between, its key-bound `updateMany` finds no product
+ * yet — the row does not exist — while the attachment writes the PENDING_SCAN
+ * it read a moment earlier. Nothing is unsafe (PENDING_SCAN is fail-closed),
+ * but the product would sit unscannable and unsellable forever, with no event
+ * ever arriving to move it.
+ *
+ * Running immediately after the write closes the window: the asset is read
+ * again, and a terminal verdict is copied across.
+ *
+ * Three properties keep this safe:
+ *   - it never invents a verdict; it copies whatever the FileAsset already has
+ *   - `fileKey` is in the WHERE, so a product since pointed at another upload
+ *     is untouched
+ *   - it only transitions PENDING_SCAN, so it can never overwrite a verdict
+ *     the worker already wrote, and re-running it changes nothing
+ */
+export async function reconcileProductScanState(
+  productId: string,
+  fileKey: string
+): Promise<void> {
+  const asset = await prisma.fileAsset.findUnique({
+    where: { key: fileKey },
+    select: { scanStatus: true, scanSha256: true, scanAt: true, scanReason: true },
+  });
+
+  // Still unscanned: nothing to reconcile, the worker will propagate later.
+  if (!asset || asset.scanStatus === "PENDING_SCAN") return;
+
+  await prisma.$transaction(async (tx) => {
+    const updated = await tx.product.updateMany({
+      where: { id: productId, fileKey, fileScanStatus: "PENDING_SCAN" },
+      data: {
+        fileScanStatus: asset.scanStatus,
+        fileScanKey: fileKey,
+        fileScanSha256: asset.scanSha256,
+        fileScanAt: asset.scanAt,
+      },
+    });
+
+    // Someone else settled it first, or the file changed again. Either way
+    // this reconciliation is stale and writes no audit event.
+    if (updated.count !== 1) return;
+
+    const product = await tx.product.findUnique({
+      where: { id: productId },
+      select: { moderationStatus: true },
+    });
+    if (!product) return;
+
+    const status = asset.scanStatus.toLowerCase();
+    await tx.moderationEvent.create({
+      data: {
+        productId,
+        action: "SCANNED",
+        actor: SCAN_AUDIT_ACTOR,
+        reason: asset.scanReason
+          ? `file-scan:${status}:${asset.scanReason}`
+          : `file-scan:${status}`,
+        categories: asset.scanReason ? [asset.scanReason] : [],
+        // A scan never moves the moderation state by itself.
+        previousStatus: product.moderationStatus,
+        newStatus: product.moderationStatus,
+      },
+    });
+  });
+}

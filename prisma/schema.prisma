@@ -288,6 +288,18 @@ model FileAsset {
   /// provider's raw payload, and never file contents.
   scanReason   String?
 
+  /// Lease held by the worker currently scanning this asset.
+  ///
+  /// Claiming is a single conditional UPDATE, so exactly one concurrent worker
+  /// can take it; the losers see a row that no longer matches and stop before
+  /// spending a provider call. The token is checked again at finalisation, so
+  /// a worker whose lease expired and was taken over cannot write a verdict
+  /// for bytes another worker has since re-scanned.
+  scanClaimToken String?
+  /// When the lease was taken. A worker that dies mid-scan would otherwise
+  /// hold the asset forever, so a lease older than the timeout is reclaimable.
+  scanClaimedAt  DateTime?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -297,6 +309,7 @@ model FileAsset {
   @@index([scanStatus])
   @@index([route])
   @@index([createdAt])
+  @@index([route, scanStatus])
 }
 
 enum ModerationStatus {

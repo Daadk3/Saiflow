@@ -28,68 +28,143 @@ export type ArchiveReadResult =
 
 const EOCD_SIG = 0x06054b50;
 const CD_SIG = 0x02014b50;
+const LOCAL_SIG = 0x04034b50;
 const ZIP64_EOCD_LOCATOR_SIG = 0x07064b50;
+const EOCD_MIN = 22;
+const CD_ENTRY_MIN = 46;
+const LOCAL_HEADER_MIN = 30;
 
 /**
- * Parse the central directory.
+ * Parse the central directory, refusing anything that is not exactly
+ * self-consistent.
  *
- * ZIP64 archives are reported as `unsupported` rather than guessed at: at a
- * 128MB ceiling a genuine deliverable has no reason to be ZIP64, and refusing
- * is safer than misreading offsets.
+ * THE ATTACK THIS DEFENDS AGAINST. A ZIP reader conventionally locates the
+ * End Of Central Directory by scanning backwards from EOF for its signature
+ * and taking the first hit. That is forgeable: append a second, well-formed
+ * EOCD declaring zero entries and the reader reports an empty archive, while
+ * every real extractor still sees the original contents. Applied to a policy
+ * check, an archive containing `setup.exe` reads as empty and passes.
+ *
+ * Permissiveness is what makes that work, so this parser is deliberately
+ * intolerant. A candidate EOCD is only accepted when the whole file agrees
+ * with it:
+ *
+ *   - its comment length ends the record exactly at EOF
+ *   - it is the ONLY candidate that does; ambiguity is refused, not resolved
+ *   - the archive is single-disk and the two entry counts match
+ *   - cdOffset + cdSize lands exactly on the EOCD
+ *   - exactly the declared number of records parse, and consume exactly cdSize
+ *   - every record points at a real local file header carrying the same name
+ *
+ * That last check is what makes forgery impractical: a lying directory would
+ * have to be backed by matching local headers, at which point it is no longer
+ * lying about the contents.
+ *
+ * ZIP64 is refused rather than interpreted — at a 128MB ceiling no genuine
+ * deliverable needs it, and misreading a 64-bit offset is worse than saying no.
  */
 export function readZipCentralDirectory(bytes: Uint8Array): ArchiveReadResult {
-  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  const len = bytes.byteLength;
+  if (len < EOCD_MIN) return { ok: false, reason: "malformed" };
 
-  // The EOCD sits at the end, after a comment of up to 65535 bytes.
-  const minEocd = 22;
-  if (bytes.byteLength < minEocd) return { ok: false, reason: "malformed" };
+  const view = new DataView(bytes.buffer, bytes.byteOffset, len);
+  const u32 = (o: number) => view.getUint32(o, true);
+  const u16 = (o: number) => view.getUint16(o, true);
 
-  let eocd = -1;
-  const searchFloor = Math.max(0, bytes.byteLength - (0xffff + minEocd));
-  for (let i = bytes.byteLength - minEocd; i >= searchFloor; i--) {
-    if (view.getUint32(i, true) === EOCD_SIG) {
-      eocd = i;
-      break;
-    }
+  // Collect EVERY candidate whose declared comment length ends precisely at
+  // EOF. A forged trailing record and the genuine one cannot both satisfy this
+  // unless the file is genuinely ambiguous, which is itself a rejection.
+  const searchFloor = Math.max(0, len - (0xffff + EOCD_MIN));
+  const candidates: number[] = [];
+  for (let i = len - EOCD_MIN; i >= searchFloor; i--) {
+    if (u32(i) !== EOCD_SIG) continue;
+    const commentLen = u16(i + 20);
+    if (i + EOCD_MIN + commentLen === len) candidates.push(i);
   }
-  if (eocd < 0) return { ok: false, reason: "malformed" };
 
-  if (eocd >= 20 && view.getUint32(eocd - 20, true) === ZIP64_EOCD_LOCATOR_SIG) {
+  if (candidates.length === 0) return { ok: false, reason: "malformed" };
+  if (candidates.length > 1) return { ok: false, reason: "malformed" };
+
+  const eocd = candidates[0];
+
+  // ZIP64 locator immediately precedes a ZIP64 EOCD.
+  if (eocd >= 20 && u32(eocd - 20) === ZIP64_EOCD_LOCATOR_SIG) {
     return { ok: false, reason: "unsupported" };
   }
 
-  const entryCount = view.getUint16(eocd + 10, true);
-  const cdOffset = view.getUint32(eocd + 16, true);
-  if (cdOffset >= bytes.byteLength) return { ok: false, reason: "malformed" };
-  // 0xffff / 0xffffffff are the ZIP64 sentinels.
-  if (entryCount === 0xffff || cdOffset === 0xffffffff) {
+  const diskNumber = u16(eocd + 4);
+  const cdStartDisk = u16(eocd + 6);
+  const entriesThisDisk = u16(eocd + 8);
+  const totalEntries = u16(eocd + 10);
+  const cdSize = u32(eocd + 12);
+  const cdOffset = u32(eocd + 16);
+
+  // ZIP64 sentinels: the real values live in the ZIP64 record we refuse.
+  if (
+    totalEntries === 0xffff ||
+    entriesThisDisk === 0xffff ||
+    cdSize === 0xffffffff ||
+    cdOffset === 0xffffffff
+  ) {
     return { ok: false, reason: "unsupported" };
   }
 
+  // Split archives are not a deliverable format.
+  if (diskNumber !== 0 || cdStartDisk !== 0) return { ok: false, reason: "unsupported" };
+  if (entriesThisDisk !== totalEntries) return { ok: false, reason: "malformed" };
+
+  // The directory must end exactly where the EOCD begins. This alone defeats
+  // the appended-EOCD forgery, whose cdOffset/cdSize describe a region that
+  // stops short of its own record.
+  if (cdOffset + cdSize !== eocd) return { ok: false, reason: "malformed" };
+  if (cdSize === 0 && totalEntries !== 0) return { ok: false, reason: "malformed" };
+  if (totalEntries === 0 && cdSize !== 0) return { ok: false, reason: "malformed" };
+  // An archive with no entries cannot carry forbidden content, but it is also
+  // not a product, so callers treat it as an empty entry list.
+  if (totalEntries === 0) return { ok: true, entries: [] };
+
+  const cdEnd = cdOffset + cdSize;
   const entries: ArchiveEntry[] = [];
   let p = cdOffset;
 
-  for (let i = 0; i < entryCount; i++) {
-    if (p + 46 > bytes.byteLength) return { ok: false, reason: "malformed" };
-    if (view.getUint32(p, true) !== CD_SIG) return { ok: false, reason: "malformed" };
+  for (let i = 0; i < totalEntries; i++) {
+    if (p + CD_ENTRY_MIN > cdEnd) return { ok: false, reason: "malformed" };
+    if (u32(p) !== CD_SIG) return { ok: false, reason: "malformed" };
 
-    const flags = view.getUint16(p + 8, true);
-    const compressedSize = view.getUint32(p + 20, true);
-    const uncompressedSize = view.getUint32(p + 24, true);
-    const nameLen = view.getUint16(p + 28, true);
-    const extraLen = view.getUint16(p + 30, true);
-    const commentLen = view.getUint16(p + 32, true);
-    const externalAttrs = view.getUint32(p + 38, true);
+    const flags = u16(p + 8);
+    const compressedSize = u32(p + 20);
+    const uncompressedSize = u32(p + 24);
+    const nameLen = u16(p + 28);
+    const extraLen = u16(p + 30);
+    const commentLen = u16(p + 32);
+    const externalAttrs = u32(p + 38);
+    const localOffset = u32(p + 42);
 
-    const nameStart = p + 46;
-    if (nameStart + nameLen > bytes.byteLength) return { ok: false, reason: "malformed" };
+    const nameStart = p + CD_ENTRY_MIN;
+    const next = nameStart + nameLen + extraLen + commentLen;
+    // Every record must lie wholly inside the declared directory.
+    if (next > cdEnd) return { ok: false, reason: "malformed" };
+    if (nameLen === 0) return { ok: false, reason: "malformed" };
 
     // Entry names are UTF-8 when bit 11 is set and CP437 otherwise. Decoding
     // as UTF-8 either way is fine here: we only test the name for traversal and
     // extension, and a mis-decoded byte cannot turn a safe name into "..".
-    const name = new TextDecoder("utf-8", { fatal: false }).decode(
-      bytes.subarray(nameStart, nameStart + nameLen)
-    );
+    const nameBytes = bytes.subarray(nameStart, nameStart + nameLen);
+    const name = new TextDecoder("utf-8", { fatal: false }).decode(nameBytes);
+
+    // The record must be backed by a real local file header carrying the same
+    // name. A directory that lies about the contents has to lie here too.
+    if (localOffset + LOCAL_HEADER_MIN > cdOffset) return { ok: false, reason: "malformed" };
+    if (u32(localOffset) !== LOCAL_SIG) return { ok: false, reason: "malformed" };
+    const localNameLen = u16(localOffset + 26);
+    if (localNameLen !== nameLen) return { ok: false, reason: "malformed" };
+    const localNameStart = localOffset + LOCAL_HEADER_MIN;
+    if (localNameStart + localNameLen > cdOffset) return { ok: false, reason: "malformed" };
+    for (let b = 0; b < nameLen; b++) {
+      if (bytes[localNameStart + b] !== nameBytes[b]) {
+        return { ok: false, reason: "malformed" };
+      }
+    }
 
     // High 16 bits are the unix mode when the archive was made on unix.
     const unixMode = (externalAttrs >>> 16) & 0xffff;
@@ -103,8 +178,12 @@ export function readZipCentralDirectory(bytes: Uint8Array): ArchiveReadResult {
       symlink,
     });
 
-    p = nameStart + nameLen + extraLen + commentLen;
+    p = next;
   }
+
+  // The records must consume the declared directory exactly — no slack in
+  // which an extra, unparsed record could hide.
+  if (p !== cdEnd) return { ok: false, reason: "malformed" };
 
   return { ok: true, entries };
 }

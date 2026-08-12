@@ -30,6 +30,8 @@ CREATE TABLE "FileAsset" (
     "scanAt" TIMESTAMP(3),
     "scanAttempts" INTEGER NOT NULL DEFAULT 0,
     "scanReason" TEXT,
+    "scanClaimToken" TEXT,
+    "scanClaimedAt" TIMESTAMP(3),
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -47,6 +49,10 @@ CREATE INDEX "FileAsset_route_idx" ON "FileAsset"("route");
 
 -- CreateIndex
 CREATE INDEX "FileAsset_createdAt_idx" ON "FileAsset"("createdAt");
+
+-- CreateIndex
+-- Supports the queue query, which selects only unsettled PRODUCT_FILE assets.
+CREATE INDEX "FileAsset_route_scanStatus_idx" ON "FileAsset"("route", "scanStatus");
 
 -- AddForeignKey
 ALTER TABLE "FileAsset" ADD CONSTRAINT "FileAsset_shopId_fkey" FOREIGN KEY ("shopId") REFERENCES "Shop"("id") ON DELETE CASCADE ON UPDATE CASCADE;

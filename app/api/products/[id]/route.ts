@@ -13,6 +13,7 @@ import {
 import {
   verifyDeliverableProvenance,
   attachedScanFields,
+  reconcileProductScanState,
 } from "@/lib/file-safety";
 
 // GET - Get a single product by ID (seller dashboard only)
@@ -269,6 +270,16 @@ export async function PUT(
         ...(fileChanged && replacementScanFields ? replacementScanFields : {}),
       },
     });
+
+    // Same race as on create: the worker may have settled the new file
+    // between the provenance read and this write.
+    if (fileChanged && nextFileKey) {
+      try {
+        await reconcileProductScanState(updatedProduct.id, nextFileKey);
+      } catch (error) {
+        console.error("[scan] reconcile after edit failed", (error as Error)?.name);
+      }
+    }
 
     return NextResponse.json(updatedProduct);
   } catch (error) {

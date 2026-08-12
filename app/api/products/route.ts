@@ -8,6 +8,7 @@ import { isAllowedAssetUrl, extractOwnAssetKey } from "@/lib/validations";
 import {
   verifyDeliverableProvenance,
   attachedScanFields,
+  reconcileProductScanState,
 } from "@/lib/file-safety";
 import { isProductCategory } from "@/lib/categories";
 
@@ -188,6 +189,23 @@ export async function POST(req: Request) {
       });
       return created;
     });
+
+    /**
+     * Close the attach/scan race. If the worker settled this file between the
+     * provenance read above and this insert, its key-bound update found no
+     * product and the row would sit PENDING_SCAN forever. This copies the
+     * terminal verdict across; it never invents one.
+     *
+     * Isolated because the product is already saved and already fail-closed —
+     * a reconciliation failure must not turn a successful save into an error.
+     */
+    if (fileKey) {
+      try {
+        await reconcileProductScanState(product.id, fileKey);
+      } catch (error) {
+        console.error("[scan] reconcile after create failed", (error as Error)?.name);
+      }
+    }
 
     return NextResponse.json(product, { status: 201 });
   } catch (error) {
