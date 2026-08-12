@@ -20,6 +20,10 @@ export interface ArchiveEntry {
   encrypted: boolean;
   /** Unix mode says symlink (S_IFLNK), read from the external attributes. */
   symlink: boolean;
+  /** Compression method. 0 is "stored", the only one we read data from. */
+  method: number;
+  /** Offset of the entry's local file header, already validated to exist. */
+  localHeaderOffset: number;
 }
 
 export type ArchiveReadResult =
@@ -119,9 +123,25 @@ export function readZipCentralDirectory(bytes: Uint8Array): ArchiveReadResult {
   if (cdOffset + cdSize !== eocd) return { ok: false, reason: "malformed" };
   if (cdSize === 0 && totalEntries !== 0) return { ok: false, reason: "malformed" };
   if (totalEntries === 0 && cdSize !== 0) return { ok: false, reason: "malformed" };
-  // An archive with no entries cannot carry forbidden content, but it is also
-  // not a product, so callers treat it as an empty entry list.
-  if (totalEntries === 0) return { ok: true, entries: [] };
+
+  /**
+   * A zero-entry directory is only believable when nothing precedes it.
+   *
+   * The `cdOffset + cdSize === eocd` rule above is not sufficient on its own:
+   * a forged trailing EOCD can point at ITSELF, so `eocd + 0 === eocd` holds
+   * trivially. Appending one to a real archive also pushes the genuine EOCD
+   * away from EOF, leaving the forgery as the sole candidate — and the archive
+   * then reads as empty, skipping every per-entry check.
+   *
+   * A genuinely empty ZIP is 22 bytes: the EOCD and nothing else. Anything
+   * else claiming zero entries has content in front of it that the directory
+   * refuses to describe, which is the signature of this attack.
+   */
+  if (totalEntries === 0) {
+    return eocd === 0
+      ? { ok: true, entries: [] }
+      : { ok: false, reason: "malformed" };
+  }
 
   const cdEnd = cdOffset + cdSize;
   const entries: ArchiveEntry[] = [];
@@ -132,6 +152,7 @@ export function readZipCentralDirectory(bytes: Uint8Array): ArchiveReadResult {
     if (u32(p) !== CD_SIG) return { ok: false, reason: "malformed" };
 
     const flags = u16(p + 8);
+    const method = u16(p + 10);
     const compressedSize = u32(p + 20);
     const uncompressedSize = u32(p + 24);
     const nameLen = u16(p + 28);
@@ -176,6 +197,8 @@ export function readZipCentralDirectory(bytes: Uint8Array): ArchiveReadResult {
       uncompressedSize,
       encrypted: (flags & 0x1) === 1,
       symlink,
+      method,
+      localHeaderOffset: localOffset,
     });
 
     p = next;
@@ -246,4 +269,37 @@ export function isDecompressionBomb(entries: ArchiveEntry[]): boolean {
   if (uncompressed < MIN_ABSOLUTE_BYTES) return false;
   if (compressed === 0) return true;
   return uncompressed / compressed > MAX_RATIO;
+}
+
+/**
+ * The bytes of a STORED (uncompressed) entry, or null.
+ *
+ * Deliberately narrow. It exists for one job — confirming an EPUB's `mimetype`
+ * entry really says `application/epub+zip` — and refuses anything else:
+ * compressed, encrypted, oversized, or out of bounds. Nothing is inflated, so
+ * there is no decompression to attack.
+ *
+ * The local header's own extra-field length is read here rather than the
+ * directory's, because the two are allowed to differ and the data sits after
+ * the local one.
+ */
+export function readStoredEntryBytes(
+  bytes: Uint8Array,
+  entry: ArchiveEntry,
+  maxLen = 1024
+): Uint8Array | null {
+  if (entry.method !== 0 || entry.encrypted) return null;
+  if (entry.compressedSize > maxLen) return null;
+
+  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  const base = entry.localHeaderOffset;
+  if (base + LOCAL_HEADER_MIN > bytes.byteLength) return null;
+
+  const nameLen = view.getUint16(base + 26, true);
+  const extraLen = view.getUint16(base + 28, true);
+  const start = base + LOCAL_HEADER_MIN + nameLen + extraLen;
+  const end = start + entry.compressedSize;
+  if (end > bytes.byteLength) return null;
+
+  return bytes.subarray(start, end);
 }

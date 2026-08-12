@@ -28,6 +28,7 @@ import {
   isExecutableEntry,
   isNestedArchive,
   isScriptEntry,
+  readStoredEntryBytes,
   readZipCentralDirectory,
   type ArchiveEntry,
 } from "./archive";
@@ -63,10 +64,34 @@ const IMAGE_EXTENSIONS: Record<string, string[]> = {
   heic: [".heic", ".heif"],
 };
 
-/** An EPUB is a ZIP carrying these two entries; a plain ZIP is not. */
-export function isEpubLayout(entries: ArchiveEntry[]): boolean {
-  const names = new Set(entries.map((e) => e.name));
-  return names.has("mimetype") && names.has("META-INF/container.xml");
+/** What an EPUB's `mimetype` entry must contain, byte for byte. */
+const EPUB_MIMETYPE = "application/epub+zip";
+
+/**
+ * Whether an archive really is an EPUB.
+ *
+ * Testing for the presence of two entry NAMES is not enough, and the
+ * difference matters: EPUB is the one policy that permits HTML, so anything
+ * that can pose as an EPUB gets that exemption. A generic ZIP carrying two
+ * empty files called `mimetype` and `META-INF/container.xml` would previously
+ * have been classified as an ebook and allowed to contain HTML.
+ *
+ * OCF requires the `mimetype` entry to come FIRST, be STORED uncompressed, and
+ * contain exactly `application/epub+zip`. All three are checked here against
+ * the archive's actual bytes, so posing as an EPUB now requires being one.
+ */
+export function isEpubLayout(entries: ArchiveEntry[], bytes: Uint8Array): boolean {
+  const first = entries[0];
+  if (!first || first.name !== "mimetype") return false;
+  if (first.method !== 0 || first.encrypted) return false;
+  if (first.compressedSize !== EPUB_MIMETYPE.length) return false;
+  if (!entries.some((e) => e.name === "META-INF/container.xml")) return false;
+
+  const data = readStoredEntryBytes(bytes, first, EPUB_MIMETYPE.length);
+  if (!data || data.byteLength !== EPUB_MIMETYPE.length) return false;
+
+  const declared = new TextDecoder("utf-8", { fatal: false }).decode(data);
+  return declared === EPUB_MIMETYPE;
 }
 
 /**
@@ -87,7 +112,7 @@ export function resolveContentPolicy(bytes: Uint8Array): ContentPolicy | null {
     const dir = readZipCentralDirectory(bytes);
     // A malformed or ZIP64 container gets the strict ZIP policy; the
     // structural pass below rejects it outright.
-    if (dir.ok && isEpubLayout(dir.entries)) {
+    if (dir.ok && isEpubLayout(dir.entries, bytes)) {
       return { kind: "epub", restrictToExtensions: [".epub"], allowHtml: true };
     }
     return { kind: "zip", restrictToExtensions: [".zip"], allowHtml: false };

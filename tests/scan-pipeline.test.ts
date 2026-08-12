@@ -76,6 +76,10 @@ interface ZipSpec {
   uncompressedSize?: number;
   encrypted?: boolean;
   symlink?: boolean;
+  /** Literal entry contents, stored uncompressed. */
+  data?: string;
+  /** Compression method; 0 (stored) unless set. */
+  method?: number;
 }
 
 interface ZipOptions {
@@ -93,6 +97,11 @@ interface ZipOptions {
   mismatchLocalName?: boolean;
   /** Trailing bytes after the EOCD. */
   trailingJunk?: number;
+  /**
+   * Append a zero-entry EOCD whose cdOffset points at ITSELF, so the
+   * cdOffset + cdSize === eocd invariant holds trivially.
+   */
+  selfReferentialEocd?: boolean;
 }
 
 /**
@@ -111,13 +120,14 @@ function makeZip(specs: ZipSpec[], opts: ZipOptions = {}): Uint8Array {
     const name = enc.encode(s.name);
     const localName =
       opts.mismatchLocalName && index === 0 ? enc.encode("x".repeat(s.name.length)) : name;
-    const data = new Uint8Array(s.compressedSize ?? 8);
+    const data = s.data ? enc.encode(s.data) : new Uint8Array(s.compressedSize ?? 8);
 
     const lh = new Uint8Array(30 + localName.length);
     const ldv = new DataView(lh.buffer);
     const isLast = index === specs.length - 1;
     ldv.setUint32(0, opts.breakLocalHeader && isLast ? 0xdeadbeef : 0x04034b50, true);
     ldv.setUint16(6, s.encrypted ? 1 : 0, true);
+    ldv.setUint16(8, s.method ?? 0, true);
     ldv.setUint32(18, data.length, true);
     ldv.setUint32(22, s.uncompressedSize ?? data.length, true);
     ldv.setUint16(26, localName.length, true);
@@ -127,6 +137,7 @@ function makeZip(specs: ZipSpec[], opts: ZipOptions = {}): Uint8Array {
     const cdv = new DataView(cd.buffer);
     cdv.setUint32(0, 0x02014b50, true);
     cdv.setUint16(8, s.encrypted ? 1 : 0, true);
+    cdv.setUint16(10, s.method ?? 0, true);
     cdv.setUint32(20, s.compressedSize ?? data.length, true);
     cdv.setUint32(24, s.uncompressedSize ?? data.length, true);
     cdv.setUint16(28, name.length, true);
@@ -175,6 +186,10 @@ function makeZip(specs: ZipSpec[], opts: ZipOptions = {}): Uint8Array {
     ),
   ];
   if (opts.forgeTrailingEocd) parts.push(eocd(0, 0, 0));
+  if (opts.selfReferentialEocd) {
+    const soFar = cat(parts).length;
+    parts.push(eocd(0, 0, soFar));
+  }
   if (opts.trailingJunk) parts.push(new Uint8Array(opts.trailingJunk));
   return cat(parts);
 }
@@ -302,6 +317,8 @@ describe("archive structure is parsed, never executed", () => {
       uncompressedSize: 1,
       encrypted: false,
       symlink: false,
+      method: 0,
+      localHeaderOffset: 0,
     });
     assert.equal(isExecutableEntry(e("setup.exe")), true);
     assert.equal(isExecutableEntry(e("Tool.app")), true);
@@ -320,10 +337,10 @@ describe("archive structure is parsed, never executed", () => {
 
   test("decompression bombs are flagged only above an absolute floor", () => {
     const bomb = [
-      { name: "big", compressedSize: 1000, uncompressedSize: 1_000_000_000, encrypted: false, symlink: false },
+      { name: "big", compressedSize: 1000, uncompressedSize: 1_000_000_000, encrypted: false, symlink: false, method: 8, localHeaderOffset: 0 },
     ];
     const small = [
-      { name: "s", compressedSize: 10, uncompressedSize: 100_000, encrypted: false, symlink: false },
+      { name: "s", compressedSize: 10, uncompressedSize: 100_000, encrypted: false, symlink: false, method: 8, localHeaderOffset: 0 },
     ];
     assert.equal(isDecompressionBomb(bomb), true);
     assert.equal(isDecompressionBomb(small), false);
@@ -366,8 +383,9 @@ describe("archive structure is parsed, never executed", () => {
 /* ------------------------------------------------------------------ */
 
 describe("EPUB policy", () => {
+  // A real EPUB: `mimetype` first, stored, containing exactly the media type.
   const epubSpecs = (extra: ZipSpec[] = []): ZipSpec[] => [
-    { name: "mimetype" },
+    { name: "mimetype", data: "application/epub+zip" },
     { name: "META-INF/container.xml" },
     { name: "OEBPS/content.opf" },
     ...extra,
@@ -376,7 +394,7 @@ describe("EPUB policy", () => {
   test("EPUB layout is detected and given its own policy", () => {
     const epub = makeZip(epubSpecs([{ name: "OEBPS/ch1.xhtml" }]));
     const dir = readZipCentralDirectory(epub);
-    assert.ok(dir.ok && isEpubLayout(dir.entries));
+    assert.ok(dir.ok && isEpubLayout(dir.entries, epub));
 
     const policy = resolveContentPolicy(epub)!;
     assert.equal(policy.kind, "epub");
@@ -1035,7 +1053,7 @@ describe("C1: a forged central directory cannot launder archive contents", () =>
 
   test("a genuine EPUB still parses and keeps its own policy", () => {
     const epub = makeZip([
-      { name: "mimetype" },
+      { name: "mimetype", data: "application/epub+zip" },
       { name: "META-INF/container.xml" },
       { name: "OEBPS/ch1.xhtml" },
     ]);
@@ -1052,7 +1070,7 @@ describe("C1: a forged central directory cannot launder archive contents", () =>
 describe("C2: only real deliverables consume scanner quota", () => {
   test("the queue selects PRODUCT_FILE only", () => {
     const queue = runSrc.slice(runSrc.indexOf("export async function findScannableKeys"));
-    assert.ok(/route: "PRODUCT_FILE"/.test(queue), "queue must filter by route");
+    assert.ok(/route"::text = 'PRODUCT_FILE'/.test(queue), "queue must filter by route");
   });
 
   test("an explicit request for a non-deliverable is refused", () => {
@@ -1080,7 +1098,20 @@ describe("C2: only real deliverables consume scanner quota", () => {
   test("attachment must be in the same shop as the upload's provenance", () => {
     assert.ok(/fileKey: key, shopId: asset\.shopId/.test(runSrc));
     const queue = runSrc.slice(runSrc.indexOf("export async function findScannableKeys"));
-    assert.ok(queue.includes("shopByKey.get(p.fileKey) === p.shopId"));
+    assert.ok(queue.includes('p."fileKey" = fa."key"'));
+    assert.ok(queue.includes('p."shopId" = fa."shopId"'));
+  });
+
+  test("REGRESSION: attachment is filtered BEFORE the limit, not after", () => {
+    // Filtering in memory after a fixed window let abandoned uploads hold the
+    // front of ORDER BY createdAt forever and starve the queue.
+    const queue = runSrc.slice(runSrc.indexOf("export async function findScannableKeys"));
+    const exists = queue.indexOf("EXISTS (");
+    const limit = queue.indexOf("LIMIT");
+    assert.ok(exists > 0 && limit > 0, "queue must use EXISTS and LIMIT");
+    assert.ok(exists < limit, "EXISTS must be evaluated before LIMIT");
+    assert.ok(!queue.includes("limit * 8"), "no over-fetch window");
+    assert.ok(!queue.includes(".filter("), "no in-memory eligibility filtering");
   });
 });
 
@@ -1146,8 +1177,12 @@ describe("C3: exactly one worker may claim and finalise a scan", () => {
 
   test("backoff is decided by the database, not by a prior read", () => {
     assert.ok(runSrc.includes("backoffClauses(now)"));
-    const clauses = runSrc.slice(runSrc.indexOf("function backoffClauses"));
-    assert.ok(clauses.includes("2 ** attempts * 60_000"));
+    // One ladder, shared by the claim clauses and the queue, so they cannot
+    // drift apart.
+    assert.ok(runSrc.includes("backoffMs(attempts)"));
+    assert.ok(runSrc.includes("2 ** attempts * 60_000"));
+    const queue = runSrc.slice(runSrc.indexOf("export async function findScannableKeys"));
+    assert.ok(queue.includes(`power(2, fa."scanAttempts")`), "queue backoff is in SQL");
   });
 });
 
@@ -1377,5 +1412,110 @@ describe("the 128MB path avoids redundant full-size copies", () => {
     assert.ok(storage.includes("128 * 1024 * 1024"));
     const cfg = read("../lib/upload-config.ts");
     assert.ok(!cfg.includes('"256MB"'), "no upload may exceed the scannable limit");
+  });
+});
+
+/* ================================================================== */
+/* Fugu re-review regressions                                          */
+/* ================================================================== */
+
+describe("C1 residual: a self-referential EOCD cannot report an empty archive", () => {
+  const traversal = [{ name: "../escape.txt" }];
+
+  test("the honest archive is rejected for its traversal entry", () => {
+    const zip = makeZip(traversal);
+    const policy = resolveContentPolicy(zip)!;
+    assert.equal(
+      (structuralVerdict(zip, policy) as { reason: string }).reason,
+      "archive_path_traversal"
+    );
+  });
+
+  test("REGRESSION: cdOffset pointing at the forged EOCD itself is rejected", () => {
+    // cdOffset === eocd and cdSize === 0 satisfies cdOffset + cdSize === eocd
+    // trivially, so the earlier fix did not catch this. Appending it also
+    // pushes the genuine EOCD away from EOF, leaving the forgery sole.
+    // Result before this fix: ok:true with zero entries -> structural ALLOW.
+    const zip = makeZip(traversal, { selfReferentialEocd: true });
+    const dir = readZipCentralDirectory(zip);
+    assert.equal(dir.ok, false, "must not parse");
+    assert.ok(!(dir.ok && (dir as { entries: unknown[] }).entries.length === 0));
+
+    const policy = resolveContentPolicy(zip)!;
+    const verdict = structuralVerdict(zip, policy);
+    assert.equal(verdict.outcome, "REJECT");
+    assert.equal((verdict as { reason: string }).reason, "archive_malformed");
+  });
+
+  test("the same forgery cannot launder a symlink or a nested archive either", () => {
+    // These are SaiFlow-only rules with no provider backstop, so an empty
+    // entry list would have skipped them entirely.
+    for (const specs of [
+      [{ name: "link", symlink: true }],
+      [{ name: "inner.zip" }],
+      [{ name: "setup.exe" }],
+    ]) {
+      const zip = makeZip(specs, { selfReferentialEocd: true });
+      assert.equal(readZipCentralDirectory(zip).ok, false);
+      const policy = resolveContentPolicy(zip)!;
+      assert.equal(structuralVerdict(zip, policy).outcome, "REJECT");
+    }
+  });
+
+  test("a genuinely empty ZIP is still accepted", () => {
+    // 22 bytes: an EOCD at offset 0 and nothing else. The only believable
+    // zero-entry archive.
+    const empty = new Uint8Array(22);
+    new DataView(empty.buffer).setUint32(0, 0x06054b50, true);
+    const dir = readZipCentralDirectory(empty);
+    assert.ok(dir.ok && dir.entries.length === 0);
+  });
+});
+
+describe("EPUB identity is proven from content, not from entry names", () => {
+  const container = { name: "META-INF/container.xml" };
+  const chapter = { name: "OEBPS/ch1.xhtml" };
+
+  const kindOf = (specs: ZipSpec[]) => resolveContentPolicy(makeZip(specs))?.kind;
+
+  test("a genuine EPUB is classified as one", () => {
+    const specs = [{ name: "mimetype", data: "application/epub+zip" }, container, chapter];
+    assert.equal(kindOf(specs), "epub");
+    const zip = makeZip(specs);
+    assert.equal(resolveContentPolicy(zip)!.allowHtml, true);
+  });
+
+  test("REGRESSION: bogus marker entries no longer earn the HTML exemption", () => {
+    // Previously isEpubLayout tested only that these two NAMES existed, so a
+    // generic ZIP with index.html was classified epub and allowed HTML.
+    const specs = [
+      { name: "mimetype", data: "NOT-AN-EPUB" },
+      container,
+      { name: "index.html" },
+    ];
+    assert.equal(kindOf(specs), "zip");
+    const zip = makeZip(specs);
+    assert.equal(resolveContentPolicy(zip)!.allowHtml, false);
+  });
+
+  const notEpub: [string, ZipSpec[]][] = [
+    ["mimetype is not first", [container, { name: "mimetype", data: "application/epub+zip" }, chapter]],
+    ["mimetype is compressed", [{ name: "mimetype", data: "application/epub+zip", method: 8 }, container]],
+    ["mimetype has the wrong contents", [{ name: "mimetype", data: "application/zip!!!!!" }, container]],
+    ["mimetype is empty", [{ name: "mimetype", data: "" }, container]],
+    ["container.xml is missing", [{ name: "mimetype", data: "application/epub+zip" }, chapter]],
+  ];
+
+  for (const [label, specs] of notEpub) {
+    test(`not an EPUB: ${label}`, () => {
+      assert.equal(kindOf(specs), "zip", label);
+    });
+  }
+
+  test("a ZIP misclassified as EPUB would have been the only route to HTML", () => {
+    // Confirms the exemption is genuinely EPUB-only, so the strengthened
+    // identity check is what gates it.
+    const zip = makeZip([{ name: "readme.txt" }]);
+    assert.equal(resolveContentPolicy(zip)!.allowHtml, false);
   });
 });

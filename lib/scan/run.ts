@@ -74,12 +74,15 @@ interface RetryState {
  * itself needs, so a failed attempt simply becomes ineligible until enough
  * time has passed: 1, 2 then 4 minutes.
  */
+export function backoffMs(attempts: number): number {
+  return 2 ** attempts * 60_000;
+}
+
 export function isEligibleNow(asset: RetryState, now: Date = new Date()): boolean {
   if (asset.scanStatus === "SAFE" || asset.scanStatus === "UNSAFE") return false;
   if (asset.scanAttempts >= MAX_SCAN_ATTEMPTS) return false;
   if (!asset.scanAt) return true;
-  const backoffMs = 2 ** asset.scanAttempts * 60_000;
-  return now.getTime() - asset.scanAt.getTime() >= backoffMs;
+  return now.getTime() - asset.scanAt.getTime() >= backoffMs(asset.scanAttempts);
 }
 
 export function sha256Hex(bytes: Uint8Array): string {
@@ -105,7 +108,7 @@ function backoffClauses(now: Date): Prisma.FileAssetWhereInput[] {
   for (let attempts = 0; attempts < MAX_SCAN_ATTEMPTS; attempts++) {
     clauses.push({
       scanAttempts: attempts,
-      scanAt: { lt: new Date(now.getTime() - 2 ** attempts * 60_000) },
+      scanAt: { lt: new Date(now.getTime() - backoffMs(attempts)) },
     });
   }
   return clauses;
@@ -383,42 +386,48 @@ export async function scanFileAsset(
 }
 
 /**
- * Keys awaiting a verdict: deliverables only, attached to a product in the
- * same shop, within attempts and backoff. Oldest first.
+ * Keys awaiting a verdict.
+ *
+ * Every condition is evaluated in the database, including the attachment
+ * requirement, and ONLY then ordered and limited.
+ *
+ * That ordering is the point. Fetching a fixed window of the oldest pending
+ * assets and filtering attachment in memory afterwards let abandoned uploads
+ * starve the queue: an unattached row never changes status, attempts or
+ * timestamp, so it keeps its place at the front of `ORDER BY createdAt` and is
+ * re-selected on every invocation. Roughly forty of them — which any
+ * authenticated shop member can create and walk away from — would fill the
+ * window, be filtered out, and return nothing, leaving genuine deliverables
+ * permanently unscanned. Filtering before the LIMIT means an unattached row is
+ * never selected at all, however many exist.
+ *
+ * Raw SQL because the EXISTS correlates FileAsset to Product on
+ * (fileKey, shopId), which is not a Prisma relation — Product.fileKey is a
+ * plain column, not a foreign key. All values are bound parameters.
  */
 export async function findScannableKeys(
   limit = 5,
   now: Date = new Date()
 ): Promise<string[]> {
-  const candidates = await prisma.fileAsset.findMany({
-    where: {
-      route: "PRODUCT_FILE",
-      scanStatus: { in: ["PENDING_SCAN", "SCAN_ERROR"] },
-      scanAttempts: { lt: MAX_SCAN_ATTEMPTS },
-    },
-    orderBy: { createdAt: "asc" },
-    take: limit * 8,
-    select: { key: true, shopId: true, scanStatus: true, scanAttempts: true, scanAt: true },
-  });
+  const rows = await prisma.$queryRaw<{ key: string }[]>`
+    SELECT fa."key"
+    FROM "FileAsset" fa
+    WHERE fa."route"::text = 'PRODUCT_FILE'
+      AND fa."scanStatus"::text IN ('PENDING_SCAN', 'SCAN_ERROR')
+      AND fa."scanAttempts" < ${MAX_SCAN_ATTEMPTS}
+      AND (
+        fa."scanAt" IS NULL
+        OR fa."scanAt" + (interval '1 minute' * power(2, fa."scanAttempts")) <= ${now}
+      )
+      AND EXISTS (
+        SELECT 1
+        FROM "Product" p
+        WHERE p."fileKey" = fa."key"
+          AND p."shopId" = fa."shopId"
+      )
+    ORDER BY fa."createdAt" ASC
+    LIMIT ${limit}
+  `;
 
-  const eligible = candidates.filter((c) => isEligibleNow(c, now));
-  if (eligible.length === 0) return [];
-
-  // Attached to a product in the SAME shop that uploaded it. Abandoned uploads
-  // never reach the provider.
-  const shopByKey = new Map(eligible.map((c) => [c.key, c.shopId]));
-  const attachments = await prisma.product.findMany({
-    where: { fileKey: { in: eligible.map((c) => c.key) } },
-    select: { fileKey: true, shopId: true },
-  });
-  const attachedKeys = new Set(
-    attachments
-      .filter((p) => p.fileKey && shopByKey.get(p.fileKey) === p.shopId)
-      .map((p) => p.fileKey as string)
-  );
-
-  return eligible
-    .filter((c) => attachedKeys.has(c.key))
-    .slice(0, limit)
-    .map((c) => c.key);
+  return rows.map((row) => row.key);
 }
