@@ -43,6 +43,77 @@ export function isDeliverableSafe(product: DeliverableSafety): boolean {
 }
 
 /**
+ * Why a product's deliverable is not sellable — or that it is.
+ *
+ * `isDeliverableSafe` remains THE authority on the boolean question. This adds
+ * nothing to that decision and may never be used in place of it: it exists so
+ * a gate that has already refused can say something more useful than "no" to a
+ * founder looking at a stuck product, and so refusals can be counted by cause.
+ *
+ * "safe" is returned under exactly the conditions `isDeliverableSafe` returns
+ * true, and under no others. The two are separate functions rather than one
+ * built on the other so that the reviewed predicate stays untouched — which
+ * means they could in principle drift, and so tests/stage-d-delivery-gate
+ * asserts their equivalence across the complete cross-product of states. That
+ * test, not this comment, is what holds the two in agreement.
+ */
+export type DeliverableGateReason =
+  | "safe"
+  | "missing_file_key"
+  | "pending_scan"
+  | "scan_error"
+  | "unsafe"
+  | "scan_key_mismatch";
+
+/**
+ * Precedence is deliberate, and the order is the useful one rather than the
+ * obvious one:
+ *
+ *   1. No file at all is reported first. With `fileKey` null the scan columns
+ *      describe nothing that is attached, so any verdict they carry would be
+ *      a statement about some other file.
+ *
+ *   2. Then the status. In particular a product mid-pipeline — file attached,
+ *      `fileScanKey` still null, status PENDING_SCAN — reports `pending_scan`,
+ *      not `scan_key_mismatch`. Both refuse, but only one tells the founder
+ *      the truth, which is "the worker has not run yet".
+ *
+ *   3. The key binding is checked only inside SAFE, because that is the only
+ *      place it can turn a permission into a refusal. A SAFE verdict issued
+ *      for a different key is `scan_key_mismatch` — the file was replaced and
+ *      the new bytes have never been scanned.
+ *
+ * The null trap `isDeliverableSafe` documents cannot arise here: step 1 has
+ * already excluded `fileKey === null`, so by the time the keys are compared a
+ * null `fileScanKey` can only ever be unequal. There is no path on which
+ * `null === null` is read as a match.
+ */
+export function deliverableGateReason(
+  product: DeliverableSafety
+): DeliverableGateReason {
+  if (product.fileKey === null) return "missing_file_key";
+
+  switch (product.fileScanStatus) {
+    case "UNSAFE":
+      return "unsafe";
+    case "SCAN_ERROR":
+      return "scan_error";
+    case "PENDING_SCAN":
+      return "pending_scan";
+    case "SAFE":
+      return product.fileScanKey === product.fileKey
+        ? "safe"
+        : "scan_key_mismatch";
+    default:
+      // Unreachable against the current enum, and kept anyway: a status added
+      // by a later migration and not handled here must refuse, never fall
+      // through to a permission. Reported as a failed scan because that is the
+      // nearest existing category — inventing one would misdescribe the row.
+      return "scan_error";
+  }
+}
+
+/**
  * Database-level equivalent, for gating inside a query rather than filtering
  * after the fact.
  *
