@@ -10,7 +10,6 @@
  */
 
 import { prisma } from "@/lib/prisma";
-import { isAllowedAssetUrl } from "@/lib/validations";
 import type { ModerationStatus, Prisma } from "@prisma/client";
 
 /* ------------------------------------------------------------------ */
@@ -159,15 +158,21 @@ export interface DirectoryRow {
   humanReviewed: boolean;
   hasFile: boolean;
   /**
-   * The deliverable, for admin inspection during review — null unless the
-   * stored URL still satisfies the upload allowlist.
+   * Whether this product can be opened through the admin inspection route.
    *
-   * Re-checked on read rather than trusted from the row: the allowlist was
-   * added after the earliest products were created, so a legacy value could
-   * predate it. Filtering here means a non-conforming URL never reaches the
-   * browser at all, instead of relying on the client to decline to render it.
+   * The deliverable's URL used to be emitted here for the founder to click.
+   * That stopped working when Stage B made deliverables private, and it is not
+   * coming back: the browser now receives a boolean, and the bytes are reached
+   * through /api/admin/inspect/[productId], which authorises the request and
+   * mints a short-lived signed URL server-side. No deliverable URL — private
+   * or legacy-public — is serialised into an admin page any more.
+   *
+   * Keyed on `fileKey`, not `fileUrl`, because the key is what the inspection
+   * route can actually sign. A legacy row carrying a URL but no key reports
+   * `hasFile: true` and `canInspect: false` — accurate on both counts, and it
+   * renders no link that could only fail.
    */
-  fileUrl: string | null;
+  canInspect: boolean;
 }
 
 export interface DirectoryPage {
@@ -228,7 +233,9 @@ export async function getProductsDirectory(opts: {
         moderationStatus: true,
         isActive: true,
         createdAt: true,
+        // `fileUrl` still backs the "no file" badge; it is never emitted.
         fileUrl: true,
+        fileKey: true,
         shop: {
           select: {
             name: true,
@@ -278,7 +285,7 @@ export async function getProductsDirectory(opts: {
         reportCount: p._count.moderationEvents,
         humanReviewed: latest != null && latest.newStatus === p.moderationStatus,
         hasFile: p.fileUrl != null,
-        fileUrl: isAllowedAssetUrl(p.fileUrl) ? p.fileUrl : null,
+        canInspect: p.fileKey != null,
       };
     }),
   };

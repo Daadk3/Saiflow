@@ -50,5 +50,35 @@ export async function resolve(specifier, context, nextResolve) {
     if (resolved) return resolved;
   }
 
-  return nextResolve(specifier, context);
+  try {
+    return await nextResolve(specifier, context);
+  } catch (error) {
+    /**
+     * A bare package subpath that resolves only with an explicit extension.
+     *
+     * `next/server` is the case that matters: Next ships no `exports` map, so
+     * Node's ESM resolver will not append `.js` the way the bundler does, and
+     * importing a route handler fails before a single assertion can run.
+     * Retrying once with the extension is what the bundler would have done.
+     *
+     * Deliberately narrow — relative and aliased specifiers are handled above,
+     * and the original error is rethrown when the retry also fails, so a
+     * genuinely missing module still reports as missing.
+     */
+    if (
+      error?.code === "ERR_MODULE_NOT_FOUND" &&
+      !specifier.startsWith(".") &&
+      !specifier.startsWith("@/") &&
+      !specifier.startsWith("node:") &&
+      specifier.includes("/") &&
+      !/\.[a-z]+$/i.test(specifier)
+    ) {
+      try {
+        return await nextResolve(`${specifier}.js`, context);
+      } catch {
+        // fall through and report the original failure
+      }
+    }
+    throw error;
+  }
 }

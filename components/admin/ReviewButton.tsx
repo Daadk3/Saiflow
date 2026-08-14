@@ -22,12 +22,15 @@ export default function ReviewButton({
   productName: string;
   publicHref: string;
   /**
-   * The seller's deliverable, for inspection before a decision.
+   * Where to inspect the seller's deliverable before deciding.
    *
-   * Already allowlist-checked server-side in lib/admin-stats.ts, so a value
-   * here is a storage URL and nothing else. "Open" shows the listing as a
-   * buyer sees it; this shows what the buyer would actually receive —
-   * approving without the second is guesswork.
+   * SaiFlow's own inspection route, NOT a storage URL. Deliverables are
+   * private, so no URL to one is ever handed to the browser: the route
+   * re-checks admin authority server-side, resolves the storage key from the
+   * product row, and redirects to a signed URL that expires in a minute.
+   *
+   * "Open" shows the listing as a buyer sees it; this shows what the buyer
+   * would actually receive — approving without the second is guesswork.
    */
   fileHref?: string | null;
 }) {

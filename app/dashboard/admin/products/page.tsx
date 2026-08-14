@@ -188,7 +188,7 @@ export default async function AdminProductsPage({
                             productId={p.id}
                             productName={p.name}
                             publicHref={`/shop/${p.shopSlug}/product/${p.slug}`}
-                            fileHref={p.fileUrl}
+                            fileHref={p.canInspect ? `/api/admin/inspect/${p.id}` : null}
                           />
                         )}
                       </td>
@@ -236,7 +236,7 @@ export default async function AdminProductsPage({
                         productId={p.id}
                         productName={p.name}
                         publicHref={`/shop/${p.shopSlug}/product/${p.slug}`}
-                        fileHref={p.fileUrl}
+                        fileHref={p.canInspect ? `/api/admin/inspect/${p.id}` : null}
                       />
                     </div>
                   )}

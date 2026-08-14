@@ -442,16 +442,27 @@ export default function EditProductPage() {
                         </svg>
                       </button>
                     </div>
-                    {/* Test download link */}
+                    {/* Test download. Routed through SaiFlow instead of
+                        linking the file: deliverables are private, so the
+                        server re-checks shop membership and redirects to a
+                        signed URL that expires in a minute.
+
+                        Shown only while the form still holds the SAVED file.
+                        A freshly uploaded file that has not been saved yet is
+                        not on the product row, so there is nothing for the
+                        server to authorise — and it would otherwise link to
+                        the file this one replaces. */}
                     <div className="flex items-center gap-2">
-                      <a
-                        href={fileUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-xs text-gray-500 hover:text-teal-400 underline"
-                      >
-                        {t("dashboard.product.edit.testDownloadLink")}
-                      </a>
+                      {product && fileUrl === product.fileUrl && (
+                        <a
+                          href={`/api/products/${product.id}/inspect`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-xs text-gray-500 hover:text-teal-400 underline"
+                        >
+                          {t("dashboard.product.edit.testDownloadLink")}
+                        </a>
+                      )}
                       <span className="text-xs text-gray-600">•</span>
                       <span className="text-xs text-gray-600">
                         {t("dashboard.product.edit.downloadTroubleshoot")}

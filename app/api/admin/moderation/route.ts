@@ -27,14 +27,25 @@ export async function GET(req: Request) {
         currency: true,
         category: true,
         thumbnailUrl: true,
-        fileUrl: true,
+        // The deliverable's own URL is deliberately NOT selected. Since Stage B
+        // it is a private object that no browser can open, and the queue now
+        // inspects through /api/admin/inspect/[productId] instead. `fileKey` is
+        // read only to decide whether that link can work at all.
+        fileKey: true,
         certifiedAt: true,
         createdAt: true,
         shop: { select: { name: true, slug: true } },
       },
     });
 
-    return NextResponse.json({ pending });
+    // Emit a boolean, never a key and never a URL: the client needs to know
+    // only whether to render the inspect link.
+    return NextResponse.json({
+      pending: pending.map(({ fileKey, ...rest }) => ({
+        ...rest,
+        canInspect: fileKey != null,
+      })),
+    });
   } catch (error) {
     console.error("Error fetching moderation queue:", error);
     return NextResponse.json({ error: "Something went wrong" }, { status: 500 });
