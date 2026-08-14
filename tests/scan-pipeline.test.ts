@@ -976,10 +976,21 @@ describe("Stage A/B guarantees still hold", () => {
     assert.ok(!checkout.includes("scanFileAsset"), "checkout must not scan");
   });
 
-  test("buyer download is not yet gated (Stage D) and still needs an order", () => {
+  test("buyer download still needs an order, and is now scan-gated too", () => {
     const dl = read("../app/api/download/[productId]/route.ts");
+    // The order requirement is the property Stage C cared about; it survives.
     assert.ok(dl.includes("Not authorized to download this product"));
-    assert.ok(!dl.includes("fileScanStatus"));
+    // Stage D4 added the safety gate on top of it, through the reviewed
+    // predicate rather than by reading the scan columns here.
+    assert.ok(
+      dl.includes("isDeliverableSafe(product)"),
+      "D4 gates delivery through the single safety authority"
+    );
+    assert.ok(
+      !/fileScanStatus\s*===/.test(dl),
+      "delivery must never test the scan status itself"
+    );
+    assert.ok(!dl.includes("scanFileAsset"), "delivery must not scan");
   });
 });
 

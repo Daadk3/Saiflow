@@ -445,12 +445,16 @@ describe("D2 stays inside its scope", () => {
     assert.ok(!src.includes("inspectDecision"), "no inspection policy in checkout");
   });
 
-  test("buyer download is untouched", () => {
+  test("buyer download carries no inspection machinery", () => {
+    // D4 has since gated this route and given it its own signed delivery, so
+    // the old assertion that it was ungated no longer applies. What remains
+    // D2's business is that the INSPECTION policy never leaked into the buyer
+    // path: a buyer is authorised by purchase, never by audience.
     const src = read("../app/api/download/[productId]/route.ts");
     assert.ok(src.includes("Not authorized to download this product"));
-    assert.ok(src.includes("NextResponse.redirect(product.fileUrl)"), "D4 owns this");
-    assert.ok(!src.includes("createDeliveryUrl"), "no delivery in download yet");
-    assert.ok(!src.includes("isDeliverableSafe"), "no scan gate yet — that is D4");
+    assert.ok(!src.includes("inspectProduct"), "no inspection policy in delivery");
+    assert.ok(!src.includes("inspectDecision"), "no inspection policy in delivery");
+    assert.ok(!src.includes("isAdminEmail"), "delivery is not an admin surface");
   });
 
   test("the D1 primitives are unmodified", () => {
