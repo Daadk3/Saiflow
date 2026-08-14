@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import Stripe from "stripe";
 import { prisma } from "@/lib/prisma";
 import { env } from "@/lib/env";
+import { isDeliverableSafe } from "@/lib/file-safety";
 
 // Lazy init: Stripe env vars are optional in pre-launch, so a module-level
 // `new Stripe(...)` would crash builds/deploys that omit them.
@@ -35,7 +36,12 @@ export async function POST(req: Request) {
       );
     }
 
-    // Get the product from database
+    // Get the product from database.
+    //
+    // No `select`, so every scalar column is loaded — which includes the three
+    // the safety gate below reads: fileKey, fileScanStatus and fileScanKey.
+    // Narrowing this to a select would need all three added explicitly, or the
+    // gate silently starts deciding on undefined.
     const product = await prisma.product.findUnique({
       where: { id: productId },
       include: { shop: true },
@@ -65,28 +71,46 @@ export async function POST(req: Request) {
       );
     }
 
-    // Validate that the file actually exists by making a HEAD request
-    try {
-      const fileResponse = await fetch(product.fileUrl, {
-        method: "HEAD",
-        signal: AbortSignal.timeout(5000), // 5 second timeout
-      });
-
-      if (!fileResponse.ok) {
-        // Block the purchase but do NOT mutate the product: a transient
-        // provider error must never silently unpublish a live product.
-        console.warn(`File not accessible for product ${product.id} - status: ${fileResponse.status}`);
-        return NextResponse.json(
-          { error: "This product is not available for purchase. The file is no longer accessible." },
-          { status: 400 }
-        );
-      }
-    } catch (error) {
-      // Network error or timeout — block this attempt only, never mutate.
-      console.error(`Error validating file for product ${product.id}:`, error);
+    /**
+     * THE SALE GATE. Stage C computed a scan verdict; this is where it finally
+     * decides something.
+     *
+     * `isDeliverableSafe` is the single reviewed authority and is called
+     * directly — never re-derived, and never reduced to a `fileScanStatus`
+     * check. It requires all three of: a non-null current `fileKey`, a SAFE
+     * verdict, and that verdict being bound to THAT key. So a file still
+     * queued, one whose scan errored, one the scanner rejected, and one whose
+     * SAFE verdict belongs to a since-replaced upload all refuse here, as does
+     * any status a later migration might add.
+     *
+     * Nothing a buyer sends reaches this decision: the only input from the
+     * request is `productId`, and every field read below comes from the row.
+     *
+     * REPLACES A HEAD LIVENESS PROBE, which had to go rather than merely being
+     * redundant. It fetched `product.fileUrl`, and since Stage B that URL names
+     * a PRIVATE object — a HEAD against it answers 403, so the probe refused
+     * every modern deliverable with "the file is no longer accessible". Left in
+     * place behind this gate it would have blocked exactly the products that
+     * pass it.
+     *
+     * What is genuinely lost with it: proof that the object resolves RIGHT NOW.
+     * A SAFE verdict proves the bytes were fetched by key and scanned, not that
+     * a seller has not deleted them since. That gap is recorded rather than
+     * papered over — re-probing would mean minting a signed URL during
+     * checkout, which this route must never do.
+     */
+    if (!isDeliverableSafe(product)) {
+      // Machine-readable code plus an English fallback, matching the
+      // `pre_launch` convention already used above. Deliberately says nothing
+      // about WHICH state failed: a buyer has no business learning whether a
+      // seller's file is unscanned or was rejected as malware.
       return NextResponse.json(
-        { error: "This product is temporarily unavailable. Please try again in a moment." },
-        { status: 503 }
+        {
+          error: "file_not_ready",
+          message:
+            "This product is not available for purchase. Its file has not completed safety checks.",
+        },
+        { status: 400 }
       );
     }
 

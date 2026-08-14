@@ -962,8 +962,18 @@ describe("Stage A/B guarantees still hold", () => {
     const checkout = read("../app/api/checkout/route.ts");
     assert.ok(checkout.includes("env.PRE_LAUNCH_MODE"));
     assert.ok(checkout.includes('error: "pre_launch"'));
-    // Stage C does not gate checkout — that is Stage D.
-    assert.ok(!checkout.includes("fileScanStatus"));
+    // Stage C did not gate checkout; Stage D3 does. What Stage C still cares
+    // about is that no scan logic lives in the purchase path — the gate goes
+    // through the reviewed predicate rather than reading the columns itself.
+    assert.ok(
+      checkout.includes("isDeliverableSafe(product)"),
+      "D3 gates checkout through the single safety authority"
+    );
+    assert.ok(
+      !/fileScanStatus\s*===/.test(checkout),
+      "checkout must never test the scan status itself"
+    );
+    assert.ok(!checkout.includes("scanFileAsset"), "checkout must not scan");
   });
 
   test("buyer download is not yet gated (Stage D) and still needs an order", () => {

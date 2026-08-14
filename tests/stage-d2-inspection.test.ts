@@ -433,11 +433,16 @@ describe("no surface links a private deliverable directly", () => {
 /* ------------------------------------------------------------------ */
 
 describe("D2 stays inside its scope", () => {
-  test("checkout is untouched", () => {
+  test("checkout carries no inspection or delivery machinery", () => {
+    // D3 has since added the sale gate to this route, so the old assertion
+    // that it was ungated no longer applies. What remains D2's business is
+    // that inspection never leaked into the purchase path: checkout must not
+    // mint a signed URL, read bytes, or consult the inspection policy.
     const src = read("../app/api/checkout/route.ts");
-    assert.ok(src.includes('method: "HEAD"'), "the HEAD probe must remain");
-    assert.ok(!src.includes("isDeliverableSafe"), "no scan gate yet — that is D3");
     assert.ok(!src.includes("createDeliveryUrl"), "no delivery in checkout");
+    assert.ok(!src.includes("readPrivateObject"), "no byte reads in checkout");
+    assert.ok(!src.includes("inspectProduct"), "no inspection policy in checkout");
+    assert.ok(!src.includes("inspectDecision"), "no inspection policy in checkout");
   });
 
   test("buyer download is untouched", () => {
