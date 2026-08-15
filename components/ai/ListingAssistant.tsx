@@ -56,6 +56,16 @@ export default function ListingAssistant({
   const [drafts, setDrafts] = useState<Suggestions | null>(null);
   const [applied, setApplied] = useState<Set<string>>(new Set());
   const [copied, setCopied] = useState<string | null>(null);
+  /**
+   * The creator's title as it stood when the suggestions were generated.
+   *
+   * D3 — "your title was already strong" must compare against what the
+   * creator ASKED about, not against the live form value. Applying a
+   * suggestion writes it into the form, which made `title` equal the
+   * suggestion, which made the assistant announce that it had changed
+   * nothing directly beneath a badge saying it had been applied.
+   */
+  const [baselineTitle, setBaselineTitle] = useState("");
 
   function emit(name: string, detail?: Record<string, unknown>) {
     onEvent?.(name, detail);
@@ -96,7 +106,38 @@ export default function ListingAssistant({
       }
 
       setIsLive(data.isLive !== false);
-      setDrafts(data.suggestions);
+
+      if (section) {
+        /**
+         * D1 — MERGE, never replace.
+         *
+         * Regenerating one section used to overwrite `drafts` wholesale, so
+         * asking for a new summary silently rewrote the title, the benefits
+         * and everything else the creator had already read and possibly
+         * edited. Only the requested key is taken; every other suggestion,
+         * including any the creator has edited by hand, survives untouched.
+         */
+        setDrafts((prev) =>
+          prev ? { ...prev, ...(data.suggestions as Partial<Suggestions>) } : prev
+        );
+        /**
+         * A field that has just been regenerated no longer matches what was
+         * pushed into the form, so its "applied" badge would be a lie. Clear
+         * it — the creator can apply the new text deliberately.
+         */
+        setApplied((prev) => {
+          if (!prev.has(section)) return prev;
+          const next = new Set(prev);
+          next.delete(section);
+          return next;
+        });
+      } else {
+        // Full generation: a complete object, and a fresh baseline for D3.
+        setDrafts(data.suggestions as Suggestions);
+        setApplied(new Set());
+        setBaselineTitle(title);
+      }
+
       emit("generation_succeeded", { section: section ?? "full" });
       if (section) emit("field_regenerated", { field: section });
     } catch {
@@ -208,6 +249,7 @@ export default function ListingAssistant({
         <div>
           <label className="mb-1.5 block text-xs font-medium text-gray-400">{t("audience")}</label>
           <input
+            dir="auto"
             value={audience}
             onChange={(e) => setAudience(e.target.value)}
             maxLength={300}
@@ -222,6 +264,7 @@ export default function ListingAssistant({
             <span className="text-gray-600">({details.length}/5000)</span>
           </label>
           <textarea
+            dir="auto"
             value={details}
             onChange={(e) => setDetails(e.target.value.slice(0, 5000))}
             rows={4}
@@ -263,7 +306,12 @@ export default function ListingAssistant({
             onChange={(v) => edit("improvedTitle", v)}
             onApply={() => apply("improvedTitle")} onRegenerate={() => generate("improvedTitle")}
             appliedLabel={applied.has("improvedTitle") ? t("appliedBadge") : null}
-            unchanged={drafts.improvedTitle.trim() === title.trim()}
+            /* D3 — compared against the title the creator generated FROM, and
+               never claimed once the suggestion has been applied. */
+            unchanged={
+              !applied.has("improvedTitle") &&
+              drafts.improvedTitle.trim() === baselineTitle.trim()
+            }
             t={t}
           />
           <Applicable
@@ -305,6 +353,13 @@ export default function ListingAssistant({
           <div className="rounded-lg border border-gray-800 bg-[#0d0d0d] p-3">
             <p className="text-[11px] font-medium text-gray-500">{t("suggestionOnly")}</p>
 
+            {/* D4 — the model has always generated targetAudience; it simply
+                had no card, so creators never saw it. Surfaced here under the
+                existing suggestion-only pattern because the product form has
+                no target-audience field to accept it into. Adding one is a
+                separate, approved change — see the Stage A report. */}
+            <SuggestionOnly label={t("fields.targetAudience")} text={drafts.targetAudience}
+              copied={copied === "targetAudience"} onCopy={() => copy("targetAudience", drafts.targetAudience)} t={t} />
             <SuggestionOnly label={t("fields.keyBenefits")} text={drafts.keyBenefits.map((b) => `• ${b}`).join("\n")}
               copied={copied === "benefits"} onCopy={() => copy("benefits", drafts.keyBenefits.join("\n"))} t={t} />
             <SuggestionOnly label={t("fields.faq")}
@@ -366,11 +421,16 @@ function Applicable({
           </button>
         </div>
       </div>
+      {/* D2 — `dir="auto"` resolves per value from its first strong character,
+          so Arabic renders RTL, English renders LTR, and Arabic carrying a
+          Latin product name still renders RTL. A fixed `dir="rtl"` would have
+          been wrong for English; inheriting the page direction was wrong for
+          Arabic inside the LTR dashboard chrome. */}
       {multiline ? (
-        <textarea value={value} onChange={(e) => onChange(e.target.value)} rows={rows}
+        <textarea dir="auto" value={value} onChange={(e) => onChange(e.target.value)} rows={rows}
           className="w-full resize-none rounded border border-gray-800 bg-[#0a0a0a] px-2.5 py-2 text-sm text-gray-200 focus:border-teal-500 focus:outline-none" />
       ) : (
-        <input value={value} onChange={(e) => onChange(e.target.value)}
+        <input dir="auto" value={value} onChange={(e) => onChange(e.target.value)}
           className="w-full rounded border border-gray-800 bg-[#0a0a0a] px-2.5 py-2 text-sm text-gray-200 focus:border-teal-500 focus:outline-none" />
       )}
     </div>
@@ -389,7 +449,9 @@ function SuggestionOnly({
           {copied ? t("copied") : t("copy")}
         </button>
       </div>
-      <p className="mt-1 whitespace-pre-wrap text-xs leading-relaxed text-gray-400">{text}</p>
+      {/* D2 — see Applicable. Generated copy is the creator's language, not
+          the interface's, so direction follows the content. */}
+      <p dir="auto" className="mt-1 whitespace-pre-wrap text-xs leading-relaxed text-gray-400">{text}</p>
     </div>
   );
 }
