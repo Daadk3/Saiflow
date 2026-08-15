@@ -114,9 +114,26 @@ export async function POST(req: Request) {
       select: { id: true },
     });
 
+    /**
+     * D1 — a section regeneration returns ONLY the section that was asked for.
+     *
+     * The model still produces, and Zod still validates, the complete object:
+     * narrowing here is response shaping, not weakened validation, and the
+     * full output is still recorded on the AiGeneration row for audit. What
+     * changes is that a client can no longer be handed nine fields it did not
+     * request and overwrite the creator's other suggestions with them.
+     *
+     * The client merges rather than replaces as well. Both halves are needed —
+     * this one means a buggy or older client cannot clobber unrelated work,
+     * and the client one means a partial response is applied correctly.
+     */
+    const suggestions: Partial<typeof output.data> = input.section
+      ? { [input.section]: output.data[input.section] }
+      : output.data;
+
     return NextResponse.json({
       generationId: generation.id,
-      suggestions: output.data,
+      suggestions,
       /** False when no vendor is configured — the UI must say so plainly. */
       isLive: isLiveProvider(),
       usage: {
