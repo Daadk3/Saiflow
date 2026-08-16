@@ -279,6 +279,15 @@ export default function AddProductPage() {
                     min="0"
                     value={price}
                     onChange={(e) => setPrice(e.target.value)}
+                    // A focused number input changes by one `step` per wheel
+                    // tick, so scrolling the page silently rewrites the price —
+                    // 12.00 became 11.82 on a real product this way. The
+                    // `no-spinner` styling hides the arrows but not this
+                    // behaviour, so there is no visual cue that it happened.
+                    // Dropping focus on wheel stops the browser applying the
+                    // change. preventDefault is not an option: React attaches
+                    // wheel listeners passively.
+                    onWheel={(e) => e.currentTarget.blur()}
                     required
                     placeholder="9.99"
                     className="no-spinner w-full ps-14 pe-4 py-3 bg-[#0a0a0a] border border-gray-800 rounded-xl text-white placeholder-gray-600 focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500 transition-colors"

@@ -329,8 +329,24 @@ describe("D4: targetAudience reaches the creator", () => {
   test("no target-audience persistence field was invented", () => {
     // The product form has no such field, so nothing may pretend to save it.
     // Adding one is a separate, approved change.
+    //
+    // The model block is delimited by its own closing brace rather than by the
+    // name of whichever model happens to follow. The original version of this
+    // test sliced up to "model FileAsset" — a table that exists only on the
+    // private-file branch. On main that indexOf returns -1, the slice silently
+    // runs to the end of the file, and the assertion passes while examining
+    // the wrong region. A test that cannot fail is worse than no test.
     const schema = read("../prisma/schema.prisma");
-    const product = schema.slice(schema.indexOf("model Product "), schema.indexOf("model FileAsset"));
+    const start = schema.indexOf("model Product ");
+    assert.ok(start !== -1, "the Product model must exist");
+    const end = schema.indexOf("\n}", start);
+    assert.ok(end > start, "the Product model must be closed");
+    const product = schema.slice(start, end);
+
+    assert.ok(
+      product.includes("moderationStatus"),
+      "sanity check: the slice really is the Product model"
+    );
     assert.ok(
       !/targetAudience/.test(product),
       "no Product.targetAudience column may be added without approval"
