@@ -67,7 +67,7 @@
     "step2Title": "Upload anything digital",
     "step2Desc": "PDFs, videos, audio, courses, templates — if it's a file, you can sell it. Delivery is automatic when a customer completes their purchase.",
     "step3Title": "Get paid",
-    "step3Desc": "Payouts to creator bank accounts — coming soon",
+    "step3Desc": "Payouts to creator bank accounts — activating with launch",
     "eyebrow": "How it works",
     "stepLabel": "Step {number}"
   },
@@ -107,7 +107,8 @@
     "columnCompany": "Company",
     "columnResources": "Resources",
     "columnLegal": "Legal",
-    "contentPolicy": "Content Policy"
+    "contentPolicy": "Content Policy",
+    "commercialRegistration": "Commercial Registration"
   },
   "common": {
     "viewAll": "View all",
@@ -389,7 +390,7 @@
       "feature1": "Unlimited products",
       "feature2": "Unlimited sales",
       "feature3": "Secure file hosting",
-      "feature4": "Payouts (coming soon)",
+      "feature4": "Payouts (activating with launch)",
       "feature5": "Sales dashboard & analytics",
       "feature6": "Email notifications",
       "feature7": "Custom product links",
@@ -475,10 +476,10 @@
         ]
       },
       "payouts": {
-        "title": "Creator Payouts — Coming Soon",
-        "description": "Secure payouts for creators are currently in development.",
+        "title": "Creator payouts — activating with launch",
+        "description": "Secure payouts for creators activate with launch.",
         "items": [
-          "Coming soon"
+          "Activating with launch"
         ]
       },
       "delivery": {
@@ -590,7 +591,7 @@
       "includesInstantDownload": "Instant digital download",
       "includesLifetimeAccess": "Lifetime access to files",
       "includesFreeUpdates": "Free updates from the creator",
-      "secureCheckout": "Saiflow is in pre-launch. Checkout is not available yet.",
+      "secureCheckout": "Checkout is being activated.",
       "paymentsProcessedSecurely": "Payments are processed securely.",
       "getThisProduct": "Get this product",
       "processing": "Processing...",
@@ -600,13 +601,13 @@
     }
   },
   "preLaunch": {
-    "banner": "Saiflow is in pre-launch. You can browse products and create stores, but payments aren't available yet.",
-    "comingSoon": "Coming Soon",
+    "banner": "Checkout is being activated. You can browse products and set up your store now.",
+    "comingSoon": "Checkout opening soon",
     "pricingTBA": "Pricing details will be announced before launch.",
-    "checkoutDisabled": "Saiflow is in pre-launch. Payments aren't available yet.",
+    "checkoutDisabled": "Checkout is being activated.",
     "payoutsCard": {
-      "title": "Creator Payouts — Coming Soon",
-      "body": "Secure payouts for creators are currently in development."
+      "title": "Creator payouts — activating with launch",
+      "body": "Secure payouts for creators activate with launch."
     }
   },
   "moderation": {

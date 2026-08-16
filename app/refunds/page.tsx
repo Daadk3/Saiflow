@@ -21,11 +21,16 @@ export default async function RefundsPage() {
         <div className="max-w-4xl mx-auto space-y-8 text-gray-300 leading-relaxed">
           <section>
             <h2 className="text-2xl font-bold text-white mb-4">
-              {ar ? "المنتجات الرقمية" : "Digital Products"}
+              {/* Named "Digital Delivery" rather than "Digital Products" so the
+                  delivery procedure a Saudi Business Center reviewer looks for
+                  is findable by its own name. The substantive wording below is
+                  unchanged — only the heading identifies it. SaiFlow sells
+                  digital goods only, so there is no shipping provision to add. */}
+              {ar ? "التسليم الرقمي" : "Digital Delivery"}
             </h2>
             <p className="mb-3">
               {ar
-                ? "جميع المنتجات على سيفلو منتجات رقمية تُسلَّم فورًا عبر رابط تحميل. بإتمام عملية الشراء فإنك تقر بأن تنفيذ الخدمة يبدأ فور إتاحة رابط التحميل، وبذلك يسقط حق التراجع عن الشراء وفقًا لأحكام التجارة الإلكترونية المعمول بها في المملكة العربية السعودية."
+                ? "جميع المنتجات على ساي فلو منتجات رقمية تُسلَّم فورًا عبر رابط تحميل. بإتمام عملية الشراء فإنك تقر بأن تنفيذ الخدمة يبدأ فور إتاحة رابط التحميل، وبذلك يسقط حق التراجع عن الشراء وفقًا لأحكام التجارة الإلكترونية المعمول بها في المملكة العربية السعودية."
                 : "All products on Saiflow are digital products delivered instantly via a download link. By completing a purchase, you acknowledge that performance begins as soon as the download link is made available to you, and that the right of withdrawal no longer applies once delivery has begun, in accordance with the e-commerce regulations of the Kingdom of Saudi Arabia."}
             </p>
             <p>
