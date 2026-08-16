@@ -23,15 +23,21 @@ const stats = read("../lib/admin-stats.ts");
 const button = read("../components/admin/ReviewButton.tsx");
 const page = read("../app/dashboard/admin/products/page.tsx");
 
-describe("inspect-file: the URL is filtered server-side", () => {
-  test("the directory row re-checks the allowlist before exposing the URL", () => {
-    // Filtering here, not in the component, means a non-conforming URL is
-    // never serialised into the page at all.
+describe("inspect-file: no deliverable URL reaches the browser", () => {
+  test("the directory row emits a boolean, not a URL", () => {
+    // Supersedes the allowlist filter that used to stand here. Stage D2 made
+    // this stronger rather than weaker: there is no longer a URL to filter,
+    // because none is emitted at all. The row carries only whether the
+    // inspection route would have a key to sign.
     assert.ok(
-      /fileUrl: isAllowedAssetUrl\(p\.fileUrl\) \? p\.fileUrl : null/.test(stats),
-      "admin-stats must gate fileUrl through isAllowedAssetUrl"
+      /canInspect: p\.fileKey != null/.test(stats),
+      "admin-stats must expose canInspect, keyed on fileKey"
     );
-    assert.ok(stats.includes('from "@/lib/validations"'));
+    const emitted = stats.slice(stats.indexOf("rows: page.map"));
+    assert.ok(
+      !/\bfileUrl:/.test(emitted),
+      "no deliverable URL may be emitted in a directory row"
+    );
   });
 
   test("hasFile is left untouched", () => {
@@ -95,12 +101,17 @@ describe("inspect-file: the control renders only when there is a file", () => {
     assert.ok(button.includes('decide("REJECTED")'));
   });
 
-  test("both table layouts pass the file through", () => {
-    // Desktop table and mobile card list each render a ReviewButton.
+  test("both table layouts pass the inspection route through", () => {
+    // Desktop table and mobile card list each render a ReviewButton, and each
+    // must point at SaiFlow's route rather than at the file.
     const uses = page.match(/<ReviewButton/g) ?? [];
-    const passes = page.match(/fileHref=\{p\.fileUrl\}/g) ?? [];
+    const passes =
+      page.match(
+        /fileHref=\{p\.canInspect \? `\/api\/admin\/inspect\/\$\{p\.id\}` : null\}/g
+      ) ?? [];
     assert.equal(uses.length, 2, "expected desktop and mobile usages");
     assert.equal(passes.length, uses.length, "every usage must pass fileHref");
+    assert.ok(!page.includes("p.fileUrl"), "no raw deliverable URL in the page");
   });
 });
 

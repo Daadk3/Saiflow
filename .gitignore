@@ -78,6 +78,10 @@ logs
 
 # Claude Code harness — local settings, not for commit
 .claude/settings.local.json
+# Scratch worktrees created by review tooling. Empty directories are invisible
+# to git, so this matters only once something lands inside one — which is
+# exactly when it must not reach a commit.
+.claude/worktrees/
 
 # Local archives
 *.zip

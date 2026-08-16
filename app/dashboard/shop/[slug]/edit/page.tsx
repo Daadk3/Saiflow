@@ -248,21 +248,26 @@ export default function EditShopPage() {
                       </svg>
                     </div>
                     <p className="text-gray-400 text-sm mb-2">{t("shop.edit.coverImageUploadCta")}</p>
-                    <UploadButton
-                      endpoint="shopCover"
-                      onClientUploadComplete={(res) => {
-                        if (res?.[0]) {
-                          setCoverImage(res[0].ufsUrl || res[0].url);
-                        }
-                      }}
-                      onUploadError={(error: Error) => {
-                        setError(t("shop.edit.coverUploadFailed", { message: error.message }));
-                      }}
-                      appearance={{
-                        button: "bg-gray-700 hover:bg-gray-600 text-white font-medium px-4 py-2 rounded-lg transition-colors text-sm ut-uploading:bg-gray-700/50",
-                        allowedContent: "text-gray-500 text-xs mt-2",
-                      }}
-                    />
+                    {/* Uploads are authorised per shop, so the control only
+                        appears once the shop has loaded. */}
+                    {shop?.id && (
+                      <UploadButton
+                        endpoint="shopCover"
+                        input={{ shopId: shop.id }}
+                        onClientUploadComplete={(res) => {
+                          if (res?.[0]) {
+                            setCoverImage(res[0].ufsUrl || res[0].url);
+                          }
+                        }}
+                        onUploadError={(error: Error) => {
+                          setError(t("shop.edit.coverUploadFailed", { message: error.message }));
+                        }}
+                        appearance={{
+                          button: "bg-gray-700 hover:bg-gray-600 text-white font-medium px-4 py-2 rounded-lg transition-colors text-sm ut-uploading:bg-gray-700/50",
+                          allowedContent: "text-gray-500 text-xs mt-2",
+                        }}
+                      />
+                    )}
                   </div>
                 )}
               </div>
@@ -304,21 +309,24 @@ export default function EditShopPage() {
                         </svg>
                       </div>
                       <p className="text-gray-400 text-sm mb-2">{t("shop.edit.logoUploadCta")}</p>
-                      <UploadButton
-                        endpoint="shopLogo"
-                        onClientUploadComplete={(res) => {
-                          if (res?.[0]) {
-                            setLogo(res[0].ufsUrl || res[0].url);
-                          }
-                        }}
-                        onUploadError={(error: Error) => {
-                          setError(t("shop.edit.logoUploadFailed", { message: error.message }));
-                        }}
-                        appearance={{
-                          button: "bg-gray-700 hover:bg-gray-600 text-white font-medium px-4 py-2 rounded-lg transition-colors text-sm ut-uploading:bg-gray-700/50",
-                          allowedContent: "text-gray-500 text-xs mt-2",
-                        }}
-                      />
+                      {shop?.id && (
+                        <UploadButton
+                          endpoint="shopLogo"
+                          input={{ shopId: shop.id }}
+                          onClientUploadComplete={(res) => {
+                            if (res?.[0]) {
+                              setLogo(res[0].ufsUrl || res[0].url);
+                            }
+                          }}
+                          onUploadError={(error: Error) => {
+                            setError(t("shop.edit.logoUploadFailed", { message: error.message }));
+                          }}
+                          appearance={{
+                            button: "bg-gray-700 hover:bg-gray-600 text-white font-medium px-4 py-2 rounded-lg transition-colors text-sm ut-uploading:bg-gray-700/50",
+                            allowedContent: "text-gray-500 text-xs mt-2",
+                          }}
+                        />
+                      )}
                     </div>
                   )}
                 </div>

@@ -5,6 +5,16 @@ import { prisma } from "@/lib/prisma";
 import { authOptions } from "../../auth/authOptions";
 import { slugify } from "@/lib/slug";
 import { isProductCategory } from "@/lib/categories";
+import {
+  isAllowedAssetUrl,
+  extractAssetKey,
+  extractOwnAssetKey,
+} from "@/lib/validations";
+import {
+  verifyDeliverableProvenance,
+  attachedScanFields,
+  reconcileProductScanState,
+} from "@/lib/file-safety";
 
 // GET - Get a single product by ID (seller dashboard only)
 // SECURITY: this returns the full row including fileUrl (the paid asset),
@@ -94,6 +104,24 @@ export async function PUT(
       return NextResponse.json({ error: "Invalid category" }, { status: 400 });
     }
 
+    /**
+     * Asset URLs were previously written straight through on this route, while
+     * the create route validated them. That gap let a shop member store an
+     * arbitrary URL, which downstream code trusts: the download route redirects
+     * to it, and checkout fetches it server-side.
+     *
+     * The deliverable is validated below, once the stored row is available —
+     * see the note there for why that ordering is required.
+     */
+    if (
+      thumbnailUrl !== undefined &&
+      thumbnailUrl !== null &&
+      thumbnailUrl !== "" &&
+      !isAllowedAssetUrl(thumbnailUrl)
+    ) {
+      return NextResponse.json({ error: "Invalid thumbnail URL" }, { status: 400 });
+    }
+
     // Get the user
     const user = await prisma.user.findFirst({
       where: { email: { equals: session.user.email, mode: "insensitive" } },
@@ -135,13 +163,98 @@ export async function PUT(
       );
     }
 
+    /**
+     * Deliverable validation, deliberately placed after the row is loaded and
+     * ownership is proven.
+     *
+     * A NEW deliverable must sit on SaiFlow's own UploadThing app, so a shop
+     * member cannot point a product at a file uploaded to a personal account
+     * and bypass the type and size allowlist.
+     *
+     * An UNCHANGED value is exempt, and that exemption is load-bearing rather
+     * than a convenience: the edit form preloads the stored URL into its state
+     * and echoes it back on every save. Enforcing the strict host on an
+     * unchanged value would make the products still hosted on the legacy shared
+     * `utfs.io` domain permanently uneditable.
+     */
+    const submittedFileUrl = fileUrl === undefined ? undefined : fileUrl || null;
+    const fileUrlChanged =
+      submittedFileUrl !== undefined && submittedFileUrl !== product.fileUrl;
+
+    let nextFileKey: string | null | undefined;
+    if (submittedFileUrl !== undefined) {
+      if (!fileUrlChanged) {
+        // Same file as before. Derive the key with the permissive reader so a
+        // legacy row backfills its key instead of being rejected.
+        nextFileKey = product.fileKey ?? extractAssetKey(product.fileUrl);
+      } else if (submittedFileUrl === null) {
+        nextFileKey = null;
+      } else {
+        nextFileKey = extractOwnAssetKey(submittedFileUrl);
+        if (!nextFileKey) {
+          return NextResponse.json({ error: "Invalid file URL" }, { status: 400 });
+        }
+      }
+    }
+
+    /**
+     * Provenance for a REPLACEMENT deliverable.
+     *
+     * Host pinning proved the new key is SaiFlow's; this proves it was
+     * uploaded through the product-file route for THIS product's shop. Without
+     * it, a seller who learned another shop's key could attach it here.
+     *
+     * The scan record that follows comes from the file's own FileAsset row
+     * rather than being assumed: normally PENDING_SCAN, but already SAFE if the
+     * worker settled it between upload and save.
+     */
+    let replacementScanFields: Record<string, unknown> | null = null;
+    if (fileUrlChanged) {
+      if (nextFileKey) {
+        const provenance = await verifyDeliverableProvenance(
+          nextFileKey,
+          product.shopId
+        );
+        if (!provenance.ok) {
+          return NextResponse.json(
+            { error: "This file cannot be attached to a product." },
+            { status: 400 }
+          );
+        }
+        replacementScanFields = attachedScanFields(provenance.asset);
+      } else {
+        // File removed: clear the record so nothing survives pointing at it.
+        replacementScanFields = {
+          fileScanStatus: "PENDING_SCAN" as const,
+          fileScanKey: null,
+          fileScanSha256: null,
+          fileScanAt: null,
+          fileScanAttempts: 0,
+        };
+      }
+    }
+
     // Create new slug if name changed (falls back to a random handle for non-Latin names)
     let slug = product.slug;
     if (name && name !== product.name) {
       slug = slugify(name, "product");
     }
 
-    // Update the product
+    /**
+     * A replaced deliverable must not inherit the previous file's verdict.
+     *
+     * Every upload mints a new storage key, so a key change is what detects the
+     * replacement, and the scan record is rewritten from the NEW file's own
+     * provenance row. This is belt-and-braces rather than the primary defence:
+     * the safety predicate also requires fileScanKey == fileKey, so even if
+     * this were removed a stale SAFE still could not authorise anything.
+     *
+     * Legacy rows carry a fileUrl but no fileKey, so re-saving one backfills
+     * its key and leaves it — correctly — unscanned.
+     */
+    const fileChanged =
+      nextFileKey !== undefined && nextFileKey !== product.fileKey;
+
     const updatedProduct = await prisma.product.update({
       where: { id },
       data: {
@@ -150,10 +263,23 @@ export async function PUT(
         description: description !== undefined ? description : product.description,
         price: price !== undefined ? price : product.price,
         category: category !== undefined ? (category || null) : product.category,
-        fileUrl: fileUrl !== undefined ? fileUrl : product.fileUrl,
-        thumbnailUrl: thumbnailUrl !== undefined ? thumbnailUrl : product.thumbnailUrl,
+        fileUrl: fileUrl !== undefined ? fileUrl || null : product.fileUrl,
+        thumbnailUrl:
+          thumbnailUrl !== undefined ? thumbnailUrl || null : product.thumbnailUrl,
+        ...(nextFileKey !== undefined ? { fileKey: nextFileKey } : {}),
+        ...(fileChanged && replacementScanFields ? replacementScanFields : {}),
       },
     });
+
+    // Same race as on create: the worker may have settled the new file
+    // between the provenance read and this write.
+    if (fileChanged && nextFileKey) {
+      try {
+        await reconcileProductScanState(updatedProduct.id, nextFileKey);
+      } catch (error) {
+        console.error("[scan] reconcile after edit failed", (error as Error)?.name);
+      }
+    }
 
     return NextResponse.json(updatedProduct);
   } catch (error) {

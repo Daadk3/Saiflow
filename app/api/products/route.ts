@@ -4,7 +4,12 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { authOptions } from "../auth/authOptions";
 import { slugify } from "@/lib/slug";
-import { isAllowedAssetUrl } from "@/lib/validations";
+import { isAllowedAssetUrl, extractOwnAssetKey } from "@/lib/validations";
+import {
+  verifyDeliverableProvenance,
+  attachedScanFields,
+  reconcileProductScanState,
+} from "@/lib/file-safety";
 import { isProductCategory } from "@/lib/categories";
 
 // POST - Create a new product
@@ -57,7 +62,17 @@ export async function POST(req: Request) {
         { status: 400 }
       );
     }
-    if (fileUrl && !isAllowedAssetUrl(fileUrl)) {
+    // The deliverable's storage key is derived from the URL, never accepted
+    // from the client, so `fileUrl` and `fileKey` can never describe different
+    // objects.
+    //
+    // extractOwnAssetKey additionally requires the URL to sit on SaiFlow's own
+    // UploadThing app. Without that, a shop member could reference a file
+    // uploaded to a personal UploadThing account and bypass the type and size
+    // allowlist completely. A new product has no legacy value to preserve, so
+    // the strict check always applies here.
+    const fileKey = fileUrl ? extractOwnAssetKey(fileUrl) : null;
+    if (fileUrl && !fileKey) {
       return NextResponse.json(
         { error: "Invalid file URL" },
         { status: 400 }
@@ -114,6 +129,27 @@ export async function POST(req: Request) {
       );
     }
 
+    /**
+     * Provenance: the key must have been uploaded through the product-file
+     * route, for THIS shop. Host pinning proved the object is SaiFlow's; this
+     * proves it is this seller's, and that it was not uploaded as a logo or
+     * thumbnail under different size and ACL rules.
+     *
+     * Checked after shop membership, so an outsider is refused before any
+     * lookup reveals whether a key exists.
+     */
+    let scanFields = {};
+    if (fileKey) {
+      const provenance = await verifyDeliverableProvenance(fileKey, shopId);
+      if (!provenance.ok) {
+        return NextResponse.json(
+          { error: "This file cannot be attached to a product." },
+          { status: 400 }
+        );
+      }
+      scanFields = attachedScanFields(provenance.asset);
+    }
+
     // Create slug from name (falls back to a random handle for non-Latin names)
     const slug = slugify(name, "product");
 
@@ -130,10 +166,15 @@ export async function POST(req: Request) {
           category: category || null,
           shopId,
           fileUrl,
+          fileKey,
+          ...scanFields,
           thumbnailUrl,
           currency: "SAR",
           certifiedAt: now,
-          // moderationStatus defaults to PENDING via schema
+          // moderationStatus defaults to PENDING via schema.
+          // fileScanStatus defaults to PENDING_SCAN, and fileScanKey stays
+          // null — so the safety predicate is false for a brand-new product
+          // without anything here having to say so.
         },
       });
       await tx.moderationEvent.create({
@@ -148,6 +189,23 @@ export async function POST(req: Request) {
       });
       return created;
     });
+
+    /**
+     * Close the attach/scan race. If the worker settled this file between the
+     * provenance read above and this insert, its key-bound update found no
+     * product and the row would sit PENDING_SCAN forever. This copies the
+     * terminal verdict across; it never invents one.
+     *
+     * Isolated because the product is already saved and already fail-closed —
+     * a reconciliation failure must not turn a successful save into an error.
+     */
+    if (fileKey) {
+      try {
+        await reconcileProductScanState(product.id, fileKey);
+      } catch (error) {
+        console.error("[scan] reconcile after create failed", (error as Error)?.name);
+      }
+    }
 
     return NextResponse.json(product, { status: 201 });
   } catch (error) {

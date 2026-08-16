@@ -295,22 +295,27 @@ export default function EditProductPage() {
                       </svg>
                     </div>
                     <p className="text-gray-400 text-sm mb-2">{t("dashboard.product.thumbnailUploadCta")}</p>
-                    <UploadButton
-                      endpoint="productThumbnail"
-                      onClientUploadComplete={(res) => {
-                        if (res?.[0]) {
-                          // Use ufsUrl for v7+ or fall back to url
-                          setThumbnailUrl(res[0].ufsUrl || res[0].url);
-                        }
-                      }}
-                      onUploadError={(error: Error) => {
-                        setError(t("dashboard.product.thumbnailUploadFailed", { message: error.message }));
-                      }}
-                      appearance={{
-                        button: "bg-gray-700 hover:bg-gray-600 text-white font-medium px-4 py-2 rounded-lg transition-colors text-sm ut-uploading:bg-gray-700/50",
-                        allowedContent: "text-gray-500 text-xs mt-2",
-                      }}
-                    />
+                    {/* Uploads are authorised per shop, so the control only
+                        appears once the product (and its shop) has loaded. */}
+                    {product?.shop.id && (
+                      <UploadButton
+                        endpoint="productThumbnail"
+                        input={{ shopId: product.shop.id }}
+                        onClientUploadComplete={(res) => {
+                          if (res?.[0]) {
+                            // Use ufsUrl for v7+ or fall back to url
+                            setThumbnailUrl(res[0].ufsUrl || res[0].url);
+                          }
+                        }}
+                        onUploadError={(error: Error) => {
+                          setError(t("dashboard.product.thumbnailUploadFailed", { message: error.message }));
+                        }}
+                        appearance={{
+                          button: "bg-gray-700 hover:bg-gray-600 text-white font-medium px-4 py-2 rounded-lg transition-colors text-sm ut-uploading:bg-gray-700/50",
+                          allowedContent: "text-gray-500 text-xs mt-2",
+                        }}
+                      />
+                    )}
                   </div>
                 )}
               </div>
@@ -446,16 +451,27 @@ export default function EditProductPage() {
                         </svg>
                       </button>
                     </div>
-                    {/* Test download link */}
+                    {/* Test download. Routed through SaiFlow instead of
+                        linking the file: deliverables are private, so the
+                        server re-checks shop membership and redirects to a
+                        signed URL that expires in a minute.
+
+                        Shown only while the form still holds the SAVED file.
+                        A freshly uploaded file that has not been saved yet is
+                        not on the product row, so there is nothing for the
+                        server to authorise — and it would otherwise link to
+                        the file this one replaces. */}
                     <div className="flex items-center gap-2">
-                      <a
-                        href={fileUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-xs text-gray-500 hover:text-teal-400 underline"
-                      >
-                        {t("dashboard.product.edit.testDownloadLink")}
-                      </a>
+                      {product && fileUrl === product.fileUrl && (
+                        <a
+                          href={`/api/products/${product.id}/inspect`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-xs text-gray-500 hover:text-teal-400 underline"
+                        >
+                          {t("dashboard.product.edit.testDownloadLink")}
+                        </a>
+                      )}
                       <span className="text-xs text-gray-600">•</span>
                       <span className="text-xs text-gray-600">
                         {t("dashboard.product.edit.downloadTroubleshoot")}
@@ -471,22 +487,25 @@ export default function EditProductPage() {
                         </svg>
                       </div>
                       <p className="text-gray-400 mb-2">{t("dashboard.product.dragDropInstruction")}</p>
-                      <UploadButton
-                        endpoint="productFile"
-                        onClientUploadComplete={(res) => {
-                          if (res?.[0]) {
-                            setFileUrl(res[0].ufsUrl || res[0].url);
-                            setFileName(res[0].name);
-                          }
-                        }}
-                        onUploadError={(error: Error) => {
-                          setError(t("dashboard.product.fileUploadFailed", { message: error.message }));
-                        }}
-                        appearance={{
-                          button: "bg-teal-500 hover:bg-teal-400 text-white font-medium px-6 py-2 rounded-lg transition-colors ut-uploading:bg-teal-500/50",
-                          allowedContent: "text-gray-500 text-xs mt-2",
-                        }}
-                      />
+                      {product?.shop.id && (
+                        <UploadButton
+                          endpoint="productFile"
+                          input={{ shopId: product.shop.id }}
+                          onClientUploadComplete={(res) => {
+                            if (res?.[0]) {
+                              setFileUrl(res[0].ufsUrl || res[0].url);
+                              setFileName(res[0].name);
+                            }
+                          }}
+                          onUploadError={(error: Error) => {
+                            setError(t("dashboard.product.fileUploadFailed", { message: error.message }));
+                          }}
+                          appearance={{
+                            button: "bg-teal-500 hover:bg-teal-400 text-white font-medium px-6 py-2 rounded-lg transition-colors ut-uploading:bg-teal-500/50",
+                            allowedContent: "text-gray-500 text-xs mt-2",
+                          }}
+                        />
+                      )}
                     </div>
                   </div>
                 )}

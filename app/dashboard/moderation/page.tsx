@@ -17,7 +17,11 @@ interface PendingProduct {
   currency: string;
   category: string | null;
   thumbnailUrl: string | null;
-  fileUrl: string | null;
+  /**
+   * Whether the deliverable can be opened through the admin inspection route.
+   * The file's own URL is never sent here — it is a private object.
+   */
+  canInspect: boolean;
   certifiedAt: string | null;
   createdAt: string;
   shop: { name: string; slug: string };
@@ -143,9 +147,12 @@ export default function ModerationQueuePage() {
                   {ar ? "إقرار البائع:" : "Seller certified:"}{" "}
                   {p.certifiedAt ? new Date(p.certifiedAt).toLocaleString(locale) : "—"}
                 </p>
-                {p.fileUrl && (
+                {p.canInspect && (
+                  // SaiFlow's inspection route, not the file's URL: it
+                  // re-checks admin authority and redirects to a signed URL
+                  // that expires in a minute.
                   <a
-                    href={p.fileUrl}
+                    href={`/api/admin/inspect/${p.id}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="inline-block mt-2 text-xs text-teal-400 hover:text-teal-300 underline"

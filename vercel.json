@@ -5,6 +5,9 @@
   "installCommand": "npm install --legacy-peer-deps",
   "regions": ["iad1"],
   "functions": {
+    "app/api/internal/scan/route.ts": {
+      "maxDuration": 300
+    },
     "app/api/**/*.ts": {
       "maxDuration": 30
     }
