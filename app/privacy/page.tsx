@@ -34,7 +34,7 @@ export default function PrivacyPage() {
               <ul className="list-disc pl-6 space-y-2 mb-3">
                 <li><strong>Account Information:</strong> Name, email address, and password when you create an account</li>
                 <li><strong>Profile Information:</strong> Optional profile details, shop information, and product listings</li>
-                <li><strong>Payment Information:</strong> Payment details are processed by licensed third-party payment service providers. We never receive or store your full card details.</li>
+                <li><strong>Payment Information:</strong> Payment details are processed by third-party payment service providers. We never receive or store your full card details.</li>
                 <li><strong>Transaction Information:</strong> Purchase history, product downloads, and sales data</li>
                 <li><strong>Communication Data:</strong> Messages you send to our support team</li>
               </ul>
@@ -80,7 +80,7 @@ export default function PrivacyPage() {
                 We use third-party services that may collect information about you:
               </p>
               <ul className="list-disc pl-6 space-y-2 mb-3">
-                <li><strong>Payment Processing:</strong> Payments are handled by licensed payment service providers. Their use of your personal information is governed by their own privacy policies. We never store your full card details.</li>
+                <li><strong>Payment Processing:</strong> Payments are handled by payment service providers. Their use of your personal information is governed by their own privacy policies. We never store your full card details.</li>
                 <li><strong>Hosting &amp; Database (Vercel, Neon):</strong> Our application and database are hosted on infrastructure located in the United States.</li>
                 <li><strong>File Hosting (UploadThing):</strong> Digital product files and images are hosted and delivered by UploadThing (United States).</li>
                 <li><strong>Transactional Email (Resend):</strong> Purchase receipts and account emails are sent via Resend (United States).</li>

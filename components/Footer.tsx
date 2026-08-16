@@ -3,10 +3,12 @@
 import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
+import { LEGAL, establishmentName } from "@/lib/legal";
 
 export default function Footer() {
   const t = useTranslations();
+  const ar = useLocale().startsWith("ar");
   const linkClass =
     "text-gray-400 hover:text-white text-sm font-medium transition-colors";
 
@@ -113,9 +115,24 @@ export default function Footer() {
 
         {/* Bottom row */}
         <div className="mt-12 flex flex-col sm:flex-row items-center justify-between gap-6 border-t border-gray-800 pt-6">
-          <p className="text-sm text-gray-500">
-            {t('footer.copyright')}
-          </p>
+          <div className="space-y-1 text-center sm:text-start">
+            <p className="text-sm text-gray-500">
+              {t('footer.copyright')}
+            </p>
+            {/* Registered-entity disclosure. The KSA e-commerce rules require
+                the commercial registration number to be visible on the store
+                itself, so it lives in the global footer and therefore appears
+                on the homepage and every public store page. Deliberately
+                quiet: this is a legal disclosure, not a design element. */}
+            <p className="text-xs text-gray-600 leading-relaxed">
+              {establishmentName(ar)}
+              {" · "}
+              {t('footer.commercialRegistration')}:{" "}
+              {/* bdi: keep the Latin-digit CR number in logical order inside
+                  the RTL line. */}
+              <bdi>{LEGAL.crNumber}</bdi>
+            </p>
+          </div>
           {/* Social links intentionally removed until real profiles exist —
               placeholder links to twitter.com etc. read as fake to users and
               payment-provider reviewers. Restore with real URLs when live. */}

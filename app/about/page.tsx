@@ -1,4 +1,5 @@
 import { getLocale } from "next-intl/server";
+import { LEGAL, establishmentName } from "@/lib/legal";
 
 // Company information page — bilingual, server-rendered from the locale cookie.
 // Discloses the operating entity as required by the KSA E-Commerce Law and
@@ -12,7 +13,7 @@ export default async function AboutPage() {
       <section className="pt-16 pb-12 px-4 border-b border-white/10">
         <div className="max-w-4xl mx-auto">
           <h1 className="text-4xl sm:text-5xl font-extrabold text-white mb-4">
-            {ar ? "عن سيفلو" : "About Saiflow"}
+            {ar ? "عن ساي فلو" : "About Saiflow"}
           </h1>
           <p className="text-gray-400">
             {ar
@@ -26,11 +27,11 @@ export default async function AboutPage() {
         <div className="max-w-4xl mx-auto space-y-8 text-gray-300 leading-relaxed">
           <section>
             <h2 className="text-2xl font-bold text-white mb-4">
-              {ar ? "ما هي سيفلو؟" : "What is Saiflow?"}
+              {ar ? "ما هي ساي فلو؟" : "What is Saiflow?"}
             </h2>
             <p>
               {ar
-                ? "سيفلو منصة عربية أولًا تمكّن صنّاع المحتوى من بيع منتجاتهم الرقمية — كتب إلكترونية، قوالب، دورات، ملفات تصميم — مباشرة إلى جمهورهم، بالريال السعودي وبتجربة شراء بسيطة وآمنة."
+                ? "ساي فلو منصة عربية أولًا تمكّن صنّاع المحتوى من بيع منتجاتهم الرقمية — كتب إلكترونية، قوالب، دورات، ملفات تصميم — مباشرة إلى جمهورهم، بالريال السعودي وبتجربة شراء بسيطة وآمنة."
                 : "Saiflow is an Arabic-first platform that lets creators sell their digital products — e-books, templates, courses, design files — directly to their audience, priced in Saudi Riyal with a simple, secure purchase experience."}
             </p>
           </section>
@@ -41,18 +42,24 @@ export default async function AboutPage() {
             </h2>
             <div className="rounded-xl border border-gray-800 bg-[#111] p-6 space-y-3">
               <p>
-                <span className="text-gray-500">{ar ? "الاسم التجاري:" : "Trade name:"}</span>{" "}
-                <span className="text-white font-semibold">Saiflow</span>
-              </p>
-              <p>
-                <span className="text-gray-500">{ar ? "المنشأة المشغّلة:" : "Operated by:"}</span>{" "}
+                <span className="text-gray-500">{ar ? "اسم المتجر:" : "Store name:"}</span>{" "}
                 <span className="text-white font-semibold">
-                  {ar ? "[مؤسسة نوفاسفير للتسويق]" : "[NovaSphere Marketing Establishment]"}
+                  {/* Both renderings are shown in both locales: the registered
+                      Arabic store name is what a Saudi Business Center reviewer
+                      matches against the record, whichever language they read
+                      the page in. */}
+                  {LEGAL.storeNameEn} — {LEGAL.storeNameAr}
                 </span>
               </p>
               <p>
+                <span className="text-gray-500">{ar ? "المنشأة المشغّلة:" : "Operated by:"}</span>{" "}
+                <span className="text-white font-semibold">{establishmentName(ar)}</span>
+              </p>
+              <p>
                 <span className="text-gray-500">{ar ? "السجل التجاري:" : "Commercial Registration:"}</span>{" "}
-                <span className="text-white font-semibold">[CR NUMBER]</span>
+                {/* bdi: the registration number is a Latin-digit sequence and
+                    must not be reordered by the surrounding RTL paragraph. */}
+                <bdi className="text-white font-semibold">{LEGAL.crNumber}</bdi>
               </p>
               <p>
                 <span className="text-gray-500">{ar ? "المقر:" : "Location:"}</span>{" "}
