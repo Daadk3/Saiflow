@@ -132,6 +132,25 @@ export default function Footer() {
                   the RTL line. */}
               <bdi>{LEGAL.crNumber}</bdi>
             </p>
+            {/* Saudi Business Center e-commerce authentication. Sits on its own
+                line under the registration rather than joining it, because the
+                two are separate credentials from separate records and running
+                them together reads as one long string in both scripts.
+
+                The separator before the number lives inside the translation:
+                English abbreviates ("Authentication No. 0000318712") while
+                Arabic takes a colon ("رقم التوثيق: 0000318712"), so a shared
+                hard-coded ":" would be wrong in one language or the other.
+
+                Number only. The certificate carries banking details and is
+                never published, linked, or stored in this repository, and no
+                verification URL is asserted because none was issued. */}
+            <p className="text-xs text-gray-600 leading-relaxed">
+              {t('footer.authenticatedBy')}
+              {" · "}
+              {t('footer.authenticationNumber')}{" "}
+              <bdi>{LEGAL.sbcAuthNumber}</bdi>
+            </p>
           </div>
           {/* Social links intentionally removed until real profiles exist —
               placeholder links to twitter.com etc. read as fake to users and

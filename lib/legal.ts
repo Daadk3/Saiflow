@@ -38,6 +38,23 @@ export const LEGAL = {
   supportEmail: "support@saiflow.io",
 
   /**
+   * Saudi Business Center e-commerce authentication number
+   * (رقم توثيق المتجر الإلكتروني). Issued 17/08/2026, status Active/ساري.
+   *
+   * RENEWAL: expires 28/05/2027. The expiry is recorded here rather than
+   * rendered, because a date printed on the site keeps reading as current long
+   * after it stops being true, and nothing requires publishing it. Renew the
+   * authentication before that date and update this number if it changes.
+   *
+   * The authentication certificate itself carries the establishment's bank
+   * account and IBAN. It is NOT an asset of this repository: it is never
+   * committed, uploaded, or served, and no banking detail belongs in this file
+   * or anywhere else in the codebase. Only the authentication number below is
+   * public information.
+   */
+  sbcAuthNumber: "0000318712",
+
+  /**
    * Registered business contact numbers.
    *
    * `*Display` values are the exact national forms recorded on the commercial

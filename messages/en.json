@@ -108,7 +108,9 @@
     "columnResources": "Resources",
     "columnLegal": "Legal",
     "contentPolicy": "Content Policy",
-    "commercialRegistration": "Commercial Registration"
+    "commercialRegistration": "Commercial Registration",
+    "authenticatedBy": "Authenticated by the Saudi Business Center",
+    "authenticationNumber": "Authentication No."
   },
   "common": {
     "viewAll": "View all",
