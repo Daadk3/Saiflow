@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { getLocale } from "next-intl/server";
+import { LEGAL } from "@/lib/legal";
 
 // Contact page — bilingual, server-rendered from the locale cookie.
 // A working contact channel is required by KSA consumer-protection rules.
@@ -30,10 +31,45 @@ export default async function ContactPage() {
                 {ar ? "الدعم والاستفسارات" : "Support & Inquiries"}
               </h2>
               <a
-                href="mailto:support@saiflow.io"
+                href={`mailto:${LEGAL.supportEmail}`}
                 className="text-teal-400 hover:text-teal-300 underline text-lg"
               >
-                support@saiflow.io
+                {LEGAL.supportEmail}
+              </a>
+            </div>
+
+            {/* Registered business telephone contacts. Required for KSA
+                e-commerce authentication: the store must publish a reachable
+                business contact, not only an email address.
+
+                The visible text is the exact national form recorded on the
+                commercial registration so a reviewer can match it against the
+                record; the tel: href carries the E.164 form so a phone actually
+                dials it. Both are wrapped in <bdi> so the Latin digits keep
+                their order inside the Arabic layout. */}
+            <div>
+              <h2 className="text-lg font-bold text-white mb-1">
+                {ar ? "الجوال" : "Mobile"}
+              </h2>
+              <a
+                href={`tel:${LEGAL.mobileTel}`}
+                className="text-teal-400 hover:text-teal-300 underline text-lg"
+                dir="ltr"
+              >
+                <bdi>{LEGAL.mobileDisplay}</bdi>
+              </a>
+            </div>
+
+            <div>
+              <h2 className="text-lg font-bold text-white mb-1">
+                {ar ? "الهاتف الثابت" : "Landline"}
+              </h2>
+              <a
+                href={`tel:${LEGAL.landlineTel}`}
+                className="text-teal-400 hover:text-teal-300 underline text-lg"
+                dir="ltr"
+              >
+                <bdi>{LEGAL.landlineDisplay}</bdi>
               </a>
             </div>
             <div>
@@ -69,7 +105,7 @@ export default async function ContactPage() {
                   <>
                     معلومات المنشأة والسجل التجاري في{" "}
                     <Link href="/about" className="text-teal-400 hover:text-teal-300 underline">
-                      صفحة عن سيفلو
+                      صفحة عن ساي فلو
                     </Link>
                     .
                   </>

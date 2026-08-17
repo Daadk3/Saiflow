@@ -1,3 +1,5 @@
+import { LEGAL } from "@/lib/legal";
+
 export default function TermsPage() {
   return (
     <div className="pt-16">
@@ -33,7 +35,10 @@ export default function TermsPage() {
                 Saiflow is a digital products marketplace that enables creators to sell digital products, courses, and memberships. We provide the platform and payment processing infrastructure, but we are not a party to transactions between buyers and sellers.
               </p>
               <p>
-                Saiflow is operated by <strong className="text-white">[NovaSphere Marketing Establishment]</strong>, Commercial Registration No. <strong className="text-white">[CR NUMBER]</strong>, Riyadh, Kingdom of Saudi Arabia.
+                {LEGAL.storeNameEn} (<bdi>{LEGAL.storeNameAr}</bdi>) is operated by{" "}
+                <strong className="text-white">{LEGAL.establishmentEn}</strong>{" "}
+                (<bdi>{LEGAL.establishmentAr}</bdi>), Commercial Registration No.{" "}
+                <strong className="text-white"><bdi>{LEGAL.crNumber}</bdi></strong>, Riyadh, Kingdom of Saudi Arabia.
               </p>
             </section>
 

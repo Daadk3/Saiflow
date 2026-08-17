@@ -44,7 +44,7 @@ export default async function ContentPolicyPage() {
       "Content related to weapons, drugs, or any prohibited materials",
     ],
     [
-      "إعادة بيع منتجات رقمية اشتُريت من سيفلو أو من منصات أخرى دون حق توزيع",
+      "إعادة بيع منتجات رقمية اشتُريت من ساي فلو أو من منصات أخرى دون حق توزيع",
       "Reselling digital products bought on Saiflow or elsewhere without distribution rights",
     ],
   ];
@@ -67,7 +67,7 @@ export default async function ContentPolicyPage() {
           <section>
             <p>
               {ar
-                ? "سيفلو منصة سعودية لبيع المنتجات الرقمية. لحماية المشترين والبائعين والمنصة، يُحظر بيع أو نشر ما يلي:"
+                ? "ساي فلو منصة سعودية لبيع المنتجات الرقمية. لحماية المشترين والبائعين والمنصة، يُحظر بيع أو نشر ما يلي:"
                 : "Saiflow is a Saudi marketplace for digital products. To protect buyers, sellers, and the platform, the following may not be sold or published:"}
             </p>
           </section>
@@ -97,7 +97,7 @@ export default async function ContentPolicyPage() {
             </p>
             <p>
               {ar
-                ? "يحق لسيفلو إزالة أي منتج مخالف وتعليق حساب البائع، وإبلاغ الجهات المختصة عند الاقتضاء. للإبلاغ عن محتوى مخالف: "
+                ? "يحق لمنصة ساي فلو إزالة أي منتج مخالف وتعليق حساب البائع، وإبلاغ الجهات المختصة عند الاقتضاء. للإبلاغ عن محتوى مخالف: "
                 : "Saiflow may remove violating products, suspend the seller's account, and report to the competent authorities where required. To report violating content: "}
               <a
                 href="mailto:support@saiflow.io"

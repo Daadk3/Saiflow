@@ -3,10 +3,12 @@
 import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
+import { LEGAL, establishmentName } from "@/lib/legal";
 
 export default function Footer() {
   const t = useTranslations();
+  const ar = useLocale().startsWith("ar");
   const linkClass =
     "text-gray-400 hover:text-white text-sm font-medium transition-colors";
 
@@ -113,9 +115,43 @@ export default function Footer() {
 
         {/* Bottom row */}
         <div className="mt-12 flex flex-col sm:flex-row items-center justify-between gap-6 border-t border-gray-800 pt-6">
-          <p className="text-sm text-gray-500">
-            {t('footer.copyright')}
-          </p>
+          <div className="space-y-1 text-center sm:text-start">
+            <p className="text-sm text-gray-500">
+              {t('footer.copyright')}
+            </p>
+            {/* Registered-entity disclosure. The KSA e-commerce rules require
+                the commercial registration number to be visible on the store
+                itself, so it lives in the global footer and therefore appears
+                on the homepage and every public store page. Deliberately
+                quiet: this is a legal disclosure, not a design element. */}
+            <p className="text-xs text-gray-600 leading-relaxed">
+              {establishmentName(ar)}
+              {" · "}
+              {t('footer.commercialRegistration')}:{" "}
+              {/* bdi: keep the Latin-digit CR number in logical order inside
+                  the RTL line. */}
+              <bdi>{LEGAL.crNumber}</bdi>
+            </p>
+            {/* Saudi Business Center e-commerce authentication. Sits on its own
+                line under the registration rather than joining it, because the
+                two are separate credentials from separate records and running
+                them together reads as one long string in both scripts.
+
+                The separator before the number lives inside the translation:
+                English abbreviates ("Authentication No. 0000318712") while
+                Arabic takes a colon ("رقم التوثيق: 0000318712"), so a shared
+                hard-coded ":" would be wrong in one language or the other.
+
+                Number only. The certificate carries banking details and is
+                never published, linked, or stored in this repository, and no
+                verification URL is asserted because none was issued. */}
+            <p className="text-xs text-gray-600 leading-relaxed">
+              {t('footer.authenticatedBy')}
+              {" · "}
+              {t('footer.authenticationNumber')}{" "}
+              <bdi>{LEGAL.sbcAuthNumber}</bdi>
+            </p>
+          </div>
           {/* Social links intentionally removed until real profiles exist —
               placeholder links to twitter.com etc. read as fake to users and
               payment-provider reviewers. Restore with real URLs when live. */}
