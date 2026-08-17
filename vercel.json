@@ -12,6 +12,12 @@
       "maxDuration": 30
     }
   },
+  "crons": [
+    {
+      "path": "/api/internal/scan",
+      "schedule": "*/5 * * * *"
+    }
+  ],
   "headers": [
     {
       "source": "/api/(.*)",

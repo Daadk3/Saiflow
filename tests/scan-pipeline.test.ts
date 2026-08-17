@@ -941,7 +941,28 @@ describe("secrets never escape the server", () => {
     assert.ok(workerSrc.includes("isAdminEmail"));
     assert.ok(workerSrc.includes("Bearer ${cronSecret}"));
     // No secret configured must not mean "anyone may call it".
-    assert.ok(/if \(cronSecret\)/.test(workerSrc));
+    //
+    // E1 inverted this guard into an early return (`if (!cronSecret) return
+    // false`) when the check moved into its own function, so assert the
+    // property rather than one spelling of it: either shape satisfies the
+    // requirement and neither omission does. The runtime proof that an unset
+    // secret actually refuses a well-formed bearer lives in
+    // tests/stage-e1-cron.test.ts.
+    assert.ok(
+      /if \(!?cronSecret\)/.test(workerSrc),
+      "the unset-secret case must be handled explicitly"
+    );
+  });
+
+  test("the scheduled GET entry point is bearer-only", () => {
+    // E1. Vercel Cron issues a GET; without this handler the schedule would
+    // 405 on every run, silently. It must not honour the admin session, or a
+    // cross-site GET could fire a scan batch on an admin's ambient cookies.
+    assert.ok(/export async function GET\(/.test(workerSrc));
+    const get = workerSrc.slice(workerSrc.indexOf("export async function GET("));
+    const body = get.slice(0, get.indexOf("export async function POST("));
+    assert.ok(!/getServerSession/.test(body), "GET must not read a session");
+    assert.ok(/authorizeCronOnly/.test(body));
   });
 });
 
