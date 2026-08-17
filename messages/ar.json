@@ -108,7 +108,9 @@
     "columnResources": "الموارد",
     "columnLegal": "الشؤون القانونية",
     "contentPolicy": "سياسة المحتوى",
-    "commercialRegistration": "السجل التجاري"
+    "commercialRegistration": "السجل التجاري",
+    "authenticatedBy": "موثق لدى المركز السعودي للأعمال",
+    "authenticationNumber": "رقم التوثيق:"
   },
   "common": {
     "viewAll": "عرض الكل",

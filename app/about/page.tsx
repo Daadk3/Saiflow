@@ -62,6 +62,20 @@ export default async function AboutPage() {
                 <bdi className="text-white font-semibold">{LEGAL.crNumber}</bdi>
               </p>
               <p>
+                {/* E-commerce authentication, placed directly under the
+                    commercial registration: they are the two credentials a
+                    Saudi Business Center reviewer checks together. The issuing
+                    authority is named after the number so the row stands on its
+                    own away from the footer. */}
+                <span className="text-gray-500">
+                  {ar ? "توثيق التجارة الإلكترونية:" : "E-Commerce Authentication:"}
+                </span>{" "}
+                <bdi className="text-white font-semibold">{LEGAL.sbcAuthNumber}</bdi>
+                <span className="text-gray-500">
+                  {ar ? " — المركز السعودي للأعمال" : " — Saudi Business Center"}
+                </span>
+              </p>
+              <p>
                 <span className="text-gray-500">{ar ? "المقر:" : "Location:"}</span>{" "}
                 <span className="text-white font-semibold">
                   {ar ? "الرياض، المملكة العربية السعودية" : "Riyadh, Kingdom of Saudi Arabia"}
