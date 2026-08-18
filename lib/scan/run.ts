@@ -358,6 +358,16 @@ export async function scanFileAsset(
     return settle("UNSAFE", structural.reason, digest);
   }
 
+  // Same fail-closed discipline as the provider verdict below, for the same
+  // reason: `PolicyVerdict` is shared by both policy functions, so a third
+  // outcome added to it reaches THIS call site too. Falling through here would
+  // not settle SAFE by itself, but it would discard the structural result and
+  // let a provider ALLOW carry the file to SAFE — an unverifiable structural
+  // pass silently upgraded to a passing one. Only an explicit ALLOW continues.
+  if (structural.outcome !== "ALLOW") {
+    return settle("SCAN_ERROR", "unknown_verdict", digest);
+  }
+
   let result;
   try {
     result = await provider.scan({
@@ -401,6 +411,26 @@ export async function scanFileAsset(
   const verdict = verdictFromFindings(result.findings, policy);
   if (verdict.outcome === "REJECT") {
     return settle("UNSAFE", verdict.reason, digest);
+  }
+
+  // The scan completed and found nothing against the file, but could not
+  // establish something we require. That is not a verdict on the file, so it
+  // is not recorded as one: SCAN_ERROR keeps it unsellable — every gate treats
+  // it exactly as it treats an unscanned file — while leaving it a state that
+  // can be looked at again if the reason for it changes.
+  //
+  // Costs up to MAX_SCAN_ATTEMPTS provider calls, since SCAN_ERROR is
+  // re-claimable. Accepted deliberately: the alternative brands legitimate
+  // uploads unsafe forever.
+  if (verdict.outcome === "UNVERIFIABLE") {
+    return settle("SCAN_ERROR", verdict.reason, digest);
+  }
+
+  // Defence in depth. SAFE requires an explicit ALLOW and nothing else: a
+  // verdict added later and not handled above must fail closed here rather
+  // than reach the line below by falling through it.
+  if (verdict.outcome !== "ALLOW") {
+    return settle("SCAN_ERROR", "unknown_verdict", digest);
   }
 
   // The only path to SAFE: claimed, bytes read, hashed, format recognised,
