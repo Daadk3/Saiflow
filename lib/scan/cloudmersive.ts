@@ -189,18 +189,46 @@ export const cloudmersiveProvider: ScanProvider = {
     if (!response.ok) {
       // 4xx other than the above — bad request, bad key, quota exhausted.
       // Terminal rather than retryable, and never SAFE.
-      return { ok: false, failure: "bad_response" };
+      //
+      // The status is carried so the three causes are distinguishable after
+      // the fact: 400 reads as a malformed request, 401/403 as a key problem,
+      // 402 as billing. Without it every one of them persists as the same
+      // opaque string, which is precisely what left the first real production
+      // failure undiagnosable. The status is the ONLY thing taken from the
+      // response here — no body is read, no header is inspected.
+      return {
+        ok: false,
+        failure: "bad_response",
+        detail: { kind: "http", status: response.status },
+      };
     }
 
     let payload: unknown;
     try {
       payload = await response.json();
     } catch {
-      return { ok: false, failure: "bad_response" };
+      // A 2xx whose body is not JSON: an HTML error page, an empty body, a
+      // truncated response. The category is recorded; the body is not read
+      // again to characterise it, and the parse error is still discarded —
+      // its message can quote the payload.
+      return {
+        ok: false,
+        failure: "bad_response",
+        detail: { kind: "json_parse" },
+      };
     }
 
     const findings = parseFindings(payload);
-    if (!findings) return { ok: false, failure: "bad_response" };
+    if (!findings) {
+      // Valid JSON that is not a scan result we recognise. Only the category
+      // is recorded: naming the offending field would start quoting the
+      // payload, and a field name is a short step from a field value.
+      return {
+        ok: false,
+        failure: "bad_response",
+        detail: { kind: "schema" },
+      };
+    }
 
     return { ok: true, findings };
   },
