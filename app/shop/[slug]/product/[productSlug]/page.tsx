@@ -1,6 +1,7 @@
 import { cache } from "react";
 import type { Metadata } from "next";
 import { prisma } from "@/lib/prisma";
+import { SAFE_DELIVERABLE_WHERE } from "@/lib/file-safety";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
@@ -22,7 +23,6 @@ interface Product {
   currency: string;
   images: string[];
   thumbnailUrl: string | null;
-  fileUrl: string | null;
   shop: {
     name: string;
     slug: string;
@@ -42,6 +42,14 @@ const getProduct = cache(async function getProduct(shopSlug: string, productSlug
         slug: shopSlug,
         isActive: true,
       },
+      // Stage E2. A product whose deliverable would be refused at checkout is
+      // not shown at all: the caller below turns a null result into notFound(),
+      // which is already what an unapproved product does. One rule for "not
+      // publicly available" rather than a second, softer state to design.
+      //
+      // ANDed with moderation, never merged into it — the two answer different
+      // questions and a product can fail either independently.
+      ...SAFE_DELIVERABLE_WHERE,
     },
     select: {
       id: true,
@@ -52,7 +60,6 @@ const getProduct = cache(async function getProduct(shopSlug: string, productSlug
       currency: true,
       images: true,
       thumbnailUrl: true,
-      fileUrl: true,
       shop: {
         select: {
           name: true,
@@ -285,7 +292,7 @@ export default async function ProductPage({
               </div>
 
               <div className="mt-6">
-                <BuyButton productId={product.id} hasFile={!!product.fileUrl} preLaunchMode={preLaunchMode} />
+                <BuyButton productId={product.id} sellable preLaunchMode={preLaunchMode} />
               </div>
 
               <div className="mt-3 flex justify-center">
@@ -296,7 +303,11 @@ export default async function ProductPage({
                 {t("storefront.productDetail.secureCheckout")}
               </p>
 
-              {product.fileUrl && (
+              {/* Unconditional: this page only renders for a product whose
+                  deliverable already passed SAFE_DELIVERABLE_WHERE, so the
+                  legacy fileUrl column is no longer consulted as a stand-in
+                  for "has a purchasable file". */}
+              {(
                 <div className="mt-4 flex items-center gap-2 text-xs text-gray-500 justify-center">
                   <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                     <path
@@ -327,7 +338,7 @@ export default async function ProductPage({
           </p>
         </div>
         <div className="flex-1 ps-4">
-          <BuyButton productId={product.id} hasFile={!!product.fileUrl} preLaunchMode={preLaunchMode} />
+          <BuyButton productId={product.id} sellable preLaunchMode={preLaunchMode} />
         </div>
       </div>
     </div>

@@ -1,5 +1,7 @@
 import Link from "next/link";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { SAFE_DELIVERABLE_WHERE } from "@/lib/file-safety";
 import { getLocale, getTranslations } from "next-intl/server";
 import { formatPrice } from "@/lib/formatPrice";
 import { CATEGORY_LABEL_KEYS, isProductCategory } from "@/lib/categories";
@@ -33,15 +35,13 @@ async function getProducts(options: {
   maxPrice?: number;
 }): Promise<Product[]> {
   const { category, sort = "newest", minPrice, maxPrice } = options;
-  const where: {
-    isActive: boolean;
-    moderationStatus: "APPROVED";
-    category?: string;
-    price?: { gte?: number; lte?: number };
-  } = {
+  const where: Prisma.ProductWhereInput = {
     isActive: true,
     // Trust & Safety: only approved products are publicly listed
     moderationStatus: "APPROVED",
+    // Stage E2: and only those whose attached deliverable would actually pass
+    // checkout. Separate requirement from moderation, ANDed with it.
+    ...SAFE_DELIVERABLE_WHERE,
   };
 
   if (isProductCategory(category)) {

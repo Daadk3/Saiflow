@@ -5,24 +5,40 @@ import { useTranslations } from "next-intl";
 
 interface BuyButtonProps {
   productId: string;
-  hasFile?: boolean;
+  /**
+   * Whether this product's CURRENT deliverable passes the canonical safety
+   * gate — NOT whether a file column happens to be populated. The caller
+   * derives it from the same rule checkout enforces.
+   */
+  sellable?: boolean;
   preLaunchMode?: boolean;
 }
 
-export default function BuyButton({ productId, hasFile = true, preLaunchMode = false }: BuyButtonProps) {
+/**
+ * `sellable` defaults to FALSE.
+ *
+ * The previous prop defaulted to true, so a caller that forgot to pass it
+ * rendered an enabled Buy button. A default that assumes a product can be
+ * sold is the wrong way round for a control whose only job is to start a
+ * purchase: omission should cost a disabled button, not a failed checkout.
+ *
+ * Presentation only. The authority remains isDeliverableSafe on the server,
+ * enforced at checkout and download; nothing here can grant a sale.
+ */
+export default function BuyButton({ productId, sellable = false, preLaunchMode = false }: BuyButtonProps) {
   const t = useTranslations();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fileInvalid, setFileInvalid] = useState(false);
 
   // Hard block: Don't allow checkout if pre-launch mode, no file, or file is invalid
-  const isDisabled = loading || preLaunchMode || !hasFile || fileInvalid;
+  const isDisabled = loading || preLaunchMode || !sellable || fileInvalid;
 
   async function handleCheckout() {
     // Pre-launch hard block — defense in depth alongside the disabled button.
     if (preLaunchMode) return;
     // Double-check on client side
-    if (!hasFile) {
+    if (!sellable) {
       setError(t("storefront.productDetail.notAvailableForPurchase"));
       return;
     }
@@ -62,7 +78,7 @@ export default function BuyButton({ productId, hasFile = true, preLaunchMode = f
     }
   }
 
-  // Pre-launch disabled state — takes precedence over the hasFile branch
+  // Pre-launch disabled state — takes precedence over the sellable branch
   // so a missing file in pre-launch mode still shows "Coming Soon" copy.
   if (preLaunchMode) {
     return (
@@ -83,8 +99,8 @@ export default function BuyButton({ productId, hasFile = true, preLaunchMode = f
     );
   }
 
-  // If no file, show disabled state
-  if (!hasFile) {
+  // Not sellable: a disabled state rather than a live CTA.
+  if (!sellable) {
     return (
       <div className="space-y-3">
         <button
