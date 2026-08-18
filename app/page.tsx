@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { SAFE_DELIVERABLE_WHERE } from "@/lib/file-safety";
 import {
   HeroSection,
   StatsSection,
@@ -17,6 +18,12 @@ async function getRecentProducts() {
         isActive: true,
         moderationStatus: "APPROVED",
         shop: { isActive: true },
+        // Stage E2. Publication and file safety are separate requirements and
+        // are ANDed here, never merged: moderation decides whether a listing
+        // may be shown, this decides whether its deliverable could actually be
+        // bought. Spread from the canonical clause in lib/file-safety.ts so
+        // this surface cannot drift from what checkout and download enforce.
+        ...SAFE_DELIVERABLE_WHERE,
       },
       take: 8,
       orderBy: { createdAt: "desc" },
