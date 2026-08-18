@@ -44,9 +44,22 @@ export type ContentKind =
   | "audio"
   | "video";
 
+/**
+ * Three outcomes, because two were not enough to tell the truth.
+ *
+ * REJECT means we know something is wrong with the file. UNVERIFIABLE means
+ * the scan completed but could not establish one of the things we require —
+ * we learned nothing bad, and nothing sufficient either. Collapsing the second
+ * into the first would brand a creator's legitimate upload as unsafe on the
+ * strength of a gap in the provider's format coverage.
+ *
+ * Neither can produce SAFE. The difference is what is recorded, and whether
+ * the file can be looked at again.
+ */
 export type PolicyVerdict =
   | { outcome: "ALLOW" }
-  | { outcome: "REJECT"; reason: string };
+  | { outcome: "REJECT"; reason: string }
+  | { outcome: "UNVERIFIABLE"; reason: string };
 
 export interface ContentPolicy {
   kind: ContentKind;
@@ -222,6 +235,23 @@ export function verdictFromFindings(
     return { outcome: "REJECT", reason: "html_content" };
   }
 
+  // Reached only after every threat check above has passed, so a file that is
+  // both unverifiable AND carries a threat is still REJECTED on the threat —
+  // ordering matters more than the branch itself.
+  //
+  // The provider could not content-verify this format. Cloudmersive returns a
+  // null format for families outside its verification coverage, which
+  // includes formats SaiFlow legitimately sells, so this is an ordinary
+  // outcome for an honest file rather than evidence against it.
+  //
+  // Deliberately NOT folded into formatMatchesPolicy below. "The format is not
+  // what it claims" and "nobody could tell us what the format is" are
+  // different facts about a file, and a marketplace that records them as the
+  // same thing tells its creators something untrue.
+  if (findings.verifiedFileFormat === null) {
+    return { outcome: "UNVERIFIABLE", reason: "format_not_verified" };
+  }
+
   // The provider's content-verified format must agree with what we sniffed.
   // Disagreement means one of the two was fooled, which is reason enough.
   if (!formatMatchesPolicy(findings.verifiedFileFormat, policy)) {
@@ -272,9 +302,15 @@ export function normaliseFormat(raw: string): string {
  * we selected from the bytes.
  */
 export function formatMatchesPolicy(
-  verifiedFileFormat: string,
+  verifiedFileFormat: string | null,
   policy: Pick<ContentPolicy, "restrictToExtensions">
 ): boolean {
+  // No content-verified format means nothing independently confirms what the
+  // bytes are, so nothing can match. Refused before any lookup: this is the
+  // single line that keeps a nullable field from becoming a way to skip the
+  // format check, and it is why `null` can only ever produce a REJECT.
+  if (verifiedFileFormat === null) return false;
+
   const verified = normaliseFormat(verifiedFileFormat);
   if (!RECOGNISED_FORMATS.has(verified)) return false;
 

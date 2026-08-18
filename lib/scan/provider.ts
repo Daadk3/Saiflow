@@ -20,10 +20,21 @@ export interface ScanFindings {
   /**
    * Format established from content by the provider, e.g. ".pdf".
    *
-   * Non-optional: a response without it is rejected as unparseable rather than
-   * accepted with the check skipped.
+   * NULLABLE BY CONTRACT. Cloudmersive documents this field as null in two
+   * ordinary situations: the format is not supported for contents
+   * verification, and — importantly — a virus or malware was found.
+   *
+   * It was previously typed as a required string, so both of those documented
+   * responses were rejected as unparseable and recorded as SCAN_ERROR. The
+   * second case is the damaging one: a genuine malware detection read as a
+   * scanner outage, retried to the attempt ceiling, and never reported as
+   * unsafe.
+   *
+   * `null` means "no content-verified format", never "any format is fine".
+   * `formatMatchesPolicy` refuses it outright, so a null can only ever reach a
+   * REJECT — it cannot widen what becomes SAFE.
    */
-  verifiedFileFormat: string;
+  verifiedFileFormat: string | null;
   containsExecutable: boolean;
   containsInvalidFile: boolean;
   containsScript: boolean;

@@ -1286,10 +1286,19 @@ describe("C4: provider payloads are validated strictly", () => {
     ["missing threat flag", (() => { const c = complete() as Record<string, unknown>; delete c.ContainsUnsafeArchive; return c; })()],
     ["CleanResult as a string", complete({ CleanResult: "true" })],
     ["CleanResult missing", (() => { const c = complete() as Record<string, unknown>; delete c.CleanResult; return c; })()],
-    ["VerifiedFileFormat missing", (() => { const c = complete() as Record<string, unknown>; delete c.VerifiedFileFormat; return c; })()],
-    ["VerifiedFileFormat null", complete({ VerifiedFileFormat: null })],
-    ["VerifiedFileFormat empty", complete({ VerifiedFileFormat: "   " })],
+    // NOTE: "VerifiedFileFormat missing", "... null" and "... empty" used to
+    // sit in this table. They encoded an incorrect assumption about the
+    // provider contract: Cloudmersive documents VerifiedFileFormat as
+    // NULLABLE — null when the format is not supported for contents
+    // verification, and when a virus or malware is found. Rejecting null as
+    // unparseable turned real malware detections into SCAN_ERROR. Those three
+    // cases now parse, and are refused by POLICY instead; see
+    // tests/scan-verified-format-null.test.ts, which proves none of them can
+    // produce SAFE. A wrong TYPE is still unparseable and stays here.
     ["VerifiedFileFormat wrong type", complete({ VerifiedFileFormat: 42 })],
+    ["VerifiedFileFormat as an object", complete({ VerifiedFileFormat: {} })],
+    ["VerifiedFileFormat as an array", complete({ VerifiedFileFormat: [] })],
+    ["VerifiedFileFormat as a boolean", complete({ VerifiedFileFormat: true })],
     ["FoundViruses not an array", complete({ FoundViruses: "Eicar" })],
     ["payload is an array", [complete()]],
     ["payload is null", null],
@@ -1706,14 +1715,18 @@ describe("the real Cloudmersive clean response parses", () => {
   });
 
   test("every OTHER strict check is unchanged by this fix", async () => {
-    // Only FoundViruses was relaxed. CleanResult, the threat flags and
-    // VerifiedFileFormat must all still reject on type or absence.
+    // CleanResult and the threat flags must still reject on type or absence.
+    //
+    // "VerifiedFileFormat null" and "... empty" used to be asserted here as
+    // parse failures. That was wrong: the field is documented as nullable, and
+    // null is what the provider returns when malware is found. They now parse
+    // and are rejected by policy instead — proven in
+    // tests/scan-verified-format-null.test.ts.
     const cases: [string, Record<string, unknown>][] = [
       ["CleanResult as string", { CleanResult: "true" }],
       ["threat flag as string", { ContainsExecutable: "false" }],
       ["threat flag null", { ContainsScript: null }],
-      ["VerifiedFileFormat null", { VerifiedFileFormat: null }],
-      ["VerifiedFileFormat empty", { VerifiedFileFormat: "  " }],
+      ["VerifiedFileFormat wrong type", { VerifiedFileFormat: 42 }],
     ];
     for (const [label, over] of cases) {
       const res = await scanWith(liveShape(over));
