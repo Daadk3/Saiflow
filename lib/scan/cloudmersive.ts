@@ -76,12 +76,33 @@ function parseFindings(payload: unknown): ScanFindings | null {
     if (typeof raw[flag] !== "boolean") return null;
   }
 
-  // Content-verified format is required. Without it we would be trusting the
-  // provider's overall verdict and our own sniffing alone, with nothing
-  // independently confirming what the bytes actually are.
-  if (typeof raw.VerifiedFileFormat !== "string") return null;
-  const verifiedFileFormat = raw.VerifiedFileFormat.trim();
-  if (verifiedFileFormat === "") return null;
+  // VerifiedFileFormat is NULLABLE BY CONTRACT, and treating it as required
+  // was a real defect rather than extra caution.
+  //
+  // Cloudmersive documents null for two ordinary outcomes: the format is not
+  // supported for contents verification, and a virus or malware was found.
+  // Rejecting null as unparseable therefore turned genuine malware detections
+  // into SCAN_ERROR — a scanner outage as far as any operator could tell —
+  // and burned the retry budget on them. Every field in this response is
+  // documented as optional, so an absent value carries the same meaning as an
+  // explicit null and is normalised to it.
+  //
+  // This does NOT loosen the verdict. `null` means "no content-verified
+  // format", and formatMatchesPolicy refuses null before it looks anything up,
+  // so a null can only ever reach a REJECT. A WRONG-TYPED value is still a
+  // parse failure: a number or an object is not a documented response, and
+  // guessing at one is how a payload we do not understand becomes a verdict.
+  let verifiedFileFormat: string | null;
+  if (raw.VerifiedFileFormat === undefined || raw.VerifiedFileFormat === null) {
+    verifiedFileFormat = null;
+  } else if (typeof raw.VerifiedFileFormat === "string") {
+    const trimmed = raw.VerifiedFileFormat.trim();
+    // A blank string is not a format. Treated as "not verified" rather than as
+    // a parse failure, which lands in the same place: REJECT, never SAFE.
+    verifiedFileFormat = trimmed === "" ? null : trimmed;
+  } else {
+    return null;
+  }
 
   // FoundViruses may be absent, explicitly null, or an array.
   //

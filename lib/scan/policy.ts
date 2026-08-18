@@ -272,9 +272,15 @@ export function normaliseFormat(raw: string): string {
  * we selected from the bytes.
  */
 export function formatMatchesPolicy(
-  verifiedFileFormat: string,
+  verifiedFileFormat: string | null,
   policy: Pick<ContentPolicy, "restrictToExtensions">
 ): boolean {
+  // No content-verified format means nothing independently confirms what the
+  // bytes are, so nothing can match. Refused before any lookup: this is the
+  // single line that keeps a nullable field from becoming a way to skip the
+  // format check, and it is why `null` can only ever produce a REJECT.
+  if (verifiedFileFormat === null) return false;
+
   const verified = normaliseFormat(verifiedFileFormat);
   if (!RECOGNISED_FORMATS.has(verified)) return false;
 
