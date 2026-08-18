@@ -27,7 +27,11 @@ import {
   structuralVerdict,
   verdictFromFindings,
 } from "./policy";
-import { isRetryableFailure, type ScanProvider } from "./provider";
+import {
+  formatFailureDetail,
+  isRetryableFailure,
+  type ScanProvider,
+} from "./provider";
 
 /** Total attempts across invocations before a file is left terminally errored. */
 export const MAX_SCAN_ATTEMPTS = 3;
@@ -368,9 +372,29 @@ export async function scanFileAsset(
   }
 
   if (!result.ok) {
+    // The reason is the only record of why a scan did not produce a verdict,
+    // so it carries the failure, an optional non-sensitive detail, and whether
+    // the failure was retryable — in that order.
+    //
+    // `provider_<failure>` is the stable prefix, and the only thing older and
+    // newer rows share. The full string is NOT stable: a detail is inserted
+    // before `_terminal`, so a row written before this change reads
+    // `provider_bad_response_terminal` while one written after may read
+    // `provider_bad_response_http_401_terminal`. Compare these rows by that
+    // prefix; an exact match on a previous full reason will miss the detailed
+    // ones.
+    //
+    // `formatFailureDetail` is the sink guard: it emits a short fixed token or
+    // nothing at all, so nothing a provider returns can widen what is written
+    // to this column. The retry decision is unchanged and does not consult the
+    // detail — `isRetryableFailure` still reads the failure alone.
+    const detail = formatFailureDetail(result.detail);
+    const base = detail
+      ? `provider_${result.failure}_${detail}`
+      : `provider_${result.failure}`;
     const reason = isRetryableFailure(result.failure)
-      ? `provider_${result.failure}`
-      : `provider_${result.failure}_terminal`;
+      ? base
+      : `${base}_terminal`;
     return settle("SCAN_ERROR", reason, digest);
   }
 

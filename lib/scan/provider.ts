@@ -49,9 +49,50 @@ export type ScanFailure =
   | "bad_response"
   | "network";
 
+/**
+ * Why a response was unusable, in terms safe to persist.
+ *
+ * A discriminated union rather than a string, deliberately: a provider cannot
+ * hand back free text, so no fragment of a response body, header or key can
+ * reach `FileAsset.scanReason` even by accident. The only variable carried is
+ * an integer HTTP status.
+ *
+ * This is diagnosis, not policy. Nothing here influences the verdict, the
+ * retry decision, or whether a file may be sold.
+ */
+export type ScanFailureDetail =
+  | { kind: "http"; status: number }
+  | { kind: "json_parse" }
+  | { kind: "schema" };
+
 export type ScanProviderResult =
   | { ok: true; findings: ScanFindings }
-  | { ok: false; failure: ScanFailure };
+  | { ok: false; failure: ScanFailure; detail?: ScanFailureDetail };
+
+/**
+ * Render a detail into the short token appended to the persisted reason.
+ *
+ * The second half of the guarantee above: the union constrains what a provider
+ * may express, and this constrains what reaches the database. An out-of-range
+ * or non-integer status is DROPPED rather than persisted — a missing token
+ * costs a little diagnostic precision, whereas an unvalidated one would put an
+ * unbounded value in an audit column.
+ *
+ * Returns null when there is nothing safe to add, which callers treat as
+ * "keep the existing reason unchanged".
+ */
+export function formatFailureDetail(
+  detail: ScanFailureDetail | undefined
+): string | null {
+  if (!detail) return null;
+
+  if (detail.kind === "json_parse") return "json_parse";
+  if (detail.kind === "schema") return "schema";
+
+  const status = detail.status;
+  if (!Number.isInteger(status) || status < 100 || status > 599) return null;
+  return `http_${status}`;
+}
 
 export interface ScanRequest {
   bytes: Uint8Array;
