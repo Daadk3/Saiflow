@@ -631,6 +631,34 @@
     "blockedBody": "This file didn\u2019t pass the required safety checks. Replace the file before publishing this product."
   },
   "admin": {
+    "fileSafety": {
+      "heading": "File safety",
+      "publishable": "This file passed the safety check. Approving puts the product on sale.",
+      "notPublishable": "Approving does not put this product on sale. It stays off the storefront until its file passes the safety check.",
+      "noInspection": "There is no file to inspect in this state.",
+      "reason": {
+        "safe": "File verified",
+        "pending_scan": "Safety check in progress",
+        "scan_error": "Safety check failed",
+        "unsafe": "Failed safety checks",
+        "scan_key_mismatch": "File changed since last check",
+        "missing_file_key": "No file attached"
+      }
+    },
+    "preview": {
+      "back": "Back to products",
+      "eyebrow": "Internal preview — not visible to buyers",
+      "notPublic": "This is the listing as submitted, shown for moderation. It is not the public product page and nothing here can be purchased.",
+      "listing": "Listing",
+      "moderation": "Moderation status",
+      "inactive": "Not published by the seller",
+      "shop": "Shop",
+      "price": "Price",
+      "description": "Description",
+      "descriptionEmpty": "No description provided.",
+      "noImage": "No image provided",
+      "purchaseDisabled": "Purchase is disabled in preview"
+    },
     "title": "Founder Dashboard",
     "subtitle": "What needs your attention today.",
     "mission": {
@@ -701,7 +729,7 @@
       "humanReviewed": "Human reviewed",
       "notYetReviewed": "Not yet reviewed",
       "review": "Review",
-      "open": "Open",
+      "open": "Preview",
       "approve": "Approve",
       "reject": "Reject",
       "cancel": "Cancel",

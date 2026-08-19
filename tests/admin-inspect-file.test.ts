@@ -40,9 +40,17 @@ describe("inspect-file: no deliverable URL reaches the browser", () => {
     );
   });
 
-  test("hasFile is left untouched", () => {
-    // Existing callers (the 'no file' badge) must keep working unchanged.
-    assert.ok(/hasFile: p\.fileUrl != null/.test(stats));
+  test("hasFile is keyed on the storage key, not the legacy URL", () => {
+    // This test used to assert `hasFile: p.fileUrl != null` and was named
+    // "hasFile is left untouched" — Stage D2 deliberately changed nothing
+    // about it. Stage E3 changed it on purpose: `fileUrl` is the pre-Stage-B
+    // column, and it is populated on exactly the legacy products that carry
+    // no storage key, so the "no file" badge was being suppressed on the only
+    // rows it existed for. The guarantee this test carries is unchanged in
+    // spirit — the directory answers "is there a deliverable?" from the same
+    // column every downstream gate keys on.
+    assert.ok(/hasFile: p\.fileKey != null/.test(stats));
+    assert.ok(!/hasFile: p\.fileUrl/.test(stats));
   });
 
   test("the allowlist rejects everything except the storage hosts", () => {

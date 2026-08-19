@@ -9,6 +9,7 @@ import {
   type DirectoryFilter,
   type DirectorySort,
 } from "@/lib/admin-stats";
+import type { ModeratorFileSafety } from "@/lib/moderator-file-status";
 import { formatPrice } from "@/lib/formatPrice";
 import { formatDate } from "@/lib/formatDate";
 import ReviewButton from "@/components/admin/ReviewButton";
@@ -173,7 +174,10 @@ export default async function AdminProductsPage({
                         <bdi>{formatPrice(p.price, p.currency, locale)}</bdi>
                       </td>
                       <td className="px-3 py-3">
-                        <StatusBadge status={p.moderationStatus} t={t} />
+                        <div className="flex flex-col items-start gap-1">
+                          <StatusBadge status={p.moderationStatus} t={t} />
+                          <FileSafetyBadge safety={p.fileSafety} t={t} />
+                        </div>
                       </td>
                       <td className="px-3 py-3">
                         <ReviewSourceBadge reviewed={p.humanReviewed} t={t} />
@@ -187,7 +191,7 @@ export default async function AdminProductsPage({
                           <ReviewButton
                             productId={p.id}
                             productName={p.name}
-                            publicHref={`/shop/${p.shopSlug}/product/${p.slug}`}
+                            previewHref={`/dashboard/admin/products/${p.id}/preview`}
                             fileHref={p.canInspect ? `/api/admin/inspect/${p.id}` : null}
                           />
                         )}
@@ -221,6 +225,7 @@ export default async function AdminProductsPage({
                       </p>
                       <div className="mt-2 flex flex-wrap items-center gap-1.5">
                         <StatusBadge status={p.moderationStatus} t={t} />
+                        <FileSafetyBadge safety={p.fileSafety} t={t} />
                         <ReviewSourceBadge reviewed={p.humanReviewed} t={t} />
                         {!p.hasFile && (
                           <span className="rounded-md bg-red-500/10 px-2 py-0.5 text-[11px] font-medium text-red-400">
@@ -235,7 +240,7 @@ export default async function AdminProductsPage({
                       <ReviewButton
                         productId={p.id}
                         productName={p.name}
-                        publicHref={`/shop/${p.shopSlug}/product/${p.slug}`}
+                        previewHref={`/dashboard/admin/products/${p.id}/preview`}
                         fileHref={p.canInspect ? `/api/admin/inspect/${p.id}` : null}
                       />
                     </div>
@@ -277,6 +282,49 @@ function StatusBadge({
   return (
     <span className={`whitespace-nowrap rounded-md px-2 py-0.5 text-[11px] font-medium ${cls}`}>
       {t(`directory.status.${status}`)}
+    </span>
+  );
+}
+
+/**
+ * The moderator-facing scan state, beside the moderation state rather than
+ * merged into it.
+ *
+ * They are separate questions and stay separate controls: nothing here
+ * disables approve or reject. What it does is stop a moderator approving a
+ * product and expecting it on the storefront when the file has not passed —
+ * the detail view spells that out, and this is the at-a-glance version.
+ *
+ * `missing_file_key` renders nothing, because the row already carries the
+ * "Missing file" badge and `hasFile` is now true under exactly the opposite
+ * condition. Two badges saying "no file" is noise, not emphasis.
+ */
+function FileSafetyBadge({
+  safety,
+  t,
+}: {
+  safety: ModeratorFileSafety;
+  t: (k: string) => string;
+}) {
+  if (safety.reason === "missing_file_key") return null;
+
+  const cls = {
+    ok: "bg-green-500/10 text-green-400",
+    waiting: "bg-blue-500/10 text-blue-300",
+    attention: "bg-amber-500/10 text-amber-400",
+    blocked: "bg-red-500/10 text-red-400",
+  }[safety.tone];
+
+  return (
+    <span
+      title={
+        safety.publishable
+          ? t("fileSafety.publishable")
+          : t("fileSafety.notPublishable")
+      }
+      className={`whitespace-nowrap rounded-md px-2 py-0.5 text-[11px] font-medium ${cls}`}
+    >
+      {t(`fileSafety.reason.${safety.reason}`)}
     </span>
   );
 }
