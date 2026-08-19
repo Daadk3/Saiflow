@@ -127,8 +127,12 @@ export default async function FounderDashboardPage() {
                         {t("attention.missingFile")}
                       </p>
                     </div>
+                    {/* The admin preview, not the storefront. A product in
+                        this list has no deliverable, so it can never satisfy
+                        the public sellability gate and its buyer-facing URL
+                        would answer 404 every time. */}
                     <Link
-                      href={`/shop/${p.shopSlug}/product/${p.slug}`}
+                      href={`/dashboard/admin/products/${p.id}/preview`}
                       className="shrink-0 rounded-lg border border-red-500/30 px-3 py-1.5 text-sm font-medium text-red-300 transition-colors hover:bg-red-500/10"
                     >
                       {t("attention.view")}

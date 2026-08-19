@@ -15,12 +15,22 @@ import { useTranslations } from "next-intl";
 export default function ReviewButton({
   productId,
   productName,
-  publicHref,
+  previewHref,
   fileHref,
 }: {
   productId: string;
   productName: string;
-  publicHref: string;
+  /**
+   * The internal moderation preview — /dashboard/admin/products/[id]/preview.
+   *
+   * NOT the storefront. This used to point at the buyer's product page, which
+   * requires an APPROVED moderation status and (since Stage E2) a deliverable
+   * that has passed scanning. A moderator opening a PENDING product therefore
+   * got a 404 from the one control meant to show them what they were deciding
+   * on. The preview renders the same listing without either filter, behind the
+   * admin authorization boundary, and sells nothing.
+   */
+  previewHref: string;
   /**
    * Where to inspect the seller's deliverable before deciding.
    *
@@ -29,8 +39,8 @@ export default function ReviewButton({
    * re-checks admin authority server-side, resolves the storage key from the
    * product row, and redirects to a signed URL that expires in a minute.
    *
-   * "Open" shows the listing as a buyer sees it; this shows what the buyer
-   * would actually receive — approving without the second is guesswork.
+   * "Open" shows the listing as submitted; this shows what the buyer would
+   * actually receive — approving without the second is guesswork.
    */
   fileHref?: string | null;
 }) {
@@ -83,7 +93,7 @@ export default function ReviewButton({
     <div className="flex flex-col items-end gap-1.5">
       <div className="flex items-center gap-1.5">
         <a
-          href={publicHref}
+          href={previewHref}
           target="_blank"
           rel="noopener noreferrer"
           title={productName}

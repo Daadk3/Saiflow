@@ -10,6 +10,10 @@
  */
 
 import { prisma } from "@/lib/prisma";
+import {
+  moderatorFileSafety,
+  type ModeratorFileSafety,
+} from "@/lib/moderator-file-status";
 import type { ModerationStatus, Prisma } from "@prisma/client";
 
 /* ------------------------------------------------------------------ */
@@ -45,7 +49,14 @@ export interface FounderStats {
   /** APPROVED products with no recorded human decision — the review backlog. */
   notYetReviewed: number;
   pending: number;
-  /** Active, approved products whose downloadable file is missing. */
+  /**
+   * Active, approved products with no deliverable a buyer could receive.
+   *
+   * Keyed on `fileKey` for the same reason `DirectoryRow.hasFile` is: the
+   * legacy column `fileUrl` is populated on exactly the pre-Stage-B products
+   * that carry no storage key, so a `fileUrl: null` test skipped the products
+   * this list exists to surface and reported calm.
+   */
   missingFile: { id: string; name: string; slug: string; shopSlug: string }[];
   /** Rolling 24h pulse. */
   pulse: { newUsers: number; newProducts: number; newShops: number; newReports: number };
@@ -83,7 +94,7 @@ export async function getFounderStats(): Promise<FounderStats> {
       where: { moderationStatus: "APPROVED", ...NEVER_ADMIN_DECIDED },
     }),
     prisma.product.findMany({
-      where: { fileUrl: null, isActive: true, moderationStatus: "APPROVED" },
+      where: { fileKey: null, isActive: true, moderationStatus: "APPROVED" },
       select: { id: true, name: true, slug: true, shop: { select: { slug: true } } },
       take: 5,
       orderBy: { createdAt: "asc" },
@@ -156,7 +167,30 @@ export interface DirectoryRow {
   creatorName: string;
   reportCount: number;
   humanReviewed: boolean;
+  /**
+   * Whether the product has a deliverable that can actually be scanned and
+   * sold.
+   *
+   * Keyed on `fileKey`. It used to read `fileUrl`, which is the legacy column
+   * from before Stage B made deliverables private: SaiFlow's oldest products
+   * still carry a public URL there while carrying no storage key at all, so
+   * the directory told a moderator a file was attached when nothing scannable
+   * was. Those rows are exactly the ones Stage E2 keeps off the storefront,
+   * which made the badge wrong on the only products it mattered for.
+   *
+   * `fileKey` is the column every downstream gate keys on — scanning, the
+   * safety predicate, inspection and download — so "has a file" now means the
+   * same thing here as everywhere else.
+   */
   hasFile: boolean;
+  /**
+   * What the moderator is told about the file's scan state.
+   *
+   * Derived through `deliverableGateReason` in lib/moderator-file-status.ts,
+   * so it cannot disagree with the gate that refuses at checkout. A reason and
+   * two booleans — no scan enum, no key, no hash reaches the browser.
+   */
+  fileSafety: ModeratorFileSafety;
   /**
    * Whether this product can be opened through the admin inspection route.
    *
@@ -233,9 +267,13 @@ export async function getProductsDirectory(opts: {
         moderationStatus: true,
         isActive: true,
         createdAt: true,
-        // `fileUrl` still backs the "no file" badge; it is never emitted.
-        fileUrl: true,
+        // The columns the file-safety derivation reads, and only those.
+        // `fileUrl` is deliberately no longer selected: nothing consumes it
+        // now that `hasFile` reads the storage key, and not selecting it is
+        // the cheapest guarantee the legacy URL cannot be emitted.
         fileKey: true,
+        fileScanStatus: true,
+        fileScanKey: true,
         shop: {
           select: {
             name: true,
@@ -284,7 +322,8 @@ export async function getProductsDirectory(opts: {
         creatorName: p.shop.shopUsers[0]?.user.name ?? "—",
         reportCount: p._count.moderationEvents,
         humanReviewed: latest != null && latest.newStatus === p.moderationStatus,
-        hasFile: p.fileUrl != null,
+        hasFile: p.fileKey != null,
+        fileSafety: moderatorFileSafety(p),
         canInspect: p.fileKey != null,
       };
     }),
