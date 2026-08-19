@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { authOptions } from "../../auth/authOptions";
 import { slugify } from "@/lib/slug";
 import { isAllowedAssetUrl } from "@/lib/validations";
+import { creatorFileStatus } from "@/lib/creator-file-status";
 
 export async function GET(
   req: Request,
@@ -22,20 +23,51 @@ export async function GET(
 
     const { slug } = await params;
 
+    // Selected, not included. `products: true` returned whole rows, so every
+    // scan column — fileKey, fileScanKey, fileScanSha256, fileScanAttempts —
+    // plus the deliverable URL travelled to the seller's browser, where none
+    // of it was used. Authorised over-disclosure is still disclosure, and a
+    // payload is the easiest place for a later reader to start treating a
+    // client value as a safety fact.
+    //
+    // The scan columns ARE read here, on the server, to derive the coarse
+    // creator status below. They are dropped before the response is built.
     const shop = await prisma.shop.findUnique({
       where: { slug },
-      include: {
-        products: true,
-        shopUsers: {
-          include: {
-            user: {
-              select: {
-                id: true,
-                name: true,
-                email: true,
-              },
-            },
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        description: true,
+        logo: true,
+        coverImage: true,
+        createdAt: true,
+        products: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+            description: true,
+            price: true,
+            currency: true,
+            thumbnailUrl: true,
+            moderationStatus: true,
+            createdAt: true,
+            // Server-side only — see the map below. fileUrl is deliberately
+            // NOT selected: nothing reads it now that hasFile keys on fileKey,
+            // and a deliverable URL sitting unused in a query is how it ends
+            // up back in a payload.
+            fileKey: true,
+            fileScanStatus: true,
+            fileScanKey: true,
           },
+        },
+        // Membership, for the authorisation check only. Emails are compared
+        // here and never returned: the dashboard does not use shopUsers, and
+        // shipping co-members' addresses to the browser is disclosure without
+        // a purpose.
+        shopUsers: {
+          select: { user: { select: { email: true } } },
         },
       },
     });
@@ -59,7 +91,42 @@ export async function GET(
       );
     }
 
-    return NextResponse.json(shop);
+    // Shape the response deliberately rather than spreading the row. Every
+    // field below is one the dashboard renders; the scan columns are consumed
+    // by creatorFileStatus and then discarded.
+    const { shopUsers: _members, products, ...shopFields } = shop;
+    void _members;
+
+    return NextResponse.json({
+      ...shopFields,
+      products: products.map((p) => ({
+        id: p.id,
+        name: p.name,
+        slug: p.slug,
+        description: p.description,
+        price: p.price,
+        currency: p.currency,
+        thumbnailUrl: p.thumbnailUrl,
+        moderationStatus: p.moderationStatus,
+        createdAt: p.createdAt,
+        // A boolean, not the URL — the deliverable URL is not the browser's
+        // business, and the dashboard only ever asked "is there a file?".
+        //
+        // Keyed on fileKey, NOT fileUrl. The legacy rows carry a fileUrl with
+        // no fileKey, so reading fileUrl answered "was there once a file?"
+        // rather than "is one attached now". Those are exactly the products E2
+        // refuses to sell, and the boolean was suppressing the dashboard's
+        // "upload a file" warning on every one of them — hiding the prompt
+        // from the only creators who needed it.
+        //
+        // fileKey is the column every gate reads, so this now agrees with them.
+        hasFile: p.fileKey !== null,
+        // Derived here, from the same columns the gates read, by the same
+        // reviewed vocabulary. The browser renders this string; it cannot
+        // compute it, contradict it, or send one back.
+        fileSafety: creatorFileStatus(p),
+      })),
+    });
   } catch (error) {
     console.error("Error fetching shop:", error);
     return NextResponse.json(

@@ -620,6 +620,16 @@
     "rejectedBadge": "Rejected",
     "pendingNotice": "New products are reviewed before they appear publicly."
   },
+  "fileSafety": {
+    "noticeTitle": "Your product is being reviewed",
+    "noticeBody": "We check uploaded files for safety before they can be sold. This usually takes a few minutes. You don\u2019t need to do anything \u2014 we\u2019ll update the status when the review is complete.",
+    "checking": "File safety check in progress",
+    "ready": "File verified \u2014 Ready",
+    "needsAttention": "File check needs attention",
+    "needsAttentionBody": "We couldn\u2019t complete the file safety check. Replace the file to try again.",
+    "blocked": "File can\u2019t be published",
+    "blockedBody": "This file didn\u2019t pass the required safety checks. Replace the file before publishing this product."
+  },
   "admin": {
     "title": "Founder Dashboard",
     "subtitle": "What needs your attention today.",
