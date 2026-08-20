@@ -716,3 +716,116 @@ describe("public and payment gates are byte-identical", () => {
     }
   });
 });
+
+/* ================================================================== */
+/* 10. RESPONSIVE ROW LAYOUT                                           */
+/* ================================================================== */
+
+/**
+ * The permanent-URL line added a nowrap element and two more lines into the
+ * product row's information column, which pushed the row past the width its
+ * flex chain could absorb: below ~1055px the price and the eye/edit/delete
+ * cluster left the canvas, and at 375px the Copy control was unreachable. The
+ * threshold moved with slug length, which is the signature of a shrink bug
+ * rather than a breakpoint one — so both were fixed.
+ *
+ * READ THIS BEFORE TRUSTING THESE TESTS. They pin CLASS STRUCTURE, not
+ * rendered geometry. Nothing here measures a pixel, and nothing here can:
+ * there is no DOM harness in this repo, so no assertion below would notice if
+ * the row still overflowed. Their job is narrower and still worth doing —
+ * they stop a later edit from silently reverting a decision that was made for
+ * a reason. The five-width Preview QA is the real gate.
+ */
+
+describe("responsive product row", () => {
+  const row = code(ROW_PAGE);
+
+  /** The className string of the product row container itself. */
+  const rowClass = (() => {
+    const m = row.match(/className="(group flex[^"]*)"/);
+    assert.ok(m, "product row container not found");
+    return m![1];
+  })();
+
+  test("the row stacks below lg, not below sm", () => {
+    // sm was too early: with a thumbnail, name, badges, description, up to two
+    // advisory lines, the URL, a copy control, a price and three action
+    // buttons, four columns do not fit at 640px however well they shrink.
+    assert.match(rowClass, /\blg:flex-row\b/);
+    assert.match(rowClass, /\blg:items-center\b/);
+    assert.ok(!/\bsm:flex-row\b/.test(rowClass), "row still switches at sm");
+    assert.ok(!/\bsm:items-center\b/.test(rowClass), "row still centres at sm");
+  });
+
+  test("the row container is deliberately NOT overflow-hidden", () => {
+    // Explicitly excluded: clipping the outer row would mask the sizing bug
+    // rather than fix it, and could swallow focus rings on the action buttons.
+    // Containment belongs on the information column, which is what shrinks.
+    assert.ok(
+      !/\boverflow-hidden\b/.test(rowClass),
+      "outer row gained overflow-hidden — the fix is flex sizing, not clipping",
+    );
+  });
+
+  test("the information column can shrink AND contains what it holds", () => {
+    // min-w-0 alone lets the column shrink while its children spill out of it
+    // and over the price and actions. Both classes are required together.
+    assert.match(row, /className="flex-1 min-w-0 overflow-hidden"/);
+  });
+
+  test("the name row can shrink and the heading truncates", () => {
+    // An untruncated h3 sets a min-content floor for the whole column, which
+    // is why the failure threshold tracked the product name / slug length.
+    assert.match(row, /className="flex items-center gap-2 min-w-0"/);
+    assert.match(row, /className="font-semibold text-white group-hover:text-teal-400 transition-colors truncate"/);
+  });
+
+  test("the full product name survives truncation via title", () => {
+    assert.match(row, /title=\{product\.name\}/);
+  });
+
+  test("the copy control sits in a shrink-0 wrapper", () => {
+    // It cannot carry the class itself: CopyLinkButton's `className` prop
+    // REPLACES its whole default style string, and that component is out of
+    // scope here. The wrapper is the only non-invasive lever.
+    const i = row.indexOf('className="shrink-0"');
+    assert.ok(i > -1, "copy control has no shrink-0 wrapper");
+    const after = row.slice(i, i + 200);
+    assert.match(after, /<CopyLinkButton/, "shrink-0 wrapper does not wrap CopyLinkButton");
+  });
+
+  test("CopyLinkButton itself was not modified to achieve this", () => {
+    const btn = code("components/CopyLinkButton.tsx");
+    assert.match(btn, /className=\{className \?\? DEFAULT_CLASS\}/);
+    assert.ok(!/shrink-0"/.test(btn.split("DEFAULT_CLASS =")[1]?.split(";")[0] ?? ""),
+      "DEFAULT_CLASS was edited instead of using a wrapper");
+  });
+
+  test("the URL still truncates rather than wraps", () => {
+    // Wrapping a 60-character URL at 375px would take three lines and push the
+    // actions further down. The creator copies this string, they do not read it.
+    assert.match(row, /className="text-xs text-gray-500 font-mono truncate min-w-0"/);
+    assert.ok(!/break-all/.test(row), "row URL now wraps instead of truncating");
+    assert.match(row, /dir="ltr"/);
+  });
+
+  test("price and actions share one line below lg and dissolve at lg", () => {
+    assert.match(row, /className="flex items-center justify-between gap-4 lg:contents"/);
+  });
+
+  test("the action cluster is unchanged and still one horizontal group", () => {
+    assert.match(row, /className="flex items-center gap-2 flex-shrink-0"/);
+    for (const key of ["viewProductTitle", "editProductTitle", "deleteProductTitle"]) {
+      assert.ok(row.includes(key), `${key} lost from the action cluster`);
+    }
+  });
+
+  test("the responsive fix changed no URL, status or gate behaviour", () => {
+    // Layout classes only. Every B-2 behaviour assertion above still applies;
+    // this re-pins the three that a layout refactor could plausibly disturb.
+    assert.match(row, /productUrl\(shop\.slug, product\.slug\)/);
+    assert.match(row, /productLinkStatusKey\(productLinkStatus\(product\)\)/);
+    assert.match(row, /!product\.hasFile && \(/);
+    assert.ok(!/window\s*\.\s*location/.test(row), "row now reads window.location");
+  });
+});
