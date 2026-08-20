@@ -3,7 +3,6 @@ import { getServerSession } from "next-auth";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { authOptions } from "../../auth/authOptions";
-import { slugify } from "@/lib/slug";
 import { isProductCategory } from "@/lib/categories";
 import {
   isAllowedAssetUrl,
@@ -234,11 +233,34 @@ export async function PUT(
       }
     }
 
-    // Create new slug if name changed (falls back to a random handle for non-Latin names)
-    let slug = product.slug;
-    if (name && name !== product.name) {
-      slug = slugify(name, "product");
-    }
+    /**
+     * THE SLUG IS FROZEN AT CREATION AND IS NEVER REWRITTEN HERE.
+     *
+     * It used to be regenerated whenever the name changed, which quietly
+     * destroyed every link a creator had already shared: the product URL is
+     * `/shop/{shopSlug}/product/{productSlug}`, nothing redirects from the old
+     * handle, and the public page turns a miss into notFound(). A creator who
+     * posted to TikTok and later fixed a typo in the title killed the post,
+     * with no warning and no way to recover the address.
+     *
+     * It was worse in Arabic, the primary market. `slugBase` strips non-Latin
+     * characters to an empty string, so `slugify` returns `product-<random>` —
+     * meaning a rename swapped the URL for an entirely unrelated new handle.
+     *
+     * The column is simply absent from the update below; Prisma leaves a
+     * column it is not given alone, so no slug in the database ever changes
+     * and every URL that works today keeps working.
+     *
+     * The cost is cosmetic and deliberate: a renamed product keeps its
+     * original handle, so the URL can read stale next to the title. A
+     * permanent address is worth more than a tidy one — Gumroad and Etsy make
+     * the same trade. If a renamed URL ever has to follow the title, that
+     * needs slug history plus 301s, which is a different and much larger
+     * change than this one.
+     *
+     * Creation is untouched: `POST /api/products` still calls `slugify`, and
+     * the `(shopId, slug)` unique constraint still applies there.
+     */
 
     /**
      * A replaced deliverable must not inherit the previous file's verdict.
@@ -259,7 +281,6 @@ export async function PUT(
       where: { id },
       data: {
         name: name || product.name,
-        slug,
         description: description !== undefined ? description : product.description,
         price: price !== undefined ? price : product.price,
         category: category !== undefined ? (category || null) : product.category,

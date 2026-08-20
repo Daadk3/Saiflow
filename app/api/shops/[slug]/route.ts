@@ -3,7 +3,6 @@ import { getServerSession } from "next-auth";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { authOptions } from "../../auth/authOptions";
-import { slugify } from "@/lib/slug";
 import { isAllowedAssetUrl } from "@/lib/validations";
 import { creatorFileStatus } from "@/lib/creator-file-status";
 
@@ -209,18 +208,28 @@ export async function PUT(
       );
     }
 
-    // Create new slug if name changed (falls back to a random handle for non-Latin names)
-    let newSlug = shop.slug;
-    if (name && name !== shop.name) {
-      newSlug = slugify(name, "shop");
-    }
+    /**
+     * THE SHOP SLUG IS FROZEN AT CREATION AND IS NEVER REWRITTEN HERE.
+     *
+     * This one is the more damaging of the two. The shop slug is the FIRST
+     * segment of every product URL in the shop —
+     * `/shop/{shopSlug}/product/{productSlug}` — so regenerating it on a
+     * rename broke not one link but every link the shop had ever shared, all
+     * at once, including the storefront's own address.
+     *
+     * The column is absent from the update below. Prisma leaves a column it is
+     * not given alone, so no slug changes and every URL that works today keeps
+     * working. The route is addressed by slug (`/api/shops/[slug]`), so
+     * freezing also means a shop's own API path stays stable across renames.
+     *
+     * Creation is untouched: `POST /api/shops` still calls `slugify`.
+     */
 
     // Update the shop
     const updatedShop = await prisma.shop.update({
       where: { id: shop.id },
       data: {
         name: name || shop.name,
-        slug: newSlug,
         description: description !== undefined ? description : shop.description,
         logo: logo !== undefined ? logo : shop.logo,
         coverImage: coverImage !== undefined ? coverImage : shop.coverImage,
