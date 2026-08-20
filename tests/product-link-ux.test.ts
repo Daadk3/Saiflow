@@ -365,3 +365,354 @@ describe("no message keys added in phase 1", () => {
     assert.ok(Object.keys(ar).length > 0);
   });
 });
+
+/* ================================================================== */
+/* 9. PHASE 2 — the two surfaces that render the link                  */
+/* ================================================================== */
+
+/**
+ * Phase 2 wires the phase-1 primitives into the creator product row and the
+ * product edit page, and adds the three status sentences.
+ *
+ * These assertions are structural because the repo has no DOM harness: the
+ * pages are `.tsx`, which Node's native TypeScript loader cannot import
+ * without a JSX transform. So the mapping itself is tested behaviourally
+ * through `lib/product-link-status.ts` — a plain module precisely so that the
+ * one piece of real logic is not left to source-shape assertions — and the
+ * rendering is pinned by reading the JSX.
+ */
+
+import {
+  productLinkStatus,
+  productLinkStatusKey,
+  type ProductLinkStatus,
+} from "../lib/product-link-status";
+
+const ROW_PAGE = "app/dashboard/shop/[slug]/page.tsx";
+const EDIT_PAGE = "app/dashboard/shop/[slug]/product/[productSlug]/edit/page.tsx";
+
+/** Every file B-2 touches. The phase-1 rules apply to all of them. */
+const B2_PHASE2_SOURCES = [ROW_PAGE, EDIT_PAGE];
+
+/* ---- 9a. Status mapping: the only real logic in phase 2 ------------ */
+
+describe("productLinkStatus mapping", () => {
+  const SAFETIES = ["ready", "checking", "needs_attention", "blocked", null] as const;
+
+  test("APPROVED with a ready file is the only live combination", () => {
+    for (const fileSafety of SAFETIES) {
+      const status = productLinkStatus({ moderationStatus: "APPROVED", fileSafety });
+      assert.equal(
+        status,
+        fileSafety === "ready" ? "live" : "reserved",
+        `APPROVED + ${fileSafety} mapped to ${status}`,
+      );
+    }
+  });
+
+  test("PENDING is reserved whatever the file says", () => {
+    for (const fileSafety of SAFETIES) {
+      assert.equal(productLinkStatus({ moderationStatus: "PENDING", fileSafety }), "reserved");
+    }
+  });
+
+  test("a missing moderation status is reserved, never live", () => {
+    // The seller payload marks moderationStatus optional; absent must not be
+    // read as approval.
+    assert.equal(productLinkStatus({ fileSafety: "ready" }), "reserved");
+    assert.equal(productLinkStatus({ moderationStatus: null, fileSafety: "ready" }), "reserved");
+  });
+
+  test("REJECTED takes precedence over every file state, including ready", () => {
+    // The case that makes precedence matter: moderation rejects a listing on
+    // its CONTENT, which says nothing about the bytes — so a rejected product
+    // with a SAFE deliverable is reachable, and is exactly where a
+    // ready-first ordering would tell the creator their link is live.
+    for (const fileSafety of SAFETIES) {
+      assert.equal(
+        productLinkStatus({ moderationStatus: "REJECTED", fileSafety }),
+        "rejected",
+        `REJECTED + ${fileSafety} escaped the rejected state`,
+      );
+    }
+  });
+
+  test("every state maps to a distinct message key", () => {
+    const seen = new Set<string>();
+    for (const s of ["live", "reserved", "rejected"] as ProductLinkStatus[]) {
+      const key = productLinkStatusKey(s);
+      assert.ok(!seen.has(key), `${key} used twice`);
+      seen.add(key);
+    }
+    assert.equal(seen.size, 3);
+  });
+
+  test("the status module reads no scan internals and makes no server call", () => {
+    const src = code("lib/product-link-status.ts");
+    for (const term of ["fileScanStatus", "fileScanKey", "fileKey", "prisma", "fetch("]) {
+      assert.ok(!src.includes(term), `status module references ${term}`);
+    }
+    // The type import is erased at compile time; a VALUE import would drag the
+    // server-only Prisma clause into the client bundle.
+    assert.match(read("lib/product-link-status.ts"), /import type \{ CreatorFileStatus \}/);
+  });
+});
+
+/* ---- 9b. Phase-1 rules extend to the pages ------------------------- */
+
+describe("phase 2 pages obey the phase 1 rules", () => {
+  for (const file of B2_PHASE2_SOURCES) {
+    test(`${file} never reads window.location`, () => {
+      const src = code(file);
+      assert.ok(!/window\s*\.\s*location/.test(src), `${file} reads window.location`);
+      assert.ok(!/vercel\.app/.test(src), `${file} mentions vercel.app`);
+      assert.ok(!/VERCEL_URL/.test(src), `${file} mentions VERCEL_URL`);
+    });
+
+    test(`${file} builds the URL with productUrl()`, () => {
+      const src = code(file);
+      assert.match(src, /from "@\/lib\/site-url"/);
+      assert.match(src, /productUrl\(/);
+      // No hand-rolled second copy of the origin.
+      assert.ok(
+        !/["'`]https:\/\/www\.saiflow\.io/.test(src),
+        `${file} hardcodes the origin instead of importing it`,
+      );
+    });
+
+    test(`${file} renders no raw scan enum, provider or file internals`, () => {
+      const src = code(file);
+      for (const term of [
+        "fileScanStatus", "fileScanKey", "fileScanSha256", "fileScanAttempts",
+        "cloudmersive", "Cloudmersive", "SAFE_DELIVERABLE_WHERE", "utfs.io", "signedUrl",
+      ]) {
+        assert.ok(!src.includes(term), `${file} references ${term}`);
+      }
+    });
+  }
+});
+
+/* ---- 9c. The product row ------------------------------------------- */
+
+describe("creator product row", () => {
+  test("shows the full canonical URL, not just the slug", () => {
+    const src = code(ROW_PAGE);
+    assert.match(src, /productUrl\(shop\.slug, product\.slug\)/);
+    // The bare "/{slug}" line it replaced told a creator nothing they could
+    // paste anywhere.
+    assert.ok(!/>\s*\/\{product\.slug\}\s*</.test(src), "bare slug line still present");
+  });
+
+  test("renders a copy control", () => {
+    const src = code(ROW_PAGE);
+    assert.match(src, /import CopyLinkButton from "@\/components\/CopyLinkButton"/);
+    assert.match(src, /<CopyLinkButton/);
+  });
+
+  test("the link is not gated on moderation, file safety or file presence", () => {
+    // The regression this guards: the URL used to be the ELSE branch of the
+    // missing-file check, so it was hidden from exactly the creators still
+    // setting a product up. Assert the copy control sits outside any such
+    // conditional by checking no gating expression precedes it on its branch.
+    const src = code(ROW_PAGE);
+    const block = src.slice(src.indexOf("<CopyLinkButton"), src.indexOf("<CopyLinkButton") + 400);
+    for (const gate of ["hasFile", "moderationStatus ===", 'fileSafety === "ready"']) {
+      assert.ok(!block.includes(gate), `copy control appears gated on ${gate}`);
+    }
+    // And the ternary form is gone entirely.
+    assert.ok(
+      !/\{!product\.hasFile \? \(/.test(src),
+      "missing-file check is still an either/or with the link",
+    );
+  });
+
+  test("keeps the missing-file warning", () => {
+    const src = code(ROW_PAGE);
+    assert.match(src, /!product\.hasFile && \(/);
+    assert.match(src, /uploadFileWarning/);
+  });
+
+  test("the eye / view-public action is unchanged and still distinct", () => {
+    const src = code(ROW_PAGE);
+    // Still a Link to the public page, still labelled by its own key.
+    assert.match(src, /href=\{`\/shop\/\$\{shop\.slug\}\/product\/\$\{product\.slug\}`\}/);
+    assert.match(src, /viewProductTitle/);
+    // The copy control is a button, the eye is a link — they cannot collapse
+    // into the same affordance.
+    assert.ok(src.includes("<CopyLinkButton"));
+  });
+
+  test("keeps the edit and delete actions", () => {
+    const src = code(ROW_PAGE);
+    assert.match(src, /editProductTitle/);
+    assert.match(src, /deleteProductTitle/);
+    assert.match(src, /handleDeleteProduct/);
+  });
+
+  test("renders the URL left-to-right so RTL cannot reorder it visually", () => {
+    assert.match(code(ROW_PAGE), /dir="ltr"/);
+  });
+});
+
+/* ---- 9d. The edit page --------------------------------------------- */
+
+describe("product edit page URL box", () => {
+  test("sits after Category and before Product File", () => {
+    const src = code(EDIT_PAGE);
+    const category = src.indexOf("categoryHelp");
+    const box = src.indexOf('tLink("label")');
+    const file = src.indexOf("productFileLabel");
+    assert.ok(category > -1 && box > -1 && file > -1, "a landmark is missing");
+    assert.ok(category < box, "URL box must come after Category");
+    assert.ok(box < file, "URL box must come before Product File");
+  });
+
+  test("shows the full canonical URL", () => {
+    assert.match(code(EDIT_PAGE), /productUrl\(product\.shop\.slug, product\.slug\)/);
+  });
+
+  test("the URL is displayed, never editable", () => {
+    const src = code(EDIT_PAGE);
+    const box = src.slice(src.indexOf('tLink("label")'), src.indexOf("productFileLabel"));
+    // No input, no textarea, no contentEditable, no setter for the slug.
+    assert.ok(!/<input/i.test(box), "URL box contains an input");
+    assert.ok(!/<textarea/i.test(box), "URL box contains a textarea");
+    assert.ok(!/contentEditable/i.test(box), "URL box is contentEditable");
+    assert.ok(!/setSlug|slug:/.test(box), "URL box exposes a slug setter");
+  });
+
+  test("the slug is never sent back on save", () => {
+    // B-1 froze it server-side; this makes the client agree rather than rely
+    // on the server to discard it.
+    const src = code(EDIT_PAGE);
+    const body = src.slice(src.indexOf("JSON.stringify({"), src.indexOf("JSON.stringify({") + 400);
+    assert.ok(!/\bslug\b/.test(body), "save payload includes a slug");
+  });
+
+  test("derives fileSafety from the shop payload, not a new API field", () => {
+    const src = code(EDIT_PAGE);
+    assert.match(src, /setFileSafety\(foundProduct\.fileSafety \?\? null\)/);
+    // The product route must not have been asked for it.
+    assert.ok(
+      !/fileSafety.*productData|productData\.fileSafety/.test(src),
+      "expects fileSafety from GET /api/products/[id]",
+    );
+  });
+
+  test("copy control is type=button inside the form", () => {
+    // Verified on the component itself in section 6; re-pinned here because
+    // this is the surface where a submit-by-default would save the product.
+    assert.match(code(EDIT_PAGE), /<form/);
+    assert.match(code("components/CopyLinkButton.tsx"), /type="button"/);
+  });
+});
+
+/* ---- 9e. Status copy is wired and safe ----------------------------- */
+
+describe("status copy", () => {
+  const en = JSON.parse(read("messages/en.json"));
+  const ar = JSON.parse(read("messages/ar.json"));
+
+  test("both locales define the productLink namespace", () => {
+    assert.ok(en.productLink, "en.json missing productLink");
+    assert.ok(ar.productLink, "ar.json missing productLink");
+  });
+
+  test("EN/AR key parity", () => {
+    assert.deepEqual(Object.keys(en.productLink).sort(), Object.keys(ar.productLink).sort());
+    assert.deepEqual(Object.keys(en).sort(), Object.keys(ar).sort());
+  });
+
+  test("every status maps to a key that exists in both locales", () => {
+    for (const s of ["live", "reserved", "rejected"] as ProductLinkStatus[]) {
+      const key = productLinkStatusKey(s);
+      assert.ok(typeof en.productLink[key] === "string" && en.productLink[key].length > 0, `en ${key}`);
+      assert.ok(typeof ar.productLink[key] === "string" && ar.productLink[key].length > 0, `ar ${key}`);
+    }
+  });
+
+  test("copy, copied, label and aria strings exist in both locales", () => {
+    for (const key of ["copy", "copied", "label", "copyAria"]) {
+      assert.ok(en.productLink[key], `en ${key}`);
+      assert.ok(ar.productLink[key], `ar ${key}`);
+    }
+  });
+
+  test("Arabic strings are actually Arabic, not copied English", () => {
+    for (const [key, value] of Object.entries(ar.productLink)) {
+      assert.match(value as string, /[؀-ۿ]/, `ar.productLink.${key} has no Arabic`);
+      assert.notEqual(value, en.productLink[key], `ar.productLink.${key} is untranslated`);
+    }
+  });
+
+  test("no status string leaks an internal enum or provider name", () => {
+    const LEAKS = [
+      "PENDING", "APPROVED", "REJECTED", "SAFE", "UNSAFE",
+      "fileScanStatus", "fileKey", "Cloudmersive", "cloudmersive",
+      "needs_attention", "moderationStatus", "SAFE_DELIVERABLE_WHERE",
+    ];
+    for (const locale of [en, ar]) {
+      for (const [key, value] of Object.entries(locale.productLink)) {
+        for (const leak of LEAKS) {
+          assert.ok(!(value as string).includes(leak), `${key} leaks "${leak}"`);
+        }
+      }
+    }
+  });
+
+  test("both surfaces render the status through the shared mapping", () => {
+    // One mapping, two callers — so the wording cannot drift between them.
+    for (const file of B2_PHASE2_SOURCES) {
+      const src = code(file);
+      assert.match(src, /productLinkStatusKey\(/, `${file} does not use the shared key map`);
+      assert.match(src, /productLinkStatus\(/, `${file} does not use the shared mapping`);
+    }
+  });
+});
+
+/* ---- 9f. The gates B-2 must not have touched ----------------------- */
+
+describe("public and payment gates are byte-identical", () => {
+  test("the E2 safety predicate is untouched", () => {
+    const src = read("lib/file-safety.ts");
+    assert.ok(src.includes("product.fileKey !== null &&"));
+    assert.ok(src.includes('product.fileScanStatus === "SAFE" &&'));
+    assert.ok(src.includes("product.fileScanKey === product.fileKey"));
+    assert.ok(src.includes("fileScanKey: { equals: prisma.product.fields.fileKey }"));
+  });
+
+  test("the creator file-status vocabulary is untouched", () => {
+    const src = read("lib/creator-file-status.ts");
+    for (const reason of [
+      '"safe"', '"pending_scan"', '"scan_key_mismatch"',
+      '"scan_error"', '"unsafe"', '"missing_file_key"',
+    ]) {
+      assert.ok(src.includes(reason), `creatorFileStatus lost the ${reason} case`);
+    }
+  });
+
+  test("the seller shop payload still ships no scan internals", () => {
+    const src = read("app/api/shops/[slug]/route.ts");
+    // The response map sends the derived verdict, never the columns.
+    assert.ok(src.includes("fileSafety: creatorFileStatus(p)"));
+    assert.ok(src.includes("hasFile: p.fileKey !== null"));
+  });
+
+  test("checkout, download and the pre-launch gate are untouched", () => {
+    assert.ok(read("app/api/checkout/route.ts").includes("env.PRE_LAUNCH_MODE"));
+    assert.ok(
+      read("app/api/download/[productId]/route.ts").includes(
+        "Not authorized to download this product",
+      ),
+    );
+  });
+
+  test("B-2 added no API route and no migration", () => {
+    // Phase 2 is UI plus messages plus two pure modules. If either of these
+    // ever needs to change, that is a different review.
+    for (const file of [...B2_SOURCES, ...B2_PHASE2_SOURCES, "lib/product-link-status.ts"]) {
+      assert.ok(!file.startsWith("app/api/"), `${file} is an API route`);
+      assert.ok(!file.startsWith("prisma/"), `${file} is a schema file`);
+    }
+  });
+});

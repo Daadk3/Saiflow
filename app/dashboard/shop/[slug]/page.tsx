@@ -12,6 +12,13 @@ import { formatNumber } from "@/lib/formatNumber";
 // imports lib/file-safety, which builds a Prisma clause at load time and
 // must not enter this bundle. The browser renders the string the API sends.
 import type { CreatorFileStatus } from "@/lib/creator-file-status";
+// The permanent public address is built from a pinned origin, never from
+// window.location: this dashboard renders identically on a Vercel Preview,
+// where the current location is a *.vercel.app host that dies with the
+// deployment. See lib/site-url.
+import { productUrl } from "@/lib/site-url";
+import { productLinkStatus, productLinkStatusKey } from "@/lib/product-link-status";
+import CopyLinkButton from "@/components/CopyLinkButton";
 
 interface Product {
   id: string;
@@ -53,6 +60,7 @@ export default function ShopDashboard() {
   const t = useTranslations("dashboard.shop");
   const tModeration = useTranslations("moderation");
   const tFileSafety = useTranslations("fileSafety");
+  const tLink = useTranslations("productLink");
 
   const [shop, setShop] = useState<Shop | null>(null);
   const [loading, setLoading] = useState(true);
@@ -387,15 +395,43 @@ export default function ShopDashboard() {
                         {tFileSafety("blockedBody")}
                       </p>
                     )}
-                    {!product.hasFile ? (
+                    {/* No longer an either/or. The URL is reserved from
+                        creation, so a creator may copy it before a file
+                        exists; making it the alternative to this warning hid
+                        the address from the people still setting up. */}
+                    {!product.hasFile && (
                       <p className="text-xs text-amber-400/70 mt-1">
                         ⚠️ {t("uploadFileWarning")}
                       </p>
-                    ) : (
-                      <p className="text-xs text-gray-600 mt-1 font-mono">
-                        /{product.slug}
-                      </p>
                     )}
+                    {/* dir="ltr" because a URL laid out in the Arabic RTL
+                        dashboard reorders visually and reads as a different
+                        address. The copied VALUE is unaffected either way —
+                        this is about what the creator sees before trusting
+                        it. `truncate` keeps a long URL from breaking the row;
+                        the full string stays available via title and is
+                        always what gets copied. */}
+                    <div className="mt-1.5 flex items-center gap-2 min-w-0">
+                      <span
+                        dir="ltr"
+                        title={productUrl(shop.slug, product.slug)}
+                        className="text-xs text-gray-500 font-mono truncate min-w-0"
+                      >
+                        {productUrl(shop.slug, product.slug)}
+                      </span>
+                      <CopyLinkButton
+                        url={productUrl(shop.slug, product.slug)}
+                        label={tLink("copy")}
+                        copiedLabel={tLink("copied")}
+                        ariaLabel={tLink("copyAria")}
+                      />
+                    </div>
+                    {/* The badges above describe the product and its file.
+                        This describes the LINK, which is a different subject:
+                        whether the address is servable yet. */}
+                    <p className="text-xs text-gray-600 mt-1 leading-relaxed">
+                      {tLink(productLinkStatusKey(productLinkStatus(product)))}
+                    </p>
                   </div>
 
                   {/* Price */}
