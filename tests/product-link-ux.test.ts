@@ -747,14 +747,27 @@ describe("responsive product row", () => {
     return m![1];
   })();
 
-  test("the row stacks below lg, not below sm", () => {
-    // sm was too early: with a thumbnail, name, badges, description, up to two
-    // advisory lines, the URL, a copy control, a price and three action
-    // buttons, four columns do not fit at 640px however well they shrink.
-    assert.match(rowClass, /\blg:flex-row\b/);
-    assert.match(rowClass, /\blg:items-center\b/);
+  test("the row stacks below xl, not below sm or lg", () => {
+    // sm was far too early. lg was measurably too early as well: at 1024px the
+    // horizontal row fitted with roughly 30px to spare, which is no margin at
+    // all on a row whose width grows with slug length — and it bled ~31px out
+    // of its bordered container in QA.
+    assert.match(rowClass, /\bxl:flex-row\b/);
+    assert.match(rowClass, /\bxl:items-center\b/);
     assert.ok(!/\bsm:flex-row\b/.test(rowClass), "row still switches at sm");
     assert.ok(!/\bsm:items-center\b/.test(rowClass), "row still centres at sm");
+    assert.ok(!/\blg:flex-row\b/.test(rowClass), "row still switches at lg");
+    assert.ok(!/\blg:items-center\b/.test(rowClass), "row still centres at lg");
+  });
+
+  test("the row is a grid item and carries min-w-0", () => {
+    // The row is a DIRECT child of `grid gap-4`, and grid items default to
+    // min-width:auto — which resolves to their min-content size. Without this
+    // override the auto track adopted the row's ~707px minimum and refused to
+    // go below it, which is how a 707px card ended up inside a 373px
+    // container. This is what lets the track follow the content down.
+    assert.match(row, /className="grid gap-4"/);
+    assert.match(rowClass, /\bmin-w-0\b/);
   });
 
   test("the row container is deliberately NOT overflow-hidden", () => {
@@ -804,13 +817,34 @@ describe("responsive product row", () => {
   test("the URL still truncates rather than wraps", () => {
     // Wrapping a 60-character URL at 375px would take three lines and push the
     // actions further down. The creator copies this string, they do not read it.
-    assert.match(row, /className="text-xs text-gray-500 font-mono truncate min-w-0"/);
+    assert.match(row, /className="text-xs text-gray-500 font-mono truncate flex-1 min-w-0"/);
     assert.ok(!/break-all/.test(row), "row URL now wraps instead of truncating");
     assert.match(row, /dir="ltr"/);
   });
 
-  test("price and actions share one line below lg and dissolve at lg", () => {
-    assert.match(row, /className="flex items-center justify-between gap-4 lg:contents"/);
+  test("price and actions share one line below xl and dissolve at xl", () => {
+    assert.match(row, /className="flex items-center justify-between gap-4 xl:contents"/);
+    assert.ok(!/lg:contents/.test(row), "wrapper still dissolves at lg");
+  });
+
+  test("the URL span is a flexible item, not merely a shrinkable one", () => {
+    // THE load-bearing assertion of this patch. `truncate` sets
+    // white-space:nowrap, so with flex-basis:auto the span's flex BASE SIZE
+    // was the full URL width (~477px measured in QA). A flex item only shrinks
+    // from its base size against a DEFINITE container, and below the
+    // breakpoint the grid track, row and info column are all sized
+    // intrinsically — so there was nothing to shrink against and the 477px
+    // propagated outward into the row's ~707px minimum.
+    //
+    // flex-1 is `flex: 1 1 0%`: base size 0. The span contributes nothing
+    // intrinsically and grows into whatever space remains. min-w-0 stays
+    // because it defeats the automatic minimum once the item is flexible.
+    // Neither class is sufficient alone, which is why both are pinned here.
+    const m = row.match(/className="text-xs text-gray-500 font-mono ([^"]*)"/);
+    assert.ok(m, "URL span not found");
+    for (const cls of ["flex-1", "min-w-0", "truncate"]) {
+      assert.ok(m![1].split(/\s+/).includes(cls), `URL span lost ${cls}`);
+    }
   });
 
   test("the action cluster is unchanged and still one horizontal group", () => {

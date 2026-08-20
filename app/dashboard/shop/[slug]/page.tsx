@@ -291,7 +291,7 @@ export default function ShopDashboard() {
               {shop.products.map((product) => (
                 <div
                   key={product.id}
-                  className="group flex flex-col lg:flex-row lg:items-center gap-4 p-4 rounded-xl bg-[#0a0a0a] border border-gray-800/50 hover:border-teal-500/30 transition-all duration-200"
+                  className="group flex flex-col xl:flex-row xl:items-center gap-4 p-4 min-w-0 rounded-xl bg-[#0a0a0a] border border-gray-800/50 hover:border-teal-500/30 transition-all duration-200"
                 >
                   {/* Product Thumbnail */}
                   <div className="flex-shrink-0 w-14 h-14 rounded-xl overflow-hidden bg-gradient-to-br from-teal-500/20 to-cyan-500/20 flex items-center justify-center border border-teal-500/10">
@@ -424,7 +424,7 @@ export default function ShopDashboard() {
                       <span
                         dir="ltr"
                         title={productUrl(shop.slug, product.slug)}
-                        className="text-xs text-gray-500 font-mono truncate min-w-0"
+                        className="text-xs text-gray-500 font-mono truncate flex-1 min-w-0"
                       >
                         {productUrl(shop.slug, product.slug)}
                       </span>
@@ -445,12 +445,12 @@ export default function ShopDashboard() {
                     </p>
                   </div>
 
-                  {/* Below lg the row is stacked, so price and the action
+                  {/* Below xl the row is stacked, so price and the action
                       cluster share one horizontal line under the product
-                      information. `lg:contents` removes this wrapper from
-                      layout at lg, making both direct children of the row
+                      information. `xl:contents` removes this wrapper from
+                      layout at xl, making both direct children of the row
                       again — the desktop layout is unchanged. */}
-                  <div className="flex items-center justify-between gap-4 lg:contents">
+                  <div className="flex items-center justify-between gap-4 xl:contents">
                     {/* Price */}
                     <div className="flex-shrink-0">
                       <span className="text-xl font-bold text-teal-400">
