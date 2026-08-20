@@ -8,6 +8,14 @@ import Image from "next/image";
 import { useTranslations } from "next-intl";
 import { UploadButton } from "@/lib/uploadthing";
 import { PRODUCT_CATEGORIES, CATEGORY_LABEL_KEYS } from "@/lib/categories";
+// Pinned origin, never window.location — this page renders identically on a
+// Vercel Preview, whose host dies with the deployment. See lib/site-url.
+import { productUrl } from "@/lib/site-url";
+import { productLinkStatus, productLinkStatusKey } from "@/lib/product-link-status";
+import CopyLinkButton from "@/components/CopyLinkButton";
+// TYPE ONLY — lib/creator-file-status builds a Prisma clause at load and
+// must not enter this bundle. The server sends the derived string.
+import type { CreatorFileStatus } from "@/lib/creator-file-status";
 
 interface Product {
   id: string;
@@ -17,6 +25,14 @@ interface Product {
   price: number;
   category: string | null;
   fileUrl: string | null;
+  /** From GET /api/products/[id], which returns the whole row. */
+  moderationStatus?: "PENDING" | "APPROVED" | "REJECTED";
+  /**
+   * Server-derived, and supplied ONLY by GET /api/shops/[slug] — the product
+   * endpoint returns raw columns, not this verdict. Held in state from the
+   * shop payload rather than added to the product route, so no API changes.
+   */
+  fileSafety?: CreatorFileStatus;
   thumbnailUrl: string | null;
   shop: {
     id: string;
@@ -27,6 +43,7 @@ interface Product {
 
 export default function EditProductPage() {
   const t = useTranslations();
+  const tLink = useTranslations("productLink");
   const [product, setProduct] = useState<Product | null>(null);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -35,6 +52,7 @@ export default function EditProductPage() {
   const [fileUrl, setFileUrl] = useState("");
   const [fileName, setFileName] = useState("");
   const [thumbnailUrl, setThumbnailUrl] = useState("");
+  const [fileSafety, setFileSafety] = useState<CreatorFileStatus>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -88,6 +106,11 @@ export default function EditProductPage() {
         setLoading(false);
         return;
       }
+
+      // The coarse file-safety verdict exists only on the shop payload, which
+      // is already loaded here. Taking it now is why this feature needs no
+      // change to GET /api/products/[id] and no new field anywhere.
+      setFileSafety(foundProduct.fileSafety ?? null);
 
       // Fetch full product details
       const productRes = await fetch(`/api/products/${foundProduct.id}`);
@@ -405,6 +428,54 @@ export default function EditProductPage() {
                   {t("dashboard.product.categoryHelp")}
                 </p>
               </div>
+
+              {/* Permanent public link.
+                  Between Category and Product File on purpose: it belongs with
+                  the product's identity rather than its contents, and a creator
+                  setting up a listing meets the address before uploading —
+                  which is when they are most likely to want it.
+                  Rendered for every product, in every state. The URL is
+                  reserved from creation; whether it currently SERVES is a
+                  separate question, answered by the sentence below and decided
+                  server-side. */}
+              {product && (
+                <div className="rounded-xl border border-gray-800 bg-[#0a0a0a] p-4">
+                  <p className="block text-sm font-medium text-gray-300 mb-2">
+                    {tLink("label")}
+                  </p>
+                  <div className="flex flex-wrap items-center gap-2">
+                    {/* Read-only by construction — a <p>, not an <input>.
+                        The slug is frozen at creation (B-1) and there is
+                        deliberately no edit path: an address that can be
+                        edited is not a permanent one. `select-all` makes one
+                        click select the whole URL; `break-all` keeps a long
+                        one from overflowing on a phone; dir="ltr" stops it
+                        reordering visually under Arabic RTL. */}
+                    <p
+                      dir="ltr"
+                      className="flex-1 min-w-0 break-all select-all font-mono text-xs text-gray-400 bg-[#111] border border-gray-800 rounded-lg px-3 py-2"
+                    >
+                      {productUrl(product.shop.slug, product.slug)}
+                    </p>
+                    <CopyLinkButton
+                      url={productUrl(product.shop.slug, product.slug)}
+                      label={tLink("copy")}
+                      copiedLabel={tLink("copied")}
+                      ariaLabel={tLink("copyAria")}
+                    />
+                  </div>
+                  <p className="mt-2 text-xs text-gray-500 leading-relaxed">
+                    {tLink(
+                      productLinkStatusKey(
+                        productLinkStatus({
+                          moderationStatus: product.moderationStatus,
+                          fileSafety,
+                        }),
+                      ),
+                    )}
+                  </p>
+                </div>
+              )}
 
               {/* File Upload */}
               <div>

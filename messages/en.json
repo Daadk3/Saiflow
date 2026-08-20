@@ -630,6 +630,15 @@
     "blocked": "File can\u2019t be published",
     "blockedBody": "This file didn\u2019t pass the required safety checks. Replace the file before publishing this product."
   },
+  "productLink": {
+    "label": "Public product link",
+    "copy": "Copy link",
+    "copied": "Link copied ✓",
+    "copyAria": "Copy the public product link",
+    "statusLive": "Your product link is live and ready to share.",
+    "statusReserved": "This link is reserved for your product. It will become public once the product is approved and its file passes the safety check.",
+    "statusRejected": "This product is not currently public. Its link will remain reserved unless the product is approved."
+  },
   "admin": {
     "fileSafety": {
       "heading": "File safety",
