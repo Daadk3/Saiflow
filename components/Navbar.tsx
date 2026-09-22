@@ -53,11 +53,11 @@ export default function Navbar() {
             <Link href="/browse" className={navLinkClass} role="menuitem">
               {t('products')}
             </Link>
-            <Link href="/blog" className={navLinkClass} role="menuitem">
-              {t('blog')}
+            <Link href="/#categories" className={navLinkClass} role="menuitem">
+              {t('categories')}
             </Link>
-            <Link href="/docs" className={navLinkClass} role="menuitem">
-              {t('docs')}
+            <Link href="/#how-to-sell" className={navLinkClass} role="menuitem">
+              {t('howToSell')}
             </Link>
             <Link href="/pricing" className={navLinkClass} role="menuitem">
               {t('pricing')}
@@ -66,23 +66,6 @@ export default function Navbar() {
 
           {/* Right actions */}
           <div className="hidden md:flex items-center gap-4">
-            <Link
-              href="/browse"
-              aria-label={t('search')}
-              className="text-gray-500 hover:text-white transition-colors"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                className="w-5 h-5"
-              >
-                <circle cx="11" cy="11" r="7" />
-                <line x1="16.65" y1="16.65" x2="21" y2="21" />
-              </svg>
-            </Link>
             <LanguageSwitcher />
             {session ? (
               // Logged in - show these
@@ -171,11 +154,11 @@ export default function Navbar() {
             <Link href="/browse" className={navLinkClass} onClick={() => setMenuOpen(false)} role="menuitem">
               {t('products')}
             </Link>
-            <Link href="/blog" className={navLinkClass} onClick={() => setMenuOpen(false)} role="menuitem">
-              {t('blog')}
+            <Link href="/#categories" className={navLinkClass} onClick={() => setMenuOpen(false)} role="menuitem">
+              {t('categories')}
             </Link>
-            <Link href="/docs" className={navLinkClass} onClick={() => setMenuOpen(false)} role="menuitem">
-              {t('docs')}
+            <Link href="/#how-to-sell" className={navLinkClass} onClick={() => setMenuOpen(false)} role="menuitem">
+              {t('howToSell')}
             </Link>
             <Link href="/pricing" className={navLinkClass} onClick={() => setMenuOpen(false)} role="menuitem">
               {t('pricing')}
