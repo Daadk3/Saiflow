@@ -20,9 +20,9 @@
  *      one was recorded, and a payment operation of "Pay".
  *   5. It carries every documented success value, where Geidea actually puts
  *      them: order status "Success", detailed status "Paid", and a "Pay"
- *      transaction with status "Success" whose codes are responseCode "000",
- *      detailedResponseCode "000", responseMessage "Success" and
- *      detailedResponseMessage "The operation was successful".
+ *      transaction with status "Success" whose codes are responseCode "000"
+ *      and detailedResponseCode "000". The two response messages beside the
+ *      codes are text in the hosted page's language and are not compared.
  *   6. Geidea, asked directly through the authenticated order inquiry, agrees
  *      on order id, merchant reference, amount, currency and paid status.
  *

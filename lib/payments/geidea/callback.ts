@@ -317,12 +317,25 @@ export type CallbackOutcome =
   | "failed"
   | "indeterminate";
 
-/** The documented success values, all four required at once. */
-export const PAID_CODES: Readonly<Required<{ [K in keyof GeideaCallbackCodes]: string }>> = {
+/**
+ * The machine-readable success codes on the Pay transaction, both required.
+ *
+ * The two messages beside them, responseMessage and detailedResponseMessage,
+ * are human-readable text and are deliberately NOT compared. Geidea writes
+ * them in the language the session asked for, so they are informational only.
+ *
+ * CONFIRMED ON 22 SEPTEMBER 2026 ON THE PREVIEW: a paid test order from an
+ * Arabic-language hosted page reached the route with responseCode "000" and
+ * detailedResponseCode "000" and was still classified indeterminate, because
+ * this check also demanded the English "Success" / "The operation was
+ * successful" seen on the English capture of 21 September. The message text
+ * is the only comparison a hosted-page language can change, and it is the
+ * only check relaxed: the codes, the order statuses, the Pay transaction's
+ * status and amount, and the authenticated inquiry still decide.
+ */
+export const PAID_CODES: Readonly<{ responseCode: string; detailedResponseCode: string }> = {
   responseCode: "000",
-  responseMessage: "Success",
   detailedResponseCode: "000",
-  detailedResponseMessage: "The operation was successful",
 };
 
 /** A paid order: status "Success" with detailed status "Paid", exactly. */
@@ -330,13 +343,12 @@ export function isPaidStatus(status: string, detailedStatus: string | null): boo
   return status === "Success" && detailedStatus === "Paid";
 }
 
+/** Both success codes present and exact. The messages are ignored on purpose; see PAID_CODES. */
 export function codesArePaid(codes: GeideaCallbackCodes | null): boolean {
   return (
     codes !== null &&
     codes.responseCode === PAID_CODES.responseCode &&
-    codes.responseMessage === PAID_CODES.responseMessage &&
-    codes.detailedResponseCode === PAID_CODES.detailedResponseCode &&
-    codes.detailedResponseMessage === PAID_CODES.detailedResponseMessage
+    codes.detailedResponseCode === PAID_CODES.detailedResponseCode
   );
 }
 
@@ -345,8 +357,8 @@ export function payTransactions(order: GeideaCallbackOrder): GeideaCallbackTrans
 }
 
 /**
- * The Pay transaction that proves the money moved: status "Success", the four
- * documented codes, and, when it states an amount, the order's amount. Null
+ * The Pay transaction that proves the money moved: status "Success", both
+ * success codes, and, when it states an amount, the order's amount. Null
  * when no transaction qualifies.
  */
 export function paidTransaction(order: GeideaCallbackOrder): GeideaCallbackTransaction | null {

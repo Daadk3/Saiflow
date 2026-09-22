@@ -49,10 +49,23 @@ const SENSITIVE = {
   merchantPublicKey: "00000000-0000-4000-8000-000000000000",
 };
 
+/** The Pay codes of the English capture: both success codes plus the English text Geidea sent that day. */
+const CAPTURED_CODES = {
+  ...PAID_CODES,
+  responseMessage: "Success",
+  detailedResponseMessage: "The operation was successful",
+};
+
+/** The same codes as an Arabic-language hosted page carries them (22 September 2026). */
+const ARABIC_MESSAGES = {
+  responseMessage: "نجاح",
+  detailedResponseMessage: "تمت العملية بنجاح",
+};
+
 const paidCodes = {
   acquirerCode: "00",
   acquirerMessage: "Approved",
-  ...PAID_CODES,
+  ...CAPTURED_CODES,
 };
 
 const paymentMethod = {
@@ -344,7 +357,7 @@ describe("classifyCallback: paid needs the order and the Pay transaction to agre
     assert.equal(classifyCallback(payload), "paid");
     assert.equal(isPaidCallback(payload), true);
     assert.equal(paidTransaction(payload.order)?.type, "Pay");
-    assert.deepEqual(latestPayCodes(payload.order), { ...PAID_CODES });
+    assert.deepEqual(latestPayCodes(payload.order), { ...CAPTURED_CODES });
     assert.equal(classifyCallback(decoded({ order: { paymentOperation: undefined } })), "paid");
   });
 
@@ -354,10 +367,6 @@ describe("classifyCallback: paid needs the order and the Pay transaction to agre
       ["responseCode absent", { payCodes: { responseCode: undefined } }],
       ["detailedResponseCode", { payCodes: { detailedResponseCode: "500" } }],
       ["detailedResponseCode absent", { payCodes: { detailedResponseCode: undefined } }],
-      ["responseMessage", { payCodes: { responseMessage: "OK" } }],
-      ["responseMessage absent", { payCodes: { responseMessage: undefined } }],
-      ["detailedResponseMessage", { payCodes: { detailedResponseMessage: "Success" } }],
-      ["detailedResponseMessage absent", { payCodes: { detailedResponseMessage: undefined } }],
       ["no codes on the Pay transaction", { pay: { codes: undefined } }],
       ["Pay transaction status Failed", { pay: { status: "Failed" } }],
       ["Pay transaction amount differs", { pay: { amount: 0.5 } }],
@@ -371,6 +380,58 @@ describe("classifyCallback: paid needs the order and the Pay transaction to agre
       ["status lower-case", { order: { status: "success" } }],
       ["detailedStatus lower-case", { order: { detailedStatus: "paid" } }],
       ["payment operation PreAuthorize", { order: { paymentOperation: "PreAuthorize" } }],
+    ];
+    for (const [name, over] of notPaid) {
+      const payload = decoded(over);
+      assert.notEqual(classifyCallback(payload), "paid", name);
+      assert.equal(isPaidCallback(payload), false, name);
+    }
+  });
+
+  test("the messages are informational: localized or missing text beside the success codes is still paid", () => {
+    const stillPaid: [string, Parameters<typeof raw>[0]][] = [
+      ["Arabic messages on the Pay transaction", { payCodes: ARABIC_MESSAGES }],
+      [
+        "Arabic messages on both transactions",
+        {
+          order: {
+            transactions: [
+              authenticationTx({ codes: { ...paidCodes, acquirerCode: null, acquirerMessage: null, ...ARABIC_MESSAGES } }),
+              payTx({}, ARABIC_MESSAGES),
+            ],
+          },
+        },
+      ],
+      ["responseMessage differs", { payCodes: { responseMessage: "OK" } }],
+      ["detailedResponseMessage differs", { payCodes: { detailedResponseMessage: "Success" } }],
+      ["detailedResponseMessage with a trailing full stop", { payCodes: { detailedResponseMessage: "The operation was successful." } }],
+      ["responseMessage absent", { payCodes: { responseMessage: undefined } }],
+      ["detailedResponseMessage absent", { payCodes: { detailedResponseMessage: undefined } }],
+      ["both messages absent", { payCodes: { responseMessage: undefined, detailedResponseMessage: undefined } }],
+      ["both messages null", { payCodes: { responseMessage: null, detailedResponseMessage: null } }],
+    ];
+    for (const [name, over] of stillPaid) {
+      const payload = decoded(over);
+      assert.equal(classifyCallback(payload), "paid", name);
+      assert.equal(isPaidCallback(payload), true, name);
+      assert.equal(paidTransaction(payload.order)?.type, "Pay", name);
+    }
+  });
+
+  test("localized messages never relax any other gate", () => {
+    const notPaid: [string, Parameters<typeof raw>[0]][] = [
+      ["wrong responseCode", { payCodes: { ...ARABIC_MESSAGES, responseCode: "100" } }],
+      ["responseCode absent", { payCodes: { ...ARABIC_MESSAGES, responseCode: undefined } }],
+      ["wrong detailedResponseCode", { payCodes: { ...ARABIC_MESSAGES, detailedResponseCode: "500" } }],
+      ["detailedResponseCode absent", { payCodes: { ...ARABIC_MESSAGES, detailedResponseCode: undefined } }],
+      ["wrong order status", { order: { status: "InProgress" }, payCodes: ARABIC_MESSAGES }],
+      ["wrong order status Failed", { order: { status: "Failed" }, payCodes: ARABIC_MESSAGES }],
+      ["wrong detailedStatus", { order: { detailedStatus: "Authorized" }, payCodes: ARABIC_MESSAGES }],
+      ["detailedStatus absent", { order: { detailedStatus: undefined }, payCodes: ARABIC_MESSAGES }],
+      ["wrong Pay transaction status", { pay: { status: "Failed" }, payCodes: ARABIC_MESSAGES }],
+      ["Pay transaction status Pending", { pay: { status: "Pending" }, payCodes: ARABIC_MESSAGES }],
+      ["Pay transaction amount differs", { pay: { amount: 0.5 }, payCodes: ARABIC_MESSAGES }],
+      ["no Pay transaction", { pay: null }],
     ];
     for (const [name, over] of notPaid) {
       const payload = decoded(over);
@@ -437,15 +498,22 @@ describe("classifyCallback: paid needs the order and the Pay transaction to agre
     assert.equal(providerStatusSummary("S".repeat(64), "D".repeat(64)).length, 120);
   });
 
-  test("isPaidStatus and codesArePaid are exact", () => {
+  test("isPaidStatus is exact; codesArePaid is exact on the codes and blind to the messages", () => {
     assert.equal(isPaidStatus("Success", "Paid"), true);
     assert.equal(isPaidStatus("Success", null), false);
     assert.equal(isPaidStatus("Paid", "Paid"), false);
     assert.equal(isPaidStatus("Success", "Refunded"), false);
     assert.equal(isPaidStatus("success", "Paid"), false);
-    assert.equal(codesArePaid({ ...PAID_CODES }), true);
-    assert.equal(codesArePaid({ ...PAID_CODES, responseCode: "0" }), false);
-    assert.equal(codesArePaid({ ...PAID_CODES, detailedResponseMessage: "The operation was successful." }), false);
+    assert.equal(codesArePaid({ ...CAPTURED_CODES }), true);
+    assert.equal(codesArePaid({ ...PAID_CODES, ...ARABIC_MESSAGES }), true);
+    assert.equal(codesArePaid({ ...PAID_CODES, responseMessage: null, detailedResponseMessage: null }), true);
+    assert.equal(codesArePaid({ ...CAPTURED_CODES, detailedResponseMessage: "The operation was successful." }), true);
+    assert.equal(codesArePaid({ ...CAPTURED_CODES, responseCode: "0" }), false);
+    assert.equal(codesArePaid({ ...CAPTURED_CODES, responseCode: "100" }), false);
+    assert.equal(codesArePaid({ ...CAPTURED_CODES, responseCode: null }), false);
+    assert.equal(codesArePaid({ ...CAPTURED_CODES, detailedResponseCode: "00" }), false);
+    assert.equal(codesArePaid({ ...CAPTURED_CODES, detailedResponseCode: "500" }), false);
+    assert.equal(codesArePaid({ ...CAPTURED_CODES, detailedResponseCode: null }), false);
     assert.equal(codesArePaid(null), false);
   });
 });

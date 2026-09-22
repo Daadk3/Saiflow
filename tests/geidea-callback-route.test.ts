@@ -245,6 +245,12 @@ const PAID_CODES = {
   detailedResponseMessage: "The operation was successful",
 };
 
+/** The same success codes as an Arabic-language hosted page carries them (Preview, 22 September 2026). */
+const ARABIC_MESSAGES = {
+  responseMessage: "نجاح",
+  detailedResponseMessage: "تمت العملية بنجاح",
+};
+
 const paymentMethod = {
   type: "Card",
   brand: "mada",
@@ -737,14 +743,47 @@ describe("refusals create no Order and change nothing", () => {
     assertNothingHappened();
   });
 
+  test("localized success messages beside the success codes are fulfilled, still only through the inquiry", async () => {
+    seed();
+    const res = await post(callback({ payCodes: ARABIC_MESSAGES }));
+    assert.equal(res.status, 200);
+    assert.deepEqual(res.body, { received: true, result: "fulfilled" });
+    assert.equal(db.orders.length, 1);
+    assert.equal(getOrderCalls.length, 1, "the authenticated inquiry is still made before fulfilment");
+    assert.equal(session().status, "PAID");
+  });
+
+  test("localized success messages do not bypass an unavailable or disagreeing inquiry", async () => {
+    reset();
+    seed();
+    state.inquiryError = Object.assign(new Error("Geidea getOrder: HTTP 503"), { name: "GeideaHttpError" });
+    let res = await post(callback({ payCodes: ARABIC_MESSAGES }));
+    assert.equal(res.status, 503);
+    assert.deepEqual(res.body, { error: "verification_unavailable" });
+    assert.equal(db.orders.length, 0);
+    assert.equal(session().status, "SESSION_CREATED");
+
+    reset();
+    seed();
+    state.inquiry = (id) => ({ ...paidInquiry(id), status: "Failed", detailedStatus: "Declined" });
+    res = await post(callback({ payCodes: ARABIC_MESSAGES }));
+    assert.equal(res.status, 409);
+    assert.deepEqual(res.body, { error: "verification_mismatch" });
+    assert.equal(db.orders.length, 0);
+    assert.equal(session().status, "SESSION_CREATED");
+  });
+
   test("anything short of the full success values never creates an Order", async () => {
     const variants: [string, CallbackOver][] = [
       ["Pay codes 100 with a failed order", { order: { status: "Failed", detailedStatus: "Declined" }, pay: { status: "Failed" }, payCodes: { responseCode: "100" } }],
       ["Pay codes 100 beside a paid order", { payCodes: { responseCode: "100" } }],
       ["detailedResponseCode 500", { payCodes: { detailedResponseCode: "500" } }],
       ["detailedResponseCode absent", { payCodes: { detailedResponseCode: undefined } }],
-      ["responseMessage not Success", { payCodes: { responseMessage: "OK" } }],
-      ["detailedResponseMessage not the documented text", { payCodes: { detailedResponseMessage: "Success" } }],
+      ["Arabic messages beside responseCode 100", { payCodes: { ...ARABIC_MESSAGES, responseCode: "100" } }],
+      ["Arabic messages beside detailedResponseCode 500", { payCodes: { ...ARABIC_MESSAGES, detailedResponseCode: "500" } }],
+      ["Arabic messages beside a failed Pay transaction", { pay: { status: "Failed" }, payCodes: ARABIC_MESSAGES }],
+      ["Arabic messages beside order status InProgress", { order: { status: "InProgress", detailedStatus: undefined }, payCodes: ARABIC_MESSAGES }],
+      ["Arabic messages beside detailed status Authorized", { order: { detailedStatus: "Authorized" }, payCodes: ARABIC_MESSAGES }],
       ["no codes on the Pay transaction", { pay: { codes: undefined } }],
       ["Pay transaction status Failed", { pay: { status: "Failed" } }],
       ["no Pay transaction", { pay: null }],
