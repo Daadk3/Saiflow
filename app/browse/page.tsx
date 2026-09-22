@@ -3,38 +3,36 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { SAFE_DELIVERABLE_WHERE } from "@/lib/file-safety";
 import { getLocale, getTranslations } from "next-intl/server";
-import { formatPrice } from "@/lib/formatPrice";
 import { CATEGORY_LABEL_KEYS, isProductCategory } from "@/lib/categories";
+import type { ProductCategory } from "@/lib/categories";
+import { ProductCard } from "@/components/ProductCard";
+import type { ProductCardProduct } from "@/components/ProductCard";
+import { IconSearch, IconStore } from "@/components/home/icons";
 
 export const dynamic = "force-dynamic";
 
-interface Product {
-  id: string;
-  name: string;
-  slug: string;
-  description: string | null;
-  price: number;
-  currency: string;
-  images: string[];
-  thumbnailUrl: string | null;
-  fileUrl: string | null;
+// No popularity sort until real popularity data exists: an option that
+// silently fell back to newest would mislead. Unknown values become newest.
+const SORT_OPTIONS = ["newest", "price-asc", "price-desc"] as const;
+type SortOption = (typeof SORT_OPTIONS)[number];
+
+/** Search text is trimmed and capped; anything longer is a mistake, not a query. */
+const MAX_QUERY_LENGTH = 80;
+
+interface Product extends ProductCardProduct {
   category: string | null;
-  createdAt: Date;
-  shop: {
-    name: string;
-    slug: string;
-  };
 }
 
-type SortOption = "newest" | "popular" | "price-asc" | "price-desc";
-
-async function getProducts(options: {
-  category?: string;
-  sort?: SortOption;
+interface Filters {
+  category?: ProductCategory;
+  sort: SortOption;
   minPrice?: number;
   maxPrice?: number;
-}): Promise<Product[]> {
-  const { category, sort = "newest", minPrice, maxPrice } = options;
+  q?: string;
+}
+
+async function getProducts(filters: Filters): Promise<Product[]> {
+  const { category, sort, minPrice, maxPrice, q } = filters;
   const where: Prisma.ProductWhereInput = {
     isActive: true,
     // Trust & Safety: only approved products are publicly listed
@@ -54,12 +52,20 @@ async function getProducts(options: {
     if (maxPrice !== undefined) where.price.lte = maxPrice;
   }
 
+  // Search narrows within the gated set: it is ANDed with every rule above.
+  if (q) {
+    where.OR = [
+      { name: { contains: q, mode: "insensitive" } },
+      { description: { contains: q, mode: "insensitive" } },
+    ];
+  }
+
   const orderBy =
     sort === "price-asc"
       ? { price: "asc" as const }
       : sort === "price-desc"
       ? { price: "desc" as const }
-      : { createdAt: "desc" as const }; // default / popular fallback
+      : { createdAt: "desc" as const }; // newest
 
   try {
     const products = await prisma.product.findMany({
@@ -68,14 +74,11 @@ async function getProducts(options: {
         id: true,
         name: true,
         slug: true,
-        description: true,
         price: true,
         currency: true,
         images: true,
         thumbnailUrl: true,
-        fileUrl: true,
         category: true,
-        createdAt: true,
         shop: {
           select: {
             name: true,
@@ -91,321 +94,272 @@ async function getProducts(options: {
       price: Number(p.price),
     }));
   } catch (error) {
-    // Don't let a DB hiccup take down /browse — render the empty state
-    // (the existing "No products found / Try adjusting filters" block).
+    // Don't let a DB hiccup take down /browse — render the empty state.
     console.error("Browse: failed to load products, rendering without them.", error);
     return [];
   }
 }
 
+function parsePrice(raw: string | undefined): number | undefined {
+  if (!raw) return undefined;
+  const value = Number(raw);
+  return Number.isFinite(value) && value >= 0 ? value : undefined;
+}
+
+function parseSort(raw: string | undefined): SortOption {
+  return (SORT_OPTIONS as readonly string[]).includes(raw ?? "") ? (raw as SortOption) : "newest";
+}
+
+function parseQuery(raw: string | undefined): string | undefined {
+  const q = raw?.trim().slice(0, MAX_QUERY_LENGTH);
+  return q ? q : undefined;
+}
+
+/** A browse URL for the current filters with some of them changed. */
+function browseHref(filters: Filters, overrides: Partial<Filters>): string {
+  const next = { ...filters, ...overrides };
+  const params = new URLSearchParams();
+  if (next.category) params.set("category", next.category);
+  if (next.q) params.set("q", next.q);
+  if (next.sort !== "newest") params.set("sort", next.sort);
+  if (next.minPrice !== undefined) params.set("minPrice", String(next.minPrice));
+  if (next.maxPrice !== undefined) params.set("maxPrice", String(next.maxPrice));
+  const query = params.toString();
+  return query ? `/browse?${query}` : "/browse";
+}
+
 interface BrowsePageProps {
   searchParams: Promise<{
     category?: string;
-    sort?: SortOption;
+    sort?: string;
     minPrice?: string;
     maxPrice?: string;
+    q?: string;
   }>;
 }
 
 export default async function BrowsePage({ searchParams }: BrowsePageProps) {
   const params = await searchParams;
-  const category = params.category;
-  const sort = params.sort ?? "newest";
-  const minPrice = params.minPrice ? Number(params.minPrice) : undefined;
-  const maxPrice = params.maxPrice ? Number(params.maxPrice) : undefined;
+  const filters: Filters = {
+    category: isProductCategory(params.category) ? params.category : undefined,
+    sort: parseSort(params.sort),
+    minPrice: parsePrice(params.minPrice),
+    maxPrice: parsePrice(params.maxPrice),
+    q: parseQuery(params.q),
+  };
+  const { category, sort, minPrice, maxPrice, q } = filters;
 
-  const products = await getProducts({ category, sort, minPrice, maxPrice });
+  const products = await getProducts(filters);
   const locale = await getLocale();
   const t = await getTranslations();
-  const productCount = products.length;
-  const categories = Object.entries(CATEGORY_LABEL_KEYS);
+  const categories = Object.entries(CATEGORY_LABEL_KEYS) as [ProductCategory, string][];
+  const priceActive = minPrice !== undefined || maxPrice !== undefined;
+  const filtersActive = Boolean(category || q || priceActive || sort !== "newest");
+
+  const sortLabels: Record<SortOption, string> = {
+    newest: t("products.newest"),
+    "price-asc": t("products.priceLow"),
+    "price-desc": t("products.priceHigh"),
+  };
+
+  const chip = (active: boolean) =>
+    `rounded-full border px-4 py-2 text-sm font-medium transition-colors ${
+      active
+        ? "border-teal-400/60 bg-teal-500/15 text-teal-200"
+        : "border-gray-800 bg-[#111111] text-gray-300 hover:border-gray-600 hover:text-white"
+    }`;
+
+  const hiddenFilters = (except: "q" | "price") => (
+    <>
+      {category && <input type="hidden" name="category" value={category} />}
+      {sort !== "newest" && <input type="hidden" name="sort" value={sort} />}
+      {except !== "q" && q && <input type="hidden" name="q" value={q} />}
+      {except !== "price" && minPrice !== undefined && <input type="hidden" name="minPrice" value={minPrice} />}
+      {except !== "price" && maxPrice !== undefined && <input type="hidden" name="maxPrice" value={maxPrice} />}
+    </>
+  );
 
   return (
-    <div className="bg-[#0a0a0a] min-h-screen text-white">
-      {/* Header */}
-      <section className="border-b border-gray-800 bg-[#0a0a0a] py-10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-            <div>
-              <p className="text-sm font-semibold text-teal-400 uppercase tracking-wide">{t('storefront.browse.eyebrow')}</p>
-              <h1 className="text-3xl font-bold text-white mt-2">
-                {isProductCategory(category) ? t(CATEGORY_LABEL_KEYS[category]) : t('products.allProducts')}
-              </h1>
-              <p className="text-gray-400 mt-2">{t('storefront.shopView.showingProductsCount', { count: productCount })}</p>
-            </div>
+    <div className="min-h-screen bg-[#0a0a0a] text-white">
+      {/* Header: heading, search, categories */}
+      <section className="relative overflow-hidden border-b border-gray-800">
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute -top-32 start-1/4 h-80 w-80 rounded-full bg-teal-500/10 blur-3xl"
+        />
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute -bottom-24 end-0 h-72 w-72 rounded-full bg-purple-500/10 blur-3xl"
+        />
+        <div className="relative mx-auto max-w-7xl px-4 pb-8 pt-12 sm:px-6 sm:pb-10 sm:pt-16 lg:px-8">
+          <p className="text-sm font-semibold uppercase tracking-wide text-teal-400">{t("storefront.browse.eyebrow")}</p>
+          <h1 className="mt-2 text-3xl font-bold leading-tight text-white sm:text-4xl lg:text-5xl">
+            {t("storefront.browse.title")}
+          </h1>
+          <p className="mt-3 max-w-2xl text-lg text-gray-400">{t("storefront.browse.subtitle")}</p>
 
-            <form className="flex items-center gap-3" method="get">
-              {category && <input type="hidden" name="category" value={category} />}
-              {minPrice !== undefined && <input type="hidden" name="minPrice" value={minPrice} />}
-              {maxPrice !== undefined && <input type="hidden" name="maxPrice" value={maxPrice} />}
-              <label className="text-sm font-medium text-gray-300">{t('products.sortBy')}</label>
-              <select
-                name="sort"
-                defaultValue={sort}
-                className="rounded-lg border border-gray-700 bg-[#0a0a0a] px-3 py-2 text-sm text-gray-100 focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500"
+          <form method="get" action="/browse" role="search" className="mt-8 flex flex-col gap-3 sm:flex-row">
+            {hiddenFilters("q")}
+            <label htmlFor="browse-search" className="sr-only">
+              {t("storefront.browse.searchLabel")}
+            </label>
+            {/* The icon sits beside the field, not over it, so no input padding rule can push text under it. */}
+            <div className="flex flex-1 items-center gap-3 rounded-full border border-gray-700 bg-[#111111] pe-2 ps-5 transition-colors focus-within:border-teal-500 focus-within:ring-1 focus-within:ring-teal-500">
+              <IconSearch className="h-5 w-5 shrink-0 text-gray-500" />
+              <input
+                id="browse-search"
+                type="search"
+                name="q"
+                defaultValue={q ?? ""}
+                maxLength={MAX_QUERY_LENGTH}
+                placeholder={t("storefront.browse.searchPlaceholder")}
+                className="min-w-0 flex-1 bg-transparent py-3 text-base text-white placeholder:text-gray-500 focus:outline-none"
+              />
+            </div>
+            <button type="submit" className="btn-primary">
+              {t("storefront.browse.searchButton")}
+            </button>
+          </form>
+
+          <nav aria-label={t("storefront.browse.categoriesHeading")} className="mt-6 flex flex-wrap gap-2">
+            <Link href={browseHref(filters, { category: undefined })} className={chip(!category)} aria-current={!category ? "page" : undefined}>
+              {t("categories.all")}
+            </Link>
+            {categories.map(([slug, labelKey]) => (
+              <Link
+                key={slug}
+                href={browseHref(filters, { category: slug })}
+                className={chip(category === slug)}
+                aria-current={category === slug ? "page" : undefined}
               >
-                <option value="newest">{t('products.newest')}</option>
-                <option value="popular">{t('storefront.browse.sortPopular')}</option>
-                <option value="price-asc">{t('products.priceLow')}</option>
-                <option value="price-desc">{t('products.priceHigh')}</option>
-              </select>
-              <button
-                type="submit"
-                className="rounded-lg bg-teal-500 px-4 py-2 text-sm font-semibold text-white hover:bg-teal-600 transition"
-              >
-                {t('storefront.browse.apply')}
-              </button>
-            </form>
-          </div>
+                {t(labelKey)}
+              </Link>
+            ))}
+          </nav>
         </div>
       </section>
 
-      {/* Content */}
-      <section className="py-10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col lg:flex-row gap-10">
-            {/* Sidebar */}
-            <aside className="w-full lg:w-64 lg:pe-8 lg:border-e lg:border-gray-800 space-y-8">
-              {/* Mobile filters */}
-              <div className="lg:hidden">
-                <details className="border border-gray-800 rounded-xl p-4 bg-[#111111]">
-                  <summary className="font-semibold text-white cursor-pointer">{t('products.filters')}</summary>
-                  <div className="mt-4 space-y-6">
-                    <div>
-                      <h3 className="font-semibold text-white mb-3">{t('storefront.browse.categoriesHeading')}</h3>
-                      <div className="flex flex-wrap gap-2">
-                        <Link
-                          href="/browse"
-                          className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-                            !category
-                              ? "bg-teal-500 text-white"
-                              : "bg-gray-800 text-gray-300 hover:bg-gray-700"
-                          }`}
-                        >
-                          {t('categories.all')}
-                        </Link>
-                        {categories.map(([slug, labelKey]) => {
-                          const query = new URLSearchParams();
-                          query.set("category", slug);
-                          query.set("sort", sort);
-                          if (minPrice !== undefined) query.set("minPrice", String(minPrice));
-                          if (maxPrice !== undefined) query.set("maxPrice", String(maxPrice));
-                          return (
-                            <Link
-                              key={slug}
-                              href={`/browse?${query.toString()}`}
-                              className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-                                category === slug
-                                  ? "bg-teal-500 text-white"
-                                  : "bg-gray-800 text-gray-300 hover:bg-gray-700"
-                              }`}
-                            >
-                              {t(labelKey)}
-                            </Link>
-                          );
-                        })}
-                      </div>
-                    </div>
+      {/* Toolbar and grid */}
+      <section className="py-8 sm:py-10">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+              <h2 className="text-xl font-semibold text-white">
+                {category ? t(CATEGORY_LABEL_KEYS[category]) : t("products.allProducts")}
+              </h2>
+              <p className="mt-1 text-sm text-gray-400">
+                {q && <span>{t("storefront.browse.resultsFor", { q })} · </span>}
+                {t("storefront.shopView.showingProductsCount", { count: products.length })}
+              </p>
+            </div>
 
-                    <form className="space-y-3" method="get">
-                      {category && <input type="hidden" name="category" value={category} />}
-                      {sort && <input type="hidden" name="sort" value={sort} />}
-                      <h3 className="font-semibold text-white">{t('products.priceRange')}</h3>
-                      <div className="flex items-center gap-3">
-                        <input
-                          type="number"
-                          inputMode="decimal"
-                          dir="ltr"
-                          name="minPrice"
-                          placeholder={t('products.minPrice')}
-                          defaultValue={minPrice ?? ""}
-                          className="no-spinner w-full rounded-lg border border-gray-700 bg-[#0a0a0a] px-3 py-2 text-sm text-white placeholder:text-gray-500 focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500"
-                        />
-                        <span className="text-gray-500">—</span>
-                        <input
-                          type="number"
-                          inputMode="decimal"
-                          dir="ltr"
-                          name="maxPrice"
-                          placeholder={t('products.maxPrice')}
-                          defaultValue={maxPrice ?? ""}
-                          className="no-spinner w-full rounded-lg border border-gray-700 bg-[#0a0a0a] px-3 py-2 text-sm text-white placeholder:text-gray-500 focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500"
-                        />
-                      </div>
-                      <button
-                        type="submit"
-                        className="w-full rounded-lg bg-teal-500 px-4 py-2 text-sm font-semibold text-white hover:bg-teal-600 transition"
-                      >
-                        {t('storefront.browse.applyFilters')}
-                      </button>
-                    </form>
-
-                    <Link
-                      href="/browse"
-                      className="inline-flex items-center gap-2 text-sm font-medium text-teal-400 hover:text-teal-300"
-                    >
-                      {t('storefront.browse.clearFilters')}
-                    </Link>
-                  </div>
-                </details>
+            <div className="flex flex-wrap items-center gap-3">
+              <div
+                role="group"
+                aria-label={t("storefront.browse.sortLabel")}
+                className="flex flex-wrap gap-1 rounded-full border border-gray-800 bg-[#111111] p-1"
+              >
+                {SORT_OPTIONS.map((option) => (
+                  <Link
+                    key={option}
+                    href={browseHref(filters, { sort: option })}
+                    aria-current={sort === option ? "true" : undefined}
+                    className={`rounded-full px-3 py-1.5 text-sm transition-colors ${
+                      sort === option ? "bg-gray-800 font-semibold text-white" : "text-gray-400 hover:text-white"
+                    }`}
+                  >
+                    {sortLabels[option]}
+                  </Link>
+                ))}
               </div>
 
-              {/* Desktop filters */}
-              <div className="hidden lg:block sticky top-24 space-y-8">
-                <div>
-                  <h3 className="font-semibold text-white mb-3">{t('storefront.browse.categoriesHeading')}</h3>
-                  <div className="flex flex-wrap gap-2">
-                    <Link
-                      href="/browse"
-                      className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-                        !category
-                          ? "bg-teal-500 text-white"
-                          : "bg-gray-800 text-gray-300 hover:bg-gray-700"
-                      }`}
-                    >
-                      {t('categories.all')}
-                    </Link>
-                    {categories.map(([slug, labelKey]) => {
-                      const query = new URLSearchParams();
-                      query.set("category", slug);
-                      query.set("sort", sort);
-                      if (minPrice !== undefined) query.set("minPrice", String(minPrice));
-                      if (maxPrice !== undefined) query.set("maxPrice", String(maxPrice));
-                      return (
-                        <Link
-                          key={slug}
-                          href={`/browse?${query.toString()}`}
-                          className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-                            category === slug
-                              ? "bg-teal-500 text-white"
-                              : "bg-gray-800 text-gray-300 hover:bg-gray-700"
-                          }`}
-                        >
-                          {t(labelKey)}
-                        </Link>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                <form className="space-y-3" method="get">
-                  {category && <input type="hidden" name="category" value={category} />}
-                  {sort && <input type="hidden" name="sort" value={sort} />}
-                  <h3 className="font-semibold text-white mb-1">{t('products.priceRange')}</h3>
-                  <div className="flex items-center gap-3">
-                    <input
-                      type="number"
-                      inputMode="decimal"
-                      dir="ltr"
-                      name="minPrice"
-                      placeholder={t('products.minPrice')}
-                      defaultValue={minPrice ?? ""}
-                      className="no-spinner w-full rounded-lg border border-gray-700 bg-[#0a0a0a] px-3 py-2 text-sm text-white placeholder:text-gray-500 focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500"
-                    />
-                    <span className="text-gray-500">—</span>
-                    <input
-                      type="number"
-                      inputMode="decimal"
-                      dir="ltr"
-                      name="maxPrice"
-                      placeholder={t('products.maxPrice')}
-                      defaultValue={maxPrice ?? ""}
-                      className="no-spinner w-full rounded-lg border border-gray-700 bg-[#0a0a0a] px-3 py-2 text-sm text-white placeholder:text-gray-500 focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500"
-                    />
-                  </div>
+              <details className="relative">
+                <summary className="cursor-pointer list-none rounded-full border border-gray-800 bg-[#111111] px-4 py-2 text-sm font-medium text-gray-300 transition-colors hover:text-white">
+                  {t("storefront.browse.priceLabel")}
+                  {priceActive && <span className="ms-1 text-teal-400">•</span>}
+                </summary>
+                <form
+                  method="get"
+                  action="/browse"
+                  className="mt-2 flex flex-wrap items-end gap-2 rounded-2xl border border-gray-800 bg-[#111111] p-3 shadow-xl shadow-black/40 lg:absolute lg:end-0 lg:z-10 lg:w-80"
+                >
+                  {hiddenFilters("price")}
+                  <input
+                    type="number"
+                    inputMode="decimal"
+                    dir="ltr"
+                    name="minPrice"
+                    min={0}
+                    placeholder={t("products.minPrice")}
+                    defaultValue={minPrice ?? ""}
+                    aria-label={t("products.minPrice")}
+                    className="no-spinner w-24 flex-1 rounded-lg border border-gray-700 bg-[#0a0a0a] px-3 py-2 text-sm text-white placeholder:text-gray-500 focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500"
+                  />
+                  <input
+                    type="number"
+                    inputMode="decimal"
+                    dir="ltr"
+                    name="maxPrice"
+                    min={0}
+                    placeholder={t("products.maxPrice")}
+                    defaultValue={maxPrice ?? ""}
+                    aria-label={t("products.maxPrice")}
+                    className="no-spinner w-24 flex-1 rounded-lg border border-gray-700 bg-[#0a0a0a] px-3 py-2 text-sm text-white placeholder:text-gray-500 focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500"
+                  />
                   <button
                     type="submit"
-                    className="w-full rounded-lg bg-teal-500 px-4 py-2 text-sm font-semibold text-white hover:bg-teal-600 transition"
+                    className="rounded-full bg-[#00FFB3] px-4 py-2 text-sm font-semibold text-[#0A1128] transition hover:bg-[#00E6A0]"
                   >
-                    {t('storefront.browse.applyFilters')}
+                    {t("storefront.browse.applyFilters")}
                   </button>
-                  <Link
-                    href="/browse"
-                    className="inline-flex items-center gap-2 text-sm font-medium text-teal-700 hover:text-teal-800"
-                  >
-                    {t('storefront.browse.clearFilters')}
-                  </Link>
                 </form>
-              </div>
-            </aside>
+              </details>
 
-            {/* Products */}
-            <div className="flex-1">
-              {products.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {products.map((product) => (
-                    <Link
-                      key={product.id}
-                      href={`/shop/${product.shop.slug}/product/${product.slug}`}
-                      className="product-card group bg-[#111111] rounded-2xl border border-gray-800 hover:border-gray-700 transition-all duration-300 hover:-translate-y-1 overflow-visible"
-                    >
-                      <div className="relative w-full h-80 bg-gray-900 rounded-t-xl overflow-hidden flex items-center justify-center p-4">
-                        <img
-                          src={product.thumbnailUrl || (product.images && product.images.length > 0 ? product.images[0] : '/placeholder.png')}
-                          alt=""
-                          aria-hidden="true"
-                          className="max-w-full max-h-full object-contain"
-                          style={{ width: 'auto', height: 'auto', maxWidth: '100%', maxHeight: '100%' }}
-                        />
-                        <div className="absolute top-3 end-3 bg-gray-900/80 px-3 py-1 rounded-full">
-                          <span className="text-emerald-400 font-bold"><bdi>{formatPrice(Number(product.price), product.currency, locale)}</bdi></span>
-                        </div>
-                        {!product.fileUrl && (
-                          <div className="absolute top-3 start-3">
-                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-amber-500/10 text-amber-300 border border-amber-500/30">
-                              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                              </svg>
-                              {t('storefront.browse.comingSoonBadge')}
-                            </span>
-                          </div>
-                        )}
-                      </div>
-
-                      <div className="p-5">
-                        <h3 className="font-semibold text-white text-lg line-clamp-2 group-hover:text-teal-400 transition-colors">
-                          <bdi>{product.name}</bdi>
-                        </h3>
-                        <div className="text-sm text-gray-500 mt-1"><bdi>{product.shop.name}</bdi></div>
-                        {product.description && (
-                          <p className="mt-2 text-gray-400 text-sm line-clamp-2"><bdi>{product.description}</bdi></p>
-                        )}
-                        {isProductCategory(product.category) && (
-                          <span className="inline-block px-3 py-1 bg-gray-800 text-gray-300 text-xs font-medium rounded-full mt-3">
-                            {t(CATEGORY_LABEL_KEYS[product.category])}
-                          </span>
-                        )}
-                        <div className="text-teal-400 font-bold text-xl mt-3">
-                          <bdi>{formatPrice(Number(product.price), product.currency, locale)}</bdi>
-                        </div>
-                      </div>
-                    </Link>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-20 border border-dashed border-gray-800 rounded-2xl bg-[#111111]">
-                  <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-gray-800 mb-6">
-                    <svg className="w-8 h-8 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-                    </svg>
-                  </div>
-                  <h3 className="text-xl font-semibold text-white">{t('products.noProducts')}</h3>
-                  <p className="mt-2 text-gray-400">{t('storefront.browse.emptyBody')}</p>
-                  <div className="mt-6">
-                    <Link
-                      href="/browse"
-                      className="inline-flex items-center gap-2 rounded-full bg-teal-500 px-6 py-3 text-white font-semibold hover:bg-teal-600 transition"
-                    >
-                      {t('products.viewAll')}
-                      <svg className="w-4 h-4 rtl:rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0-4 4m4-4H3" />
-                      </svg>
-                    </Link>
-                  </div>
-                </div>
+              {filtersActive && (
+                <Link href="/browse" className="text-sm font-medium text-teal-400 transition-colors hover:text-teal-300">
+                  {t("storefront.browse.clearFilters")}
+                </Link>
               )}
             </div>
           </div>
+
+          {products.length > 0 ? (
+            <ul className="grid grid-cols-1 gap-5 sm:grid-cols-2 sm:gap-6 lg:grid-cols-3 xl:grid-cols-4">
+              {products.map((product) => (
+                <li key={product.id} className="flex">
+                  <ProductCard
+                    product={product}
+                    locale={locale}
+                    categoryLabel={isProductCategory(product.category) ? t(CATEGORY_LABEL_KEYS[product.category]) : null}
+                    byShopLabel={t("storefront.browse.byShop", { shop: product.shop.name })}
+                    viewLabel={t("products.viewProduct")}
+                  />
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <div className="rounded-3xl border border-dashed border-gray-800 bg-[#0f0f0f] px-6 py-16 text-center">
+              <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-teal-500/10 text-teal-300">
+                <IconStore className="h-7 w-7" />
+              </div>
+              <h3 className="text-2xl font-semibold text-white">
+                {filtersActive ? t("storefront.browse.emptyFilteredTitle") : t("storefront.browse.emptyTitle")}
+              </h3>
+              <p className="mx-auto mt-3 max-w-md text-gray-400">
+                {filtersActive ? t("storefront.browse.emptyFilteredBody") : t("storefront.browse.emptyBody")}
+              </p>
+              <div className="mt-7 flex flex-col justify-center gap-3 sm:flex-row">
+                {filtersActive && (
+                  <Link href="/browse" className="btn-secondary">
+                    {t("storefront.browse.clearFilters")}
+                  </Link>
+                )}
+                <Link href="/signup" className="btn-primary">
+                  {t("storefront.browse.emptyCta")}
+                </Link>
+              </div>
+            </div>
+          )}
         </div>
       </section>
     </div>

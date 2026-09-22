@@ -15,31 +15,9 @@
     "toggleMenu": "Toggle navigation",
     "mobileMenu": "Mobile navigation menu",
     "skipToMain": "Skip to main content",
-    "founderDashboard": "Founder Dashboard"
-  },
-  "hero": {
-    "badge": "The Arabic-language creator marketplace — finally",
-    "title": "Start selling your digital product today.",
-    "secondary": "",
-    "subtitle": "Create your store for free, list your products, and sell them on SaiFlow.",
-    "cta": "Open your store for free",
-    "browse": "Browse products",
-    "ctaAria": "Start selling digital products - Sign up for free",
-    "browseAria": "Browse all digital products",
-    "demo": {
-      "storeLabel": "Saiflow store",
-      "storeSubheader": "Creator's store",
-      "liveBadge": "Live",
-      "buyLabel": "Buy",
-      "tile1Title": "Course bundle",
-      "tile2Title": "Ebook bundle",
-      "tile3Title": "Design templates",
-      "tile4Title": "Preset pack",
-      "saleLabel": "Latest sale",
-      "saleBuyer": "نورة",
-      "saleTime": "2 min ago",
-      "saleConnector": "from"
-    }
+    "founderDashboard": "Founder Dashboard",
+    "categories": "Categories",
+    "howToSell": "How to sell"
   },
   "categories": {
     "all": "All",
@@ -59,32 +37,126 @@
     "artDesc": "Illustrations, digital prints, and graphic packs. Your art is a product — sell it like one.",
     "softwareDesc": "Scripts, tools, plugins, and indie apps. Sell your code to buyers who need exactly what you built."
   },
-  "platform": {
-    "title": "From idea to income in three steps",
-    "subtitle": "No tech skills needed. Set up your store, upload your product, and start earning — in under an hour.",
-    "step1Title": "Build your storefront",
-    "step1Desc": "Set up a branded store page in minutes — your name, your colors, your products. No design skills needed.",
-    "step2Title": "Upload anything digital",
-    "step2Desc": "PDFs, videos, audio, courses, templates — if it's a file, you can sell it. Delivery is automatic when a customer completes their purchase.",
-    "step3Title": "Get paid",
-    "step3Desc": "Payouts to creator bank accounts — activating with launch",
-    "eyebrow": "How it works",
-    "stepLabel": "Step {number}"
-  },
-  "stats": {
-    "badge1": "Free to start",
-    "badge2": "Instant delivery",
-    "badge3": "Designed in Arabic",
-    "badge4": "Arabic & English"
-  },
   "cta": {
-    "title": "Your first sale is closer than you think.",
-    "subtitle": "Creators publishing in Arabic are turning their knowledge into income on Saiflow. Your store is free to create — it takes 5 minutes and zero technical skills.",
-    "button": "Create your free account",
-    "browse": "Browse products",
-    "note": "No credit card required • Free to start",
     "stickyLabel": "Start Selling Free",
     "stickyAria": "Start selling for free - Sign up now"
+  },
+  "home": {
+    "hero": {
+      "title": "Sell your digital product. Or discover your next one.",
+      "subtitle": "SaiFlow is an Arabic marketplace for digital products. Open your store, upload your product and start selling — or discover products from independent creators and buy them with ease.",
+      "primaryCta": "Start selling",
+      "primaryAria": "Start selling — create your store for free",
+      "secondaryCta": "Browse products",
+      "secondaryAria": "Browse all digital products",
+      "trustLine": "Free to start · Secure payment · Direct digital delivery",
+      "mock": {
+        "ariaLabel": "Illustration of the SaiFlow journey: an independent creator's store, one digital product priced in riyals, then paid, then file download",
+        "illustrative": "Illustration",
+        "storeLabel": "Your store on SaiFlow",
+        "storeRole": "Independent creator",
+        "productKind": "PDF ebook",
+        "productTitle": "Design Basics for Beginners",
+        "paidState": "Paid",
+        "downloadState": "Download file"
+      }
+    },
+    "paths": {
+      "title": "What would you like to do today?",
+      "sell": {
+        "title": "I want to sell a digital product",
+        "body": "Have a book, course, template, design or digital file? Open your store, upload your product, set your price and start selling.",
+        "cta": "Open your store"
+      },
+      "buy": {
+        "title": "I want to buy a digital product",
+        "body": "Discover books, courses, templates, designs and digital tools from independent creators.",
+        "cta": "Browse products"
+      }
+    },
+    "categories": {
+      "title": "Anything digital can find its place here.",
+      "subtitle": "From books and courses to templates, tools and creative files.",
+      "browseAria": "Browse the {category} category",
+      "ebooks": "Books & files",
+      "courses": "Courses",
+      "templates": "Templates",
+      "art": "Designs",
+      "music": "Audio",
+      "software": "Tools & software"
+    },
+    "featured": {
+      "title": "Discover products worth trying",
+      "subtitle": "Digital products from independent creators — ready to buy and download.",
+      "viewAll": "View all products",
+      "viewProduct": "View product",
+      "byShop": "by {shop}",
+      "emptyTitle": "No products listed yet",
+      "emptyBody": "The first products are on their way. Open your store and be among the first creators on SaiFlow.",
+      "emptyCta": "Open your store",
+      "emptyBrowse": "Browse products"
+    },
+    "creator": {
+      "title": "Your idea deserves a store.",
+      "body": "Have a book, course, template, design or tool? Create your store, upload your product and set your price. SaiFlow helps you turn it into a product that's ready to sell.",
+      "cta": "Open your store for free",
+      "ctaAria": "Open your store for free — create your account",
+      "mock": {
+        "ariaLabel": "Illustration of a creator dashboard: a store with its own link, products with their statuses, and a new product upload",
+        "illustrative": "Illustration",
+        "storeName": "Sara's Store",
+        "storeLink": "saiflow.io/shop/sara",
+        "productsHeading": "Your products",
+        "product1": "Ebook: Morning Habits",
+        "product2": "Weekly Planner Template",
+        "statusPublished": "Published",
+        "statusReview": "Being checked",
+        "uploadTitle": "Upload a new product",
+        "uploadBody": "File · image · description · price"
+      }
+    },
+    "steps": {
+      "title": "Start selling in three steps",
+      "stepLabel": "Step {number}",
+      "step1Title": "Create your store",
+      "step1Body": "Choose your store name and add your identity.",
+      "step2Title": "Upload your product",
+      "step2Body": "Add the file, image, description and price.",
+      "step3Title": "Start selling",
+      "step3Body": "Share the link, receive payment and deliver the product digitally."
+    },
+    "buyer": {
+      "title": "Discover. Buy. Download.",
+      "body": "Find a product that suits you, pay securely, and get your file right after the payment is confirmed.",
+      "cta": "Explore products",
+      "flowAria": "The buyer journey: product, then payment, then payment confirmed, then file download",
+      "stepProduct": "Product",
+      "stepPayment": "Payment",
+      "stepConfirmed": "Payment confirmed",
+      "stepDownload": "Download file",
+      "mockProduct": "Product Photography Course",
+      "mockTotal": "Total",
+      "mockPay": "Pay now",
+      "mockReady": "Your file is ready"
+    },
+    "trust": {
+      "title": "Built for digital selling",
+      "securePayTitle": "Secure payment",
+      "securePayBody": "A trusted payment experience for digital products.",
+      "deliveryTitle": "Direct delivery",
+      "deliveryBody": "The product reaches the buyer after the payment is confirmed.",
+      "scanTitle": "File checks",
+      "scanBody": "Products pass through a safety system before publishing.",
+      "storeTitle": "A store of your own",
+      "storeBody": "A standalone link you can share with your audience."
+    },
+    "finalCta": {
+      "title": "Ready to start?",
+      "creatorTitle": "Start selling your digital product",
+      "creatorCta": "Open your store",
+      "buyerTitle": "Discover something new",
+      "buyerCta": "Browse products"
+    }
   },
   "footer": {
     "tagline": "Sell digital products, courses, and memberships with a clean, modern checkout experience. Keep more of what you earn with Saiflow.",
@@ -132,11 +204,7 @@
     "viewProduct": "View Product",
     "noProducts": "No products found",
     "featured": "Featured",
-    "trendingHeading": "Trending now",
-    "trendingSubheading": "Newest products on Saiflow",
-    "byShop": "by {shop}",
     "viewAll": "View all products",
-    "trendingEmpty": "Products coming soon. Be the first to sell.",
     "imagePlaceholder": "Digital Product"
   },
   "shop": {
@@ -585,13 +653,24 @@
     },
     "browse": {
       "eyebrow": "Products",
-      "sortPopular": "Popular",
-      "apply": "Apply",
-      "comingSoonBadge": "Coming Soon",
-      "emptyBody": "Try adjusting your filters or browse everything available.",
+      "title": "Discover digital products",
+      "subtitle": "Books, courses, templates, designs and tools from independent creators — ready to buy and download.",
+      "searchLabel": "Search for a product",
+      "searchPlaceholder": "Search by product name or description",
+      "searchButton": "Search",
+      "resultsFor": "Results for “{q}”",
       "categoriesHeading": "Categories",
+      "sortLabel": "Sort",
+      "priceLabel": "Price",
+      "apply": "Apply",
       "applyFilters": "Apply filters",
-      "clearFilters": "Clear filters"
+      "clearFilters": "Clear filters",
+      "byShop": "by {shop}",
+      "emptyTitle": "No products listed yet",
+      "emptyBody": "The first products are on their way. Open your store and be among the first creators on SaiFlow.",
+      "emptyFilteredTitle": "No matching results",
+      "emptyFilteredBody": "Try adjusting your filters or browse everything available.",
+      "emptyCta": "Open your store"
     },
     "productDetail": {
       "backToStore": "Back to <name>{shopName}</name>",

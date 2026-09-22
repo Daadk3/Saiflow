@@ -1,7 +1,10 @@
-export { HeroSection } from "./HeroSection";
-export { StatsSection } from "./StatsSection";
-export { CategoriesSection } from "./CategoriesSection";
-export { TrendingProductsSection } from "./TrendingProductsSection";
-export { FeaturesSection } from "./FeaturesSection";
-export { PlatformSection } from "./PlatformSection";
-export { CTASection } from "./CTASection";
+export { Hero } from "./Hero";
+export { TwoPaths } from "./TwoPaths";
+export { CategoriesGrid } from "./CategoriesGrid";
+export { FeaturedProducts } from "./FeaturedProducts";
+export type { FeaturedProduct } from "./FeaturedProducts";
+export { CreatorValue } from "./CreatorValue";
+export { SellSteps } from "./SellSteps";
+export { BuyerFlow } from "./BuyerFlow";
+export { TrustGrid } from "./TrustGrid";
+export { FinalCta } from "./FinalCta";

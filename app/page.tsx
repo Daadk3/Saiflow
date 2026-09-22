@@ -1,19 +1,32 @@
 import { prisma } from "@/lib/prisma";
 import { SAFE_DELIVERABLE_WHERE } from "@/lib/file-safety";
 import {
-  HeroSection,
-  StatsSection,
-  CategoriesSection,
-  TrendingProductsSection,
-  FeaturesSection,
-  PlatformSection,
-  CTASection,
+  BuyerFlow,
+  CategoriesGrid,
+  CreatorValue,
+  FeaturedProducts,
+  FinalCta,
+  Hero,
+  SellSteps,
+  TrustGrid,
+  TwoPaths,
 } from "@/components/home";
-import TrustBadges from "@/components/TrustBadges";
+import type { FeaturedProduct } from "@/components/home";
 
-async function getRecentProducts() {
+// The featured grid must reflect what is sellable right now, never a build-time snapshot.
+export const dynamic = "force-dynamic";
+
+const FEATURED_LIMIT = 8;
+
+/**
+ * The newest products a visitor could actually buy. The visibility rule is
+ * the same one the browse page, the storefront and checkout enforce: active,
+ * approved by moderation, in an active shop, and with a deliverable that
+ * passed the file-safety gate. Nothing unpublished can appear here.
+ */
+async function getFeaturedProducts(): Promise<FeaturedProduct[]> {
   try {
-    return await prisma.product.findMany({
+    const products = await prisma.product.findMany({
       where: {
         isActive: true,
         moderationStatus: "APPROVED",
@@ -25,7 +38,7 @@ async function getRecentProducts() {
         // this surface cannot drift from what checkout and download enforce.
         ...SAFE_DELIVERABLE_WHERE,
       },
-      take: 8,
+      take: FEATURED_LIMIT,
       orderBy: { createdAt: "desc" },
       select: {
         id: true,
@@ -35,6 +48,7 @@ async function getRecentProducts() {
         currency: true,
         thumbnailUrl: true,
         images: true,
+        category: true,
         shop: {
           select: {
             slug: true,
@@ -43,42 +57,35 @@ async function getRecentProducts() {
         },
       },
     });
+    return products.map((p) => ({ ...p, price: Number(p.price) }));
   } catch (error) {
     // Don't let a DB hiccup take down the whole homepage — render with no
-    // products (TrendingProductsSection shows its empty state instead).
+    // products (FeaturedProducts shows its empty state instead).
     console.error("Homepage: failed to load products, rendering without them.", error);
     return [];
   }
 }
 
 export default async function Home() {
-  const products = await getRecentProducts();
+  const products = await getFeaturedProducts();
 
   return (
-    <div className="relative min-h-screen bg-[#0a0a0a] overflow-hidden">
-      {/* Gradient overlay */}
-      <div className="absolute inset-0 bg-gradient-to-br from-gray-900 via-[#0a0a0a] to-gray-900" />
-      
-      {/* Subtle glow orbs */}
-      <div className="absolute top-0 left-1/4 w-96 h-96 bg-teal-500/10 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-cyan-500/5 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute top-1/2 right-0 w-64 h-64 bg-teal-400/5 rounded-full blur-2xl pointer-events-none" />
-      
-      {/* Subtle diagonal light streaks */}
-      <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/[0.02] to-transparent pointer-events-none" />
-      
-      {/* Content with relative positioning */}
-      <div className="relative z-10 pt-16">
-        <HeroSection />
-        <StatsSection />
-        <CategoriesSection />
-        <TrendingProductsSection products={products} />
-        <FeaturesSection />
-        <PlatformSection />
-        <section className="container mx-auto px-4 py-8 bg-[#0a0a0a]">
-          <TrustBadges />
-        </section>
-        <CTASection />
+    <div className="relative min-h-screen overflow-hidden bg-[#0a0a0a] text-white">
+      {/* Subtle depth behind every section */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 bg-gradient-to-b from-gray-900/60 via-[#0a0a0a] to-[#0a0a0a]"
+      />
+      <div className="relative z-10">
+        <Hero />
+        <TwoPaths />
+        <CategoriesGrid />
+        <FeaturedProducts products={products} />
+        <CreatorValue />
+        <SellSteps />
+        <BuyerFlow />
+        <TrustGrid />
+        <FinalCta />
       </div>
     </div>
   );
