@@ -220,6 +220,7 @@ model Product {
   shop             Shop              @relation(fields: [shopId], references: [id], onDelete: Cascade)
   ratings          Rating[]
   orders           Order[]
+  paymentSessions  PaymentSession[]
   moderationEvents ModerationEvent[]
 
   @@unique([shopId, slug])
@@ -356,19 +357,158 @@ model ModerationEvent {
   @@index([createdAt])
 }
 
+/// A CONFIRMED purchase, and nothing less.
+///
+/// A row exists only after a payment provider has proven the money moved: for
+/// Stripe, a signature-verified webhook for a session already marked paid; for
+/// Geidea, a signature-verified callback (or an authenticated order inquiry)
+/// reporting the order paid. Every download is authorised on this row's
+/// existence alone, so nothing pending, failed or unverified may ever be
+/// written here. That is what PaymentSession is for.
 model Order {
   id              String   @id @default(cuid())
   productId       String
   productName     String
   price           Decimal  @db.Decimal(10, 2)
   customerEmail   String
-  stripeSessionId String   @unique
+  /// Stripe's checkout session id. Nullable since Geidea, because a Geidea
+  /// order has none. Kept, and still unique, so every existing Stripe row is
+  /// unchanged and the dormant Stripe webhook still compiles and matches on it.
+  stripeSessionId String?  @unique
+
+  // ---------------------------------------------------------------------
+  // Provider-agnostic payment identity, added with Geidea.
+  //
+  // Every default below exists ONLY so that rows written before these
+  // columns existed, and the dormant Stripe route, describe themselves
+  // truthfully without a change: those rows are Stripe, test, SAR. A new
+  // write path must set all of these explicitly; a test pins that.
+  // ---------------------------------------------------------------------
+  paymentProvider     PaymentProvider    @default(STRIPE)
+  /// The provider's own order id; for Geidea, `order.orderId`. Unique per
+  /// provider: the idempotency key for fulfilment, so a callback delivered
+  /// twice can create at most one Order.
+  providerOrderId     String?
+  /// SaiFlow's reference for the attempt that produced this order:
+  /// PaymentSession.merchantReferenceId. Unique, so one attempt yields at
+  /// most one Order.
+  merchantReferenceId String?            @unique
+  /// Which provider account took the money. TEST rows are never revenue.
+  paymentEnvironment  PaymentEnvironment @default(TEST)
+  currency            String             @default("SAR")
   createdAt       DateTime @default(now())
 
-  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  product        Product         @relation(fields: [productId], references: [id], onDelete: Cascade)
+  /// The attempt this order came from. Optional: Stripe rows have none, and
+  /// SetNull so an attempt row can never take a purchase with it.
+  paymentSession PaymentSession? @relation(fields: [merchantReferenceId], references: [merchantReferenceId], onDelete: SetNull)
 
+  @@unique([paymentProvider, providerOrderId])
   @@index([productId])
   @@index([customerEmail])
+  @@index([createdAt])
+}
+
+/// Which payment gateway a record belongs to. STRIPE is the dormant legacy
+/// integration; GEIDEA is the KSA rail being integrated.
+enum PaymentProvider {
+  STRIPE
+  GEIDEA
+}
+
+/// Which account of the provider took, or would take, the money. A column
+/// rather than an inference from id prefixes: TEST rows are never counted as
+/// revenue, and PRODUCTION is written only by a deployment whose GEIDEA_ENV
+/// says so.
+enum PaymentEnvironment {
+  TEST
+  PRODUCTION
+}
+
+/// The life of a payment attempt. Only PAID is terminal and good, and it is
+/// written in the same transaction as the Order it proves, never before it.
+///
+///   CREATED          row inserted; the provider has not been asked for a session
+///   SESSION_CREATED  the provider returned a session id; the buyer may be paying
+///   PAID             a verified callback or inquiry said paid, and the Order exists
+///   FAILED           the provider reported the payment failed
+///   CANCELLED        the buyer abandoned the hosted page
+///   EXPIRED          the session's lifetime (Geidea: 15 minutes) passed unpaid
+enum PaymentSessionStatus {
+  CREATED
+  SESSION_CREATED
+  PAID
+  FAILED
+  CANCELLED
+  EXPIRED
+}
+
+/// A payment ATTEMPT, from the moment a buyer clicks Buy until the provider
+/// has proven the outcome. It is not a purchase and must never be read as
+/// one: nothing that grants access, whether a download, a receipt or a
+/// revenue figure, may consult this table. Proof of purchase is an Order row,
+/// and only the verified callback (or authenticated inquiry) that moves an
+/// attempt to PAID may write one, in the same transaction.
+///
+/// WHY A SEPARATE TABLE rather than a status column on Order: every reader of
+/// Order today treats existence as proof. A "pending order" would oblige each
+/// of those readers to remember to check a status, and the one that forgets
+/// becomes a free download. Keeping attempts in their own table means the
+/// invariant holds by data shape, not by discipline.
+///
+/// WHAT IT IS FOR: the callback carries our merchantReferenceId and the
+/// amount the provider charged. This row is where the intended product,
+/// amount and currency were recorded BEFORE the redirect, so a callback is
+/// checked against what SaiFlow meant to sell rather than against itself.
+model PaymentSession {
+  id                  String               @id @default(cuid())
+  /// SaiFlow-generated UUID, sent to the provider as merchantReferenceId and
+  /// echoed in every callback. The key an incoming callback is matched on.
+  merchantReferenceId String               @unique
+  provider            PaymentProvider
+  /// The provider's session id (Geidea: `session.id`). Null until the
+  /// provider has created the session.
+  providerSessionId   String?
+  /// The provider's order id (Geidea: `order.orderId`). Null until a callback
+  /// or inquiry names one. Unique per provider, so one provider order maps to
+  /// at most one attempt.
+  providerOrderId     String?
+  productId           String
+  /// Snapshotted at attempt time in the repository's money representation,
+  /// DECIMAL(10,2), the same as Product.price and Order.price. A callback
+  /// whose amount or currency differs from these is a mismatch, not a sale.
+  amount              Decimal              @db.Decimal(10, 2)
+  currency            String
+  /// Which provider account the attempt was created against (GEIDEA_ENV).
+  environment         PaymentEnvironment
+  status              PaymentSessionStatus @default(CREATED)
+  /// The buyer's email when SaiFlow knows it at attempt time. Today's
+  /// checkout is a guest flow that learns the email from the provider, so
+  /// this is nullable, and there is no buyer user id because no checkout has
+  /// a signed-in buyer.
+  buyerEmail          String?
+  /// The provider's last reported status string, short and verbatim
+  /// ("Success", "Failed"). Diagnostic only, never an authority.
+  providerStatus      String?
+  /// Short reason category on FAILED, CANCELLED or EXPIRED. Never a raw
+  /// provider payload, never buyer data.
+  failureReason       String?
+  callbackReceivedAt  DateTime?
+  /// When the provider's session stops accepting payment (Geidea: 15 minutes
+  /// after creation). A late callback is still verified on its own merits;
+  /// this exists for expiring stale attempts and for support.
+  expiresAt           DateTime?
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  /// The Order this attempt produced once PAID. Absent for every other status.
+  order   Order?
+
+  @@unique([provider, providerSessionId])
+  @@unique([provider, providerOrderId])
+  @@index([productId])
+  @@index([status])
   @@index([createdAt])
 }
 

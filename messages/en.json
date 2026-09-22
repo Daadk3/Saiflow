@@ -545,18 +545,28 @@
     }
   },
   "success": {
-    "heading": "Payment Successful!",
-    "subtitle": "Thank you for your purchase.",
-    "loading": "Preparing your download...",
-    "fileReady": "Your file <product>{name}</product> is ready!",
-    "downloadCta": "Download Your File",
+    "processingTitle": "Payment is being confirmed...",
+    "processingBody": "This usually takes a few seconds. Please keep this page open.",
+    "paidTitle": "Payment confirmed.",
+    "paidBody": "Your purchase of <product>{name}</product> is confirmed.",
+    "failedTitle": "Payment was not completed.",
+    "failedBody": "The payment for <product>{name}</product> did not go through. You can try again from the product page.",
+    "cancelledTitle": "Payment was cancelled.",
+    "cancelledBody": "The payment for <product>{name}</product> was cancelled before it completed. You can try again from the product page.",
+    "expiredTitle": "Payment session expired.",
+    "expiredBody": "The payment window for <product>{name}</product> closed before it was completed. Start a new checkout from the product page.",
+    "timeoutTitle": "Still confirming your payment",
+    "timeoutBody": "Confirmation is taking longer than usual. Refresh this page in a minute, or contact support with your reference.",
+    "unknownTitle": "We couldn't find this payment.",
+    "unknownBody": "The link may be incomplete or outdated. If you completed a payment, contact support with your reference.",
+    "errorTitle": "Something went wrong",
+    "errorBody": "We couldn't check the payment status. Please refresh this page.",
+    "referenceLabel": "Reference: {ref}",
     "helperText": "Having trouble? Contact support at <email>support@saiflow.io</email>",
     "continueShopping": "Continue Shopping",
     "suspenseFallback": "Loading...",
-    "errorNoSession": "No session found",
-    "errorFailedGet": "Failed to get download link",
-    "errorInvalidResponse": "Invalid response from server",
-    "errorFailedFetch": "Failed to fetch download information"
+    "downloadCta": "Download your file",
+    "paidNoLink": "Your download is not available yet. Refresh this page in a moment, or contact support with your reference."
   },
   "support": {
     "success": {

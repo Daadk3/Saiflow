@@ -504,12 +504,14 @@ describe("delivery: the buyer controls nothing but the identifiers", () => {
     await assertRefusedWithoutSigning(res, 409, "file_not_available");
   });
 
-  test("the only query parameters read are orderId and format", () => {
+  test("the only query parameters read are orderId, ref and format", () => {
     const s = routeSrc();
     const reads = s.match(/searchParams\.get\("([^"]+)"\)/g) ?? [];
     assert.deepEqual(
       reads.sort(),
-      ['searchParams.get("format")', 'searchParams.get("orderId")'],
+      ['searchParams.get("format")', 'searchParams.get("orderId")',
+      // The Geidea success-page channel, added with delivery after payment.
+      'searchParams.get("ref")'],
       "no other request parameter may be read"
     );
   });

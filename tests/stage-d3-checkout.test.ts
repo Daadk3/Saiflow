@@ -2,14 +2,14 @@
  * Stage D3 — the scan verdict gates checkout.
  *
  * These execute the real POST handler against real Requests and read real
- * Responses. Prisma, Stripe, the env module and global fetch are replaced by
- * doubles; `isDeliverableSafe` is the REAL reviewed predicate, because it is
- * the thing under test.
+ * Responses. Prisma, the Geidea client, the env module and global fetch are
+ * replaced by doubles; `isDeliverableSafe` is the REAL reviewed predicate,
+ * because it is the thing under test.
  *
- * The assertion that matters most is not "refused" — it is "refused AND Stripe
- * was never called". A gate that returns 400 after creating a payment session
- * would look identical in a status-code-only test, so every refusal below also
- * asserts zero session-creation calls.
+ * The assertion that matters most is not "refused" — it is "refused AND the
+ * payment provider was never called". A gate that returns 400 after creating
+ * a payment session would look identical in a status-code-only test, so every
+ * refusal below also asserts zero session-creation calls.
  *
  * No payment API is contacted, no storage is touched, and no network call is
  * made. Global fetch is stubbed to record and throw, which is also how the
@@ -27,8 +27,6 @@ const routeSrc = () =>
 const KEY = "abc123XY_key-one";
 const OTHER_KEY = "zzz999QQ_key-two";
 
-process.env.STRIPE_SECRET_KEY = "sk_test_not_a_real_key";
-process.env.NEXTAUTH_URL = "https://saiflow.test";
 
 interface ProductRow {
   id: string;
@@ -71,6 +69,12 @@ before(async () => {
           findUnique: async () => state.product,
           fields: { fileKey: { _toFieldRef: "Product.fileKey" } },
         },
+        // The attempt row checkout records before asking Geidea. Its own
+        // tests live in geidea-checkout.test.ts; here it only has to exist.
+        paymentSession: {
+          create: async () => ({ id: "ps_1" }),
+          updateMany: async () => ({ count: 1 }),
+        },
       },
     },
   });
@@ -84,22 +88,44 @@ before(async () => {
         get PRE_LAUNCH_MODE() {
           return state.preLaunch;
         },
+        NEXTAUTH_URL: "https://saiflow.test",
       },
     },
   });
 
-  // A Stripe double that records rather than calls. Any real network attempt
-  // would surface as a fetch call, which is asserted against separately.
-  mock.module("stripe", {
-    defaultExport: class FakeStripe {
-      checkout = {
-        sessions: {
-          create: async (args: unknown) => {
-            state.sessionCalls.push(args);
-            return { url: "https://checkout.stripe.test/session/cs_test_123" };
+  // The route is rate limited per address and these requests carry none;
+  // the limiter is replaced so the gate tests stay about the gates.
+  mock.module("@/lib/rate-limit", {
+    namedExports: {
+      rateLimiters: {
+        checkout: () => ({ success: true, remaining: 1, resetTime: 0 }),
+        api: () => ({ success: true, remaining: 1, resetTime: 0 }),
+      },
+      getClientIp: () => "test-ip",
+    },
+  });
+
+  // A Geidea client double that records rather than calls. Any real network
+  // attempt would surface as a fetch call, which is asserted against separately.
+  mock.module("@/lib/payments/geidea/client", {
+    namedExports: {
+      isGeideaConfigured: () => true,
+      geideaMode: () => "test",
+      createSession: async (args: unknown) => {
+        state.sessionCalls.push(args);
+        return {
+          session: {
+            sessionId: "f1a0f785-7601-4d53-8f43-08dc33d8302c",
+            amount: 49,
+            currency: "SAR",
+            status: "Initiated",
+            expiryDate: "2026-09-21T20:02:17.5018991Z",
+            merchantReferenceId: (args as { merchantReferenceId: string }).merchantReferenceId,
           },
-        },
-      };
+          redirectUrl: "https://checkout.geidea.test/hpp/checkout/?f1a0f785-7601-4d53-8f43-08dc33d8302c",
+          timestamp: "2026/09/21 19:47:17",
+        };
+      },
     },
   });
 
@@ -171,7 +197,7 @@ describe("checkout: only a SAFE, key-bound deliverable may be sold", () => {
     const res = await checkout();
     assert.equal(res.status, 200);
     const body = await res.json();
-    assert.equal(body.url, "https://checkout.stripe.test/session/cs_test_123");
+    assert.equal(body.url, "https://checkout.geidea.test/hpp/checkout/?f1a0f785-7601-4d53-8f43-08dc33d8302c");
     assert.equal(state.sessionCalls.length, 1, "the session must be created");
   });
 
@@ -289,12 +315,10 @@ describe("checkout: the buyer cannot influence the scan decision", () => {
       fileScanStatus: "UNSAFE",
     });
     assert.equal(res.status, 200);
-    const args = state.sessionCalls[0] as {
-      line_items: { price_data: { unit_amount: number; currency: string } }[];
-    };
+    const args = state.sessionCalls[0] as { amount: string; currency: string };
     // Pricing still comes from the row, not the request.
-    assert.equal(args.line_items[0].price_data.unit_amount, 4900);
-    assert.equal(args.line_items[0].price_data.currency, "sar");
+    assert.equal(args.amount, "49.00");
+    assert.equal(args.currency, "SAR");
   });
 });
 
@@ -404,20 +428,22 @@ describe("checkout: existing gates are preserved", () => {
     assert.notEqual(body.error, "file_not_ready");
   });
 
-  test("pricing and metadata are unchanged for a SAFE product", async () => {
+  test("pricing and the return address are trusted values for a SAFE product", async () => {
     reset();
     state.product = product();
     await checkout();
     const args = state.sessionCalls[0] as {
-      mode: string;
-      metadata: { productId: string };
-      line_items: { price_data: { unit_amount: number } }[];
-      success_url: string;
+      amount: string;
+      currency: string;
+      merchantReferenceId: string;
+      callbackUrl: string;
+      returnUrl: string;
     };
-    assert.equal(args.mode, "payment");
-    assert.equal(args.metadata.productId, "prod_1");
-    assert.equal(args.line_items[0].price_data.unit_amount, 4900);
-    assert.ok(args.success_url.includes("/success?session_id="));
+    assert.equal(args.amount, "49.00");
+    assert.equal(args.currency, "SAR");
+    assert.match(args.merchantReferenceId, /^[0-9a-f-]{36}$/);
+    assert.equal(args.callbackUrl, "https://saiflow.test/api/webhooks/geidea");
+    assert.ok(args.returnUrl.startsWith("https://saiflow.test/success?ref="));
   });
 });
 
@@ -450,7 +476,7 @@ describe("checkout uses the single safety authority", () => {
   test("the payment session is created only after the gate", () => {
     const s = routeSrc();
     const gate = s.indexOf("if (!isDeliverableSafe(product))");
-    const pay = s.indexOf("checkout.sessions.create");
+    const pay = s.indexOf("await createSession(");
     assert.ok(gate > 0 && pay > gate, "the gate must precede session creation");
   });
 });

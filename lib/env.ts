@@ -36,6 +36,26 @@ export const env = createEnv({
       .string()
       .default("true")
       .transform((v) => v !== "false"),
+
+    // ── Geidea Checkout v2 (KSA) ───────────────────────────────────────
+    // Server-side only. None of these may move to the `client` block or gain
+    // a NEXT_PUBLIC_ prefix: the public key is the Basic-auth username and a
+    // signature input, and the API password is the HMAC key for every request
+    // and callback signature. All optional so builds and deployments without
+    // Geidea configured keep validating; whatever consumes them must fail
+    // closed when any is missing, exactly as checkout does for Stripe today.
+    GEIDEA_MERCHANT_PUBLIC_KEY: z.string().min(1).optional(),
+    GEIDEA_API_PASSWORD: z.string().min(1).optional(),
+    // Regional hosts, no trailing slash. KSA is
+    //   https://api.ksamerchant.geidea.net and https://www.ksamerchant.geidea.net
+    // for test and production alike; the credentials decide which account.
+    GEIDEA_API_BASE_URL: z.string().url().optional(),
+    GEIDEA_HPP_BASE_URL: z.string().url().optional(),
+    // Which Geidea account the credentials belong to. No default: a
+    // deployment must say "test" or "production" itself, and one that says
+    // nothing is not configured, so checkout refuses. The environment is
+    // never inferred from the credentials.
+    GEIDEA_ENV: z.enum(["test", "production"]).optional(),
   },
 
   /**
@@ -69,6 +89,11 @@ export const env = createEnv({
     ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY,
     NODE_ENV: process.env.NODE_ENV,
     PRE_LAUNCH_MODE: process.env.PRE_LAUNCH_MODE,
+    GEIDEA_MERCHANT_PUBLIC_KEY: process.env.GEIDEA_MERCHANT_PUBLIC_KEY,
+    GEIDEA_API_PASSWORD: process.env.GEIDEA_API_PASSWORD,
+    GEIDEA_API_BASE_URL: process.env.GEIDEA_API_BASE_URL,
+    GEIDEA_HPP_BASE_URL: process.env.GEIDEA_HPP_BASE_URL,
+    GEIDEA_ENV: process.env.GEIDEA_ENV,
     NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY:
       process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY,
   },
