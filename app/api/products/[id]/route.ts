@@ -15,6 +15,7 @@ import {
   reconcileProductScanState,
 } from "@/lib/file-safety";
 import { scheduleScan } from "@/lib/scan/schedule";
+import { announceReadyAtAttach } from "@/lib/scan/announce";
 
 // A replacement file schedules its scan to run after the response is sent;
 // see app/api/products/route.ts for why this route carries the worker's budget.
@@ -300,6 +301,13 @@ export async function PUT(
     // Same race as on create: the worker may have settled the new file
     // between the provenance read and this write.
     if (fileChanged && nextFileKey) {
+      // Same as on create: a replacement whose verdict was already SAFE was
+      // written SAFE just now, and only this call site can announce it.
+      try {
+        await announceReadyAtAttach(updatedProduct);
+      } catch (error) {
+        console.error("[notify] announce after edit failed", (error as Error)?.name);
+      }
       try {
         await reconcileProductScanState(updatedProduct.id, nextFileKey);
       } catch (error) {

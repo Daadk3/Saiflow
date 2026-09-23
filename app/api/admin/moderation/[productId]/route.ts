@@ -4,6 +4,8 @@ import { prisma } from "@/lib/prisma";
 import { authOptions } from "../../../auth/authOptions";
 import { isAdminEmail } from "@/lib/admin";
 import { rateLimiters, getClientIp } from "@/lib/rate-limit";
+import { runAfterResponse } from "@/lib/after-response";
+import { notifyProductModerated } from "@/lib/notify";
 
 // POST - Record a moderation decision for a product (admins only).
 // Body: { action: "APPROVED" | "REJECTED", reason?: string }
@@ -71,6 +73,13 @@ export async function POST(
       });
       return p;
     });
+
+    // Tell the seller, after the decision and its audit row are committed
+    // and after the response. The email carries the stored reason; it can
+    // neither change the decision nor delay the reply.
+    await runAfterResponse(() =>
+      notifyProductModerated({ productId, action, reason: reason?.trim() || null })
+    );
 
     return NextResponse.json({
       id: updated.id,

@@ -60,6 +60,8 @@ import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { env } from "@/lib/env";
 import { sendPurchaseEmail } from "@/lib/email";
+import { runAfterResponse } from "@/lib/after-response";
+import { notifySaleFulfilled } from "@/lib/notify";
 import {
   geideaMode,
   getOrder,
@@ -375,6 +377,20 @@ async function fulfilPaid(
   // The Order id is the receipt channel's bearer: redacted like the reference.
   log("log", "fulfilled", { order: redactId(result.orderId), ...ids });
   await sendReceipt(session, result.orderId, result.productName);
+  // Seller and founder, after the Order is committed and after the reply.
+  // The product, the gross amount and the environment: never the buyer,
+  // never the payload, never a bearer. Exactly once, because a repeated
+  // delivery answers `already_fulfilled` above and never reaches here.
+  await runAfterResponse(() =>
+    notifySaleFulfilled({
+      orderId: result.orderId,
+      productId: session.productId,
+      productName: result.productName,
+      amount: session.amount,
+      currency: session.currency,
+      environment: mode,
+    })
+  );
   return reply(200, { received: true, result: "fulfilled" });
 }
 

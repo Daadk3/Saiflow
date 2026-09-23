@@ -3,6 +3,8 @@
  * For production at scale, consider using Redis-based rate limiting
  */
 
+import { createHash } from "node:crypto";
+
 interface RateLimitEntry {
   count: number;
   resetTime: number;
@@ -78,6 +80,23 @@ export function rateLimit(
 }
 
 /**
+ * A per-account limiter key that is not the account.
+ *
+ * Creation limits are keyed by who is signed in, not by IP, because the
+ * quota they protect (file scans, founder emails) is spent per account.
+ * The address itself never enters the store: a short digest identifies the
+ * account just as well and leaves nothing to leak from a memory dump.
+ */
+export function accountKey(email: string): string {
+  return createHash("sha256").update(email.trim().toLowerCase()).digest("hex").slice(0, 16);
+}
+
+/** Whole seconds until the window resets, never below one, for a Retry-After header. */
+export function retryAfterSeconds(resetTime: number, now: number = Date.now()): number {
+  return Math.max(1, Math.ceil((resetTime - now) / 1000));
+}
+
+/**
  * Get client IP from request headers
  */
 export function getClientIp(request: Request): string {
@@ -124,4 +143,17 @@ export const rateLimiters = {
   // which is exactly what an abuser would be spending.
   checkout: (ip: string) =>
     rateLimit(`checkout:${ip}`, { windowMs: 10 * 60 * 1000, maxRequests: 15 }),
+
+  // Store creation: 3 per hour per account (see accountKey). A creator opens
+  // one store, perhaps a second. Every store emails the founder, so this is
+  // what keeps one account from spending the notification quota.
+  createShop: (account: string) =>
+    rateLimit(`create-shop:${account}`, { windowMs: 60 * 60 * 1000, maxRequests: 3 }),
+
+  // Product creation: 20 per hour per account. Listing a catalogue fits
+  // comfortably; every product past the gates schedules a file scan and, once
+  // it passes, an email to the founder, which is exactly what an abuser would
+  // be spending.
+  createProduct: (account: string) =>
+    rateLimit(`create-product:${account}`, { windowMs: 60 * 60 * 1000, maxRequests: 20 }),
 };

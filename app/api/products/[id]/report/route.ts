@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { rateLimiters, getClientIp } from "@/lib/rate-limit";
 import { getAdminEmails } from "@/lib/admin";
+import { adminProductReviewUrl, moderationQueueUrl } from "@/lib/notification-links";
 import { Resend } from "resend";
 
 // Public product reporting (Trust & Safety Tier 0).
@@ -91,7 +92,8 @@ export async function POST(
           `Shop: ${product.shop.name} (${product.shop.slug})\n` +
           `Category: ${category}\n` +
           `Details: ${details?.trim() || "—"}\n\n` +
-          `Review queue: /dashboard/moderation`,
+          `Review this product: ${adminProductReviewUrl(product.id)}\n` +
+          `Review queue: ${moderationQueueUrl()}`,
       });
 
       // The SDK RESOLVES with { data, error } for API-level failures — it does

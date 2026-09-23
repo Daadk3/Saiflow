@@ -737,3 +737,42 @@ describe("gates, verdict finality and the worker are unchanged", () => {
     }
   });
 });
+
+/* ------------------------------------------------------------------ */
+/* Product creation is rate limited per account                        */
+/* ------------------------------------------------------------------ */
+
+describe("product creation is rate limited per account", () => {
+  useRealClock();
+
+  test("the 21st product in an hour is refused before the body is read, and another account is unaffected", async () => {
+    state.session = { user: { email: "bulk-lister@saiflow.test", id: "user_owner" } };
+    for (let i = 0; i < 20; i++) {
+      const res = await CREATE(createReq({ fileUrl: fileUrl(KEY), name: `Product ${i}` }));
+      assert.equal(res.status, 201, `product ${i}: ${await res.text()}`);
+    }
+    assert.equal(state.created.length, 20);
+    const scheduledBefore = state.afterTasks.length;
+    const reconciledBefore = state.reconciled.length;
+
+    const refused = await CREATE(createReq({ fileUrl: fileUrl(KEY), name: "Product 21" }));
+    assert.equal(refused.status, 429);
+    assert.deepEqual(await refused.json(), { error: "Too many requests" });
+    assert.ok(Number(refused.headers.get("retry-after")) >= 1, "a Retry-After header, in seconds");
+    assert.equal(state.created.length, 20, "nothing was written");
+    assert.equal(state.reconciled.length, reconciledBefore, "no reconciliation ran");
+    assert.equal(state.afterTasks.length, scheduledBefore, "no scan was scheduled");
+
+    // A different account is not affected by this one's window.
+    state.session = { user: { email: "someone-else@saiflow.test", id: "user_owner" } };
+    const other = await CREATE(createReq({ fileUrl: fileUrl(KEY), name: "Someone else's" }));
+    assert.equal(other.status, 201, await other.text());
+  });
+
+  test("the session check still comes first: anonymous requests are 401, never 429", async () => {
+    state.session = null;
+    for (let i = 0; i < 25; i++) {
+      assert.equal((await CREATE(createReq({}))).status, 401);
+    }
+  });
+});

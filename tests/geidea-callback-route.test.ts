@@ -82,6 +82,7 @@ const db: { sessions: SessionRow[]; orders: OrderRow[]; products: Map<string, { 
 const writes: { model: string; op: string; data: Record<string, unknown>; inTransaction: boolean }[] = [];
 const logs: string[] = [];
 const emails: Record<string, unknown>[] = [];
+const notifications: Record<string, unknown>[] = [];
 const getOrderCalls: string[] = [];
 const responses: { status: number; body: Record<string, unknown>; headers: Headers }[] = [];
 const signatures = new Set<string>();
@@ -94,6 +95,7 @@ const state = {
   siteUrl: "https://saiflow.test" as string | undefined,
   publicKey: PK as string | undefined,
   password: PW as string | undefined,
+  notifyThrows: false,
 };
 let inTransaction = false;
 
@@ -199,6 +201,18 @@ before(async () => {
         get NEXTAUTH_URL() {
           return state.siteUrl;
         },
+      },
+    },
+  });
+  // The seller/founder notifier is recorded, never run: its own suite covers
+  // it, and this one only needs to see WHEN the webhook calls it and that a
+  // failure inside it cannot reach the fulfilment.
+  mock.module("@/lib/notify", {
+    namedExports: {
+      notifySaleFulfilled: async (args: Record<string, unknown>) => {
+        notifications.push(args);
+        if (state.notifyThrows) throw new Error("notifier exploded");
+        return { seller: { ok: true, recipients: 1 }, admins: { ok: true, recipients: 1 } };
       },
     },
   });
@@ -420,6 +434,7 @@ function reset() {
   db.products = new Map([[PRODUCT_ID, { name: "Arabic Templates Pack" }]]);
   writes.length = 0;
   emails.length = 0;
+  notifications.length = 0;
   getOrderCalls.length = 0;
   state.configured = true;
   state.mode = "test";
@@ -428,6 +443,7 @@ function reset() {
   state.siteUrl = "https://saiflow.test";
   state.publicKey = PK;
   state.password = PW;
+  state.notifyThrows = false;
 }
 beforeEach(reset);
 
@@ -1139,5 +1155,53 @@ describe("no secret or sensitive callback data appears in logs, writes or respon
       const keys = Object.keys(JSON.parse(body) as Record<string, unknown>).sort();
       assert.ok(keys.join(",") === "error" || keys.join(",") === "received,result", body);
     }
+  });
+});
+
+/* ------------------------------------------------------------------ */
+/* Seller and founder notifications                                     */
+/* ------------------------------------------------------------------ */
+
+describe("a fulfilled purchase notifies the seller and the founder", () => {
+  test("once, with the product, the gross amount and the environment — never the buyer", async () => {
+    seed({ buyerEmail: BUYER_EMAIL });
+    const res = await post(callback());
+    assert.equal(res.body.result, "fulfilled");
+    assert.deepEqual(notifications, [
+      {
+        orderId: "order_1",
+        productId: PRODUCT_ID,
+        productName: "Arabic Templates Pack",
+        amount: "1.00",
+        currency: "SAR",
+        environment: "TEST",
+      },
+    ]);
+    assert.ok(!JSON.stringify(notifications).includes(BUYER_EMAIL), "the buyer is not handed to the notifier");
+  });
+
+  test("not again on a repeated delivery", async () => {
+    seed();
+    await post(callback());
+    await post(callback());
+    assert.equal(db.orders.length, 1);
+    assert.equal(notifications.length, 1);
+  });
+
+  test("a notifier failure changes nothing: the Order exists and the reply is still fulfilled", async () => {
+    seed();
+    state.notifyThrows = true;
+    const res = await post(callback());
+    assert.equal(res.status, 200);
+    assert.equal(res.body.result, "fulfilled");
+    assert.equal(db.orders.length, 1);
+    assert.equal(notifications.length, 1);
+  });
+
+  test("nothing is sent when there is nothing to fulfil", async () => {
+    const res = await post(callback());
+    assert.notEqual(res.body.result, "fulfilled");
+    assert.equal(db.orders.length, 0);
+    assert.equal(notifications.length, 0);
   });
 });

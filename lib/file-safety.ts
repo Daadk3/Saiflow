@@ -12,6 +12,8 @@
 
 import type { FileScanStatus, Prisma, UploadRoute } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { runAfterResponse } from "@/lib/after-response";
+import { notifyAdminsProductReadyForReview } from "@/lib/notify";
 
 /** The three columns the predicate reads. */
 export interface DeliverableSafety {
@@ -270,19 +272,30 @@ export const SCAN_AUDIT_ACTOR = "scanner:cloudmersive";
  *   - it only transitions PENDING_SCAN, so it can never overwrite a verdict
  *     the worker already wrote, and re-running it changes nothing
  */
+export interface ReconcileResult {
+  /** Whether THIS call moved the product out of PENDING_SCAN. */
+  reconciled: boolean;
+  /** The verdict copied across, when one was. */
+  scanStatus: FileScanStatus | null;
+  /** SAFE for its file and still awaiting a decision: the founder was told. */
+  readyForReview: boolean;
+}
+
+const NOT_RECONCILED: ReconcileResult = { reconciled: false, scanStatus: null, readyForReview: false };
+
 export async function reconcileProductScanState(
   productId: string,
   fileKey: string
-): Promise<void> {
+): Promise<ReconcileResult> {
   const asset = await prisma.fileAsset.findUnique({
     where: { key: fileKey },
     select: { scanStatus: true, scanSha256: true, scanAt: true, scanReason: true },
   });
 
   // Still unscanned: nothing to reconcile, the worker will propagate later.
-  if (!asset || asset.scanStatus === "PENDING_SCAN") return;
+  if (!asset || asset.scanStatus === "PENDING_SCAN") return NOT_RECONCILED;
 
-  await prisma.$transaction(async (tx) => {
+  const moderationStatus = await prisma.$transaction(async (tx) => {
     const updated = await tx.product.updateMany({
       where: { id: productId, fileKey, fileScanStatus: "PENDING_SCAN" },
       data: {
@@ -295,13 +308,13 @@ export async function reconcileProductScanState(
 
     // Someone else settled it first, or the file changed again. Either way
     // this reconciliation is stale and writes no audit event.
-    if (updated.count !== 1) return;
+    if (updated.count !== 1) return null;
 
     const product = await tx.product.findUnique({
       where: { id: productId },
       select: { moderationStatus: true },
     });
-    if (!product) return;
+    if (!product) return null;
 
     const status = asset.scanStatus.toLowerCase();
     await tx.moderationEvent.create({
@@ -318,5 +331,19 @@ export async function reconcileProductScanState(
         newStatus: product.moderationStatus,
       },
     });
+    return product.moderationStatus;
   });
+  if (moderationStatus === null) return NOT_RECONCILED;
+
+  // The product just became SAFE for its file while still awaiting a
+  // decision: the founder hears about it from HERE, because this is the
+  // transaction that moved it. The worker tells the founder only about
+  // products its own verdict transaction moved, and both moves require the
+  // product to still be PENDING_SCAN, so one attachment is announced once.
+  // After the commit, after the response, and unable to fail the caller.
+  const readyForReview = asset.scanStatus === "SAFE" && moderationStatus === "PENDING";
+  if (readyForReview) {
+    await runAfterResponse(() => notifyAdminsProductReadyForReview([productId], fileKey));
+  }
+  return { reconciled: true, scanStatus: asset.scanStatus, readyForReview };
 }

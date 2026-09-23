@@ -21,6 +21,7 @@ import { createHash, randomUUID } from "node:crypto";
 import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { MAX_SCANNABLE_BYTES, readPrivateObject } from "@/lib/storage/provider";
+import { notifyAdminsProductReadyForReview } from "@/lib/notify";
 import { cloudmersiveProvider } from "./cloudmersive";
 import {
   resolveContentPolicy,
@@ -177,6 +178,11 @@ async function claimScan(
  *
  * Product propagation happens only when that conditional update actually
  * matched, inside the same transaction. A stale worker changes nothing at all.
+ *
+ * Returns which attached products were bound to a SAFE verdict and still
+ * await a decision: the set THIS transaction moved, decided inside it, so
+ * the founder can be told about exactly those and nothing a concurrent
+ * reconciliation moved instead.
  */
 async function finalizeVerdict(params: {
   key: string;
@@ -185,7 +191,7 @@ async function finalizeVerdict(params: {
   reason: string | null;
   sha256: string | null;
   providerId: string;
-}): Promise<boolean> {
+}): Promise<{ written: boolean; readyForReview: string[] }> {
   const { key, token, status, reason, sha256, providerId } = params;
   const now = new Date();
 
@@ -206,7 +212,7 @@ async function finalizeVerdict(params: {
       },
     });
 
-    if (finalized.count !== 1) return false;
+    if (finalized.count !== 1) return { written: false, readyForReview: [] };
 
     // `where: { fileKey: key }` is the other half of the safety property. A
     // product pointed at a different upload has a different fileKey, matches
@@ -245,7 +251,13 @@ async function finalizeVerdict(params: {
       });
     }
 
-    return true;
+    return {
+      written: true,
+      readyForReview:
+        status === "SAFE"
+          ? affected.filter((product) => product.moderationStatus === "PENDING").map((product) => product.id)
+          : [],
+    };
   });
 }
 
@@ -313,12 +325,14 @@ export async function scanFileAsset(
   if (!claim.claimed) return { key, outcome: "SKIPPED_NOT_CLAIMED" };
   const { token } = claim;
 
+  // The products the SAFE transaction bound, for the notice below.
+  let readyForReview: string[] = [];
   const settle = async (
     status: "SAFE" | "UNSAFE" | "SCAN_ERROR",
     reason: string | null,
     sha256: string | null
   ): Promise<ScanRunReport> => {
-    const written = await finalizeVerdict({
+    const result = await finalizeVerdict({
       key,
       token,
       status,
@@ -326,7 +340,8 @@ export async function scanFileAsset(
       sha256,
       providerId: provider.id,
     });
-    if (!written) return { key, outcome: "STALE_CLAIM" };
+    if (!result.written) return { key, outcome: "STALE_CLAIM" };
+    readyForReview = result.readyForReview;
     return reason
       ? { key, outcome: status, reason }
       : { key, outcome: status };
@@ -436,7 +451,22 @@ export async function scanFileAsset(
   // The only path to SAFE: claimed, bytes read, hashed, format recognised,
   // structural policy passed, and an explicit parseable clean verdict whose
   // content-verified format agrees with ours.
-  return settle("SAFE", null, digest);
+  const report = await settle("SAFE", null, digest);
+
+  // The verdict is committed; now tell the founder about the products that
+  // transaction bound and that still await a decision. Strictly after the
+  // transaction, and strictly unable to touch it: the notifier resolves to an
+  // outcome and never throws, and even if it did, the report above is what
+  // this function returns. A file no product has attached yet names nobody;
+  // the attach-time reconciliation reports that product when it arrives.
+  if (report.outcome === "SAFE" && readyForReview.length > 0) {
+    try {
+      await notifyAdminsProductReadyForReview(readyForReview, key);
+    } catch {
+      // Reported by the notifier itself; nothing here changes the verdict.
+    }
+  }
+  return report;
 }
 
 /**

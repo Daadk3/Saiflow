@@ -4,6 +4,9 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { authOptions } from "../auth/authOptions";
 import { slugify } from "@/lib/slug";
+import { accountKey, rateLimiters, retryAfterSeconds } from "@/lib/rate-limit";
+import { runAfterResponse } from "@/lib/after-response";
+import { notifyAdminsStoreCreated } from "@/lib/notify";
 
 // POST - Create a new shop
 export async function POST(req: Request) {
@@ -14,6 +17,17 @@ export async function POST(req: Request) {
       return NextResponse.json(
         { error: "Unauthorized" },
         { status: 401 }
+      );
+    }
+
+    // One account cannot open stores faster than the founder can read about
+    // them: 3 an hour, decided before any lookup, write or email, keyed by
+    // the account rather than the address, and answered with a fixed body.
+    const limit = rateLimiters.createShop(accountKey(session.user.email));
+    if (!limit.success) {
+      return NextResponse.json(
+        { error: "Too many requests" },
+        { status: 429, headers: { "Retry-After": String(retryAfterSeconds(limit.resetTime)) } }
       );
     }
 
@@ -73,6 +87,12 @@ export async function POST(req: Request) {
         },
       },
     });
+
+    // Tell the founder, after the row exists and after the response: the
+    // notifier never throws, and nothing here can undo the shop.
+    await runAfterResponse(() =>
+      notifyAdminsStoreCreated({ id: shop.id, name: shop.name, slug: shop.slug })
+    );
 
     return NextResponse.json(shop, { status: 201 });
   } catch (error) {
