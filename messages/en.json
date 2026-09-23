@@ -49,27 +49,17 @@
       "primaryAria": "Start selling — create your store for free",
       "secondaryCta": "Browse products",
       "secondaryAria": "Browse all digital products",
-      "trustLine": "Free to start · Secure payment · Direct digital delivery",
-      "mock": {
-        "ariaLabel": "Illustration of the SaiFlow journey: an independent creator's store, one digital product priced in riyals, then paid, then file download",
-        "illustrative": "Illustration",
-        "storeLabel": "Your store on SaiFlow",
-        "storeRole": "Independent creator",
-        "productKind": "PDF ebook",
-        "productTitle": "Design Basics for Beginners",
-        "paidState": "Paid",
-        "downloadState": "Download file"
-      }
+      "trustLine": "Free to start · Secure payment · Direct digital delivery"
     },
     "paths": {
       "title": "What would you like to do today?",
       "sell": {
-        "title": "I want to sell a digital product",
+        "title": "Sell a digital product",
         "body": "Have a book, course, template, design or digital file? Open your store, upload your product, set your price and start selling.",
         "cta": "Open your store"
       },
       "buy": {
-        "title": "I want to buy a digital product",
+        "title": "Buy a digital product",
         "body": "Discover books, courses, templates, designs and digital tools from independent creators.",
         "cta": "Browse products"
       }
@@ -116,7 +106,7 @@
       }
     },
     "steps": {
-      "title": "Start selling in three steps",
+      "title": "Open your own store today and start selling in three steps.",
       "stepLabel": "Step {number}",
       "step1Title": "Create your store",
       "step1Body": "Choose your store name and add your identity.",

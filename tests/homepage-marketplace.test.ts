@@ -70,16 +70,16 @@ describe("copy: one namespace, both locales, nothing fabricated", () => {
     assert.equal(h.hero.trustLine, "متجر مجاني للبدء · دفع آمن · تسليم رقمي مباشر");
     const paths = h.paths as unknown as { title: string; sell: Record<string, string>; buy: Record<string, string> };
     assert.equal(paths.title, "ماذا تريد أن تفعل اليوم؟");
-    assert.equal(paths.sell.title, "أبغى أبيع منتج رقمي");
+    assert.equal(paths.sell.title, "بيع منتج رقمي");
     assert.equal(paths.sell.cta, "افتح متجرك");
-    assert.equal(paths.buy.title, "أبغى أشتري منتج رقمي");
+    assert.equal(paths.buy.title, "شراء منتج رقمي");
     assert.equal(paths.buy.cta, "تصفح المنتجات");
     assert.equal(h.categories.title, "أي شيء رقمي يمكن أن يجد مكانه هنا.");
     assert.equal(h.featured.title, "اكتشف منتجات تستحق التجربة");
     assert.equal(h.featured.viewProduct, "عرض المنتج");
     assert.equal(h.creator.title, "فكرتك تستحق متجرًا.");
     assert.equal(h.creator.cta, "افتح متجرك مجانًا");
-    assert.equal(h.steps.title, "ابدأ البيع بثلاث خطوات");
+    assert.equal(h.steps.title, "افتح متجرك الخاص اليوم وابدأ البيع بثلاث خطوات");
     assert.equal(h.buyer.title, "اكتشف. اشترِ. حمّل.");
     assert.equal(h.trust.title, "مصمم للبيع الرقمي");
     assert.equal(h.finalCta.title, "جاهز تبدأ؟");
@@ -107,13 +107,22 @@ describe("copy: one namespace, both locales, nothing fabricated", () => {
     }
   });
 
-  test("the illustrative panels are captioned as illustrations", () => {
+  test("the hero is text-led: no mockup, no illustrative product, price or store", () => {
+    const code = strip(home.hero);
+    assert.ok(!/role="img"/.test(code) && !/formatPrice|<Image|mock\./.test(code), "no visual panel in the hero");
+    for (const m of [ar, en]) {
+      const h = m.home as Record<string, Record<string, unknown>>;
+      assert.ok(!("mock" in h.hero), "no hero mock copy remains");
+    }
+    assert.ok(/t\("title"\)/.test(code) && /t\("subtitle"\)/.test(code) && /t\("trustLine"\)/.test(code));
+    assert.ok(/href="\/signup"/.test(code) && /href="\/browse"/.test(code));
+  });
+
+  test("the creator panel is still captioned as an illustration", () => {
     for (const m of [ar, en]) {
       const h = m.home as Record<string, Record<string, Record<string, string>>>;
-      assert.ok(h.hero.mock.illustrative.length > 0);
       assert.ok(h.creator.mock.illustrative.length > 0);
     }
-    assert.ok(/t\("mock\.illustrative"\)/.test(home.hero));
     assert.ok(/t\("mock\.illustrative"\)/.test(home.creator));
   });
 });
