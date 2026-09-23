@@ -7,9 +7,7 @@ import { SectionHeading } from "./SectionHeading";
 import { IconStore } from "./icons";
 
 /** A sellable product as the homepage query selects it. Price already a number. */
-export interface FeaturedProduct extends ProductCardProduct {
-  category: string | null;
-}
+export type FeaturedProduct = ProductCardProduct;
 
 interface FeaturedProductsProps {
   products: FeaturedProduct[];
