@@ -19,6 +19,7 @@ const strip = (src: string) =>
 const page = read("app/browse/page.tsx");
 const code = strip(page);
 const card = strip(read("components/ProductCard.tsx"));
+const thumbnail = strip(read("components/ProductThumbnail.tsx"));
 const ar = JSON.parse(read("messages/ar.json")) as Record<string, Record<string, Record<string, string>>>;
 const en = JSON.parse(read("messages/en.json")) as Record<string, Record<string, Record<string, string>>>;
 
@@ -74,8 +75,26 @@ describe("marketplace layout", () => {
     assert.ok(card.includes("href={`/shop/${product.shop.slug}/product/${product.slug}`}"));
   });
 
-  test("the grid is one column on phones and three or four on wide screens", () => {
-    assert.ok(/grid-cols-1 gap-5 sm:grid-cols-2 sm:gap-6 lg:grid-cols-3 xl:grid-cols-4/.test(code));
+  test("the grid is one column on phones, three on laptops and four only on very wide screens", () => {
+    assert.ok(/grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3 2xl:grid-cols-4/.test(code));
+  });
+
+  test("the header is compact: no eyebrow, and search is one pill with the submit inside it", () => {
+    assert.ok(!/storefront\.browse\.eyebrow/.test(code));
+    const form = code.match(/<form method="get" action="\/browse" role="search"[\s\S]*?<\/form>/)![0];
+    const pill = form.indexOf("focus-within:border-teal-500");
+    const input = form.indexOf('name="q"');
+    const button = form.indexOf('type="submit"');
+    const close = form.indexOf("</div>", button);
+    assert.ok(pill !== -1 && pill < input && input < button && button < close, "icon, field and submit share one container");
+    assert.ok(!/btn-primary/.test(form), "no detached glowing button");
+  });
+
+  test("sorting is a compact disclosure reading 'sort: current', with the options as links", () => {
+    const sortBlock = code.match(/<details className="relative">\s*<summary[\s\S]*?sortLabel[\s\S]*?<\/details>/)![0];
+    assert.ok(/sortLabels\[sort\]/.test(sortBlock), "the trigger names the current sort");
+    assert.ok(/SORT_OPTIONS\.map/.test(sortBlock) && /browseHref\(filters, \{ sort: option \}\)/.test(sortBlock));
+    assert.ok(/<details className="relative">[\s\S]*?priceLabel/.test(code), "price is a disclosure too");
   });
 
   test("search is a visible GET form that keeps the other filters", () => {
@@ -101,6 +120,27 @@ describe("marketplace layout", () => {
     assert.ok(/return query \? `\/browse\?\$\{query\}` : "\/browse";/.test(fn));
   });
 
+  test("the card keeps a fixed 4:3 frame, a two-line title and one link", () => {
+    assert.ok(/aspect-\[4\/3\]/.test(card));
+    assert.ok(/line-clamp-2 min-h-\[2\.75rem\]/.test(card), "titles clamp to two lines at a fixed height");
+    assert.ok(/<ProductThumbnail/.test(card));
+    assert.equal((card.match(/<Link/g) ?? []).length, 1);
+  });
+
+  test("a missing or broken thumbnail renders a category icon tile, never a blank frame or broken image", () => {
+    for (const [slug, icon] of [["ebooks", "IconBook"], ["courses", "IconPlay"], ["templates", "IconTemplate"], ["art", "IconPalette"], ["music", "IconMusic"], ["software", "IconCode"]]) {
+      assert.ok(new RegExp(`${slug}: \\{ Icon: ${icon},`).test(card), `${slug} falls back to ${icon}`);
+    }
+    assert.ok(/match\?\.Icon \?\? IconImage/.test(card), "an unknown category still gets a neutral icon");
+    assert.ok(/^"use client";/.test(thumbnail.trim()));
+    assert.ok(/onError=\{\(\) => setFailed\(true\)\}/.test(thumbnail));
+    assert.ok(/if \(!src \|\| failed\) return <>\{fallback\}<\/>;/.test(thumbnail));
+    assert.ok(/object-contain object-center/.test(thumbnail), "real artwork is contained and centred, never cropped");
+    assert.ok(!/object-cover/.test(thumbnail));
+    assert.ok(/absolute inset-0 bg-gradient-to-br from-gray-800\/50/.test(thumbnail), "a tinted backdrop fills the unused frame");
+    for (const src of [card, thumbnail, code]) assert.ok(!/placeholder\.png/.test(src));
+  });
+
   test("the empty state is copy with real routes, and nothing pretends to be a product", () => {
     assert.ok(/products\.length > 0 \?/.test(code));
     assert.ok(/emptyTitle|emptyFilteredTitle/.test(code));
@@ -111,6 +151,7 @@ describe("marketplace layout", () => {
 
   test("browse copy exists in both locales with identical keys", () => {
     assert.deepEqual(Object.keys(ar.storefront.browse).sort(), Object.keys(en.storefront.browse).sort());
+    assert.equal(ar.storefront.browse.sortLabel, "ترتيب");
     for (const key of ["title", "subtitle", "searchPlaceholder", "searchButton", "sortLabel", "priceLabel", "byShop", "emptyTitle", "emptyFilteredTitle", "emptyCta"]) {
       assert.ok(ar.storefront.browse[key]?.length > 0, `ar ${key}`);
       assert.ok(en.storefront.browse[key]?.length > 0, `en ${key}`);

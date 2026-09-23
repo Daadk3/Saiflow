@@ -144,7 +144,7 @@ describe("the homepage shows only what can be bought, and links to real routes",
     assert.ok(href !== -1, "canonical product href");
     // Around that href: the link opens before the image and closes after the CTA text.
     const link = code.lastIndexOf("<Link", href);
-    const image = code.indexOf("<Image", href);
+    const image = code.indexOf("<ProductThumbnail", href);
     const cta = code.indexOf("{viewLabel}", href);
     const close = code.indexOf("</Link>", href);
     assert.ok(link !== -1 && link < href && href < image && image < cta && cta < close);

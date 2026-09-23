@@ -151,6 +151,12 @@ export const IconTag = (p: IconProps) => (
   </Svg>
 );
 
+export const IconChevronDown = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="m6 9 6 6 6-6" />
+  </Svg>
+);
+
 /** Points forward in the reading direction: flip it with `rtl:-scale-x-100`. */
 export const IconArrow = (p: IconProps) => (
   <Svg {...p}>

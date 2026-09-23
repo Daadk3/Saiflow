@@ -7,7 +7,7 @@ import { CATEGORY_LABEL_KEYS, isProductCategory } from "@/lib/categories";
 import type { ProductCategory } from "@/lib/categories";
 import { ProductCard } from "@/components/ProductCard";
 import type { ProductCardProduct } from "@/components/ProductCard";
-import { IconSearch, IconStore } from "@/components/home/icons";
+import { IconChevronDown, IconSearch, IconStore } from "@/components/home/icons";
 
 export const dynamic = "force-dynamic";
 
@@ -19,9 +19,7 @@ type SortOption = (typeof SORT_OPTIONS)[number];
 /** Search text is trimmed and capped; anything longer is a mistake, not a query. */
 const MAX_QUERY_LENGTH = 80;
 
-interface Product extends ProductCardProduct {
-  category: string | null;
-}
+type Product = ProductCardProduct;
 
 interface Filters {
   category?: ProductCategory;
@@ -163,7 +161,7 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
   };
 
   const chip = (active: boolean) =>
-    `rounded-full border px-4 py-2 text-sm font-medium transition-colors ${
+    `rounded-full border px-3 py-1.5 text-xs font-medium transition-colors sm:text-sm ${
       active
         ? "border-teal-400/60 bg-teal-500/15 text-teal-200"
         : "border-gray-800 bg-[#111111] text-gray-300 hover:border-gray-600 hover:text-white"
@@ -191,20 +189,20 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
           aria-hidden="true"
           className="pointer-events-none absolute -bottom-24 end-0 h-72 w-72 rounded-full bg-purple-500/10 blur-3xl"
         />
-        <div className="relative mx-auto max-w-7xl px-4 pb-8 pt-12 sm:px-6 sm:pb-10 sm:pt-16 lg:px-8">
-          <p className="text-sm font-semibold uppercase tracking-wide text-teal-400">{t("storefront.browse.eyebrow")}</p>
-          <h1 className="mt-2 text-3xl font-bold leading-tight text-white sm:text-4xl lg:text-5xl">
+        <div className="relative mx-auto max-w-7xl px-4 pb-5 pt-8 sm:px-6 sm:pb-6 sm:pt-10 lg:px-8">
+          <h1 className="text-2xl font-bold leading-tight text-white sm:text-3xl lg:text-4xl">
             {t("storefront.browse.title")}
           </h1>
-          <p className="mt-3 max-w-2xl text-lg text-gray-400">{t("storefront.browse.subtitle")}</p>
+          <p className="mt-2 max-w-2xl text-base text-gray-400 sm:text-lg">{t("storefront.browse.subtitle")}</p>
 
-          <form method="get" action="/browse" role="search" className="mt-8 flex flex-col gap-3 sm:flex-row">
+          {/* One component: icon, field and submit share a single pill. The icon sits beside the
+              field, not over it, so no global input padding rule can push text under it. */}
+          <form method="get" action="/browse" role="search" className="mt-5 max-w-2xl">
             {hiddenFilters("q")}
             <label htmlFor="browse-search" className="sr-only">
               {t("storefront.browse.searchLabel")}
             </label>
-            {/* The icon sits beside the field, not over it, so no input padding rule can push text under it. */}
-            <div className="flex flex-1 items-center gap-3 rounded-full border border-gray-700 bg-[#111111] pe-2 ps-5 transition-colors focus-within:border-teal-500 focus-within:ring-1 focus-within:ring-teal-500">
+            <div className="flex items-center gap-2 rounded-full border border-gray-700 bg-[#111111] p-1.5 ps-4 transition-colors focus-within:border-teal-500 focus-within:ring-1 focus-within:ring-teal-500">
               <IconSearch className="h-5 w-5 shrink-0 text-gray-500" />
               <input
                 id="browse-search"
@@ -213,15 +211,18 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
                 defaultValue={q ?? ""}
                 maxLength={MAX_QUERY_LENGTH}
                 placeholder={t("storefront.browse.searchPlaceholder")}
-                className="min-w-0 flex-1 bg-transparent py-3 text-base text-white placeholder:text-gray-500 focus:outline-none"
+                className="min-w-0 flex-1 bg-transparent py-2 text-base text-white placeholder:text-gray-500 focus:outline-none"
               />
+              <button
+                type="submit"
+                className="shrink-0 rounded-full bg-[#00FFB3] px-4 py-2 text-sm font-semibold text-[#0A1128] transition hover:bg-[#00E6A0]"
+              >
+                {t("storefront.browse.searchButton")}
+              </button>
             </div>
-            <button type="submit" className="btn-primary">
-              {t("storefront.browse.searchButton")}
-            </button>
           </form>
 
-          <nav aria-label={t("storefront.browse.categoriesHeading")} className="mt-6 flex flex-wrap gap-2">
+          <nav aria-label={t("storefront.browse.categoriesHeading")} className="mt-4 flex flex-wrap gap-1.5">
             <Link href={browseHref(filters, { category: undefined })} className={chip(!category)} aria-current={!category ? "page" : undefined}>
               {t("categories.all")}
             </Link>
@@ -240,48 +241,54 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
       </section>
 
       {/* Toolbar and grid */}
-      <section className="py-8 sm:py-10">
+      <section className="py-5 sm:py-6">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-            <div>
-              <h2 className="text-xl font-semibold text-white">
+          {/* One compact toolbar: what is shown, then sort, price and clear. */}
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
+            <p className="text-sm text-gray-400">
+              <span className="font-semibold text-white">
                 {category ? t(CATEGORY_LABEL_KEYS[category]) : t("products.allProducts")}
-              </h2>
-              <p className="mt-1 text-sm text-gray-400">
-                {q && <span>{t("storefront.browse.resultsFor", { q })} · </span>}
-                {t("storefront.shopView.showingProductsCount", { count: products.length })}
-              </p>
-            </div>
+              </span>
+              <span aria-hidden="true"> · </span>
+              {q && <span>{t("storefront.browse.resultsFor", { q })} · </span>}
+              {t("storefront.shopView.showingProductsCount", { count: products.length })}
+            </p>
 
-            <div className="flex flex-wrap items-center gap-3">
-              <div
-                role="group"
-                aria-label={t("storefront.browse.sortLabel")}
-                className="flex flex-wrap gap-1 rounded-full border border-gray-800 bg-[#111111] p-1"
-              >
-                {SORT_OPTIONS.map((option) => (
-                  <Link
-                    key={option}
-                    href={browseHref(filters, { sort: option })}
-                    aria-current={sort === option ? "true" : undefined}
-                    className={`rounded-full px-3 py-1.5 text-sm transition-colors ${
-                      sort === option ? "bg-gray-800 font-semibold text-white" : "text-gray-400 hover:text-white"
-                    }`}
-                  >
-                    {sortLabels[option]}
-                  </Link>
-                ))}
-              </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <details className="relative">
+                <summary className="flex cursor-pointer list-none items-center gap-1.5 rounded-full border border-gray-800 bg-[#111111] px-3 py-1.5 text-sm text-gray-300 transition-colors hover:text-white">
+                  <span>
+                    {t("storefront.browse.sortLabel")}: <span className="font-semibold text-white">{sortLabels[sort]}</span>
+                  </span>
+                  <IconChevronDown className="h-4 w-4 text-gray-500" />
+                </summary>
+                <ul className="mt-2 w-56 rounded-2xl border border-gray-800 bg-[#111111] p-1.5 shadow-xl shadow-black/40 sm:absolute sm:end-0 sm:z-10">
+                  {SORT_OPTIONS.map((option) => (
+                    <li key={option}>
+                      <Link
+                        href={browseHref(filters, { sort: option })}
+                        aria-current={sort === option ? "true" : undefined}
+                        className={`block rounded-xl px-3 py-2 text-sm transition-colors ${
+                          sort === option ? "bg-gray-800 font-semibold text-white" : "text-gray-300 hover:bg-gray-800/60 hover:text-white"
+                        }`}
+                      >
+                        {sortLabels[option]}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </details>
 
               <details className="relative">
-                <summary className="cursor-pointer list-none rounded-full border border-gray-800 bg-[#111111] px-4 py-2 text-sm font-medium text-gray-300 transition-colors hover:text-white">
-                  {t("storefront.browse.priceLabel")}
-                  {priceActive && <span className="ms-1 text-teal-400">•</span>}
+                <summary className="flex cursor-pointer list-none items-center gap-1.5 rounded-full border border-gray-800 bg-[#111111] px-3 py-1.5 text-sm text-gray-300 transition-colors hover:text-white">
+                  <span>{t("storefront.browse.priceLabel")}</span>
+                  {priceActive && <span className="text-teal-400">•</span>}
+                  <IconChevronDown className="h-4 w-4 text-gray-500" />
                 </summary>
                 <form
                   method="get"
                   action="/browse"
-                  className="mt-2 flex flex-wrap items-end gap-2 rounded-2xl border border-gray-800 bg-[#111111] p-3 shadow-xl shadow-black/40 lg:absolute lg:end-0 lg:z-10 lg:w-80"
+                  className="mt-2 flex flex-wrap items-end gap-2 rounded-2xl border border-gray-800 bg-[#111111] p-3 shadow-xl shadow-black/40 sm:absolute sm:end-0 sm:z-10 sm:w-80"
                 >
                   {hiddenFilters("price")}
                   <input
@@ -316,7 +323,7 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
               </details>
 
               {filtersActive && (
-                <Link href="/browse" className="text-sm font-medium text-teal-400 transition-colors hover:text-teal-300">
+                <Link href="/browse" className="px-1 text-sm font-medium text-teal-400 transition-colors hover:text-teal-300">
                   {t("storefront.browse.clearFilters")}
                 </Link>
               )}
@@ -324,7 +331,7 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
           </div>
 
           {products.length > 0 ? (
-            <ul className="grid grid-cols-1 gap-5 sm:grid-cols-2 sm:gap-6 lg:grid-cols-3 xl:grid-cols-4">
+            <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3 2xl:grid-cols-4">
               {products.map((product) => (
                 <li key={product.id} className="flex">
                   <ProductCard
