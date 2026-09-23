@@ -3,9 +3,20 @@
   "framework": "nextjs",
   "buildCommand": "prisma migrate deploy && prisma generate && next build",
   "installCommand": "npm install --legacy-peer-deps",
-  "regions": ["iad1"],
+  "regions": [
+    "iad1"
+  ],
   "functions": {
     "app/api/internal/scan/route.ts": {
+      "maxDuration": 300
+    },
+    "app/api/products/route.ts": {
+      "maxDuration": 300
+    },
+    "app/api/products/\\[id\\]/route.ts": {
+      "maxDuration": 300
+    },
+    "app/api/products/\\[id\\]/rescan/route.ts": {
       "maxDuration": 300
     },
     "app/api/**/*.ts": {
@@ -30,4 +41,3 @@
     }
   ]
 }
-

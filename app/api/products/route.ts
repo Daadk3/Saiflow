@@ -11,6 +11,12 @@ import {
   reconcileProductScanState,
 } from "@/lib/file-safety";
 import { isProductCategory } from "@/lib/categories";
+import { scheduleScan } from "@/lib/scan/schedule";
+
+// Attaching a file schedules its scan to run after this response is sent;
+// the scan moves the file twice, so this route carries the worker's budget.
+// The request itself still returns as soon as the product is written.
+export const maxDuration = 300;
 
 // POST - Create a new product
 export async function POST(req: Request) {
@@ -205,6 +211,8 @@ export async function POST(req: Request) {
       } catch (error) {
         console.error("[scan] reconcile after create failed", (error as Error)?.name);
       }
+      // The file is attached: scan it now rather than at the next sweep.
+      scheduleScan(fileKey);
     }
 
     return NextResponse.json(product, { status: 201 });

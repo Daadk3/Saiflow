@@ -16,6 +16,7 @@ import CopyLinkButton from "@/components/CopyLinkButton";
 // TYPE ONLY — lib/creator-file-status builds a Prisma clause at load and
 // must not enter this bundle. The server sends the derived string.
 import type { CreatorFileStatus } from "@/lib/creator-file-status";
+import { FileScanState, type FileScanStateView } from "@/components/FileScanState";
 
 interface Product {
   id: string;
@@ -33,6 +34,7 @@ interface Product {
    * shop payload rather than added to the product route, so no API changes.
    */
   fileSafety?: CreatorFileStatus;
+  fileState?: FileScanStateView | null;
   thumbnailUrl: string | null;
   shop: {
     id: string;
@@ -53,6 +55,7 @@ export default function EditProductPage() {
   const [fileName, setFileName] = useState("");
   const [thumbnailUrl, setThumbnailUrl] = useState("");
   const [fileSafety, setFileSafety] = useState<CreatorFileStatus>(null);
+  const [fileState, setFileState] = useState<FileScanStateView | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -111,6 +114,7 @@ export default function EditProductPage() {
       // is already loaded here. Taking it now is why this feature needs no
       // change to GET /api/products/[id] and no new field anywhere.
       setFileSafety(foundProduct.fileSafety ?? null);
+      setFileState(foundProduct.fileState ?? null);
 
       // Fetch full product details
       const productRes = await fetch(`/api/products/${foundProduct.id}`);
@@ -533,6 +537,11 @@ export default function EditProductPage() {
                         server to authorise — and it would otherwise link to
                         the file this one replaces. */}
                     <div className="flex items-center gap-2">
+                      {product && fileUrl === product.fileUrl && (
+                        <div className="mt-3">
+                          <FileScanState productId={product.id} value={fileState} onRetried={fetchProduct} />
+                        </div>
+                      )}
                       {product && fileUrl === product.fileUrl && (
                         <a
                           href={`/api/products/${product.id}/inspect`}

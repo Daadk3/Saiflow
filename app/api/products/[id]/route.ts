@@ -14,6 +14,11 @@ import {
   attachedScanFields,
   reconcileProductScanState,
 } from "@/lib/file-safety";
+import { scheduleScan } from "@/lib/scan/schedule";
+
+// A replacement file schedules its scan to run after the response is sent;
+// see app/api/products/route.ts for why this route carries the worker's budget.
+export const maxDuration = 300;
 
 // GET - Get a single product by ID (seller dashboard only)
 // SECURITY: this returns the full row including fileUrl (the paid asset),
@@ -300,6 +305,8 @@ export async function PUT(
       } catch (error) {
         console.error("[scan] reconcile after edit failed", (error as Error)?.name);
       }
+      // The file changed: scan the new bytes now rather than at the next sweep.
+      scheduleScan(nextFileKey);
     }
 
     return NextResponse.json(updatedProduct);

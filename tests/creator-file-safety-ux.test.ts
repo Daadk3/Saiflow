@@ -164,6 +164,7 @@ before(async () => {
       prisma: {
         shop: { findUnique: async () => state.shop },
         product: { fields: { fileKey: { _toFieldRef: "Product.fileKey" } } },
+        fileAsset: { findMany: async () => [] },
       },
     },
   });
@@ -190,6 +191,7 @@ function shopRow(overrides: Record<string, unknown> = {}) {
         thumbnailUrl: null,
         moderationStatus: "APPROVED",
         createdAt: new Date("2026-01-02"),
+        updatedAt: new Date("2026-01-02"),
         fileUrl: SECRET_URL,
         fileKey: SECRET_KEY,
         fileScanStatus: "SAFE",
@@ -228,7 +230,7 @@ describe("the response carries a status, not the scan columns", () => {
     const body = await (await call()).json();
     assert.deepEqual(
       Object.keys(body.products[0]).sort(),
-      ["createdAt","currency","description","fileSafety","hasFile","id",
+      ["createdAt","currency","description","fileSafety","fileState","hasFile","id",
        "moderationStatus","name","price","slug","thumbnailUrl"]
     );
   });
@@ -237,6 +239,17 @@ describe("the response carries a status, not the scan columns", () => {
     const body = await (await call()).json();
     assert.equal(body.products[0].fileSafety, "ready");
     assert.equal(body.products[0].hasFile, true);
+    assert.deepEqual(body.products[0].fileState, { state: "passed", failure: null, canRetry: false });
+  });
+
+  test("the four-word state carries a category and a flag, and no column", async () => {
+    const row = shopRow();
+    Object.assign(row.products[0], { fileScanStatus: "UNSAFE", fileScanKey: SECRET_KEY });
+    state.shop = row;
+    const body = await (await call()).json();
+    assert.deepEqual(Object.keys(body.products[0].fileState).sort(), ["canRetry", "failure", "state"]);
+    assert.equal(body.products[0].fileState.state, "failed");
+    assert.equal(body.products[0].fileState.canRetry, false);
   });
 
   test("co-members' email addresses are not returned", async () => {
@@ -508,12 +521,19 @@ describe("the dashboard renders the server value and nothing else", () => {
     }
   });
 
-  test("all four states render from messages", () => {
+  test("the four-word state renders through the shared component, from the server value", () => {
+    assert.ok(page.includes("<FileScanState"), "renders the component");
+    assert.ok(/value=\{product\.fileState\}/.test(page), "passes the server-derived state");
+    assert.ok(/onRetried=\{fetchShop\}/.test(page), "reloads after a retry");
     for (const s of ["ready","checking","needs_attention","blocked"]) {
-      assert.ok(page.includes(`product.fileSafety === "${s}"`), `missing ${s}`);
+      assert.ok(!page.includes(`product.fileSafety === "${s}"`), `old badge for ${s} still rendered`);
     }
-    for (const k of ["ready","checking","needsAttention","blocked","needsAttentionBody","blockedBody"]) {
-      assert.ok(page.includes(`tFileSafety("${k}")`), `unused key ${k}`);
+    const component = read("components/FileScanState.tsx");
+    for (const k of ["stateUploaded","stateScanning","statePassed","stateFailed","retryAction","retrying","retryStarted","retryLimited","retryRefused"]) {
+      assert.ok(component.includes(`"${k}"`), `component missing key ${k}`);
+    }
+    for (const k of ["failureUnsafeContent","failureUnsupportedFormat","failurePasswordProtected","failureArchiveProblem","failureCheckUnavailable","failureTimedOut","failureNotStarted","failureAttemptsExhausted","failureNoRecord","failureUnknown"]) {
+      assert.ok(component.includes(k), `component missing failure key ${k}`);
     }
   });
 

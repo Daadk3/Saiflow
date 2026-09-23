@@ -12,6 +12,7 @@ import { formatNumber } from "@/lib/formatNumber";
 // imports lib/file-safety, which builds a Prisma clause at load time and
 // must not enter this bundle. The browser renders the string the API sends.
 import type { CreatorFileStatus } from "@/lib/creator-file-status";
+import { FileScanState, type FileScanStateView } from "@/components/FileScanState";
 // The permanent public address is built from a pinned origin, never from
 // window.location: this dashboard renders identically on a Vercel Preview,
 // where the current location is a *.vercel.app host that dies with the
@@ -37,6 +38,12 @@ interface Product {
    * or override it, and no scan enum, key or hash reaches the browser.
    */
   fileSafety: CreatorFileStatus;
+  /**
+   * The four-word state the seller acts on: uploaded, scanning, passed or
+   * failed, with a safe reason category and whether a retry is allowed. Also
+   * derived server-side; this page only renders it.
+   */
+  fileState: FileScanStateView | null;
   createdAt: string;
 }
 
@@ -255,7 +262,7 @@ export default function ShopDashboard() {
             one file is still being checked, and disappears on its own once the
             checks finish; there is nothing for the creator to dismiss or act
             on. Logical properties (ps-*, text-start) keep it correct in RTL. */}
-        {shop.products?.some((p) => p.fileSafety === "checking") && (
+        {shop.products?.some((p) => p.fileState?.state === "scanning" || p.fileState?.state === "uploaded") && (
           <div
             role="status"
             className="mb-6 rounded-xl border border-blue-500/20 bg-blue-500/5 p-5 text-start"
@@ -335,50 +342,16 @@ export default function ShopDashboard() {
                           {tModeration("rejectedBadge")}
                         </span>
                       )}
-                      {/* File-safety status, separate from the moderation
+                      {/* File check state, separate from the moderation
                           badge above: that one reports the listing review,
-                          this one reports the file check. They can differ. */}
-                      {product.fileSafety === "checking" && (
-                        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium bg-blue-500/10 text-blue-400 border border-blue-500/20">
-                          <svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24" aria-hidden="true">
-                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                          </svg>
-                          {tFileSafety("checking")}
-                        </span>
-                      )}
-                      {product.fileSafety === "ready" && (
-                        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium bg-teal-500/10 text-teal-400 border border-teal-500/20">
-                          <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} aria-hidden="true">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                          </svg>
-                          {tFileSafety("ready")}
-                        </span>
-                      )}
-                      {/* The check ran and could not finish. Amber, not red:
-                          nothing is wrong with the creator's file as far as we
-                          know, so this asks them to wait or retry rather than
-                          telling them they did something wrong. */}
-                      {product.fileSafety === "needs_attention" && (
-                        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium bg-amber-500/10 text-amber-400 border border-amber-500/20">
-                          <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
-                          </svg>
-                          {tFileSafety("needsAttention")}
-                        </span>
-                      )}
-                      {/* The file did not pass. Says what to do — replace it —
-                          and nothing about what was found: the creator cannot
-                          act on a detection detail, and publishing one tells
-                          anyone probing the marketplace what gets through. */}
-                      {product.fileSafety === "blocked" && (
-                        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium bg-red-500/10 text-red-400 border border-red-500/20">
-                          <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
-                          </svg>
-                          {tFileSafety("blocked")}
-                        </span>
-                      )}
+                          this one reports the file. Uploaded, scanning,
+                          passed or failed, with a retry when one is
+                          possible; derived on the server. */}
+                      <FileScanState
+                        productId={product.id}
+                        value={product.fileState}
+                        onRetried={fetchShop}
+                      />
                       {!product.hasFile && (
                         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-amber-500/10 text-amber-400 border border-amber-500/20">
                           <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -391,19 +364,6 @@ export default function ShopDashboard() {
                     <p className="text-gray-500 text-sm mt-1 line-clamp-1">
                       {product.description || t("noDescription")}
                     </p>
-                    {/* A badge names the state; these say what to do about it.
-                        Only the two actionable states get a sentence — "ready"
-                        and "checking" need nothing from the creator. */}
-                    {product.fileSafety === "needs_attention" && (
-                      <p className="text-xs text-amber-400/80 mt-1 leading-relaxed">
-                        {tFileSafety("needsAttentionBody")}
-                      </p>
-                    )}
-                    {product.fileSafety === "blocked" && (
-                      <p className="text-xs text-red-400/80 mt-1 leading-relaxed">
-                        {tFileSafety("blockedBody")}
-                      </p>
-                    )}
                     {/* No longer an either/or. The URL is reserved from
                         creation, so a creator may copy it before a file
                         exists; making it the alternative to this warning hid
