@@ -10,6 +10,10 @@ import { useTranslations } from "next-intl";
  * Renders a value the server derived (lib/seller-file-state.ts). Nothing here
  * decides anything: the retry asks the server, and the server refuses
  * anything that is not a failed, retryable file.
+ *
+ * Uploaded and scanning are presented the same way — to the seller the
+ * check is in progress either way. A check that never started surfaces
+ * as a failed state with its own reason, so nothing spins forever.
  */
 export type SellerFileStateName = "uploaded" | "scanning" | "passed" | "failed";
 
@@ -32,7 +36,7 @@ const FAILURE_KEYS: Record<string, string> = {
 };
 
 const BADGE: Record<SellerFileStateName, string> = {
-  uploaded: "bg-gray-500/10 text-gray-300 border-gray-500/30",
+  uploaded: "bg-blue-500/10 text-blue-400 border-blue-500/20",
   scanning: "bg-blue-500/10 text-blue-400 border-blue-500/20",
   passed: "bg-teal-500/10 text-teal-400 border-teal-500/20",
   failed: "bg-red-500/10 text-red-400 border-red-500/20",
@@ -86,7 +90,7 @@ export function FileScanState({ productId, value, onRetried }: FileScanStateProp
       <span
         className={`inline-flex w-fit items-center gap-1.5 rounded-full border px-2 py-0.5 text-xs font-medium ${BADGE[value.state]}`}
       >
-        {value.state === "scanning" && (
+        {(value.state === "scanning" || value.state === "uploaded") && (
           <svg className="h-3 w-3 animate-spin" fill="none" viewBox="0 0 24 24" aria-hidden="true">
             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />

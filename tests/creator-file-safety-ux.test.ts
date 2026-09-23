@@ -537,9 +537,16 @@ describe("the dashboard renders the server value and nothing else", () => {
     }
   });
 
-  test("the moderation badge stays independent of file safety", () => {
-    assert.ok(page.includes('product.moderationStatus === "PENDING"'));
-    assert.ok(page.includes('tModeration("pendingBadge")'));
+  test("the moderation outcome is still shown, and still independently of file safety", () => {
+    // A rejection is rendered on its own condition, whatever the file says.
+    // A pending review is now worded as waiting for approval and shown once
+    // the file has passed (lib/seller-product-badges); the vague "under
+    // review" badge is gone from the seller's row.
+    assert.ok(page.includes('badges.includes("rejected")'));
+    assert.ok(page.includes('tModeration("rejectedBadge")'));
+    assert.ok(page.includes('badges.includes("awaiting_approval")'));
+    assert.ok(page.includes('t("awaitingApproval")'));
+    assert.ok(!page.includes('tModeration("pendingBadge")'), "vague wording still rendered");
   });
 });
 

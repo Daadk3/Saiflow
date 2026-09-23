@@ -17,6 +17,9 @@ import { FileScanState, type FileScanStateView } from "@/components/FileScanStat
 // page's own reload decides WHAT, and neither can write anything.
 import { hasScanInProgress } from "@/lib/scan-status-polling";
 import { useScanStatusPolling } from "@/lib/use-scan-status-polling";
+// What the row says about a product's status, from the server's moderation
+// outcome and file state. Presentation only; no gate reads it.
+import { sellerProductBadges } from "@/lib/seller-product-badges";
 // The permanent public address is built from a pinned origin, never from
 // window.location: this dashboard renders identically on a Vercel Preview,
 // where the current location is a *.vercel.app host that dies with the
@@ -333,7 +336,9 @@ export default function ShopDashboard() {
 
           {shop.products && shop.products.length > 0 ? (
             <div className="grid gap-4">
-              {shop.products.map((product) => (
+              {shop.products.map((product) => {
+                const badges = sellerProductBadges(product);
+                return (
                 <div
                   key={product.id}
                   className="group flex flex-col xl:flex-row xl:items-center gap-4 p-4 min-w-0 rounded-xl bg-[#0a0a0a] border border-gray-800/50 hover:border-teal-500/30 transition-all duration-200"
@@ -370,26 +375,38 @@ export default function ShopDashboard() {
                       >
                         {product.name}
                       </h3>
-                      {product.moderationStatus === "PENDING" && (
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-500/10 text-blue-400 border border-blue-500/20">
-                          {tModeration("pendingBadge")}
-                        </span>
-                      )}
-                      {product.moderationStatus === "REJECTED" && (
+                      {/* Seller-facing status, from lib/seller-product-badges
+                          (presentation only; no gate reads it):
+                            rejected               → مرفوض
+                            file passed + approved → جاهز للبيع, on its own
+                            file passed, pending   → تم فحص الملف + بانتظار اعتماد المنتج
+                            checking or failed     → the file badge, with a retry when possible
+                            no file                → لا يوجد ملف, below */}
+                      {badges.includes("rejected") && (
                         <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-500/10 text-red-400 border border-red-500/20">
                           {tModeration("rejectedBadge")}
                         </span>
                       )}
-                      {/* File check state, separate from the moderation
-                          badge above: that one reports the listing review,
-                          this one reports the file. Uploaded, scanning,
-                          passed or failed, with a retry when one is
-                          possible; derived on the server. */}
-                      <FileScanState
-                        productId={product.id}
-                        value={product.fileState}
-                        onRetried={fetchShop}
-                      />
+                      {badges.includes("ready") && (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-teal-500/10 text-teal-400 border border-teal-500/20">
+                          <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} aria-hidden="true">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                          </svg>
+                          {t("readyToSell")}
+                        </span>
+                      )}
+                      {badges.includes("file_state") && (
+                        <FileScanState
+                          productId={product.id}
+                          value={product.fileState}
+                          onRetried={fetchShop}
+                        />
+                      )}
+                      {badges.includes("awaiting_approval") && (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                          {t("awaitingApproval")}
+                        </span>
+                      )}
                       {!product.hasFile && (
                         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-amber-500/10 text-amber-400 border border-amber-500/20">
                           <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -498,7 +515,8 @@ export default function ShopDashboard() {
                     </div>
                   </div>
                 </div>
-              ))}
+                );
+              })}
             </div>
           ) : (
             <div className="text-center py-12">
