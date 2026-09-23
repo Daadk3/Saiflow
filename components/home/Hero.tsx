@@ -46,12 +46,12 @@ export async function Hero() {
           </div>
 
           {/* The journey: creator and product, paid, downloaded */}
-          <div className="relative mx-auto w-full max-w-md" role="img" aria-label={t("mock.ariaLabel")}>
+          <div className="relative mx-auto w-full max-w-md lg:max-w-sm" role="img" aria-label={t("mock.ariaLabel")}>
             <div
               aria-hidden="true"
               className="absolute -inset-4 rounded-[36px] bg-gradient-to-br from-teal-500/20 via-transparent to-purple-500/15 blur-2xl"
             />
-            <div className="relative rounded-[28px] border border-gray-800 bg-[#111111] p-5 shadow-2xl shadow-black/60 sm:p-6">
+            <div className="relative rounded-[28px] border border-gray-800 bg-[#111111] p-5 shadow-2xl shadow-black/60 sm:p-6 lg:p-5">
               {/* Creator identity, generic on purpose */}
               <div className="mb-5 flex items-center justify-between gap-3">
                 <div className="flex items-center gap-3">
@@ -75,8 +75,8 @@ export async function Hero() {
 
               {/* One product */}
               <div className="rounded-2xl border border-gray-800 bg-[#0d0d0d] p-4">
-                <div className="mb-4 flex h-40 items-center justify-center rounded-xl border border-blue-500/30 bg-gradient-to-br from-blue-500/30 to-blue-900/10 text-blue-200">
-                  <IconBook className="h-12 w-12" />
+                <div className="mb-4 flex h-40 items-center justify-center rounded-xl border border-blue-500/30 bg-gradient-to-br from-blue-500/30 to-blue-900/10 text-blue-200 lg:h-32">
+                  <IconBook className="h-12 w-12 lg:h-10 lg:w-10" />
                 </div>
                 <p className="text-[11px] font-medium uppercase tracking-wide text-gray-500">{t("mock.productKind")}</p>
                 <div className="mt-1 flex items-center justify-between gap-3">

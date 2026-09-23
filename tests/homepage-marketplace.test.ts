@@ -64,7 +64,7 @@ describe("copy: one namespace, both locales, nothing fabricated", () => {
 
   test("the required Arabic copy is present verbatim", () => {
     const h = ar.home as Record<string, Record<string, string>>;
-    assert.equal(h.hero.title, "بع منتجك الرقمي. أو اكتشف منتجك القادم.");
+    assert.equal(h.hero.title, "ابدأ ببيع منتجك الرقمي، أو اكتشف منتجك القادم.");
     assert.equal(h.hero.primaryCta, "ابدأ البيع");
     assert.equal(h.hero.secondaryCta, "تصفح المنتجات");
     assert.equal(h.hero.trustLine, "متجر مجاني للبدء · دفع آمن · تسليم رقمي مباشر");
