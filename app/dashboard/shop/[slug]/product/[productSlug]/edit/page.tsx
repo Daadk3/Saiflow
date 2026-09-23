@@ -17,6 +17,9 @@ import CopyLinkButton from "@/components/CopyLinkButton";
 // must not enter this bundle. The server sends the derived string.
 import type { CreatorFileStatus } from "@/lib/creator-file-status";
 import { FileScanState, type FileScanStateView } from "@/components/FileScanState";
+// Live refresh of the file check only; see lib/scan-status-polling.
+import { isScanInProgress } from "@/lib/scan-status-polling";
+import { useScanStatusPolling } from "@/lib/use-scan-status-polling";
 
 interface Product {
   id: string;
@@ -87,6 +90,12 @@ export default function EditProductPage() {
     }
   }, [status, slug, productSlug, router]);
 
+  // Live refresh of the file check, only while its badge is on screen (the
+  // saved file is the one shown) and the check is still running.
+  const scanInProgress =
+    product !== null && fileUrl === product.fileUrl && isScanInProgress(fileState);
+  useScanStatusPolling(scanInProgress, refreshFileState);
+
   async function fetchProduct() {
     try {
       // First get the shop to find the product
@@ -141,6 +150,25 @@ export default function EditProductPage() {
     } finally {
       setLoading(false);
     }
+  }
+
+  /**
+   * Live refresh of the file check only (see lib/scan-status-polling).
+   *
+   * Reads the shop payload, the one place the derived state exists, and
+   * updates the two file fields. Deliberately NOT fetchProduct: that reloads
+   * the form from the server and would overwrite whatever the seller is
+   * typing. Silent on failure; the poller retries and stops on its own.
+   */
+  async function refreshFileState() {
+    if (!product) return;
+    const res = await fetch(`/api/shops/${slug}`);
+    if (!res.ok) return;
+    const shopData = await res.json();
+    const found = shopData.products?.find((p: Product) => p.id === product.id);
+    if (!found) return;
+    setFileSafety(found.fileSafety ?? null);
+    setFileState(found.fileState ?? null);
   }
 
   async function handleSubmit(e: React.FormEvent) {

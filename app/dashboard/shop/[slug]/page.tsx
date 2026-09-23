@@ -13,6 +13,10 @@ import { formatNumber } from "@/lib/formatNumber";
 // must not enter this bundle. The browser renders the string the API sends.
 import type { CreatorFileStatus } from "@/lib/creator-file-status";
 import { FileScanState, type FileScanStateView } from "@/components/FileScanState";
+// Live refresh while a file is being checked: the poller decides WHEN, the
+// page's own reload decides WHAT, and neither can write anything.
+import { hasScanInProgress } from "@/lib/scan-status-polling";
+import { useScanStatusPolling } from "@/lib/use-scan-status-polling";
 // The permanent public address is built from a pinned origin, never from
 // window.location: this dashboard renders identically on a Vercel Preview,
 // where the current location is a *.vercel.app host that dies with the
@@ -85,6 +89,11 @@ export default function ShopDashboard() {
     }
   }, [status, slug, router]);
 
+  // True while any product's file is still uploaded or scanning. Drives both
+  // the review notice below and the live refresh; passed and failed end it.
+  const scanInProgress = hasScanInProgress((shop?.products ?? []).map((p) => p.fileState));
+  useScanStatusPolling(scanInProgress, refreshShop);
+
   async function fetchShop() {
     try {
       const res = await fetch(`/api/shops/${slug}`);
@@ -101,6 +110,33 @@ export default function ShopDashboard() {
     } finally {
       setLoading(false);
     }
+  }
+
+  /**
+   * Live refresh while a file is being checked (see lib/scan-status-polling).
+   *
+   * The same GET as fetchShop, but it merges only each product's file fields
+   * and is silent on failure: the poller retries on its own schedule and
+   * stops by itself, and a transient error must not swap the whole dashboard
+   * for the error screen. Nothing here is written to the server.
+   */
+  async function refreshShop() {
+    const res = await fetch(`/api/shops/${slug}`);
+    if (!res.ok) return;
+    const data: Shop = await res.json();
+    const byId = new Map((data.products ?? []).map((p) => [p.id, p] as const));
+    setShop((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        products: (prev.products ?? []).map((p) => {
+          const next = byId.get(p.id);
+          return next
+            ? { ...p, hasFile: next.hasFile, fileSafety: next.fileSafety, fileState: next.fileState }
+            : p;
+        }),
+      };
+    });
   }
 
   async function handleDeleteProduct(productId: string) {
@@ -261,8 +297,10 @@ export default function ShopDashboard() {
             than behind a separate success step. It appears only while at least
             one file is still being checked, and disappears on its own once the
             checks finish; there is nothing for the creator to dismiss or act
-            on. Logical properties (ps-*, text-start) keep it correct in RTL. */}
-        {shop.products?.some((p) => p.fileState?.state === "scanning" || p.fileState?.state === "uploaded") && (
+            on. While it is shown the page refreshes itself, so the finish
+            is seen without a reload (useScanStatusPolling above). Logical
+            properties (ps-*, text-start) keep it correct in RTL. */}
+        {scanInProgress && (
           <div
             role="status"
             className="mb-6 rounded-xl border border-blue-500/20 bg-blue-500/5 p-5 text-start"
