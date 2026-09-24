@@ -15,6 +15,7 @@ import {
   type ModeratorFileSafety,
 } from "@/lib/moderator-file-status";
 import type { ModerationStatus, Prisma } from "@prisma/client";
+import { fromHalalas, parseMoney } from "@/lib/pricing";
 
 /* ------------------------------------------------------------------ */
 /* Review-source rule                                                  */
@@ -60,8 +61,41 @@ export interface FounderStats {
   missingFile: { id: string; name: string; slug: string; shopSlug: string }[];
   /** Rolling 24h pulse. */
   pulse: { newUsers: number; newProducts: number; newShops: number; newReports: number };
-  /** Labelled, excluded from any revenue math (which we never do). */
+  /** TEST-environment orders: labelled, never revenue. */
   testOrders: number;
+  /**
+   * Money, by environment, from the Order snapshots lib/pricing wrote.
+   * REAL is PRODUCTION only. Two-decimal strings; nothing here is a float.
+   * An order that predates the commission counts toward gross and nothing else.
+   */
+  revenue: {
+    real: { orders: number; gross: string; commission: string; net: string };
+    test: { orders: number; gross: string };
+  };
+}
+
+type RevenueRow = {
+  paymentEnvironment: string;
+  _count: { _all: number };
+  _sum: { price: unknown; platformFeeAmount: unknown; sellerNetAmount: unknown };
+};
+
+function revenueFor(rows: RevenueRow[], environment: string) {
+  const row = rows.find((r) => r.paymentEnvironment === environment);
+  // A database SUM has no product ceiling and is never coerced: an aggregate
+  // that does not read as money is an integrity failure worth a loud error,
+  // not a zero on the founder's screen.
+  const amount = (value: unknown) => {
+    const halalas = parseMoney(value ?? 0);
+    if (halalas === null) throw new Error(`[admin-stats] unreadable revenue aggregate for ${environment}`);
+    return fromHalalas(halalas);
+  };
+  return {
+    orders: row?._count._all ?? 0,
+    gross: amount(row?._sum.price),
+    commission: amount(row?._sum.platformFeeAmount),
+    net: amount(row?._sum.sellerNetAmount),
+  };
 }
 
 export async function getFounderStats(): Promise<FounderStats> {
@@ -82,6 +116,7 @@ export async function getFounderStats(): Promise<FounderStats> {
     newShops,
     newReports,
     testOrders,
+    revenueRows,
   ] = await prisma.$transaction([
     prisma.user.count(),
     prisma.shopUser.findMany({ distinct: ["userId"], select: { userId: true } }),
@@ -103,7 +138,13 @@ export async function getFounderStats(): Promise<FounderStats> {
     prisma.product.count({ where: { createdAt: { gte: since } } }),
     prisma.shop.count({ where: { createdAt: { gte: since } } }),
     prisma.moderationEvent.count({ where: { action: "REPORTED", createdAt: { gte: since } } }),
-    prisma.order.count({ where: { stripeSessionId: { startsWith: "cs_test_" } } }),
+    prisma.order.count({ where: { paymentEnvironment: "TEST" } }),
+    prisma.order.groupBy({
+      by: ["paymentEnvironment"],
+      orderBy: { paymentEnvironment: "asc" },
+      _count: { _all: true },
+      _sum: { price: true, platformFeeAmount: true, sellerNetAmount: true },
+    }),
   ]);
 
   const byStatus: Record<ModerationStatus, number> = {
@@ -128,6 +169,10 @@ export async function getFounderStats(): Promise<FounderStats> {
     })),
     pulse: { newUsers, newProducts, newShops, newReports },
     testOrders,
+    revenue: {
+      real: revenueFor(revenueRows as RevenueRow[], "PRODUCTION"),
+      test: (({ orders, gross }) => ({ orders, gross }))(revenueFor(revenueRows as RevenueRow[], "TEST")),
+    },
   };
 }
 

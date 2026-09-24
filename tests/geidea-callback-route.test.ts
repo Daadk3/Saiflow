@@ -25,6 +25,7 @@ import { test, describe, before, beforeEach, mock } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { signCallback } from "../lib/payments/geidea/signature.ts";
+import { COMMISSION_VERSION, fromHalalas, saleBreakdown } from "../lib/pricing.ts";
 
 /* ------------------------------------------------------------------ */
 /* Fixtures — none of these is a real credential                       */
@@ -1203,5 +1204,43 @@ describe("a fulfilled purchase notifies the seller and the founder", () => {
     assert.notEqual(res.body.result, "fulfilled");
     assert.equal(db.orders.length, 0);
     assert.equal(notifications.length, 0);
+  });
+});
+
+/* ------------------------------------------------------------------ */
+/* The commission snapshot                                              */
+/* ------------------------------------------------------------------ */
+
+describe("a fulfilled Order carries the commission split", () => {
+  test("gross, SaiFlow's commission and the seller's share, from lib/pricing, summing exactly", async () => {
+    seed();
+    const res = await post(callback());
+    assert.equal(res.body.result, "fulfilled");
+    const row = db.orders[0];
+    assert.equal(row.price, "1.00");
+    assert.equal(row.grossAmount, "1.00");
+    assert.equal(row.platformFeeAmount, "0.07");
+    assert.equal(row.sellerNetAmount, "0.93");
+    assert.equal(row.commissionRateBps, 700);
+    assert.equal(row.commissionVersion, COMMISSION_VERSION);
+    const split = saleBreakdown(session().amount)!;
+    assert.equal(row.grossAmount, fromHalalas(split.grossHalalas), "parity with the calculator");
+    assert.equal(row.platformFeeAmount, fromHalalas(split.commissionHalalas));
+    assert.equal(row.sellerNetAmount, fromHalalas(split.sellerNetHalalas));
+    assert.equal(split.commissionHalalas + split.sellerNetHalalas, split.grossHalalas);
+  });
+
+  test("the snapshot is written in the same transaction as the Order, and a repeated delivery does not rewrite it", async () => {
+    seed();
+    await post(callback());
+    const write = writes.find((w) => w.model === "order" && w.op === "create")!;
+    assert.equal(write.inTransaction, true);
+    assert.deepEqual(
+      Object.keys(write.data).filter((k) => k.endsWith("Amount") || k.startsWith("commission")).sort(),
+      ["commissionRateBps", "commissionVersion", "grossAmount", "platformFeeAmount", "sellerNetAmount"]
+    );
+    await post(callback());
+    assert.equal(db.orders.length, 1);
+    assert.equal(db.orders[0].sellerNetAmount, "0.93");
   });
 });

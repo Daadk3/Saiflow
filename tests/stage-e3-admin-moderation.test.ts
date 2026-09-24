@@ -448,6 +448,7 @@ const calls = {
 };
 const state = { product: null as unknown, directoryRows: [] as unknown[] };
 
+const revenueState = { rows: [] as Record<string, unknown>[] };
 let getAdminProductPreview: (id: string) => Promise<Record<string, unknown> | null>;
 let getProductsDirectory: (o: Record<string, unknown>) => Promise<{
   rows: Record<string, unknown>[];
@@ -475,7 +476,7 @@ before(async () => {
         shop: { count: async () => 0 },
         shopUser: { findMany: async () => [] },
         moderationEvent: { count: async () => 0 },
-        order: { count: async () => 0 },
+        order: { count: async () => 0, groupBy: async () => revenueState.rows },
       },
     },
   });
@@ -766,5 +767,56 @@ describe("the overview's missing-file list keys on the storage key", () => {
     assert.ok("fileKey" in where, "must key on fileKey");
     assert.equal(where.fileKey, null);
     assert.ok(!("fileUrl" in where), "must not key on the legacy column");
+  });
+});
+
+describe("the founder's revenue view is split by environment, in exact halalas", () => {
+  test("PRODUCTION is real; TEST is labelled and never added to it", async () => {
+    revenueState.rows = [
+      { paymentEnvironment: "PRODUCTION", _count: { _all: 2 }, _sum: { price: "150.00", platformFeeAmount: "10.50", sellerNetAmount: "139.50" } },
+      { paymentEnvironment: "TEST", _count: { _all: 3 }, _sum: { price: "3.00", platformFeeAmount: "0.21", sellerNetAmount: "2.79" } },
+    ];
+    const stats = (await getFounderStats()) as { revenue: Record<string, Record<string, unknown>> };
+    assert.deepEqual(stats.revenue, {
+      real: { orders: 2, gross: "150.00", commission: "10.50", net: "139.50" },
+      test: { orders: 3, gross: "3.00" },
+    });
+  });
+
+  test("with no orders at all, every figure is an exact zero", async () => {
+    revenueState.rows = [];
+    const stats = (await getFounderStats()) as { revenue: Record<string, Record<string, unknown>> };
+    assert.deepEqual(stats.revenue, { real: { orders: 0, gross: "0.00", commission: "0.00", net: "0.00" }, test: { orders: 0, gross: "0.00" } });
+  });
+
+  test("orders that predate the commission count toward gross and nothing else", async () => {
+    revenueState.rows = [{ paymentEnvironment: "PRODUCTION", _count: { _all: 1 }, _sum: { price: "50.00", platformFeeAmount: null, sellerNetAmount: null } }];
+    const stats = (await getFounderStats()) as { revenue: Record<string, Record<string, unknown>> };
+    assert.deepEqual(stats.revenue.real, { orders: 1, gross: "50.00", commission: "0.00", net: "0.00" });
+  });
+});
+
+describe("the founder's revenue aggregates have no product ceiling and are never coerced", () => {
+  test("150,000 and 1,000,000 SAR sums read exactly", async () => {
+    revenueState.rows = [
+      { paymentEnvironment: "PRODUCTION", _count: { _all: 12 }, _sum: { price: "1000000.00", platformFeeAmount: "70000.00", sellerNetAmount: "930000.00" } },
+      { paymentEnvironment: "TEST", _count: { _all: 2 }, _sum: { price: "150000.00", platformFeeAmount: "10500.00", sellerNetAmount: "139500.00" } },
+    ];
+    const stats = (await getFounderStats()) as { revenue: Record<string, Record<string, unknown>> };
+    assert.deepEqual(stats.revenue, {
+      real: { orders: 12, gross: "1000000.00", commission: "70000.00", net: "930000.00" },
+      test: { orders: 2, gross: "150000.00" },
+    });
+  });
+
+  test("one halala over the ceiling, and a Decimal sum with one place, read exactly", async () => {
+    revenueState.rows = [{ paymentEnvironment: "PRODUCTION", _count: { _all: 1 }, _sum: { price: { toString: () => "100000.01" }, platformFeeAmount: { toString: () => "7000" }, sellerNetAmount: { toString: () => "93000.1" } } }];
+    const stats = (await getFounderStats()) as { revenue: Record<string, Record<string, unknown>> };
+    assert.deepEqual(stats.revenue.real, { orders: 1, gross: "100000.01", commission: "7000.00", net: "93000.10" });
+  });
+
+  test("an aggregate that does not read as money fails loudly instead of showing zero", async () => {
+    revenueState.rows = [{ paymentEnvironment: "PRODUCTION", _count: { _all: 1 }, _sum: { price: "not-money", platformFeeAmount: null, sellerNetAmount: null } }];
+    await assert.rejects(() => getFounderStats(), /unreadable revenue aggregate/);
   });
 });

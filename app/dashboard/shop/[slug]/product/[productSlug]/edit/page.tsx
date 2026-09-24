@@ -13,6 +13,7 @@ import { PRODUCT_CATEGORIES, CATEGORY_LABEL_KEYS } from "@/lib/categories";
 import { productUrl } from "@/lib/site-url";
 import { productLinkStatus, productLinkStatusKey } from "@/lib/product-link-status";
 import CopyLinkButton from "@/components/CopyLinkButton";
+import { PriceBreakdown } from "@/components/PriceBreakdown";
 // TYPE ONLY — lib/creator-file-status builds a Prisma clause at load and
 // must not enter this bundle. The server sends the derived string.
 import type { CreatorFileStatus } from "@/lib/creator-file-status";
@@ -437,6 +438,10 @@ export default function EditProductPage() {
                   />
                 </div>
                 <p className="mt-1 text-xs text-gray-500">{t("dashboard.product.priceHelp")}</p>
+                {/* What this price means for the seller, live, from lib/pricing:
+                    the buyer's price, SaiFlow's commission, the seller's share.
+                    The server snapshots the same split when an order is fulfilled. */}
+                <PriceBreakdown price={price} />
               </div>
 
               {/* Category */}

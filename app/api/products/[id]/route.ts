@@ -16,6 +16,7 @@ import {
 } from "@/lib/file-safety";
 import { scheduleScan } from "@/lib/scan/schedule";
 import { announceReadyAtAttach } from "@/lib/scan/announce";
+import { priceProblemMessage, validatePrice } from "@/lib/pricing";
 
 // A replacement file schedules its scan to run after the response is sent;
 // see app/api/products/route.ts for why this route carries the worker's budget.
@@ -107,6 +108,18 @@ export async function PUT(
 
     if (category && !isProductCategory(category)) {
       return NextResponse.json({ error: "Invalid category" }, { status: 400 });
+    }
+
+    // A submitted price goes through the same validator as on create. This
+    // route used to write whatever it was sent, so a negative, oversized or
+    // three-decimal price could reach the row here and nowhere else.
+    let nextPrice: string | undefined;
+    if (price !== undefined) {
+      const priceCheck = validatePrice(price);
+      if (!priceCheck.ok) {
+        return NextResponse.json({ error: priceProblemMessage(priceCheck.reason) }, { status: 400 });
+      }
+      nextPrice = priceCheck.price;
     }
 
     /**
@@ -288,7 +301,7 @@ export async function PUT(
       data: {
         name: name || product.name,
         description: description !== undefined ? description : product.description,
-        price: price !== undefined ? price : product.price,
+        price: nextPrice !== undefined ? nextPrice : product.price,
         category: category !== undefined ? (category || null) : product.category,
         fileUrl: fileUrl !== undefined ? fileUrl || null : product.fileUrl,
         thumbnailUrl:

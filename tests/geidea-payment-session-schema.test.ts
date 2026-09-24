@@ -377,11 +377,17 @@ describe("test and production payment records can be distinguished", () => {
 /* ------------------------------------------------------------------ */
 
 describe("the migration is additive and matches the schema", () => {
-  test("it is the newest migration", () => {
+  test("it is present, and everything after it is additive too", () => {
+    // The commission snapshot (add_order_commission_snapshot) followed it;
+    // that migration is nullable-only and is checked in commission-ux.
     const dirs = readdirSync(new URL("../prisma/migrations", import.meta.url))
       .filter((d) => /^\d{14}_/.test(d))
       .sort();
-    assert.equal(dirs[dirs.length - 1], MIGRATION_DIR);
+    assert.ok(dirs.includes(MIGRATION_DIR));
+    for (const later of dirs.slice(dirs.indexOf(MIGRATION_DIR) + 1)) {
+      const sql = readFileSync(new URL(`../prisma/migrations/${later}/migration.sql`, import.meta.url), "utf8");
+      assert.ok(!/\b(UPDATE|DELETE|TRUNCATE|DROP|NOT NULL)\b/i.test(sql.replace(/--[^\n]*/g, "")), `${later} is not additive`);
+    }
   });
 
   test("every statement is one of the additive kinds", () => {

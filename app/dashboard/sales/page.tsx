@@ -17,6 +17,14 @@ interface Order {
   customerEmail: string;
   stripeSessionId: string;
   createdAt: string;
+  /** TEST orders are shown, labelled, and never counted. */
+  isTest: boolean;
+  /** The row could not be read as money; it is shown as such and never counted. */
+  unreadable: boolean;
+  /** Two-decimal strings from lib/pricing; null when the order predates the commission. */
+  gross: string | null;
+  commission: string | null;
+  net: string | null;
   product: {
     currency: string;
     shop: {
@@ -26,8 +34,14 @@ interface Order {
   };
 }
 
+interface RevenueTotals {
+  real: { orders: number; gross: string; commission: string; net: string; unsplit: number; unreadable: number };
+  test: { orders: number; gross: string; unreadable: number };
+}
+
 interface OrdersData {
   orders: Order[];
+  totals?: RevenueTotals;
   totalRevenue: number;
   totalSales: number;
 }
@@ -45,6 +59,12 @@ export default function SalesPage() {
   const revenueCurrencies = new Set((data?.orders || []).map((o) => o.product.currency || "SAR"));
   const revenueIsMixed = revenueCurrencies.size > 1;
   const revenueCurrency = revenueCurrencies.size === 1 ? [...revenueCurrencies][0] : "SAR";
+  // Real orders only, split by lib/pricing on the server. Display only here.
+  const real = data?.totals?.real ?? { orders: 0, gross: "0.00", commission: "0.00", net: "0.00", unsplit: 0, unreadable: 0 };
+  const testOrders = data?.totals?.test.orders ?? 0;
+  const unreadable = real.unreadable + (data?.totals?.test.unreadable ?? 0);
+  const money = (amount: string, currency: string) =>
+    revenueIsMixed ? t("mixedCurrency") : <bdi>{formatPrice(Number(amount), currency, locale)}</bdi>;
 
   useEffect(() => {
     if (status === "unauthenticated") {
@@ -117,15 +137,22 @@ export default function SalesPage() {
           <p className="text-gray-500 mt-1">{t("sales.subtitle")}</p>
         </div>
 
-        {/* Stats cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+        {/* Stats cards: gross, SaiFlow's commission, the seller's share, count.
+            REAL orders only; test orders are listed below but never counted. */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-3">
           <div className="bg-[#111111] p-6 rounded-xl border border-gray-800 shadow-sm">
+            <p className="text-gray-400 text-sm">{t("sales.grossSales")}</p>
+            <p className="text-2xl font-bold text-white mt-1 tabular-nums">{money(real.gross, revenueCurrency)}</p>
+          </div>
+          <div className="bg-[#111111] p-6 rounded-xl border border-gray-800 shadow-sm">
+            <p className="text-gray-400 text-sm">{t("sales.commission")}</p>
+            <p className="text-2xl font-bold text-gray-300 mt-1 tabular-nums">{money(real.commission, revenueCurrency)}</p>
+          </div>
+          <div className="bg-[#111111] p-6 rounded-xl border border-teal-500/30 shadow-sm">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-gray-400 text-sm">{t("totalRevenue")}</p>
-                <p className="text-3xl font-bold text-white mt-1">
-                  {revenueIsMixed ? t("mixedCurrency") : <bdi>{formatPrice(Number(data?.totalRevenue || 0), revenueCurrency, locale)}</bdi>}
-                </p>
+                <p className="text-gray-400 text-sm">{t("sales.netEarnings")}</p>
+                <p className="text-2xl font-bold text-teal-400 mt-1 tabular-nums">{money(real.net, revenueCurrency)}</p>
               </div>
               <div className="w-12 h-12 rounded-xl bg-teal-500/10 flex items-center justify-center text-teal-400">
                 <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -141,14 +168,15 @@ export default function SalesPage() {
           </div>
 
           <div className="bg-[#111111] p-6 rounded-xl border border-gray-800 shadow-sm">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-gray-400 text-sm">{t("totalSales")}</p>
-                <p className="text-3xl font-bold text-white mt-1">{formatNumber(data?.totalSales || 0, locale)}</p>
-              </div>
-            </div>
+            <p className="text-gray-400 text-sm">{t("sales.realOrders")}</p>
+            <p className="text-2xl font-bold text-white mt-1 tabular-nums">{formatNumber(real.orders, locale)}</p>
           </div>
         </div>
+        <p className="mb-8 text-xs text-gray-500">
+          {t("sales.realOnlyNote")}
+          {testOrders > 0 && <> · {t("sales.testOrdersCount", { count: formatNumber(testOrders, locale) })}</>}
+          {unreadable > 0 && <> · <span className="text-amber-400">{t("sales.unreadableNote", { count: formatNumber(unreadable, locale) })}</span></>}
+        </p>
 
         {/* Orders table */}
         <div className="bg-[#111111] rounded-xl border border-gray-800 overflow-hidden">
@@ -176,11 +204,17 @@ export default function SalesPage() {
                     <th className="text-end text-xs font-medium text-gray-500 uppercase tracking-wider px-6 py-3">
                       {t("sales.colAmount")}
                     </th>
+                    <th className="text-end text-xs font-medium text-gray-500 uppercase tracking-wider px-6 py-3">
+                      {t("sales.colCommission")}
+                    </th>
+                    <th className="text-end text-xs font-medium text-gray-500 uppercase tracking-wider px-6 py-3">
+                      {t("sales.colNet")}
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
                   {data.orders.map((order) => (
-                    <tr key={order.id} className="border-b border-gray-800 hover:bg-gray-800/50 transition-colors">
+                    <tr key={order.id} className={`border-b border-gray-800 hover:bg-gray-800/50 transition-colors ${order.isTest ? "text-gray-500" : ""}`}>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         {formatDate(order.createdAt, locale, {
                           year: "numeric",
@@ -204,8 +238,19 @@ export default function SalesPage() {
                           {order.product.shop.name}
                         </Link>
                       </td>
-                      <td className="px-6 py-4 text-end text-sm font-semibold text-teal-400">
-                        <bdi>{formatPrice(Number(order.price), order.product.currency, locale)}</bdi>
+                      <td className="px-6 py-4 text-end text-sm font-semibold text-gray-200 whitespace-nowrap">
+                        {order.isTest && (
+                          <span className="me-2 inline-flex items-center rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-[11px] font-medium text-amber-400 align-middle">
+                            {t("sales.testBadge")}
+                          </span>
+                        )}
+                        {order.gross === null ? <span title={t("sales.unreadableRow")}>—</span> : <bdi>{formatPrice(Number(order.gross), order.product.currency, locale)}</bdi>}
+                      </td>
+                      <td className="px-6 py-4 text-end text-sm text-gray-400 whitespace-nowrap">
+                        {order.commission === null ? <span title={t("sales.noSplit")}>—</span> : <bdi>{formatPrice(Number(order.commission), order.product.currency, locale)}</bdi>}
+                      </td>
+                      <td className={`px-6 py-4 text-end text-sm font-semibold whitespace-nowrap ${order.isTest ? "text-gray-500" : "text-teal-400"}`}>
+                        {order.net === null ? <span title={t("sales.noSplit")}>—</span> : <bdi>{formatPrice(Number(order.net), order.product.currency, locale)}</bdi>}
                       </td>
                     </tr>
                   ))}

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import Stripe from "stripe";
 import { prisma } from "@/lib/prisma";
 import { sendPurchaseEmail } from "@/lib/email";
+import { fromHalalas, saleBreakdown } from "@/lib/pricing";
 
 // Lazy init: Stripe env vars are optional in pre-launch, so a module-level
 // `new Stripe(...)` would crash builds/deploys that omit them.
@@ -170,6 +171,11 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
   // Get customer email
   const customerEmail = session.customer_details?.email || session.customer_email || "unknown@example.com";
 
+  // The commission split, from lib/pricing, so even this dormant path
+  // writes the same three amounts as the live one.
+  const split = saleBreakdown(product.price);
+  if (!split) throw new Error(`Unparseable price for product: ${productId}`);
+
   // Create the order
   const order = await prisma.order.create({
     data: {
@@ -178,6 +184,11 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
       price: product.price,
       customerEmail,
       stripeSessionId: session.id,
+      grossAmount: fromHalalas(split.grossHalalas),
+      platformFeeAmount: fromHalalas(split.commissionHalalas),
+      sellerNetAmount: fromHalalas(split.sellerNetHalalas),
+      commissionRateBps: split.rateBps,
+      commissionVersion: split.version,
     },
   });
 

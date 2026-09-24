@@ -776,3 +776,82 @@ describe("product creation is rate limited per account", () => {
     }
   });
 });
+
+/* ------------------------------------------------------------------ */
+/* Create and edit validate the price identically                      */
+/* ------------------------------------------------------------------ */
+
+describe("create and edit validate the price identically", () => {
+  useRealClock();
+  beforeEach(() => {
+    state.session = { user: { email: "price-parity@saiflow.test", id: "user_owner" } };
+    state.existing = {
+      id: "prod_1",
+      name: "Habits check",
+      description: null,
+      price: 1,
+      category: null,
+      shopId: "shop_1",
+      fileUrl: fileUrl(KEY),
+      fileKey: KEY,
+      thumbnailUrl: null,
+      fileScanStatus: "SAFE",
+      fileScanKey: KEY,
+      shop: { id: "shop_1", shopUsers: [{ userId: "user_owner" }] },
+    };
+  });
+
+  const cases: Array<[unknown, number, string | null]> = [
+    [1, 200, "1.00"],
+    [10.5, 200, "10.50"],
+    ["12.34", 200, "12.34"],
+    [0, 200, "0.00"],
+    [100000, 200, "100000.00"],
+    [100000.01, 400, "Price must be between 0 and 100,000 SAR"],
+    [150000, 400, "Price must be between 0 and 100,000 SAR"],
+    [-1, 400, "Price must be between 0 and 100,000 SAR"],
+    [10.005, 400, "Price must have at most two decimal places"],
+    ["1.234", 400, "Price must have at most two decimal places"],
+    ["abc", 400, "Price must be a valid amount in SAR"],
+    ["1e3", 400, "Price must be a valid amount in SAR"],
+    [null, 400, "Price is required"],
+    ["", 400, "Price is required"],
+  ];
+
+  test("the same input gets the same verdict and the same words on both routes", async () => {
+    for (const [price, expected, detail] of cases) {
+      const created = await CREATE(createReq({ price }));
+      const edited = await REPLACE(replaceReq({ price }), ctx);
+      const createdBody = (await created.json()) as Record<string, unknown>;
+      const editedBody = (await edited.json()) as Record<string, unknown>;
+      assert.equal(created.status, expected === 200 ? 201 : expected, `create ${String(price)}: ${JSON.stringify(createdBody)}`);
+      assert.equal(edited.status, expected, `edit ${String(price)}: ${JSON.stringify(editedBody)}`);
+      if (expected === 400 && (price === null || price === "")) {
+        // A missing price is a missing REQUIRED field on create, which has its
+        // own pre-existing wording for the trio; edit only knows the price.
+        assert.match(String(createdBody.error), /price/i, `create ${String(price)}`);
+        assert.equal(editedBody.error, detail, `edit ${String(price)}`);
+      } else if (expected === 400) {
+        assert.equal(createdBody.error, detail, `create ${String(price)}`);
+        assert.equal(editedBody.error, detail, `edit ${String(price)}`);
+      } else {
+        assert.equal(state.created[state.created.length - 1].price, detail, `create stores the exact two-decimal string for ${String(price)}`);
+        assert.equal(state.updated[state.updated.length - 1].price, detail, `edit stores the exact two-decimal string for ${String(price)}`);
+      }
+    }
+  });
+
+  test("a refused price writes nothing on either route", async () => {
+    const before = { created: state.created.length, updated: state.updated.length };
+    await CREATE(createReq({ price: 150000 }));
+    await REPLACE(replaceReq({ price: -5 }), ctx);
+    assert.equal(state.created.length, before.created);
+    assert.equal(state.updated.length, before.updated);
+  });
+
+  test("an edit that does not mention the price keeps the stored one", async () => {
+    const res = await REPLACE(replaceReq({ name: "Renamed" }), ctx);
+    assert.equal(res.status, 200, await res.text());
+    assert.equal(state.updated[state.updated.length - 1].price, 1, "untouched");
+  });
+});

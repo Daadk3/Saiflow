@@ -396,6 +396,26 @@ model Order {
   /// Which provider account took the money. TEST rows are never revenue.
   paymentEnvironment  PaymentEnvironment @default(TEST)
   currency            String             @default("SAR")
+
+  // ---------------------------------------------------------------------
+  // Money split, snapshotted at fulfilment by lib/pricing.
+  //
+  // Nullable on purpose: every Order written before the commission existed
+  // carries no split and is never reinterpreted. A new write path sets all
+  // five together, and grossAmount = platformFeeAmount + sellerNetAmount
+  // holds exactly, in halalas, by construction.
+  // ---------------------------------------------------------------------
+  /// What the buyer paid: the same value as `price`, kept beside the split
+  /// so the three amounts read as one record.
+  grossAmount         Decimal?           @db.Decimal(10, 2)
+  /// SaiFlow's commission on this order.
+  platformFeeAmount   Decimal?           @db.Decimal(10, 2)
+  /// What the seller is owed for this order. Processor fees are SaiFlow's
+  /// own cost and are not deducted here.
+  sellerNetAmount     Decimal?           @db.Decimal(10, 2)
+  /// The rate applied, in basis points (700 = 7%), and the rule version.
+  commissionRateBps   Int?
+  commissionVersion   String?
   createdAt       DateTime @default(now())
 
   product        Product         @relation(fields: [productId], references: [id], onDelete: Cascade)

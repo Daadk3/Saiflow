@@ -62,6 +62,7 @@ import { env } from "@/lib/env";
 import { sendPurchaseEmail } from "@/lib/email";
 import { runAfterResponse } from "@/lib/after-response";
 import { notifySaleFulfilled } from "@/lib/notify";
+import { fromHalalas, saleBreakdown } from "@/lib/pricing";
 import {
   geideaMode,
   getOrder,
@@ -478,6 +479,14 @@ async function fulfil(
       });
       if (!product) throw new FulfilmentBlocked("product_missing");
 
+      // The money split, from the amount actually paid. lib/pricing is the
+      // one place that computes it, so this row and the seller's calculator
+      // cannot disagree, and the three amounts sum exactly by construction.
+      // An amount that cannot be parsed is not a paid order we understand:
+      // refuse rather than record a purchase with no split.
+      const split = saleBreakdown(session.amount);
+      if (!split) throw new FulfilmentBlocked("amount_unparseable");
+
       const created = await tx.order.create({
         data: {
           productId: session.productId,
@@ -492,6 +501,11 @@ async function fulfil(
           merchantReferenceId: session.merchantReferenceId,
           paymentEnvironment: mode,
           currency: session.currency,
+          grossAmount: fromHalalas(split.grossHalalas),
+          platformFeeAmount: fromHalalas(split.commissionHalalas),
+          sellerNetAmount: fromHalalas(split.sellerNetHalalas),
+          commissionRateBps: split.rateBps,
+          commissionVersion: split.version,
         },
         select: { id: true },
       });

@@ -13,6 +13,7 @@ import {
 import { isProductCategory } from "@/lib/categories";
 import { scheduleScan } from "@/lib/scan/schedule";
 import { announceReadyAtAttach } from "@/lib/scan/announce";
+import { priceProblemMessage, validatePrice } from "@/lib/pricing";
 import { accountKey, rateLimiters, retryAfterSeconds } from "@/lib/rate-limit";
 
 // Attaching a file schedules its scan to run after this response is sent;
@@ -68,12 +69,12 @@ export async function POST(req: Request) {
         { status: 400 }
       );
     }
-    const numericPrice = Number(price);
-    if (!Number.isFinite(numericPrice) || numericPrice < 0 || numericPrice > 100000) {
-      return NextResponse.json(
-        { error: "Price must be between 0 and 100,000 SAR" },
-        { status: 400 }
-      );
+    // The one price validator (lib/pricing): exact halalas, two decimals at
+    // most, within the ceiling. The edit route uses the same one, so the two
+    // cannot disagree, and the stored value is the exact two-decimal string.
+    const priceCheck = validatePrice(price);
+    if (!priceCheck.ok) {
+      return NextResponse.json({ error: priceProblemMessage(priceCheck.reason) }, { status: 400 });
     }
     if (description !== undefined && description !== null && (typeof description !== "string" || description.length > 10000)) {
       return NextResponse.json(
@@ -181,7 +182,7 @@ export async function POST(req: Request) {
           name: name.trim(),
           slug,
           description,
-          price: numericPrice,
+          price: priceCheck.price,
           category: category || null,
           shopId,
           fileUrl,

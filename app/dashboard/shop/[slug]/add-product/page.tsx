@@ -9,6 +9,7 @@ import { useTranslations } from "next-intl";
 import { UploadButton } from "@/lib/uploadthing";
 import { PRODUCT_CATEGORIES, CATEGORY_LABEL_KEYS, type ProductCategory } from "@/lib/categories";
 import ListingAssistant from "@/components/ai/ListingAssistant";
+import { PriceBreakdown } from "@/components/PriceBreakdown";
 
 export default function AddProductPage() {
   const t = useTranslations();
@@ -294,6 +295,10 @@ export default function AddProductPage() {
                   />
                 </div>
                 <p className="mt-1 text-xs text-gray-500">{t("dashboard.product.priceHelp")}</p>
+                {/* What this price means for the seller, live, from lib/pricing:
+                    the buyer's price, SaiFlow's commission, the seller's share.
+                    The server snapshots the same split when an order is fulfilled. */}
+                <PriceBreakdown price={price} />
               </div>
 
               {/* Category */}

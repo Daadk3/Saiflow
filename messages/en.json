@@ -207,6 +207,7 @@
     "yourShops": "Your shops",
     "totalProducts": "Total products",
     "totalSales": "Total sales",
+    "netEarnings": "Your earnings",
     "totalRevenue": "Total revenue",
     "addProduct": "Add product",
     "editShop": "Edit shop",
@@ -302,6 +303,18 @@
       "colCustomer": "Customer",
       "colShop": "Shop",
       "colAmount": "Amount",
+      "grossSales": "Gross sales",
+      "commission": "SaiFlow commission",
+      "netEarnings": "Your earnings",
+      "realOrders": "Real sales",
+      "realOnlyNote": "Totals cover real orders only; test orders are excluded.",
+      "testOrdersCount": "Test orders: {count}",
+      "testBadge": "Test",
+      "colCommission": "Commission",
+      "colNet": "Your earnings",
+      "noSplit": "Before commission",
+      "unreadableNote": "{count} orders could not be read and are not counted.",
+      "unreadableRow": "This order's amount could not be read",
       "emptyState": "No sales yet. When you make your first sale, the details will appear here."
     },
     "product": {
@@ -325,6 +338,7 @@
       "fileUploadedBadge": "File uploaded!",
       "fileReadyBadge": "Ready to go",
       "currencySymbol": "SAR",
+      "breakdown": { "salePrice": "Sale price", "commission": "SaiFlow commission ({rate})", "earnings": "Your earnings", "hint": "Enter a price to see your earnings" },
       "priceHelp": "Price in SAR",
       "add": {
         "heading": "Add New Product",
@@ -425,7 +439,7 @@
   },
   "meta": {
     "title": "Saiflow — The Arabic-Language Digital Products Marketplace",
-    "description": "The marketplace where creators sell their knowledge in Arabic. Sell ebooks, courses, templates and more. Keep 95% of every sale. Start free."
+    "description": "The marketplace where creators sell their knowledge in Arabic. Sell ebooks, courses, templates and more. SaiFlow commission: 7%. Start free."
   },
   "trustBadges": {
     "secureTitle": "Secure checkout",
@@ -819,6 +833,12 @@
       "disabled": "Payments are not enabled.",
       "revenue": "Real revenue:",
       "liveOrders": "Live orders:",
+      "gross": "Real gross sales:",
+      "commission": "SaiFlow commission:",
+      "net": "Sellers' net:",
+      "realOrders": "Real orders:",
+      "testGross": "Test orders gross:",
+      "testOrders": "Test orders:",
       "testNote": "{count} historical test orders excluded."
     },
     "actions": {
