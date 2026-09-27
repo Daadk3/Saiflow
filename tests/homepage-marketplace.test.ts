@@ -263,7 +263,7 @@ describe("header: four links and two actions", () => {
   });
 
   test("the header still carries the logo and the language switcher", () => {
-    assert.ok(/\/mascot\.png/.test(navbar));
+    assert.ok(/<BrandLogo \/>/.test(navbar));
     assert.ok(/<LanguageSwitcher \/>/.test(navbar));
   });
 });

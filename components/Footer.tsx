@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { useTranslations, useLocale } from "next-intl";
+import BrandLogo from "@/components/BrandLogo";
 import { LEGAL, establishmentName } from "@/lib/legal";
 
 export default function Footer() {
@@ -31,10 +31,7 @@ export default function Footer() {
         {/* Top grid */}
         <div className="grid gap-12 lg:grid-cols-5">
           <div className="lg:col-span-2 space-y-4">
-            <Link href="/" className="logo flex items-center gap-2">
-              <Image src="/mascot.png" alt="" aria-hidden="true" width={40} height={40} />
-              <span className="text-xl font-semibold text-white">Saiflow</span>
-            </Link>
+            <BrandLogo />
             <p className="text-gray-400 text-sm leading-relaxed">
               {t('footer.tagline')}
             </p>
