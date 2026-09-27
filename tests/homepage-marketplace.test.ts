@@ -107,9 +107,13 @@ describe("copy: one namespace, both locales, nothing fabricated", () => {
     }
   });
 
-  test("the hero is text-led: no mockup, no illustrative product, price or store", () => {
+  test("the hero leads with text beside a decorative ghost: no mockup, product, price or store", () => {
     const code = strip(home.hero);
-    assert.ok(!/role="img"/.test(code) && !/formatPrice|<Image|mock\./.test(code), "no visual panel in the hero");
+    assert.ok(!/role="img"/.test(code) && !/formatPrice|mock\./.test(code), "no visual panel in the hero");
+    const images = [...code.matchAll(/<Image[\s\S]*?\/>/g)].map((m) => m[0]);
+    assert.equal(images.length, 1, "one illustration only");
+    assert.ok(/src="\/mascot-[a-z]+\.png"/.test(images[0]), "the illustration is the ghost mascot");
+    assert.ok(/alt=""/.test(images[0]) && /aria-hidden="true"/.test(images[0]), "and it is decorative");
     for (const m of [ar, en]) {
       const h = m.home as Record<string, Record<string, unknown>>;
       assert.ok(!("mock" in h.hero), "no hero mock copy remains");
