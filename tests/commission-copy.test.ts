@@ -45,3 +45,23 @@ describe("the old promise is gone", () => {
     assert.ok(ar.meta.description.includes("عمولة SaiFlow: 7%."));
   });
 });
+
+describe("the pricing pages agree with the description", () => {
+  const FEE_TBA = ["Pricing details will be announced", "Pricing and payment details", "سيتم الإعلان عن تفاصيل الرسوم"];
+
+  for (const [locale, m] of [["en", en], ["ar", ar]] as const) {
+    test(`${locale}: /pricing and /features state 7% and no longer call fees TBA`, () => {
+      assert.equal(m.pricing.tiers.rate, "7%");
+      assert.equal(m.pricing.comparison.saiflowRate, "7%");
+      assert.equal(m.features.cards.noFees.rate, "7%");
+      for (const text of [m.pricing.tiers.rateNote, m.pricing.faq.a2, m.pricing.cta.subtitle, m.features.cards.noFees.description]) {
+        assert.ok(text.includes("7%"), `states the commission: ${text}`);
+      }
+      const fees = JSON.stringify([m.pricing, m.features.cards.noFees]);
+      for (const phrase of FEE_TBA) assert.ok(!fees.includes(phrase), `still says "${phrase}"`);
+      // The monthly-fee cell must match the FAQ's "no monthly fees" answer.
+      assert.notEqual(m.pricing.comparison.saiflowFree, m.pricing.tiers.ratePeriod);
+      assert.ok(!["TBA", "قريباً"].includes(m.pricing.comparison.saiflowFree));
+    });
+  }
+});

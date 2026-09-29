@@ -444,9 +444,9 @@
     "tiers": {
       "badge": "Most Popular",
       "name": "Creator",
-      "rate": "—",
-      "ratePeriod": "TBA",
-      "rateNote": "Pricing details will be announced before launch.",
+      "rate": "7%",
+      "ratePeriod": "per sale",
+      "rateNote": "SaiFlow commission: 7% of each sale. No monthly fee.",
       "feature1": "Unlimited products",
       "feature2": "Unlimited sales",
       "feature3": "Secure file hosting",
@@ -469,8 +469,8 @@
       "rowSetupTime": "Time to launch",
       "rowPayoutSpeed": "Payout speed",
       "rowHiddenCosts": "Hidden costs",
-      "saiflowFree": "TBA",
-      "saiflowRate": "—",
+      "saiflowFree": "None",
+      "saiflowRate": "7%",
       "saiflowFast": "Minutes",
       "saiflowInstant": "TBA",
       "saiflowNone": "TBA",
@@ -483,9 +483,9 @@
       "heading": "Common questions",
       "subheading": "Everything you might wonder before signing up",
       "q1": "When do I get paid?",
-      "a1": "Saiflow is in pre-launch. Payout systems are currently in development. Pricing and payment details will be announced before launch.",
+      "a1": "SaiFlow is in pre-launch. Payout systems are currently in development, and payout details will be announced before launch.",
       "q2": "Are there any hidden fees?",
-      "a2": "Pricing details will be announced before launch.",
+      "a2": "SaiFlow's commission is 7% of each sale. There is no monthly fee or subscription.",
       "q3": "Who can I sell to?",
       "a3": "Saiflow is built for creators in Saudi Arabia first — with local payment methods, SAR pricing, and Arabic-first support tailored to your market.",
       "q4": "What file types can I sell?",
@@ -497,7 +497,7 @@
     },
     "cta": {
       "title": "Start selling in minutes",
-      "subtitle": "Saiflow is in pre-launch. Pricing details will be announced before launch.",
+      "subtitle": "SaiFlow is in pre-launch. Our commission is 7% of each sale, with no monthly fee.",
       "primary": "Get started",
       "note": "Free to start • No credit card required"
     }
@@ -556,12 +556,13 @@
         "description": "Beautiful analytics to track your revenue, orders, and customer insights. Know what's working and optimize your sales."
       },
       "noFees": {
-        "title": "Pricing — Coming Soon",
-        "description": "Pricing details will be announced before launch.",
-        "rate": "—",
-        "ratePeriod": "TBA",
+        "title": "No monthly fees",
+        "description": "Free to start, with no subscription. SaiFlow takes a 7% commission on each sale.",
+        "rate": "7%",
+        "ratePeriod": "per sale",
         "items": [
-          "Coming soon"
+          "Free to start",
+          "No monthly subscription"
         ]
       }
     },

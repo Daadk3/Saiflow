@@ -270,4 +270,11 @@ describe("header: four links and two actions", () => {
     assert.ok(/<BrandLogo \/>/.test(navbar));
     assert.ok(/<LanguageSwitcher \/>/.test(navbar));
   });
+
+  test("the full bar starts at lg, so a 768px tablet gets the menu instead of overflow", () => {
+    const code = strip(navbar);
+    assert.ok(!/\bmd:(flex|hidden)\b/.test(code), "no md switch left in the header");
+    assert.equal(code.split("hidden lg:flex").length - 1, 2, "desktop links and actions both start at lg");
+    assert.equal(code.split("lg:hidden").length - 1, 2, "menu button and drawer both end at lg");
+  });
 });
