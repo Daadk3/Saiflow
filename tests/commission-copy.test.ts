@@ -57,8 +57,9 @@ describe("the pricing pages agree with the description", () => {
       for (const text of [m.pricing.tiers.rateNote, m.pricing.faq.a2, m.pricing.cta.subtitle, m.features.cards.noFees.description]) {
         assert.ok(text.includes("7%"), `states the commission: ${text}`);
       }
-      const fees = JSON.stringify([m.pricing, m.features.cards.noFees]);
-      for (const phrase of FEE_TBA) assert.ok(!fees.includes(phrase), `still says "${phrase}"`);
+      // The whole file, not just /pricing: next-intl ships every message to the browser.
+      const all = JSON.stringify(m);
+      for (const phrase of FEE_TBA) assert.ok(!all.includes(phrase), `still says "${phrase}"`);
       // The monthly-fee cell must match the FAQ's "no monthly fees" answer.
       assert.notEqual(m.pricing.comparison.saiflowFree, m.pricing.tiers.ratePeriod);
       assert.ok(!["TBA", "قريباً"].includes(m.pricing.comparison.saiflowFree));

@@ -674,7 +674,6 @@
   "preLaunch": {
     "banner": "Checkout is being activated. You can browse products and set up your store now.",
     "comingSoon": "Checkout opening soon",
-    "pricingTBA": "Pricing details will be announced before launch.",
     "checkoutDisabled": "Checkout is being activated.",
     "payoutsCard": {
       "title": "Creator payouts — activating with launch",
