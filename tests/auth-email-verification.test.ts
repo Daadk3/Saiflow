@@ -104,6 +104,12 @@ const prismaMock = {
       db.tokens.set(data.token, { ...data });
       return { ...data };
     },
+    findMany: async ({ where }: { where: { identifier: { startsWith: string } } }) => {
+      db.queries++;
+      return [...db.tokens.values()]
+        .filter((row) => row.identifier.startsWith(where.identifier.startsWith))
+        .map((row) => ({ token: row.token, expires: row.expires }));
+    },
     deleteMany: async ({ where }: { where: { token?: string; identifier?: { startsWith: string } } }) => {
       db.queries++;
       let count = 0;
@@ -123,6 +129,13 @@ const prismaMock = {
 };
 
 const sent: Array<{ to: string; url: string }> = [];
+const emailOutcome = { ok: true };
+
+/** Work a route scheduled to run after its response; tests run it explicitly. */
+const deferred: Array<() => Promise<void>> = [];
+async function runDeferred() {
+  while (deferred.length) await deferred.shift()!();
+}
 
 /**
  * lib/rate-limit.ts starts a module-level setInterval that would keep this
@@ -173,10 +186,14 @@ before(async () => {
   mock.module("@/lib/email", {
     namedExports: {
       sendVerificationEmail: async (msg: { to: string; url: string }) => {
+        if (!emailOutcome.ok) return false;
         sent.push(msg);
         return true;
       },
     },
+  });
+  mock.module("@/lib/after-response", {
+    namedExports: { afterResponse: (task: () => Promise<void>) => void deferred.push(task) },
   });
   // authOptions imports a type from "next-auth" by name, and builds its
   // providers at import. The providers are replaced by their own options so
@@ -200,6 +217,8 @@ beforeEach(() => {
   db.tokens.clear();
   db.queries = 0;
   sent.length = 0;
+  deferred.length = 0;
+  emailOutcome.ok = true;
 });
 
 /* ------------------------------------------------------------------ */
@@ -505,6 +524,23 @@ describe("signup", () => {
     assert.equal(db.tokens.get(verification.hashToken(tokenFromUrl(sent[0].url)))?.identifier.startsWith(`email-verify:${row.id}:`), true);
   });
 
+  test("a failed send is reported, and the page says so and offers to resend", async () => {
+    // Codex review: the page used to say "check your inbox" either way.
+    emailOutcome.ok = false;
+    const res = await signupRoute.POST(post("/api/signup", { name: "Maha", email: "maha@example.com", password: "Secret123" }));
+    assert.equal(res.status, 200);
+    assert.equal((await res.json()).verificationEmailSent, false);
+    assert.equal(db.users.size, 1, "the account still exists, unverified");
+
+    const page = read("app/signup/page.tsx");
+    assert.match(page, /data\.verificationEmailSent === false\s*\?\s*t\('auth\.signup\.successEmailFailed'\)/);
+    assert.match(page, /fetch\("\/api\/auth\/verify-email\/resend"/);
+    for (const locale of ["en", "ar"]) {
+      const signup = JSON.parse(read(`messages/${locale}.json`)).auth.signup;
+      assert.ok(signup.successEmailFailed && signup.resendButton, `${locale} copy present`);
+    }
+  });
+
   test("the new account cannot sign in until it is verified, then can", async () => {
     await signupRoute.POST(post("/api/signup", { name: "Maha", email: "maha@example.com", password: "Secret123" }));
     await assert.rejects(authorize("maha@example.com", "Secret123"), { message: "EMAIL_NOT_VERIFIED" });
@@ -571,7 +607,28 @@ describe("resend route", () => {
     }
     assert.deepEqual(bodies[0], bodies[1]);
     assert.deepEqual(bodies[1], bodies[2]);
+    await runDeferred();
     assert.deepEqual(sent.map((m) => m.to), ["pending@example.com"]);
+  });
+
+  test("timing reveals nothing: the response goes out before any lookup, token or email", async () => {
+    // Codex review: when the work ran inline, only an unverified account paid
+    // for a token write and a send, so a slower answer gave it away.
+    await addUser("pending@example.com", "Secret123", false);
+    for (const email of ["nobody@example.com", "pending@example.com"]) {
+      db.queries = 0;
+      const res = await resendRoute.POST(post("/api/auth/verify-email/resend", { email }));
+      assert.equal(res.status, 200);
+      assert.equal(db.queries, 0, `${email}: database touched before the response`);
+      assert.equal(sent.length, 0, `${email}: email sent before the response`);
+    }
+    await runDeferred();
+    assert.deepEqual(sent.map((m) => m.to), ["pending@example.com"]);
+  });
+
+  test("the deferred work uses Next's after()", () => {
+    assert.match(read("lib/after-response.ts"), /import \{ after \} from "next\/server";[\s\S]*after\(task\)/);
+    assert.match(read("app/api/auth/verify-email/resend/route.ts"), /afterResponse\(\(\) => resendIfUnverified\(email\)\);\s*return NextResponse\.json\(GENERIC\);/);
   });
 
   test("one address cannot be flooded from many IPs", async () => {
@@ -579,7 +636,47 @@ describe("resend route", () => {
     for (let i = 0; i < 5; i++) {
       await resendRoute.POST(post("/api/auth/verify-email/resend", { email: "Pending@Example.com" }));
     }
+    await runDeferred();
     assert.equal(sent.length, 3);
+  });
+});
+
+describe("two links for one account (a resend race)", () => {
+  test("only the newest link works, and verifying clears every link", async () => {
+    // Codex review: two concurrent resends can each leave a row. Simulate the
+    // outcome directly: an older and a newer valid row for the same account.
+    const user = await addUser("maha@example.com", "Secret123", false);
+    const older = await verification.issueVerificationToken(user);
+    const olderRow = db.tokens.get(verification.hashToken(older))!;
+    const newer = await verification.issueVerificationToken(user);
+    db.tokens.set(olderRow.token, { ...olderRow, expires: new Date(Date.now() + 60_000) });
+    assert.equal(db.tokens.size, 2);
+
+    assert.equal(await verification.verifyEmailWithToken({ token: older, password: "Secret123" }), "invalid");
+    assert.equal(db.users.get(user.id)!.emailVerified, null);
+
+    // Leave a stray older row again, then verify with the newest link.
+    db.tokens.set(olderRow.token, { ...olderRow, expires: new Date(Date.now() + 60_000) });
+    assert.equal(await verification.verifyEmailWithToken({ token: newer, password: "Secret123" }), "verified");
+    assert.equal(db.tokens.size, 0, "no link for the account survives verification");
+  });
+
+  test("equal expiry still leaves exactly one usable row", async () => {
+    const user = await addUser("maha@example.com", "Secret123", false);
+    const a = await verification.issueVerificationToken(user);
+    const rowA = db.tokens.get(verification.hashToken(a))!;
+    const b = await verification.issueVerificationToken(user);
+    const rowB = db.tokens.get(verification.hashToken(b))!;
+    db.tokens.set(rowA.token, { ...rowA, expires: rowB.expires });
+
+    const outcomes = [];
+    for (const raw of [a, b]) {
+      const snapshot = new Map(db.tokens);
+      outcomes.push(await verification.verifyEmailWithToken({ token: raw, password: "Secret123" }));
+      db.tokens = snapshot;
+      db.users.get(user.id)!.emailVerified = null;
+    }
+    assert.deepEqual(outcomes.sort(), ["invalid", "verified"]);
   });
 });
 

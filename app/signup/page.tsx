@@ -14,11 +14,31 @@ export default function SignupPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  // The address the account was created with, kept for "send it again".
+  const [createdEmail, setCreatedEmail] = useState<string | null>(null);
+  const [resend, setResend] = useState<"idle" | "sending" | "sent" | "failed">("idle");
+
+  async function handleResend() {
+    if (!createdEmail) return;
+    setResend("sending");
+    try {
+      const res = await fetch("/api/auth/verify-email/resend", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: createdEmail }),
+      });
+      setResend(res.ok ? "sent" : "failed");
+    } catch {
+      setResend("failed");
+    }
+  }
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError(null);
     setSuccess(null);
+    setCreatedEmail(null);
+    setResend("idle");
     setLoading(true);
 
     try {
@@ -40,7 +60,13 @@ export default function SignupPage() {
 
       // No automatic redirect: the account cannot sign in until the email is
       // confirmed, so the message has to stay on screen long enough to read.
-      setSuccess(t('auth.signup.successMessage'));
+      // If the first email did not go out, say so rather than "check your inbox".
+      setCreatedEmail(email);
+      setSuccess(
+        data.verificationEmailSent === false
+          ? t('auth.signup.successEmailFailed')
+          : t('auth.signup.successMessage')
+      );
       setLoading(false);
     } catch (err) {
       console.error(err);
@@ -176,8 +202,20 @@ export default function SignupPage() {
 
               {/* Success Message */}
               {success && (
-                <div className="p-4 bg-teal-500/10 border border-teal-500/20 rounded-xl">
+                <div className="p-4 bg-teal-500/10 border border-teal-500/20 rounded-xl" role="status">
                   <p className="text-teal-400 text-sm">{success}</p>
+                  {createdEmail && resend !== "sent" && (
+                    <button
+                      type="button"
+                      onClick={handleResend}
+                      disabled={resend === "sending"}
+                      className="mt-3 text-sm font-medium text-teal-300 hover:text-teal-200 disabled:opacity-60"
+                    >
+                      {resend === "sending" ? t('auth.login.resending') : t('auth.signup.resendButton')}
+                    </button>
+                  )}
+                  {resend === "sent" && <p className="mt-2 text-sm text-teal-300">{t('auth.login.resendSent')}</p>}
+                  {resend === "failed" && <p className="mt-2 text-sm text-red-400">{t('auth.login.resendError')}</p>}
                 </div>
               )}
 

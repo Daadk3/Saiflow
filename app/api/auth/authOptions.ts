@@ -134,8 +134,8 @@ export const authOptions: NextAuthOptions = {
       }
 
       // Every request: the account must still exist, be verified and have the
-      // same email and password. Throwing here makes NextAuth clear the
-      // cookie, so a revoked session is simply signed out.
+      // same email and password. Throwing here makes every session read come
+      // back empty, and /api/auth/session also clears the cookie.
       await assertSessionStillValid(token);
       return token;
     },

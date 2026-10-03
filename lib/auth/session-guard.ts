@@ -17,10 +17,13 @@ import { credentialFingerprint } from "@/lib/auth/email-verification";
  * after this guard that email is always a verified one.
  *
  * Failure THROWS rather than returning a reduced token. NextAuth 4 treats an
- * exception in the `jwt` callback as a dead session: it clears the session
- * cookie and `getServerSession` returns null. That makes revocation total,
- * with no half-signed-in state for a route to misread. A database error fails
- * the same way, closed.
+ * exception in the `jwt` callback as no session: `getServerSession` returns
+ * null in every route handler and server component, so nothing protected is
+ * served. The browser cookie itself is cleared by `/api/auth/session`, which
+ * the client SessionProvider calls on load; `getServerSession` cannot set
+ * cookies, so a revoked cookie lingers until then, honoured by nothing except
+ * the /dashboard middleware's coarse "is there a cookie" check. A database
+ * error fails the same way, closed.
  *
  * Tokens issued before this guard carry no fingerprint and are refused, so
  * every existing session ends once at deploy and each user signs in again.

@@ -54,15 +54,39 @@ function parseIdentifier(identifier: string): { userId: string; email: string } 
   return { userId: rest.slice(0, sep), email: rest.slice(sep + 1) };
 }
 
+/** The identifier prefix shared by every token row of one account. */
+function accountPrefix(userId: string): string {
+  return `${IDENTIFIER_PREFIX}${userId}:`;
+}
+
+/**
+ * Whether `token` is the one row of an account that may still be used: the
+ * latest expiry, with the larger stored hash breaking a tie, so exactly one
+ * row ever qualifies.
+ */
+function isNewest(token: { token: string; expires: Date }, rows: Array<{ token: string; expires: Date }>): boolean {
+  return rows.every(
+    (row) =>
+      row.token === token.token ||
+      row.expires.getTime() < token.expires.getTime() ||
+      (row.expires.getTime() === token.expires.getTime() && row.token < token.token)
+  );
+}
+
 /**
  * Mint a verification token for an account and return the raw value to email.
  * Any earlier token for the same account stops working.
+ *
+ * The delete-then-insert below removes earlier rows, but two issuances racing
+ * (two quick "resend" clicks) can each leave one. That cannot widen access,
+ * because verification also accepts only the newest row of the account, so
+ * "a new link revokes the old one" holds without a schema change or a lock.
  */
 export async function issueVerificationToken(user: { id: string; email: string }): Promise<string> {
   const raw = randomBytes(32).toString("hex");
   await prisma.$transaction([
     prisma.verificationToken.deleteMany({
-      where: { identifier: { startsWith: `${IDENTIFIER_PREFIX}${user.id}:` } },
+      where: { identifier: { startsWith: accountPrefix(user.id) } },
     }),
     prisma.verificationToken.create({
       data: {
@@ -104,6 +128,17 @@ export async function verifyEmailWithToken(input: {
     return "expired";
   }
 
+  // Only the account's newest link counts; an older one left by a racing
+  // resend is refused (and tidied away) whatever password comes with it.
+  const siblings = await prisma.verificationToken.findMany({
+    where: { identifier: { startsWith: accountPrefix(bound.userId) } },
+    select: { token: true, expires: true },
+  });
+  if (!isNewest(record, siblings)) {
+    await prisma.verificationToken.deleteMany({ where: { token: hashed } });
+    return "invalid";
+  }
+
   const user = await prisma.user.findUnique({
     where: { id: bound.userId },
     select: { id: true, email: true, password: true, emailVerified: true },
@@ -120,6 +155,8 @@ export async function verifyEmailWithToken(input: {
   if (!user.emailVerified) {
     await prisma.user.update({ where: { id: user.id }, data: { emailVerified: new Date() } });
   }
+  // Nothing for this account should outlive a successful verification.
+  await prisma.verificationToken.deleteMany({ where: { identifier: { startsWith: accountPrefix(user.id) } } });
   return "verified";
 }
 
