@@ -1,13 +1,11 @@
 "use client";
 
 import { FormEvent, useState } from "react";
-import { useRouter } from "next/navigation";
 import { signIn } from "next-auth/react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 
 export default function SignupPage() {
-  const router = useRouter();
   const t = useTranslations();
 
   const [name, setName] = useState("");
@@ -40,13 +38,10 @@ export default function SignupPage() {
         return;
       }
 
+      // No automatic redirect: the account cannot sign in until the email is
+      // confirmed, so the message has to stay on screen long enough to read.
       setSuccess(t('auth.signup.successMessage'));
       setLoading(false);
-
-      // wait a moment then go to /login
-      setTimeout(() => {
-        router.push("/login");
-      }, 1000);
     } catch (err) {
       console.error(err);
       setError(t('auth.signup.errorGeneric'));

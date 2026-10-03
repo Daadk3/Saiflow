@@ -6,6 +6,9 @@ import bcrypt from "bcrypt";
 import { rateLimiters } from "@/lib/rate-limit";
 import { isAdminEmail } from "@/lib/admin";
 import { isAiAssistantEnabled } from "@/lib/ai/flag";
+import { EMAIL_NOT_VERIFIED } from "@/lib/auth/errors";
+import { credentialFingerprint, unusablePasswordHash } from "@/lib/auth/email-verification";
+import { assertSessionStillValid, SessionRevokedError } from "@/lib/auth/session-guard";
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -47,6 +50,12 @@ export const authOptions: NextAuthOptions = {
         if (!valid) {
           throw new Error(GENERIC);
         }
+        // Only after the password matched, so this reveals nothing to a
+        // caller who does not already know it. Until the address is verified
+        // the account cannot sign in at all: see lib/auth/email-verification.
+        if (!user.emailVerified) {
+          throw new Error(EMAIL_NOT_VERIFIED);
+        }
         return { id: user.id, email: user.email, name: user.name, image: user.image };
       },
     }),
@@ -63,22 +72,40 @@ export const authOptions: NextAuthOptions = {
   // Make sure this exact URL is added to Google Cloud Console as an authorized redirect URI
   // For production: https://saiflow.io/api/auth/callback/google
   callbacks: {
-    async signIn({ user, account }) {
+    async signIn({ user, account, profile }) {
       if (account?.provider === "google") {
+        // Google reports whether IT verified the address. Only a verified one
+        // proves inbox ownership, so only that one may open or claim an account.
+        const googleVerified = (profile as { email_verified?: unknown } | undefined)?.email_verified === true;
+        if (!googleVerified || !user.email) {
+          return false;
+        }
+
         try {
           let dbUser = await prisma.user.findFirst({
-            where: { email: { equals: user.email!, mode: "insensitive" } },
+            where: { email: { equals: user.email, mode: "insensitive" } },
           });
 
           if (!dbUser) {
-            const dummyPassword = await bcrypt.hash(`oauth-${user.email}-${Date.now()}`, 10);
             dbUser = await prisma.user.create({
               data: {
-                email: user.email!,
+                email: user.email.toLowerCase(),
                 name: user.name,
                 image: user.image,
-                password: dummyPassword,
+                // Google-only accounts get a password nobody knows.
+                password: await unusablePasswordHash(),
+                emailVerified: new Date(),
               },
+            });
+          } else if (!dbUser.emailVerified) {
+            // Google has just proved who owns this inbox, and the account's
+            // password was set before anyone proved that. It may belong to
+            // whoever registered the address first, so it stops working here.
+            // A genuine owner sets a new one through "forgot password". The new
+            // password hash also ends every session opened with the old one.
+            dbUser = await prisma.user.update({
+              where: { id: dbUser.id },
+              data: { emailVerified: new Date(), password: await unusablePasswordHash() },
             });
           }
 
@@ -92,27 +119,31 @@ export const authOptions: NextAuthOptions = {
       return true;
     },
     async jwt({ token, user }) {
-      // Always ensure we have the database user ID
-      if (!token.id && token.email) {
-        const dbUser = await prisma.user.findFirst({
-          where: { email: { equals: token.email as string, mode: "insensitive" } },
-        });
-        if (dbUser) {
-          token.id = dbUser.id;
-        }
-      }
-      
-      // For credentials sign-in, user object has the ID directly
+      // Sign-in: bind the token to the account as it stands now. The email is
+      // the stored one, not the provider's spelling, and the fingerprint ties
+      // the session to the current password.
       if (user?.id) {
+        const account = await prisma.user.findUnique({
+          where: { id: user.id },
+          select: { email: true, password: true },
+        });
+        if (!account) throw new SessionRevokedError("account_missing");
         token.id = user.id;
-        token.email = user.email;
+        token.email = account.email;
+        token.cv = credentialFingerprint(account.password);
       }
-      
+
+      // Every request: the account must still exist, be verified and have the
+      // same email and password. Throwing here makes NextAuth clear the
+      // cookie, so a revoked session is simply signed out.
+      await assertSessionStillValid(token);
       return token;
     },
     async session({ session, token }) {
       if (session?.user && token?.id) {
         (session.user as { id?: string }).id = token.id as string;
+        // The verified, stored address, which is what every authority check reads.
+        session.user.email = token.email as string;
       }
       // Surface admin status so the navbar can show the Founder Dashboard link.
       // Purely cosmetic: every admin page and API re-checks isAdminEmail on the

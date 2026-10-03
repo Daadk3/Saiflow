@@ -5,6 +5,9 @@ import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
+import { EMAIL_NOT_VERIFIED } from "@/lib/auth/errors";
+
+type ResendState = "idle" | "sending" | "sent" | "failed";
 
 export default function LoginPage() {
   const t = useTranslations();
@@ -12,11 +15,15 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [unverified, setUnverified] = useState(false);
+  const [resend, setResend] = useState<ResendState>("idle");
   const router = useRouter();
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError(null);
+    setUnverified(false);
+    setResend("idle");
     setLoading(true);
 
     try {
@@ -26,7 +33,10 @@ export default function LoginPage() {
         redirect: false,
       });
 
-      if (result?.error) {
+      if (result?.error === EMAIL_NOT_VERIFIED) {
+        setUnverified(true);
+        setError(t('auth.login.errorUnverified'));
+      } else if (result?.error) {
         setError(t('auth.login.errorInvalid'));
       } else if (result?.ok) {
         router.push("/dashboard");
@@ -35,6 +45,20 @@ export default function LoginPage() {
       setError(t('auth.login.errorGeneric'));
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleResend() {
+    setResend("sending");
+    try {
+      const res = await fetch("/api/auth/verify-email/resend", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+      setResend(res.ok ? "sent" : "failed");
+    } catch {
+      setResend("failed");
     }
   }
 
@@ -147,8 +171,26 @@ export default function LoginPage() {
 
               {/* Error Message */}
           {error && (
-                <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-xl">
+                <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-xl" role="alert">
                   <p className="text-red-400 text-sm">{error}</p>
+                  {unverified && resend !== "sent" && (
+                    <button
+                      type="button"
+                      onClick={handleResend}
+                      disabled={resend === "sending"}
+                      className="mt-3 text-sm font-medium text-teal-400 hover:text-teal-300 disabled:opacity-60"
+                    >
+                      {resend === "sending" ? t('auth.login.resending') : t('auth.login.resendButton')}
+                    </button>
+                  )}
+                  {unverified && resend === "failed" && (
+                    <p className="mt-2 text-sm text-red-400">{t('auth.login.resendError')}</p>
+                  )}
+                </div>
+          )}
+          {unverified && resend === "sent" && (
+                <div className="p-4 bg-teal-500/10 border border-teal-500/20 rounded-xl" role="status">
+                  <p className="text-teal-300 text-sm">{t('auth.login.resendSent')}</p>
                 </div>
           )}
 
