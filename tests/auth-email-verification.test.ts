@@ -673,6 +673,12 @@ describe("resend never strands the user", () => {
     assert.ok(en.resendWait && ar.resendWait);
   });
 
+  test("the API's own answer also says accepted, not sent", async () => {
+    const body = await (await resendRoute.POST(post("/api/auth/verify-email/resend", { email: "nobody@example.com" }))).json();
+    assert.match(body.message, /^Request received\./);
+    assert.ok(!/we have sent/i.test(body.message));
+  });
+
   test("a failed deferred send is logged for the operator, without the address", async (t) => {
     const errors = t.mock.method(console, "error", () => {});
     await addUser("pending@example.com", "Secret123", false);

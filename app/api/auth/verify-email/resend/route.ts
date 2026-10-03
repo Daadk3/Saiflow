@@ -24,7 +24,8 @@ import { afterResponse } from "@/lib/after-response";
  * exists, so a refusal reveals nothing either.
  */
 
-const GENERIC = { message: "If that account needs verifying, we have sent a new link." };
+// Accepted, not delivered: the answer goes out before anything is looked up or sent.
+const GENERIC = { message: "Request received. If that account needs verifying, a new link will be sent." };
 const PER_IP = { windowMs: 60 * 60 * 1000, maxRequests: 5 };
 const PER_ADDRESS = { windowMs: 60 * 60 * 1000, maxRequests: 3 };
 
