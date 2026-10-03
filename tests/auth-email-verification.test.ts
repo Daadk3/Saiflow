@@ -534,7 +534,7 @@ describe("signup", () => {
 
     const page = read("app/signup/page.tsx");
     assert.match(page, /data\.verificationEmailSent === false\s*\?\s*t\('auth\.signup\.successEmailFailed'\)/);
-    assert.match(page, /fetch\("\/api\/auth\/verify-email\/resend"/);
+    assert.match(page, /<ResendVerification email=\{createdEmail\}/);
     for (const locale of ["en", "ar"]) {
       const signup = JSON.parse(read(`messages/${locale}.json`)).auth.signup;
       assert.ok(signup.successEmailFailed && signup.resendButton, `${locale} copy present`);
@@ -638,6 +638,53 @@ describe("resend route", () => {
     }
     await runDeferred();
     assert.equal(sent.length, 3);
+  });
+});
+
+describe("resend never strands the user", () => {
+  // Codex follow-up: a success response only means the request was accepted
+  // (the server answers before it looks anything up), so the page must not
+  // claim delivery, and must not take the retry away.
+  const component = read("components/auth/ResendVerification.tsx");
+
+  test("both pages use the one shared resend control", () => {
+    for (const file of ["app/login/page.tsx", "app/signup/page.tsx"]) {
+      const page = read(file);
+      assert.match(page, /<ResendVerification email=/, file);
+      assert.ok(!page.includes("/api/auth/verify-email/resend"), `${file} keeps no second copy of the request`);
+    }
+  });
+
+  test("the button is always rendered, and only pauses after a request", () => {
+    assert.match(component, /fetch\("\/api\/auth\/verify-email\/resend"/);
+    // One unconditional <button>; it is disabled while sending or cooling down, never removed.
+    assert.equal(component.split("<button").length - 1, 1);
+    assert.ok(!/\{[^}]*&&\s*\(\s*<button/.test(component), "the button is not conditionally rendered");
+    assert.match(component, /disabled=\{state === "sending" \|\| coolingDown\}/);
+    assert.match(component, /setTimeout\(\(\) => setCoolingDown\(false\), COOLDOWN_MS\)/);
+  });
+
+  test("the message says the request was received, not that an email was sent", () => {
+    const en = JSON.parse(read("messages/en.json")).auth.login;
+    const ar = JSON.parse(read("messages/ar.json")).auth.login;
+    assert.match(en.resendSent, /^Request received\./);
+    assert.ok(!/on its way/.test(en.resendSent));
+    assert.match(ar.resendSent, /^تم استلام طلبك\./);
+    assert.ok(en.resendWait && ar.resendWait);
+  });
+
+  test("a failed deferred send is logged for the operator, without the address", async (t) => {
+    const errors = t.mock.method(console, "error", () => {});
+    await addUser("pending@example.com", "Secret123", false);
+    emailOutcome.ok = false;
+
+    const res = await resendRoute.POST(post("/api/auth/verify-email/resend", { email: "pending@example.com" }));
+    assert.equal(res.status, 200, "the requester's answer is unchanged");
+    await runDeferred();
+
+    const logged = errors.mock.calls.map((c) => c.arguments.join(" "));
+    assert.ok(logged.includes("[verify-email] resend not delivered"), JSON.stringify(logged));
+    assert.ok(logged.every((line) => !line.includes("pending@example.com")), "no address in the log");
   });
 });
 

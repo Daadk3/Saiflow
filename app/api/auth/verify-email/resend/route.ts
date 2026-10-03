@@ -63,7 +63,11 @@ async function resendIfUnverified(email: string): Promise<void> {
     });
     if (user && !user.emailVerified) {
       const token = await issueVerificationToken(user);
-      await sendVerificationEmail({ to: user.email, url: verificationUrl(token) });
+      const delivered = await sendVerificationEmail({ to: user.email, url: verificationUrl(token) });
+      // The requester was already answered and must not learn the outcome, so
+      // a failed send is recorded for the operator instead. The page keeps its
+      // "send again" button, so the user can retry. No address in the log.
+      if (!delivered) console.error("[verify-email] resend not delivered");
     }
   } catch (error) {
     console.error("[verify-email] resend failed", (error as Error)?.name);

@@ -334,7 +334,8 @@
       "errorUnverified": "Please confirm your email first. Open the link we sent you, or ask for a new one.",
       "resendButton": "Send a new confirmation link",
       "resending": "Sending...",
-      "resendSent": "If this account still needs confirming, a new link is on its way. Check your inbox and spam folder.",
+      "resendSent": "Request received. If this account still needs confirming, a new link should arrive within a few minutes. Check your spam folder too, and ask again if nothing arrives.",
+      "resendWait": "You can ask again in a minute",
       "resendError": "We couldn't send the link right now. Please try again in a few minutes."
     },
     "verifyEmail": {
@@ -348,7 +349,7 @@
       "successCta": "Log in",
       "errorWrongPassword": "That password doesn't match this account.",
       "errorExpired": "This link has expired. Log in to ask for a new one.",
-      "errorInvalid": "This link isn't valid or has already been used.",
+      "errorInvalid": "This link isn't valid, was already used, or was replaced by a newer one. Open the most recent confirmation email, or log in to ask for a new link.",
       "errorRateLimited": "Too many attempts. Please wait a minute and try again.",
       "errorGeneric": "Something went wrong. Please try again.",
       "missingToken": "Open this page from the link in your confirmation email.",
