@@ -1,11 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
 import { useEffect, useState } from "react";
 import { useSession, signOut } from "next-auth/react";
 import { usePathname } from "next/navigation";
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
+import BrandLogo from "@/components/BrandLogo";
 import { useTranslations } from "next-intl";
 
 export default function Navbar() {
@@ -34,30 +34,21 @@ export default function Navbar() {
       }`}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
+        <div className="flex items-center justify-between gap-4 h-16">
           {/* Logo */}
-          <Link href="/" className="logo flex items-center gap-2 cursor-pointer">
-            <Image
-              src="/mascot.png"
-              alt=""
-              aria-hidden="true"
-              width={56}
-              height={56}
-              className="w-14 h-14"
-            />
-            <span className="text-xl font-bold text-white">Saiflow</span>
-          </Link>
+          <BrandLogo />
 
-          {/* Desktop nav */}
-          <div className="hidden md:flex items-center gap-8" role="menubar">
+          {/* Desktop nav. The full bar needs about 900px, so it starts at lg:
+              at md (768px) it pushed the page 147px wider than the screen. */}
+          <div className="hidden lg:flex items-center gap-6 xl:gap-8" role="menubar">
             <Link href="/browse" className={navLinkClass} role="menuitem">
               {t('products')}
             </Link>
-            <Link href="/blog" className={navLinkClass} role="menuitem">
-              {t('blog')}
+            <Link href="/#categories" className={navLinkClass} role="menuitem">
+              {t('categories')}
             </Link>
-            <Link href="/docs" className={navLinkClass} role="menuitem">
-              {t('docs')}
+            <Link href="/#how-to-sell" className={navLinkClass} role="menuitem">
+              {t('howToSell')}
             </Link>
             <Link href="/pricing" className={navLinkClass} role="menuitem">
               {t('pricing')}
@@ -65,24 +56,7 @@ export default function Navbar() {
           </div>
 
           {/* Right actions */}
-          <div className="hidden md:flex items-center gap-4">
-            <Link
-              href="/browse"
-              aria-label={t('search')}
-              className="text-gray-500 hover:text-white transition-colors"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                className="w-5 h-5"
-              >
-                <circle cx="11" cy="11" r="7" />
-                <line x1="16.65" y1="16.65" x2="21" y2="21" />
-              </svg>
-            </Link>
+          <div className="hidden lg:flex items-center gap-4">
             <LanguageSwitcher />
             {session ? (
               // Logged in - show these
@@ -121,7 +95,7 @@ export default function Navbar() {
           {/* Mobile menu button */}
           <button
             onClick={() => setMenuOpen((prev) => !prev)}
-            className="md:hidden inline-flex items-center justify-center rounded-md p-2 text-gray-300 hover:text-white hover:bg-gray-800 transition"
+            className="lg:hidden inline-flex items-center justify-center rounded-md p-2 text-gray-300 hover:text-white hover:bg-gray-800 transition"
             aria-label={t('toggleMenu')}
             aria-expanded={menuOpen}
             aria-controls="mobile-menu"
@@ -158,7 +132,7 @@ export default function Navbar() {
         id="mobile-menu"
         role="menu"
         aria-label={t('mobileMenu')}
-        className={`md:hidden transition-all duration-200 ${
+        className={`lg:hidden transition-all duration-200 ${
           menuOpen ? "max-h-screen opacity-100" : "max-h-0 opacity-0 overflow-hidden"
         }`}
       >
@@ -171,11 +145,11 @@ export default function Navbar() {
             <Link href="/browse" className={navLinkClass} onClick={() => setMenuOpen(false)} role="menuitem">
               {t('products')}
             </Link>
-            <Link href="/blog" className={navLinkClass} onClick={() => setMenuOpen(false)} role="menuitem">
-              {t('blog')}
+            <Link href="/#categories" className={navLinkClass} onClick={() => setMenuOpen(false)} role="menuitem">
+              {t('categories')}
             </Link>
-            <Link href="/docs" className={navLinkClass} onClick={() => setMenuOpen(false)} role="menuitem">
-              {t('docs')}
+            <Link href="/#how-to-sell" className={navLinkClass} onClick={() => setMenuOpen(false)} role="menuitem">
+              {t('howToSell')}
             </Link>
             <Link href="/pricing" className={navLinkClass} onClick={() => setMenuOpen(false)} role="menuitem">
               {t('pricing')}

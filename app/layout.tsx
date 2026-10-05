@@ -50,7 +50,6 @@ export async function generateMetadata(): Promise<Metadata> {
     icons: {
       icon: [
         { url: "/favicon.ico", sizes: "any" },
-        { url: "/icon.svg", type: "image/svg+xml" },
         { url: "/icon.png", type: "image/png" },
       ],
       apple: "/apple-icon.png",
@@ -73,7 +72,6 @@ export default async function RootLayout({
   return (
     <html lang={locale} dir={dir}>
       <head>
-        <link rel="icon" href="/icon.svg" type="image/svg+xml" />
         <link rel="icon" href="/favicon.ico" sizes="any" />
         <link rel="icon" href="/icon.png" type="image/png" />
         <link rel="apple-touch-icon" href="/apple-icon.png" />
