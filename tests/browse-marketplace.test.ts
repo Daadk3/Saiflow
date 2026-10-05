@@ -10,6 +10,14 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
+import {
+  MAX_QUERY_LENGTH,
+  parseCategory,
+  parseFilters,
+  parsePrice,
+  parseQuery,
+  parseSort,
+} from "@/app/browse/search-params";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const read = (p: string) => readFileSync(resolve(ROOT, p), "utf8");
@@ -18,6 +26,7 @@ const strip = (src: string) =>
 
 const page = read("app/browse/page.tsx");
 const code = strip(page);
+const params = strip(read("app/browse/search-params.ts"));
 const card = strip(read("components/ProductCard.tsx"));
 const thumbnail = strip(read("components/ProductThumbnail.tsx"));
 const ar = JSON.parse(read("messages/ar.json")) as Record<string, Record<string, Record<string, string>>>;
@@ -45,18 +54,18 @@ describe("visibility: the gate and the filters are unchanged", () => {
     assert.ok(/name: \{ contains: q, mode: "insensitive" \}/.test(or![1]));
     assert.ok(/description: \{ contains: q, mode: "insensitive" \}/.test(or![1]));
     assert.ok(!/isActive|moderationStatus|SAFE_DELIVERABLE|fileKey/.test(or![1]), "the OR never touches a gate");
-    assert.ok(/MAX_QUERY_LENGTH = 80/.test(code));
-    assert.ok(/raw\?\.trim\(\)\.slice\(0, MAX_QUERY_LENGTH\)/.test(code));
+    assert.ok(/MAX_QUERY_LENGTH = 80/.test(params));
+    assert.ok(/firstParam\(raw\)\?\.trim\(\)\.slice\(0, MAX_QUERY_LENGTH\)/.test(params));
   });
 
   test("malformed prices and sorts are ignored rather than passed to the database", () => {
-    assert.ok(/Number\.isFinite\(value\) && value >= 0 \? value : undefined/.test(code));
-    assert.ok(/SORT_OPTIONS as readonly string\[\]\)\.includes/.test(code));
+    assert.ok(/Number\.isFinite\(value\) && value >= 0 \? value : undefined/.test(params));
+    assert.ok(/SORT_OPTIONS as readonly string\[\]\)\.includes/.test(params));
   });
 
   test("no popularity sort is offered while no popularity data exists", () => {
-    assert.ok(/SORT_OPTIONS = \["newest", "price-asc", "price-desc"\] as const/.test(code));
-    assert.ok(!/popular/i.test(code), "nothing on the page mentions popularity");
+    assert.ok(/SORT_OPTIONS = \["newest", "price-asc", "price-desc"\] as const/.test(params));
+    assert.ok(!/popular/i.test(code) && !/popular/i.test(params), "nothing on the page mentions popularity");
     for (const m of [ar, en]) assert.ok(!("sortPopular" in m.storefront.browse));
   });
 
@@ -64,6 +73,80 @@ describe("visibility: the gate and the filters are unchanged", () => {
     assert.ok(!/fileUrl/.test(code), "the paid asset URL is never selected or rendered");
     assert.ok(!page.includes("/api/admin"), "no admin route");
     assert.ok(!page.includes("getProductsDirectory"));
+  });
+});
+
+describe("search parameters: a repeated name uses its first value", () => {
+  test("the reported URL /browse?q=book&q=course searches for book instead of failing", () => {
+    assert.equal(parseQuery(["book", "course"]), "book");
+    assert.deepEqual(parseFilters({ q: ["book", "course"] }), {
+      category: undefined,
+      sort: "newest",
+      minPrice: undefined,
+      maxPrice: undefined,
+      q: "book",
+    });
+  });
+
+  test("the first value of a repeated q is still trimmed and capped", () => {
+    assert.equal(parseQuery(["  book  ", "course"]), "book");
+    assert.equal(parseQuery(["x".repeat(200), "course"]), "x".repeat(MAX_QUERY_LENGTH));
+    assert.equal(parseQuery(["   ", "course"]), undefined, "the first value decides, even when it is blank");
+  });
+
+  test("a normal search is trimmed and capped at 80 characters", () => {
+    assert.equal(parseQuery("book"), "book");
+    assert.equal(parseQuery("  digital planner  "), "digital planner");
+    assert.equal(parseQuery("x".repeat(200)), "x".repeat(80));
+    assert.equal(parseFilters({ q: "course" }).q, "course");
+  });
+
+  test("a missing or blank search means no search", () => {
+    for (const raw of [undefined, "", "   ", []]) assert.equal(parseQuery(raw), undefined, JSON.stringify(raw));
+    assert.equal(parseFilters({}).q, undefined);
+  });
+
+  test("every other filter follows the same rule and still rejects bad values", () => {
+    assert.equal(parseSort(["price-asc", "price-desc"]), "price-asc");
+    assert.equal(parseSort(["popular", "price-asc"]), "newest");
+    assert.equal(parseCategory(["ebooks", "courses"]), "ebooks");
+    assert.equal(parseCategory(["unknown", "ebooks"]), undefined);
+    assert.equal(parsePrice(["5", "10"]), 5);
+    assert.equal(parsePrice(["-1", "10"]), undefined);
+    assert.deepEqual(
+      parseFilters({
+        category: ["courses", "ebooks"],
+        sort: ["price-desc", "newest"],
+        minPrice: ["9.99", "1"],
+        maxPrice: ["20", "2"],
+        q: ["book", "course"],
+      }),
+      { category: "courses", sort: "price-desc", minPrice: 9.99, maxPrice: 20, q: "book" },
+    );
+  });
+
+  test("prices keep their decimals and anything negative or non-numeric is dropped", () => {
+    assert.equal(parsePrice("9.99"), 9.99);
+    assert.equal(parsePrice("0"), 0);
+    for (const bad of [undefined, "", "-0.01", "abc", "Infinity", "NaN"]) {
+      assert.equal(parsePrice(bad), undefined, String(bad));
+    }
+  });
+
+  test("the page reads every parameter through these readers, typed to allow arrays", () => {
+    assert.ok(/searchParams: Promise<Record<string, SearchParamValue>>/.test(code));
+    assert.ok(/const filters = parseFilters\(await searchParams\)/.test(code));
+    assert.ok(/export type SearchParamValue = string \| string\[\] \| undefined/.test(params));
+    assert.ok(!/params\.(q|category|sort|minPrice|maxPrice)\b/.test(code), "no raw parameter is read directly");
+  });
+
+  test("the price filter accepts two-decimal prices such as 9.99", () => {
+    for (const name of ["minPrice", "maxPrice"]) {
+      const input = code.match(new RegExp(`<input\\s+type="number"[^>]*?name="${name}"[^>]*?/>`));
+      assert.ok(input, `${name} number input`);
+      assert.ok(/step="0\.01"/.test(input![0]), `${name} allows cents`);
+      assert.ok(/min=\{0\}/.test(input![0]), `${name} stays non-negative`);
+    }
   });
 });
 
