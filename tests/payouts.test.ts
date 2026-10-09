@@ -329,11 +329,19 @@ describe("the shop owner's payout details", () => {
 });
 
 describe("recording a payout (admins only)", () => {
+  const ACCOUNT_VERSION = "2026-09-01T00:00:00.000Z";
   const owner = () => {
-    db.accounts.push({ shopId: "shop_1", holderName: "Daad Store", iban: IBAN, bankName: null, updatedById: "u_owner", updatedAt: new Date("2026-09-01T00:00:00Z") });
+    db.accounts.push({ shopId: "shop_1", holderName: "Daad Store", iban: IBAN, bankName: null, updatedById: "u_owner", updatedAt: new Date(ACCOUNT_VERSION) });
   };
   const record = (body: Record<string, unknown>) => adminRoute.POST(request("POST", "https://saiflow.test/api/admin/payouts", body));
-  const valid = { shopId: "shop_1", expectedAmount: "139.50", expectedOrderCount: 2, bankReference: "TRX-001", paidAt: "2026-10-08T12:00:00Z" };
+  const valid = {
+    shopId: "shop_1",
+    expectedAmount: "139.50",
+    expectedOrderCount: 2,
+    expectedAccountUpdatedAt: ACCOUNT_VERSION,
+    bankReference: "TRX-001",
+    paidOn: "2026-10-08",
+  };
 
   test("a non-admin is refused, even a shop owner", async () => {
     owner();
@@ -394,6 +402,26 @@ describe("recording a payout (admins only)", () => {
     assert.ok(db.orders.every((o) => o.payoutId === null || o.id === "o5"));
   });
 
+  test("bank details changed after the admin loaded the page: refused, nothing written", async () => {
+    owner();
+    state.session = { user: { email: "founder@example.test" } };
+    db.accounts[0].iban = IBAN_B;
+    db.accounts[0].updatedAt = new Date("2026-10-08T09:00:00Z");
+    const res = await record(valid);
+    assert.equal(res.status, 409);
+    assert.deepEqual(await res.json(), { error: "account_changed" });
+    assert.equal(db.payouts.length, 0, "the ledger never names an account the admin did not pay");
+  });
+
+  test("today's date is accepted at any hour, Riyadh time included", async () => {
+    owner();
+    state.session = { user: { email: "founder@example.test" } };
+    const riyadhToday = new Date(Date.now() + 3 * 60 * 60 * 1000).toISOString().slice(0, 10);
+    const res = await record({ ...valid, paidOn: riyadhToday });
+    assert.equal(res.status, 200);
+    assert.equal((db.payouts[0].paidAt as Date).toISOString(), `${riyadhToday}T00:00:00.000Z`);
+  });
+
   test("an order paid by a concurrent recording rolls the whole recording back", async () => {
     owner();
     state.session = { user: { email: "founder@example.test" } };
@@ -409,8 +437,10 @@ describe("recording a payout (admins only)", () => {
     assert.deepEqual(await (await record(valid)).json(), { error: "no_payout_account" });
     owner();
     assert.equal((await record({ ...valid, bankReference: "x" })).status, 400);
-    assert.equal((await record({ ...valid, paidAt: "not a date" })).status, 400);
-    assert.equal((await record({ ...valid, paidAt: new Date(Date.now() + 86_400_000).toISOString() })).status, 400);
+    assert.equal((await record({ ...valid, paidOn: "not a date" })).status, 400);
+    assert.equal((await record({ ...valid, paidOn: "2026-10-08T12:00:00Z" })).status, 400, "a date, not a timestamp");
+    assert.equal((await record({ ...valid, paidOn: new Date(Date.now() + 3 * 86_400_000).toISOString().slice(0, 10) })).status, 400);
+    assert.equal((await record({ ...valid, expectedAccountUpdatedAt: undefined })).status, 400);
     assert.equal((await record({ ...valid, expectedAmount: "0" })).status, 400);
     assert.equal((await record({ ...valid, expectedOrderCount: 0 })).status, 400);
     assert.equal(db.payouts.length, 0);

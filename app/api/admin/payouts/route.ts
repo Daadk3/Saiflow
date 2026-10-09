@@ -23,9 +23,10 @@ import {
  * to send the transfer.
  *
  * POST: record a transfer the admin has ALREADY made. Nothing here sends
- * money. The admin states what they saw (amount and number of orders); the
- * route recomputes it from the orders inside one transaction and refuses if
- * anything changed, so a payout always covers exactly the orders it names,
+ * money. The admin states what they saw (amount, number of orders, and the
+ * version of the bank details they paid to); the route re-reads all three
+ * inside one transaction and refuses if anything changed, so a payout always
+ * covers exactly the orders it names and records the account actually paid,
  * and an order can be paid out once only: it is linked to the payout only if
  * it is still unpaid, and the whole recording rolls back otherwise.
  */
@@ -140,18 +141,25 @@ export async function POST(req: Request) {
         ? body.expectedOrderCount
         : null;
     const bankReference = normalizeBankReference(body.bankReference);
-    const paidAt = typeof body.paidAt === "string" ? new Date(body.paidAt) : null;
+    const expectedAccountVersion = typeof body.expectedAccountUpdatedAt === "string" ? body.expectedAccountUpdatedAt : null;
+    // A calendar date, as the admin's bank shows it. Stored at 00:00 UTC; a
+    // date up to a day ahead of UTC is accepted, since Riyadh is UTC+3.
+    const paidAt =
+      typeof body.paidOn === "string" && /^\d{4}-\d{2}-\d{2}$/.test(body.paidOn) ? new Date(`${body.paidOn}T00:00:00Z`) : null;
     if (!shopId || expectedHalalas === null || expectedHalalas <= 0 || expectedCount === null) {
       return NextResponse.json({ error: "invalid_payout" }, { status: 400 });
     }
     if (bankReference === null) return NextResponse.json({ error: "invalid_bank_reference" }, { status: 400 });
-    if (paidAt === null || Number.isNaN(paidAt.getTime()) || paidAt.getTime() > Date.now() + 60_000) {
+    if (paidAt === null || Number.isNaN(paidAt.getTime()) || paidAt.getTime() > Date.now() + 24 * 60 * 60 * 1000) {
       return NextResponse.json({ error: "invalid_paid_at" }, { status: 400 });
     }
+    if (expectedAccountVersion === null) return NextResponse.json({ error: "invalid_payout" }, { status: 400 });
 
     const recorded = await prisma.$transaction(async (tx) => {
-      const account = await tx.sellerPayoutAccount.findUnique({ where: { shopId }, select: { iban: true } });
+      const account = await tx.sellerPayoutAccount.findUnique({ where: { shopId }, select: { iban: true, updatedAt: true } });
       if (!account) throw new PayoutRefused("no_payout_account", 409);
+      // The bank details the admin paid to, and no later version of them.
+      if (account.updatedAt.toISOString() !== expectedAccountVersion) throw new PayoutRefused("account_changed", 409);
 
       const orders = await tx.order.findMany({
         where: payableOrdersWhere(shopId),

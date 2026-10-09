@@ -60,8 +60,9 @@ function RecordPayout({ shop, onRecorded }: { shop: ShopOwed; onRecorded: () => 
           shopId: shop.shopId,
           expectedAmount: shop.owed.amount,
           expectedOrderCount: shop.owed.orderCount,
+          expectedAccountUpdatedAt: shop.account?.updatedAt,
           bankReference,
-          paidAt: new Date(`${paidOn}T12:00:00Z`).toISOString(),
+          paidOn,
         }),
       });
       const body = await res.json().catch(() => null);
@@ -70,8 +71,10 @@ function RecordPayout({ shop, onRecorded }: { shop: ShopOwed; onRecorded: () => 
         setError(
           code === "balance_changed"
             ? t("errors.balanceChanged")
-            : code === "no_payout_account"
-              ? t("errors.noAccount")
+            : code === "account_changed"
+              ? t("errors.accountChanged")
+              : code === "no_payout_account"
+                ? t("errors.noAccount")
               : code === "invalid_bank_reference"
                 ? t("errors.reference")
                 : code === "invalid_paid_at"

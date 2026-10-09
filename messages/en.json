@@ -1057,6 +1057,7 @@
     "errors": {
       "load": "Payouts couldn't be loaded.",
       "balanceChanged": "The amount owed changed since this page loaded. Reload and check it before recording.",
+      "accountChanged": "The shop's bank details changed after this page loaded. Reload, check them, and record only what you actually sent.",
       "noAccount": "This shop has no bank details.",
       "reference": "Enter the bank's reference for the transfer.",
       "date": "Enter the date the transfer was sent.",
