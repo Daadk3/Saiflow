@@ -659,7 +659,11 @@
     "cookiesTitle": "Turn on cookies to pay",
     "cookiesBody": "Checkout uses a cookie to make sure the same payment is never started twice. Allow cookies for SaiFlow, then try again.",
     "lock_unavailableTitle": "Checkout can't start safely in this browser",
-    "lock_unavailableBody": "This browser can't coordinate checkout between its tabs, so it can't make sure a payment starts only once. No payment was started from this page. Updating the browser may fix this. If you need help, contact support."
+    "lock_unavailableBody": "This browser can't coordinate checkout between its tabs, so it can't make sure a payment starts only once. No payment was started from this page. Updating the browser may fix this. If you need help, contact support.",
+    "emailLabel": "Your email for the receipt",
+    "emailHint": "We'll send your receipt and download link here, so you can get your file again later.",
+    "emailInvalid": "Enter a valid email address, like name@example.com.",
+    "emailContinue": "Continue to payment"
   },
   "success": {
     "processingTitle": "Payment is being confirmed...",

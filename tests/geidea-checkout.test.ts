@@ -99,9 +99,12 @@ const canned = (input: Record<string, unknown>) => ({
   timestamp: "2026/09/21 19:47:17",
 });
 
-/** A WHERE clause of plain equalities; a column never written is NULL, as in the database. */
+/** A WHERE clause of plain equalities, or `{ not }`; a column never written is NULL, as in the database. */
 function matches(row: Record<string, unknown>, where: Record<string, unknown>): boolean {
-  return Object.entries(where).every(([k, v]) => (row[k] ?? null) === v);
+  return Object.entries(where).every(([k, v]) => {
+    if (v !== null && typeof v === "object" && "not" in (v as object)) return (row[k] ?? null) !== (v as { not: unknown }).not;
+    return (row[k] ?? null) === v;
+  });
 }
 
 const fakePrisma = {
@@ -251,7 +254,7 @@ function identified(headers: Record<string, string>): Record<string, string> {
 }
 
 let ipCounter = 0;
-async function checkout(body: unknown = { productId: "prod_1" }, headers: Record<string, string> = {}) {
+async function checkout(body: unknown = { productId: "prod_1", buyerEmail: "buyer@example.com" }, headers: Record<string, string> = {}) {
   // The real rate limiter is in play: each request gets its own address
   // unless a test pins one on purpose.
   ipCounter++;
@@ -305,7 +308,7 @@ describe("a sellable product starts a Geidea session", () => {
     assert.equal(created.currency, "SAR");
     assert.equal(created.environment, "TEST");
     assert.equal(created.status, "CREATED");
-    assert.equal(created.buyerEmail, null);
+    assert.equal(created.buyerEmail, "buyer@example.com", "the receipt address the page collected");
     assert.match(String(created.merchantReferenceId), UUID_V4);
     const expiresAt = created.expiresAt as Date;
     assert.ok(expiresAt instanceof Date);
@@ -347,13 +350,13 @@ describe("a sellable product starts a Geidea session", () => {
   });
 
   test("the hosted page follows the visitor's locale cookie, and only ar or en", async () => {
-    await checkout({ productId: "prod_1" }, { cookie: "NEXT_LOCALE=en" });
+    await checkout({ productId: "prod_1", buyerEmail: "buyer@example.com" }, { cookie: "NEXT_LOCALE=en" });
     assert.equal(sessionCalls[0].language, "en");
-    await checkout({ productId: "prod_1" }, { cookie: "other=1; NEXT_LOCALE=ar; x=2" });
+    await checkout({ productId: "prod_1", buyerEmail: "buyer@example.com" }, { cookie: "other=1; NEXT_LOCALE=ar; x=2" });
     assert.equal(sessionCalls[1].language, "ar");
-    await checkout({ productId: "prod_1" }, { cookie: "NEXT_LOCALE=fr" });
+    await checkout({ productId: "prod_1", buyerEmail: "buyer@example.com" }, { cookie: "NEXT_LOCALE=fr" });
     assert.equal(sessionCalls[2].language, "ar");
-    await checkout({ productId: "prod_1" }, { cookie: "NEXT_LOCALE=en; NEXT_LOCALE_X=1" });
+    await checkout({ productId: "prod_1", buyerEmail: "buyer@example.com" }, { cookie: "NEXT_LOCALE=en; NEXT_LOCALE_X=1" });
     assert.equal(sessionCalls[3].language, "en");
   });
 
@@ -382,7 +385,7 @@ describe("a sellable product starts a Geidea session", () => {
 /* Nothing from the browser but the product id                         */
 /* ------------------------------------------------------------------ */
 
-describe("the browser controls nothing but which product", () => {
+describe("the browser controls nothing but which product, and where its receipt goes", () => {
   test("price, amount, currency, provider, environment and both URLs in the body are ignored", async () => {
     const res = await checkout({
       productId: "prod_1",
@@ -395,7 +398,7 @@ describe("the browser controls nothing but which product", () => {
       returnUrl: "https://attacker.example/return",
       successUrl: "https://attacker.example/ok",
       merchantReferenceId: "00000000-0000-4000-8000-000000000000",
-      buyerEmail: "attacker@example.test",
+      buyerEmail: "  Receipt@Example.TEST ",
       language: "fr",
     });
     assert.equal(res.status, 200);
@@ -409,13 +412,15 @@ describe("the browser controls nothing but which product", () => {
     const created = writes[0].data;
     assert.equal(created.environment, "TEST");
     assert.equal(created.provider, "GEIDEA");
-    assert.equal(created.buyerEmail, null);
+    assert.equal(created.buyerEmail, "receipt@example.test", "the receipt address, trimmed and lower-cased, and nothing else from the body");
     assert.equal(created.currency, "SAR");
   });
 
-  test("the route reads only productId from the body, structurally", () => {
+  test("the route reads only productId and the receipt address from the body, structurally", () => {
     const src = readFileSync(new URL("../app/api/checkout/route.ts", import.meta.url), "utf8");
-    assert.ok(src.includes("const { productId } = await req.json();"));
+    assert.ok(src.includes("const { productId, buyerEmail: submittedEmail } = await req.json();"));
+    assert.ok(src.includes("const buyerEmail = normalizeBuyerEmail(submittedEmail);"));
+    assert.equal(src.split("submittedEmail").length - 1, 2, "the submitted address is used only through the shared rule");
     assert.ok(!/req\.json\(\)[\s\S]*?(amount|price|currency|callbackUrl|returnUrl|email)\b\s*[=:]/.test(src.split("await req.json()")[1].slice(0, 80)));
   });
 });
@@ -432,6 +437,18 @@ describe("refusals record no attempt and ask Geidea nothing", () => {
     assert.equal(res.body.error, "pre_launch");
     assert.deepEqual(ops, [], "not even the product is loaded");
     assertNoAttemptAndNoGeidea();
+  });
+
+  test("no usable receipt address: refused before the product is read, nothing recorded, Geidea not asked", async () => {
+    const addresses: unknown[] = [undefined, null, "", "   ", "buyer", "buyer@example", "a@@b.co", "buyer@example.com\r\nBcc: x@y.co", 42];
+    for (const buyerEmail of addresses) {
+      reset();
+      const res = await checkout({ productId: "prod_1", buyerEmail });
+      assert.equal(res.status, 400, JSON.stringify(buyerEmail));
+      assert.deepEqual(res.body, { error: "invalid_email" });
+      assert.deepEqual(ops, [], "not even the product is loaded");
+      assertNoAttemptAndNoGeidea();
+    }
   });
 
   test("an unsafe or unsellable product still refuses, before payment", async () => {
@@ -631,14 +648,14 @@ describe("checkout is rate limited before anything is read", () => {
   test("fifteen requests in ten minutes from one address succeed; the sixteenth is refused untouched", async () => {
     const fixed = { "x-forwarded-for": "203.0.113.55" };
     for (let i = 0; i < 15; i++) {
-      const res = await checkout({ productId: "prod_1" }, fixed);
+      const res = await checkout({ productId: "prod_1", buyerEmail: "buyer@example.com" }, fixed);
       assert.equal(res.status, 200, `request ${i + 1} must still succeed`);
     }
     ops.length = 0;
     writes.length = 0;
     sessionCalls.length = 0;
     db.attempts = [];
-    const res = await checkout({ productId: "prod_1" }, fixed);
+    const res = await checkout({ productId: "prod_1", buyerEmail: "buyer@example.com" }, fixed);
     assert.equal(res.status, 429);
     assert.deepEqual(res.body, { error: "Too many requests" });
     assert.deepEqual(ops, [], "no product lookup, no attempt, no provider call");
@@ -647,10 +664,10 @@ describe("checkout is rate limited before anything is read", () => {
 
   test("a limited caller learns nothing about whether a product exists", async () => {
     const fixed = { "x-forwarded-for": "203.0.113.56" };
-    for (let i = 0; i < 15; i++) await checkout({ productId: "prod_1" }, fixed);
+    for (let i = 0; i < 15; i++) await checkout({ productId: "prod_1", buyerEmail: "buyer@example.com" }, fixed);
     db.product = null;
     ops.length = 0;
-    const res = await checkout({ productId: "prod_1" }, fixed);
+    const res = await checkout({ productId: "prod_1", buyerEmail: "buyer@example.com" }, fixed);
     assert.equal(res.status, 429, "429, never 404");
     assert.deepEqual(ops, []);
   });
@@ -658,9 +675,9 @@ describe("checkout is rate limited before anything is read", () => {
   test("addresses are limited independently", async () => {
     const a = { "x-forwarded-for": "203.0.113.57" };
     const b = { "x-forwarded-for": "203.0.113.58" };
-    for (let i = 0; i < 15; i++) await checkout({ productId: "prod_1" }, a);
-    assert.equal((await checkout({ productId: "prod_1" }, a)).status, 429);
-    assert.equal((await checkout({ productId: "prod_1" }, b)).status, 200);
+    for (let i = 0; i < 15; i++) await checkout({ productId: "prod_1", buyerEmail: "buyer@example.com" }, a);
+    assert.equal((await checkout({ productId: "prod_1", buyerEmail: "buyer@example.com" }, a)).status, 429);
+    assert.equal((await checkout({ productId: "prod_1", buyerEmail: "buyer@example.com" }, b)).status, 200);
   });
 });
 
@@ -721,7 +738,7 @@ const DROPIN_APPEARANCE = {
   styles: { headerColor: "#14b8a6", hideGeideaLogo: true, hppProfile: "compressed" },
 };
 
-async function checkoutWith(query: string, body: unknown = { productId: "prod_1" }, headers: Record<string, string> = {}) {
+async function checkoutWith(query: string, body: unknown = { productId: "prod_1", buyerEmail: "buyer@example.com" }, headers: Record<string, string> = {}) {
   ipCounter++;
   const address = `10.8.${(ipCounter >> 8) & 255}.${ipCounter & 255}`;
   const res = await POST(
@@ -914,7 +931,7 @@ const liveSessionWithId = (sessionId: string) => (input: Record<string, unknown>
 const SESSION_A = "aaaaaaaa-1111-4222-8333-444444444444";
 const SESSION_B = "bbbbbbbb-5555-4666-8777-888888888888";
 
-async function send(query: string, cookie?: string, body: unknown = { productId: "prod_1" }) {
+async function send(query: string, cookie?: string, body: unknown = { productId: "prod_1", buyerEmail: "buyer@example.com" }) {
   ipCounter++;
   const address = `10.7.${(ipCounter >> 8) & 255}.${ipCounter & 255}`;
   const res = await POST(
@@ -1496,7 +1513,7 @@ describe("a resume trusts the attempt's row and the product's row, never the bro
   test("one bearer, another product: a separate attempt, never the first product's session", async () => {
     const { cookie } = await startedBrowser();
     db.product = product({ id: "prod_2", slug: "other" });
-    const res = await send(DROPIN, cookie, { productId: "prod_2" });
+    const res = await send(DROPIN, cookie, { productId: "prod_2", buyerEmail: "buyer@example.com" });
     assert.equal(res.status, 200);
     assert.equal(db.attempts.length, 2);
     assert.equal(db.attempts[1].productId, "prod_2");
@@ -1519,10 +1536,32 @@ describe("a resume trusts the attempt's row and the product's row, never the bro
     assertNoSecondSession();
   });
 
+  test("a corrected receipt address follows the same attempt, and changes nothing else", async () => {
+    const { first, cookie } = await startedBrowser();
+    writes.length = 0;
+    const res = await send(DROPIN, cookie, { productId: "prod_1", buyerEmail: " New.Address@Example.com " });
+    assert.equal(res.status, 200);
+    assert.equal(res.body.sessionId, first.body.sessionId, "the same Geidea session");
+    assertNoSecondSession();
+    assert.equal(db.attempts[0].buyerEmail, "new.address@example.com");
+    assert.equal(writes.length, 1);
+    assert.deepEqual(writes[0].data, { buyerEmail: "new.address@example.com" }, "only the address");
+    assert.deepEqual(writes[0].where, { id: db.attempts[0].id, currentAttemptKey: db.attempts[0].currentAttemptKey, status: { not: "PAID" } });
+  });
+
+  test("the same receipt address again writes nothing", async () => {
+    const { cookie } = await startedBrowser();
+    writes.length = 0;
+    const res = await send(DROPIN, cookie);
+    assert.equal(res.status, 200);
+    assert.equal(writes.length, 0);
+  });
+
   test("money, provider, environment and references in the body change nothing about a resume", async () => {
     const { first, cookie } = await startedBrowser();
     const res = await send(DROPIN, cookie, {
       productId: "prod_1",
+      buyerEmail: "buyer@example.com",
       amount: "1.00",
       price: 1,
       currency: "USD",

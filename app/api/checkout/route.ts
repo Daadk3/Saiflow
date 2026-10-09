@@ -28,6 +28,7 @@ import {
   type Expected,
   type Presentation as AttemptPresentation,
 } from "@/lib/checkout/attempt";
+import { normalizeBuyerEmail } from "@/lib/checkout/buyer-email";
 
 /**
  * Checkout: the one place a purchase attempt begins.
@@ -36,7 +37,9 @@ import {
  * pre-launch, a real product, moderation and shop visibility, an attached
  * file, and the reviewed deliverable-safety predicate. Only past all of them
  * does money enter the picture, and then nothing the browser sent is used
- * again: the body contributes `productId` and nothing else. The amount is the
+ * again: the body contributes `productId`, which selects the product, and
+ * `buyerEmail`, which is only where the receipt goes (lib/checkout/buyer-email)
+ * and decides nothing about money, the attempt or the file. The amount is the
  * row's price, the currency is the row's and must be SAR, the environment is
  * the deployment's GEIDEA_ENV, and both Geidea URLs are built from the
  * deployment's own configured origin.
@@ -203,7 +206,7 @@ function isForeignKeyViolation(error: unknown): boolean {
   return errorCode(error) === "P2003";
 }
 
-type HeldAttempt = CurrentAttempt & { id: string };
+type HeldAttempt = CurrentAttempt & { id: string; buyerEmail: string | null };
 
 /** This browser's current attempt for this product, if it has one. */
 async function currentAttempt(key: string): Promise<HeldAttempt | null> {
@@ -224,6 +227,7 @@ async function currentAttempt(key: string): Promise<HeldAttempt | null> {
       failureReason: true,
       expiresAt: true,
       createdAt: true,
+      buyerEmail: true,
       order: { select: { id: true } },
     },
   });
@@ -326,13 +330,21 @@ export async function POST(req: Request) {
   }
 
   try {
-    const { productId } = await req.json();
+    const { productId, buyerEmail: submittedEmail } = await req.json();
 
     if (!productId) {
       return NextResponse.json(
         { error: "Product ID is required" },
         { status: 400 }
       );
+    }
+
+    // Where the receipt goes. Required, so every purchase can reach its
+    // buyer again after the success page is closed. Checked with the same
+    // rule the checkout page applied before asking.
+    const buyerEmail = normalizeBuyerEmail(submittedEmail);
+    if (buyerEmail === null) {
+      return NextResponse.json({ error: "invalid_email" }, { status: 400 });
     }
 
     // Get the product from database.
@@ -512,6 +524,15 @@ export async function POST(req: Request) {
     if (held !== null) {
       const decision = decide(held, expected, new Date());
       if (decision.kind !== "replace") {
+        if (decision.kind === "resume" && held.buyerEmail !== buyerEmail) {
+          // The buyer corrected their address before paying. Receipt only:
+          // conditional on the attempt still being this browser's current
+          // one and unpaid, and nothing else about it changes.
+          await prisma.paymentSession.updateMany({
+            where: { id: held.id, currentAttemptKey: key, status: { not: "PAID" } },
+            data: { buyerEmail },
+          });
+        }
         return answerExisting(held, decision, presentation, scriptUrl, cookie);
       }
       // No session id from it ever reached a browser. Released in one
@@ -554,10 +575,10 @@ export async function POST(req: Request) {
           currency: CURRENCY,
           environment,
           status: "CREATED",
-          // The current checkout is a guest flow and sends no email; the
-          // callback never reads one from Geidea. Null until a later step
-          // collects it before the redirect.
-          buyerEmail: null,
+          // The receipt address, collected on SaiFlow's checkout page before
+          // the session was asked for. The callback never reads one from
+          // Geidea; fulfilment copies this one onto the Order.
+          buyerEmail,
           expiresAt: new Date(Date.now() + SESSION_LIFETIME_MS),
           clientTokenHash: tokenHash,
           currentAttemptKey: key,

@@ -173,7 +173,7 @@ const product = (over: Partial<ProductRow> = {}): ProductRow => ({
  * gates below are what decide. The identity step itself is tested in
  * geidea-checkout.test.ts.
  */
-const checkout = (body: unknown = { productId: "prod_1" }) =>
+const checkout = (body: unknown = { productId: "prod_1", buyerEmail: "buyer@example.com" }) =>
   POST(
     new Request("https://saiflow.test/api/checkout", {
       method: "POST",
@@ -300,6 +300,7 @@ describe("checkout: the buyer cannot influence the scan decision", () => {
 
     const res = await checkout({
       productId: "prod_1",
+      buyerEmail: "buyer@example.com",
       fileScanStatus: "SAFE",
       fileScanKey: KEY,
       fileKey: KEY,
@@ -312,17 +313,18 @@ describe("checkout: the buyer cannot influence the scan decision", () => {
   test("a client-supplied storage key cannot substitute for the row's", async () => {
     reset();
     state.product = product({ fileKey: null, fileScanStatus: "SAFE", fileScanKey: null });
-    const res = await checkout({ productId: "prod_1", fileKey: KEY, key: KEY });
+    const res = await checkout({ productId: "prod_1", buyerEmail: "buyer@example.com", fileKey: KEY, key: KEY });
     await assertRefusedBeforePayment(res, "file_not_ready");
   });
 
-  test("the route reads only productId from the body", async () => {
+  test("the route reads only productId and the receipt address from the body", async () => {
     reset();
     state.product = product();
     // A body carrying hostile extras still succeeds on the row's own merits,
     // proving the extras are neither read nor rejected — simply irrelevant.
     const res = await checkout({
       productId: "prod_1",
+      buyerEmail: "buyer@example.com",
       price: 0,
       currency: "usd",
       fileScanStatus: "UNSAFE",

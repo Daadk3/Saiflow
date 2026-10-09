@@ -28,6 +28,7 @@ import {
   HOSTED_REQUEST,
   PENDING_RETRY_MS,
   createDropInController,
+  resumeIfReturning,
   type CheckoutReply,
   type DropInController,
   type DropInHost,
@@ -37,6 +38,8 @@ import {
 import { DROPIN_CONTAINER_PREFIX, serializeAttempt } from "../lib/checkout/embedded";
 import type { LockOutcome } from "../lib/checkout/tab-lock";
 
+/** The receipt address the page has already checked; it rides along with every request. */
+const BUYER_EMAIL = "buyer@example.com";
 const NOW = Date.parse("2026-09-25T12:00:00Z");
 const REF_A = "7c9e6679-7425-40de-944b-e07fc1f90ae7";
 const REF_B = "0b8f3c52-51c1-4a0e-9d7e-3f2a1b6c9d10";
@@ -91,7 +94,7 @@ class Browser {
 
 interface PendingPost {
   url: string;
-  body: { productId: string };
+  body: { productId: string; buyerEmail: string };
   /** The identity cookie the request carried: the jar's value when it was sent. */
   cookie: string | null;
   resolve: (reply: CheckoutReply) => void;
@@ -184,7 +187,7 @@ function setup(browser = new Browser(), productId = "prod_1", scriptUrl: string 
     },
   };
 
-  const controller: DropInController = createDropInController(productId, scriptUrl, host, (state) => states.push(state));
+  const controller: DropInController = createDropInController(productId, BUYER_EMAIL, scriptUrl, host, (state) => states.push(state));
   return { browser, controller, posts, waits, states, geidea, timers, last: () => states[states.length - 1] };
 }
 
@@ -239,7 +242,7 @@ describe("starting the embedded form", () => {
     await ready(t);
     assert.deepEqual(t.browser.scriptLoads, [SCRIPT], "the library, before any request");
     assert.equal(t.posts[0].url, DROPIN_REQUEST);
-    assert.deepEqual(t.posts[0].body, { productId: "prod_1" });
+    assert.deepEqual(t.posts[0].body, { productId: "prod_1", buyerEmail: BUYER_EMAIL });
     assert.deepEqual(t.geidea.map((g) => [g.sessionId, g.containerId]), [[SESSION_A, t.controller.containerId]]);
     assert.deepEqual(t.waits, [t.controller.containerId], "readiness is read from the same container");
     assert.equal(attemptRef(t.browser.stored), STATUS_A, "the attempt is recorded for recovery");
@@ -684,7 +687,7 @@ describe("the hosted page is offered only before any session request", () => {
     assert.deepEqual(t.last(), { kind: "redirecting" });
     await settle();
     assert.equal(t.posts[0].url, HOSTED_REQUEST);
-    assert.deepEqual(t.posts[0].body, { productId: "prod_1" });
+    assert.deepEqual(t.posts[0].body, { productId: "prod_1", buyerEmail: BUYER_EMAIL });
     t.posts[0].resolve(ok({ url: HOSTED_URL }));
     await leaving;
     assert.deepEqual(t.browser.navigations, [HOSTED_URL]);
@@ -774,6 +777,31 @@ describe("the attempt stays recoverable", () => {
     assert.equal(browser.scriptLoads.length, 0, "not even the library");
     assert.equal(browser.stored, null, "cleared first, so the back button cannot loop");
   });
+
+  test("the page applies the same rule before it asks for the receipt address", () => {
+    const replaced: string[] = [];
+    let stored: string | null = serializeAttempt({ productId: "prod_1", successPath: STATUS_A, startedAt: NOW - 60_000 });
+    const host = {
+      search: () => "?returned=1",
+      readAttempt: () => stored,
+      clearAttempt: () => {
+        stored = null;
+      },
+      replace: (url: string) => {
+        replaced.push(url);
+      },
+      now: () => NOW,
+    };
+    assert.equal(resumeIfReturning("prod_1", host), true);
+    assert.deepEqual(replaced, [STATUS_A], "a buyer who has just paid is never shown a form");
+    assert.equal(stored, null, "cleared first, so the back button cannot loop");
+
+    const record = serializeAttempt({ productId: "prod_1", successPath: STATUS_A, startedAt: NOW - 60_000 });
+    const plainVisit = { ...host, search: () => "", readAttempt: () => record };
+    assert.equal(resumeIfReturning("prod_1", plainVisit), false, "a plain visit is asked for its address");
+    const otherProduct = { ...host, readAttempt: () => record };
+    assert.equal(resumeIfReturning("prod_2", otherProduct), false, "another product's attempt never redirects");
+  });
 });
 
 /* ------------------------------------------------------------------ */
@@ -861,7 +889,7 @@ describe("a checkout page that has gone does nothing", () => {
 /* ------------------------------------------------------------------ */
 
 describe("no second payment or download authority is introduced", () => {
-  test("the controller only ever calls the checkout route, and only with the product id", async () => {
+  test("the controller only ever calls the checkout route, and only with the product id and the receipt address", async () => {
     await ready(t);
     const hosted = await fallback(setup());
     const leaving = hosted.controller.continueOnHostedPage();
@@ -869,7 +897,9 @@ describe("no second payment or download authority is introduced", () => {
     hosted.posts[0].resolve(ok({ url: HOSTED_URL }));
     await leaving;
     assert.deepEqual([...t.posts, ...hosted.posts].map((p) => p.url), [DROPIN_REQUEST, HOSTED_REQUEST]);
-    for (const post of [...t.posts, ...hosted.posts]) assert.deepEqual(post.body, { productId: "prod_1" });
+    for (const post of [...t.posts, ...hosted.posts]) {
+      assert.deepEqual(post.body, { productId: "prod_1", buyerEmail: BUYER_EMAIL });
+    }
   });
 
   test("it goes only to a server-given success path, a checked status path or Geidea's hosted page", () => {
@@ -880,7 +910,7 @@ describe("no second payment or download authority is introduced", () => {
       assert.ok(!src.includes(forbidden), `the controller references ${forbidden}`);
     }
     assert.deepEqual(src.match(/host\.navigate\(([^)]+)\)/g), ["host.navigate(parsed.successPath)", "host.navigate(url)"]);
-    assert.deepEqual(src.match(/host\.replace\(([^)]+)\)/g), ["host.replace(conflict.statusPath)", "host.replace(resumeTo)"]);
+    assert.deepEqual(src.match(/host\.replace\(([^)]+)\)/g), ["host.replace(resumeTo)", "host.replace(conflict.statusPath)"]);
     assert.match(src, /if \(!isHostedCheckoutUrl\(url\)\)/);
     assert.match(src, /attemptConflictFrom\(reply\.status, reply\.body\)/, "status paths pass the shared check first");
   });

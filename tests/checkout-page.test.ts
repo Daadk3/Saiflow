@@ -128,9 +128,10 @@ describe("the embedded form is Geidea's, and the browser decides nothing (wiring
   test("one controller per mounted page, started from a scheduled callback, disposed when the page goes", () => {
     assert.match(
       dropin,
-      /useEffect\(\(\) => \{\s*const instance = createDropInController\(productId, scriptUrl, browserHost\(\), setState\);\s*controller\.current = instance;\s*if \(container\.current !== null\) container\.current\.id = instance\.containerId;\s*const kickoff = window\.setTimeout\(\(\) => \{\s*void instance\.start\(\);\s*\}, 0\);\s*return \(\) => \{\s*window\.clearTimeout\(kickoff\);\s*instance\.dispose\(\);/
+      /useEffect\(\(\) => \{\s*if \(buyerEmail === null\) return;\s*const instance = createDropInController\(productId, buyerEmail, scriptUrl, browserHost\(\), setState\);\s*controller\.current = instance;\s*if \(container\.current !== null\) container\.current\.id = instance\.containerId;\s*const kickoff = window\.setTimeout\(\(\) => \{\s*void instance\.start\(\);\s*\}, 0\);\s*return \(\) => \{\s*window\.clearTimeout\(kickoff\);\s*instance\.dispose\(\);/
     );
-    assert.match(dropin, /\}, \[productId, scriptUrl\]\);/);
+    assert.match(dropin, /\}, \[productId, buyerEmail, scriptUrl\]\);/);
+    assert.match(dropin, /if \(resumeIfReturning\(productId, browserHost\(\)\)\) return;/, "a returning buyer is never asked for anything");
     assert.match(dropin, /onContinueHosted=\{\(\) => void controller\.current\?\.continueOnHostedPage\(\)\}/);
   });
 
@@ -238,8 +239,19 @@ describe("SaiFlow never handles card data", () => {
     }
   });
 
-  test("the checkout UI renders no input of its own", () => {
-    for (const file of COMPONENTS) assert.ok(!/<input\b|<form\b|<select\b|<textarea\b/.test(read(file)), file);
+  test("the checkout UI's only input is the buyer's email, for the receipt", () => {
+    for (const file of COMPONENTS) {
+      const src = read(file);
+      assert.ok(!/<select\b|<textarea\b/.test(src), file);
+      if (file === "components/checkout/DropInCheckout.tsx") continue;
+      assert.ok(!/<input\b|<form\b/.test(src), file);
+    }
+    const dropin = read("components/checkout/DropInCheckout.tsx");
+    assert.equal((dropin.match(/<input\b/g) ?? []).length, 1, "one field");
+    assert.equal((dropin.match(/<form\b/g) ?? []).length, 1, "one form");
+    assert.match(dropin, /type="email"/);
+    assert.match(dropin, /autoComplete="email"/);
+    assert.match(dropin, /const email = normalizeBuyerEmail\(draft\);/, "checked with the server's own rule");
   });
 
   test("no Geidea host is written anywhere; the library URL always comes from configuration", () => {

@@ -127,7 +127,7 @@ export interface CheckoutReply {
 /** The browser, as the controller sees it. */
 export interface DropInHost {
   /** POST JSON to SaiFlow's checkout route. Rejects only on transport failure. */
-  post(url: string, body: { productId: string }): Promise<CheckoutReply>;
+  post(url: string, body: { productId: string; buyerEmail: string }): Promise<CheckoutReply>;
   navigate(url: string): void;
   replace(url: string): void;
   search(): string;
@@ -162,16 +162,38 @@ export interface DropInController {
 
 type Settlement = "embedded" | "hosted" | "elsewhere" | null;
 
+/**
+ * A page reached on the way back from an embedded payment goes to that
+ * attempt's status page (see `resumePathFor`), and the record is cleared
+ * first so the back button cannot loop. True when it did. Run by `start`,
+ * and by the page before it asks the buyer for anything, so a buyer who has
+ * just paid is never shown a form.
+ */
+export function resumeIfReturning(
+  productId: string,
+  host: Pick<DropInHost, "search" | "readAttempt" | "clearAttempt" | "replace" | "now">
+): boolean {
+  const resumeTo = resumePathFor(host.search(), host.readAttempt(), productId, host.now());
+  if (resumeTo === null) return false;
+  host.clearAttempt();
+  host.replace(resumeTo);
+  return true;
+}
+
 /** Mounts in this document, so two ids can never coincide even if two tokens did. */
 let mounts = 0;
 
 /**
+ * @param buyerEmail Where the receipt goes, already checked by the page with
+ *   lib/checkout/buyer-email. Sent with every session request; it decides
+ *   nothing about money.
  * @param scriptUrl Geidea's library, as the page's server derived it from
  *   configuration; null when it cannot be served, which leaves only the
  *   hosted page.
  */
 export function createDropInController(
   productId: string,
+  buyerEmail: string,
   scriptUrl: string | null,
   host: DropInHost,
   onState: (state: PanelState) => void
@@ -241,7 +263,7 @@ export function createDropInController(
       if (disposed || settled !== null) return null;
       let reply: CheckoutReply;
       try {
-        reply = await host.post(url, { productId });
+        reply = await host.post(url, { productId, buyerEmail });
       } catch {
         if (!disposed && settled === null) emit({ kind: "unavailable", problem: "service" });
         return null;
@@ -274,12 +296,7 @@ export function createDropInController(
   async function start(): Promise<void> {
     if (disposed) return;
 
-    const resumeTo = resumePathFor(host.search(), host.readAttempt(), productId, host.now());
-    if (resumeTo !== null) {
-      host.clearAttempt();
-      host.replace(resumeTo);
-      return;
-    }
+    if (resumeIfReturning(productId, host)) return;
 
     // Geidea's library first, while nothing exists that could be paid.
     if (scriptUrl === null) {
