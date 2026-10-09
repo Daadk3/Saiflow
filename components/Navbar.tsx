@@ -34,12 +34,13 @@ export default function Navbar() {
       }`}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
+        <div className="flex items-center justify-between gap-4 h-16">
           {/* Logo */}
           <BrandLogo />
 
-          {/* Desktop nav */}
-          <div className="hidden md:flex items-center gap-8" role="menubar">
+          {/* Desktop nav. The full bar needs about 900px, so it starts at lg:
+              at md (768px) it pushed the page 147px wider than the screen. */}
+          <div className="hidden lg:flex items-center gap-6 xl:gap-8" role="menubar">
             <Link href="/browse" className={navLinkClass} role="menuitem">
               {t('products')}
             </Link>
@@ -55,7 +56,7 @@ export default function Navbar() {
           </div>
 
           {/* Right actions */}
-          <div className="hidden md:flex items-center gap-4">
+          <div className="hidden lg:flex items-center gap-4">
             <LanguageSwitcher />
             {session ? (
               // Logged in - show these
@@ -94,7 +95,7 @@ export default function Navbar() {
           {/* Mobile menu button */}
           <button
             onClick={() => setMenuOpen((prev) => !prev)}
-            className="md:hidden inline-flex items-center justify-center rounded-md p-2 text-gray-300 hover:text-white hover:bg-gray-800 transition"
+            className="lg:hidden inline-flex items-center justify-center rounded-md p-2 text-gray-300 hover:text-white hover:bg-gray-800 transition"
             aria-label={t('toggleMenu')}
             aria-expanded={menuOpen}
             aria-controls="mobile-menu"
@@ -131,7 +132,7 @@ export default function Navbar() {
         id="mobile-menu"
         role="menu"
         aria-label={t('mobileMenu')}
-        className={`md:hidden transition-all duration-200 ${
+        className={`lg:hidden transition-all duration-200 ${
           menuOpen ? "max-h-screen opacity-100" : "max-h-0 opacity-0 overflow-hidden"
         }`}
       >

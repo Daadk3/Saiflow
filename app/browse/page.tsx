@@ -8,26 +8,12 @@ import type { ProductCategory } from "@/lib/categories";
 import { ProductCard } from "@/components/ProductCard";
 import type { ProductCardProduct } from "@/components/ProductCard";
 import { IconChevronDown, IconSearch, IconStore } from "@/components/home/icons";
+import { MAX_QUERY_LENGTH, SORT_OPTIONS, parseFilters } from "./search-params";
+import type { Filters, SearchParamValue, SortOption } from "./search-params";
 
 export const dynamic = "force-dynamic";
 
-// No popularity sort until real popularity data exists: an option that
-// silently fell back to newest would mislead. Unknown values become newest.
-const SORT_OPTIONS = ["newest", "price-asc", "price-desc"] as const;
-type SortOption = (typeof SORT_OPTIONS)[number];
-
-/** Search text is trimmed and capped; anything longer is a mistake, not a query. */
-const MAX_QUERY_LENGTH = 80;
-
 type Product = ProductCardProduct;
-
-interface Filters {
-  category?: ProductCategory;
-  sort: SortOption;
-  minPrice?: number;
-  maxPrice?: number;
-  q?: string;
-}
 
 async function getProducts(filters: Filters): Promise<Product[]> {
   const { category, sort, minPrice, maxPrice, q } = filters;
@@ -98,21 +84,6 @@ async function getProducts(filters: Filters): Promise<Product[]> {
   }
 }
 
-function parsePrice(raw: string | undefined): number | undefined {
-  if (!raw) return undefined;
-  const value = Number(raw);
-  return Number.isFinite(value) && value >= 0 ? value : undefined;
-}
-
-function parseSort(raw: string | undefined): SortOption {
-  return (SORT_OPTIONS as readonly string[]).includes(raw ?? "") ? (raw as SortOption) : "newest";
-}
-
-function parseQuery(raw: string | undefined): string | undefined {
-  const q = raw?.trim().slice(0, MAX_QUERY_LENGTH);
-  return q ? q : undefined;
-}
-
 /** A browse URL for the current filters with some of them changed. */
 function browseHref(filters: Filters, overrides: Partial<Filters>): string {
   const next = { ...filters, ...overrides };
@@ -127,24 +98,12 @@ function browseHref(filters: Filters, overrides: Partial<Filters>): string {
 }
 
 interface BrowsePageProps {
-  searchParams: Promise<{
-    category?: string;
-    sort?: string;
-    minPrice?: string;
-    maxPrice?: string;
-    q?: string;
-  }>;
+  // A name that repeats in the URL arrives as an array; see ./search-params.
+  searchParams: Promise<Record<string, SearchParamValue>>;
 }
 
 export default async function BrowsePage({ searchParams }: BrowsePageProps) {
-  const params = await searchParams;
-  const filters: Filters = {
-    category: isProductCategory(params.category) ? params.category : undefined,
-    sort: parseSort(params.sort),
-    minPrice: parsePrice(params.minPrice),
-    maxPrice: parsePrice(params.maxPrice),
-    q: parseQuery(params.q),
-  };
+  const filters = parseFilters(await searchParams);
   const { category, sort, minPrice, maxPrice, q } = filters;
 
   const products = await getProducts(filters);
@@ -297,6 +256,7 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
                     dir="ltr"
                     name="minPrice"
                     min={0}
+                    step="0.01"
                     placeholder={t("products.minPrice")}
                     defaultValue={minPrice ?? ""}
                     aria-label={t("products.minPrice")}
@@ -308,6 +268,7 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
                     dir="ltr"
                     name="maxPrice"
                     min={0}
+                    step="0.01"
                     placeholder={t("products.maxPrice")}
                     defaultValue={maxPrice ?? ""}
                     aria-label={t("products.maxPrice")}
