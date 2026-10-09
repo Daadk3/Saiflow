@@ -457,7 +457,7 @@ describe("checkout: existing gates are preserved", () => {
     assert.equal(args.amount, "49.00");
     assert.equal(args.currency, "SAR");
     assert.match(args.merchantReferenceId, /^[0-9a-f-]{36}$/);
-    assert.equal(args.callbackUrl, "https://saiflow.test/api/webhooks/geidea");
+    assert.equal(args.callbackUrl, "https://project-w5bhm.vercel.app/api/geidea-callback", "test-account callbacks go to the fixed relay");
     assert.ok(args.returnUrl.startsWith("https://saiflow.test/success?ref="));
   });
 });

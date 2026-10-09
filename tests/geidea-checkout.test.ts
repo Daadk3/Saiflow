@@ -331,7 +331,7 @@ describe("a sellable product starts a Geidea session", () => {
     assert.equal(input.amount, "49.00");
     assert.equal(input.currency, "SAR");
     assert.equal(input.merchantReferenceId, writes[0].data.merchantReferenceId);
-    assert.equal(input.callbackUrl, "https://saiflow.test/api/webhooks/geidea");
+    assert.equal(input.callbackUrl, "https://project-w5bhm.vercel.app/api/geidea-callback", "test-account callbacks go to the relay");
     assert.equal(input.returnUrl, `https://saiflow.test/success?ref=${input.merchantReferenceId}`);
     assert.equal(input.language, "ar", "Arabic-first default");
   });
@@ -370,14 +370,24 @@ describe("a sellable product starts a Geidea session", () => {
   test("the origin's path is ignored: URLs are built on the origin alone", async () => {
     state.siteUrl = "https://saiflow.test/some/base";
     await checkout();
-    assert.equal(sessionCalls[0].callbackUrl, "https://saiflow.test/api/webhooks/geidea");
+    assert.equal(sessionCalls[0].returnUrl, `https://saiflow.test/success?ref=${sessionCalls[0].merchantReferenceId}`);
+  });
+
+  test("the test-account callback goes to the fixed relay; a production account keeps its own URL", () => {
+    const src = readFileSync(new URL("../app/api/checkout/route.ts", import.meta.url), "utf8");
+    assert.ok(src.includes('const TEST_CALLBACK_RELAY_URL = "https://project-w5bhm.vercel.app/api/geidea-callback";'));
+    assert.match(
+      src,
+      /const callbackUrl =\s*environment === "TEST" \? TEST_CALLBACK_RELAY_URL : new URL\("\/api\/webhooks\/geidea", origin\)\.toString\(\);/
+    );
+    assert.equal(src.split("TEST_CALLBACK_RELAY_URL").length - 1, 2, "defined once, used once, never from config or the request");
   });
 
   test("localhost over http is allowed to form URLs during development", async () => {
     state.siteUrl = "http://localhost:3000";
     const res = await checkout();
     assert.equal(res.status, 200);
-    assert.equal(sessionCalls[0].callbackUrl, "http://localhost:3000/api/webhooks/geidea");
+    assert.equal(sessionCalls[0].returnUrl, `http://localhost:3000/success?ref=${sessionCalls[0].merchantReferenceId}`);
   });
 });
 
@@ -405,7 +415,7 @@ describe("the browser controls nothing but which product, and where its receipt 
     const input = sessionCalls[0];
     assert.equal(input.amount, "49.00");
     assert.equal(input.currency, "SAR");
-    assert.equal(input.callbackUrl, "https://saiflow.test/api/webhooks/geidea");
+    assert.equal(input.callbackUrl, "https://project-w5bhm.vercel.app/api/geidea-callback", "test-account callbacks go to the relay");
     assert.ok(String(input.returnUrl).startsWith("https://saiflow.test/success?ref="));
     assert.notEqual(input.merchantReferenceId, "00000000-0000-4000-8000-000000000000");
     assert.equal(input.language, "ar");
@@ -762,7 +772,7 @@ describe("the embedded presentation asks for Geidea's drop-in and changes nothin
     assert.deepEqual(input.appearance, DROPIN_APPEARANCE);
     assert.equal(input.amount, "49.00");
     assert.equal(input.currency, "SAR");
-    assert.equal(input.callbackUrl, "https://saiflow.test/api/webhooks/geidea");
+    assert.equal(input.callbackUrl, "https://project-w5bhm.vercel.app/api/geidea-callback", "test-account callbacks go to the relay");
     assert.equal(input.returnUrl, `https://saiflow.test/success?ref=${input.merchantReferenceId}`);
     assert.equal(input.language, "ar");
   });

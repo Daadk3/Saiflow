@@ -87,6 +87,18 @@ const LIVE_GEIDEA_ALLOWED = false;
 /** Every SaiFlow price is in riyals; the Geidea KSA rail settles in SAR. */
 const CURRENCY = "SAR";
 
+/**
+ * TEST PHASE ONLY: where Geidea sends test-account callbacks. Preview
+ * deployments sit behind Vercel Authentication, which Geidea cannot pass, so
+ * test callbacks go to SaiFlow's separate relay project, which verifies its
+ * own Vercel identity and forwards the unchanged body to this branch's
+ * Preview through Trusted Sources. Fixed here, never configurable and never
+ * from a request. The relay only delivers: the callback route still checks
+ * Geidea's signature, the attempt row and Geidea's own order inquiry. A
+ * production-account checkout keeps using this deployment's own URL.
+ */
+const TEST_CALLBACK_RELAY_URL = "https://project-w5bhm.vercel.app/api/geidea-callback";
+
 /** Geidea sessions expire 15 minutes after creation. Used until Geidea states its own. */
 const SESSION_LIFETIME_MS = 15 * 60 * 1000;
 
@@ -554,7 +566,8 @@ export async function POST(req: Request) {
     }
 
     const merchantReferenceId = randomUUID();
-    const callbackUrl = new URL("/api/webhooks/geidea", origin).toString();
+    const callbackUrl =
+      environment === "TEST" ? TEST_CALLBACK_RELAY_URL : new URL("/api/webhooks/geidea", origin).toString();
     const returnUrl = new URL("/success", origin);
     // The reference lets the success page ask SaiFlow for the attempt's own
     // Order state. The redirect itself proves nothing and is trusted for
