@@ -1,11 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
 import { useEffect, useState } from "react";
 import { useSession, signOut } from "next-auth/react";
 import { usePathname } from "next/navigation";
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
+import BrandLogo from "@/components/BrandLogo";
 import { useTranslations } from "next-intl";
 
 export default function Navbar() {
@@ -36,17 +36,7 @@ export default function Navbar() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
-          <Link href="/" className="logo flex items-center gap-2 cursor-pointer">
-            <Image
-              src="/mascot.png"
-              alt=""
-              aria-hidden="true"
-              width={56}
-              height={56}
-              className="w-14 h-14"
-            />
-            <span className="text-xl font-bold text-white">Saiflow</span>
-          </Link>
+          <BrandLogo />
 
           {/* Desktop nav */}
           <div className="hidden md:flex items-center gap-8" role="menubar">
