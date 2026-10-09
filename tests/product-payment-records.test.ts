@@ -263,14 +263,14 @@ describe("the migration only adds, and replaces the two delete rules", () => {
     assert.equal(statements[0], `CREATE TYPE "CheckoutPresentation" AS ENUM (${members.map((m) => `'${m}'`).join(", ")})`);
   });
 
-  test("it follows the commission snapshot, and only seller payouts follow it", () => {
+  test("it follows the commission snapshot, and only seller payouts and the missing-objects catch-up follow it", () => {
     const dirs = readdirSync(resolve(ROOT, MIGRATIONS), { withFileTypes: true })
       .filter((entry) => entry.isDirectory())
       .map((entry) => entry.name)
       .sort();
     const at = dirs.indexOf(MIGRATION_DIR);
     assert.equal(dirs[at - 1], "20260924130000_add_order_commission_snapshot");
-    assert.deepEqual(dirs.slice(at + 1), ["20261009120000_seller_payouts"]);
+    assert.deepEqual(dirs.slice(at + 1), ["20261009120000_seller_payouts", "20261009180000_schema_objects_missing_from_migrations"]);
   });
 });
 
