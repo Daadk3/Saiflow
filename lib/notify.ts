@@ -220,15 +220,23 @@ function formatAmount(amount: unknown): string {
   return Number.isFinite(numeric) ? numeric.toFixed(2) : String(amount);
 }
 
-function formatWhen(date: Date): string {
-  try {
-    return new Intl.DateTimeFormat("ar-SA-u-ca-gregory-nu-latn", {
+/**
+ * The time of an event, in Riyadh, once per language. Each line of an email
+ * carries its own: an Arabic-formatted date set inside the English line
+ * reorders around its right-to-left marks and reads as "09م 11:34 ،2026/10/".
+ */
+function formatWhen(date: Date): BilingualLine {
+  const format = (locale: string) =>
+    new Intl.DateTimeFormat(locale, {
       dateStyle: "medium",
       timeStyle: "short",
       timeZone: "Asia/Riyadh",
     }).format(date);
+  try {
+    return { ar: format("ar-SA-u-ca-gregory-nu-latn"), en: `${format("en-GB")} (Riyadh time)` };
   } catch {
-    return date.toISOString();
+    const iso = date.toISOString();
+    return { ar: iso, en: iso };
   }
 }
 
@@ -449,7 +457,7 @@ export async function notifySaleFulfilled(input: {
       { ar: `المنتج: ${input.productName}`, en: `Product: ${input.productName}` },
       { ar: `قيمة البيع: ${amount}`, en: `Sale amount: ${amount}` },
       { ar: `رقم الطلب: ${redactId(input.orderId)}`, en: `Order ref: ${redactId(input.orderId)}` },
-      { ar: `التاريخ: ${when}`, en: `Date: ${when}` },
+      { ar: `التاريخ: ${when.ar}`, en: `Date: ${when.en}` },
       ...testLines,
     ],
     link: { url: sellerSalesUrl(), label: { ar: "عرض المبيعات", en: "View sales" } },
@@ -466,7 +474,7 @@ export async function notifySaleFulfilled(input: {
       { ar: `المتجر: ${shop?.name ?? "—"}`, en: `Store: ${shop?.name ?? "—"}` },
       { ar: `المبلغ: ${amount}`, en: `Amount: ${amount}` },
       { ar: `رقم الطلب: ${redactId(input.orderId)}`, en: `Order ref: ${redactId(input.orderId)}` },
-      { ar: `التاريخ: ${when}`, en: `Date: ${when}` },
+      { ar: `التاريخ: ${when.ar}`, en: `Date: ${when.en}` },
       ...testLines,
     ],
     link: { url: adminDashboardUrl(), label: { ar: "لوحة الإدارة", en: "Admin dashboard" } },

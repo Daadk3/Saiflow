@@ -537,6 +537,7 @@ async function sendReceipt(session: Session, orderId: string, productName: strin
       customerEmail: session.buyerEmail,
       productName,
       downloadUrl: `${base}/api/download/${encodeURIComponent(session.productId)}?orderId=${encodeURIComponent(orderId)}`,
+      amountPaid: { amount: session.amount, currency: session.currency },
     });
   } catch (error) {
     log("warn", "receipt_failed", { error: errorName(error), order: redactId(orderId) });

@@ -444,6 +444,18 @@ describe("a fulfilled purchase", () => {
     assert.ok(sent[0].html.includes("المتجر: —"));
   });
 
+  test("each language gets its own date, so the English line is not an Arabic date reordered", async () => {
+    state.product = withMembers;
+    await notify.notifySaleFulfilled(sale);
+    for (const message of sent) {
+      // 14:30 UTC is 17:30 in Riyadh.
+      assert.ok(message.html.includes("Date: 23 Sept 2026, 17:30 (Riyadh time)") || message.html.includes("Date: 23 Sep 2026, 17:30 (Riyadh time)"), "English date");
+      assert.match(message.html, /التاريخ: 23\u200f?\/09\u200f?\/2026/, "Arabic date");
+      const english = message.html.slice(message.html.indexOf("Date: "));
+      assert.ok(!/^Date: [^<]*[\u0600-\u06FF]/.test(english), "no Arabic in the English date");
+    }
+  });
+
   test("a non-numeric amount is shown as given, never as NaN", async () => {
     state.product = withMembers;
     await notify.notifySaleFulfilled({ ...sale, amount: { toString: () => "9.99" } });

@@ -183,6 +183,8 @@ describe("the embedded form is Geidea's, and the browser decides nothing (wiring
     assert.ok(!stuckNotice.includes("onContinueHosted"));
     const readyPrompt = panel.slice(panel.indexOf('{state.kind === "ready" && ('), panel.indexOf('state.kind === "confirming" && ('));
     assert.ok(readyPrompt.includes('onClick={onRetry}') && readyPrompt.includes('t("reloadForm")'), "trouble with a shown form reloads it");
+    assert.ok(readyPrompt.includes('t("cardHelp")'), "a shown form says what to do when a card is refused");
+    assert.match(readyPrompt, /\{!state\.expired && \(\s*<p[^>]*>\s*\{t\("cardHelp"\)\}/, "but not under an expired session, where trying another card cannot help");
     assert.ok(!readyPrompt.includes("onContinueHosted"));
   });
 
@@ -324,7 +326,7 @@ describe("the checkout copy", () => {
   });
 
   test("no copy asserts a final failure on the strength of a browser callback", () => {
-    for (const key of ["cancelledTitle", "cancelledBody", "declinedTitle", "declinedBody", "stuckTitle", "stuckBody"]) {
+    for (const key of ["cancelledTitle", "cancelledBody", "declinedTitle", "declinedBody", "stuckTitle", "stuckBody", "cardHelp"]) {
       for (const text of [ar.checkout[key], en.checkout[key]]) {
         assert.ok(!/wasn't completed|couldn't be completed|was not completed|\bfailed\b|لم تكتمل|تعذّر إتمام|فشل/i.test(text), text);
       }

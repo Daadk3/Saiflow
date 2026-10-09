@@ -3,6 +3,7 @@ import { getTranslations, getLocale } from "next-intl/server";
 import { getFounderStats } from "@/lib/admin-stats";
 import { formatNumber } from "@/lib/formatNumber";
 import { formatPrice } from "@/lib/formatPrice";
+import { geideaMode, isGeideaConfigured } from "@/lib/payments/geidea/client";
 import FirstVisitNote from "@/components/admin/FirstVisitNote";
 import MissionMascot from "@/components/admin/MissionMascot";
 
@@ -234,7 +235,15 @@ export default async function FounderDashboardPage() {
             <p className={`${eyebrow} text-gray-600`}>
               {t("payments.eyebrow")}
             </p>
-            <p className="mt-2 text-sm text-gray-300">{t("payments.disabled")}</p>
+            <p className="mt-2 text-sm text-gray-300">
+              {/* Enabled only as checkout itself sees it: pre-launch off and Geidea
+                  fully configured, in a stated mode. Anything else is "not enabled". */}
+              {paymentsEnabled && isGeideaConfigured() && geideaMode() === "production"
+                ? t("payments.enabledLive")
+                : paymentsEnabled && isGeideaConfigured() && geideaMode() === "test"
+                  ? t("payments.enabledTest")
+                  : t("payments.disabled")}
+            </p>
             <dl className="mt-3 grid grid-cols-2 gap-x-6 gap-y-1.5 text-sm sm:grid-cols-4">
               {([
                 ["gross", stats.revenue.real.gross],

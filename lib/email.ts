@@ -73,6 +73,14 @@ export async function sendVerificationEmail({ to, url }: { to: string; url: stri
   }
 }
 
+/** "10.00 SAR" from a stored price. Null when the value is not a finite number or the currency not a code. */
+function formatPaid(paid: { amount: unknown; currency: string } | undefined): string | null {
+  if (!paid) return null;
+  const numeric = Number(String(paid.amount));
+  if (!Number.isFinite(numeric) || numeric < 0 || !/^[A-Z]{3}$/.test(paid.currency)) return null;
+  return `${numeric.toFixed(2)} ${paid.currency}`;
+}
+
 /**
  * The buyer's receipt, in Arabic and English, with the download link.
  *
@@ -83,14 +91,26 @@ export async function sendPurchaseEmail({
   customerEmail,
   productName,
   downloadUrl,
+  amountPaid,
 }: {
   customerEmail: string;
   productName: string;
   downloadUrl: string;
+  /** The price the order recorded. Omitted, or unreadable, the receipt simply leaves the line out. */
+  amountPaid?: { amount: unknown; currency: string };
 }) {
   const name = escapeHtml(productName);
   const href = escapeHtml(downloadUrl);
   try {
+    // Digits, a point and three capitals only (formatPaid), so safe in HTML.
+    const paid = formatPaid(amountPaid);
+    // dir="ltr" keeps "10.00 SAR" in that order inside the Arabic paragraph.
+    const paidAr = paid
+      ? `<p style="color: #9ca3af; font-size: 16px;">المبلغ المدفوع: <strong dir="ltr" style="color: #ffffff;">${paid}</strong></p>`
+      : '';
+    const paidEn = paid
+      ? `<p style="color: #9ca3af; font-size: 16px;">Amount paid: <strong style="color: #ffffff;">${paid}</strong></p>`
+      : '';
     const result = await getResend().emails.send({
       from: 'Saiflow <noreply@saiflow.io>',
       to: customerEmail,
@@ -102,6 +122,7 @@ export async function sendPurchaseEmail({
             <p style="color: #9ca3af; font-size: 16px;">
               اكتمل طلبك لـ <strong style="color: #ffffff;">${name}</strong>.
             </p>
+            ${paidAr}
             <p style="color: #9ca3af; font-size: 14px;">
               احتفظ بهذه الرسالة: يمكنك تحميل ملفك منها في أي وقت.
             </p>
@@ -116,6 +137,7 @@ export async function sendPurchaseEmail({
             <p style="color: #9ca3af; font-size: 16px;">
               Your order for <strong style="color: #ffffff;">${name}</strong> is complete.
             </p>
+            ${paidEn}
             <p style="color: #9ca3af; font-size: 14px;">
               Keep this email: you can download your file from it at any time.
             </p>

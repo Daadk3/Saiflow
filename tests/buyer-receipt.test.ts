@@ -123,6 +123,39 @@ describe("the purchase receipt", () => {
     assert.ok(message.html.includes(`href="${DOWNLOAD}"`));
   });
 
+  test("the amount paid is shown in both languages, and left out when unknown or unreadable", async () => {
+    await email.sendPurchaseEmail({
+      customerEmail: "buyer@example.com",
+      productName: "Planner",
+      downloadUrl: DOWNLOAD,
+      amountPaid: { amount: "10", currency: "SAR" },
+    });
+    assert.match(sent[0].html, /المبلغ المدفوع: <strong dir="ltr"[^>]*>10\.00 SAR<\/strong>/);
+    assert.match(sent[0].html, /Amount paid: <strong[^>]*>10\.00 SAR<\/strong>/);
+
+    sent.length = 0;
+    await email.sendPurchaseEmail({
+      customerEmail: "buyer@example.com",
+      productName: "Planner",
+      downloadUrl: DOWNLOAD,
+      amountPaid: { amount: { toString: () => "12.5" }, currency: "SAR" },
+    });
+    assert.match(sent[0].html, /Amount paid: <strong[^>]*>12\.50 SAR<\/strong>/, "a Prisma Decimal reads through its string");
+
+    for (const amountPaid of [
+      undefined,
+      null as unknown as undefined,
+      { amount: "not a number", currency: "SAR" },
+      { amount: "5", currency: "<b>SAR</b>" },
+      { amount: "-1", currency: "SAR" },
+    ]) {
+      sent.length = 0;
+      await email.sendPurchaseEmail({ customerEmail: "buyer@example.com", productName: "Planner", downloadUrl: DOWNLOAD, amountPaid });
+      assert.ok(!/المبلغ المدفوع|Amount paid/.test(sent[0].html), JSON.stringify(amountPaid));
+      assert.ok(!sent[0].html.includes("<b>"));
+    }
+  });
+
   test("the seller's product name cannot add markup to the receipt", async () => {
     const productName = `Guide <img src=x onerror=alert(1)> "quoted" & <a href="https://evil.example">win</a>`;
     await email.sendPurchaseEmail({ customerEmail: "buyer@example.com", productName, downloadUrl: DOWNLOAD });

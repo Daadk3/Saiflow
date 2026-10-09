@@ -128,12 +128,22 @@ export function DropInPanel({ state, containerRef, productHref, onContinueHosted
       )}
 
       {state.kind === "ready" && (
-        <p className="text-center text-xs text-gray-500">
-          {t("troublePrompt")}{" "}
-          <button type="button" onClick={onRetry} className="font-medium text-teal-400 underline-offset-4 hover:underline">
-            {t("reloadForm")}
-          </button>
-        </p>
+        <div className="space-y-3">
+          {/* Geidea shows a refused card only briefly, inside its own form, and
+              may not tell this page at all; so the help stays on screen while
+              the session can still be paid. */}
+          {!state.expired && (
+            <p className="rounded-xl border border-gray-800 bg-[#111111] px-4 py-3 text-sm leading-relaxed text-gray-300">
+              {t("cardHelp")}
+            </p>
+          )}
+          <p className="text-center text-xs text-gray-500">
+            {t("troublePrompt")}{" "}
+            <button type="button" onClick={onRetry} className="font-medium text-teal-400 underline-offset-4 hover:underline">
+              {t("reloadForm")}
+            </button>
+          </p>
+        </div>
       )}
 
       {state.kind === "confirming" && (

@@ -556,6 +556,7 @@ describe("the captured paid callback fulfils exactly once", () => {
         customerEmail: BUYER_EMAIL,
         productName: "Arabic Templates Pack",
         downloadUrl: `https://saiflow.test/api/download/${PRODUCT_ID}?orderId=order_1`,
+        amountPaid: { amount: db.sessions[0].amount, currency: "SAR" },
       },
     ]);
   });

@@ -658,6 +658,7 @@
     "instantDelivery": "Digital delivery right after your payment is confirmed",
     "preparing": "Preparing the secure payment form…",
     "confirming": "Confirming your payment…",
+    "cardHelp": "If the card is refused, a short message may appear in the form. Check the card details or try another card. Your purchase is complete only when you see “Payment confirmed”.",
     "troublePrompt": "Trouble with the payment form?",
     "continueHosted": "Continue to the secure payment page",
     "redirecting": "Taking you to the payment page…",
@@ -904,6 +905,8 @@
     "payments": {
       "eyebrow": "Payments",
       "disabled": "Payments are not enabled.",
+      "enabledLive": "Payments are enabled with real cards.",
+      "enabledTest": "Payments are enabled in test mode: only test cards work, and no real money moves.",
       "revenue": "Real revenue:",
       "liveOrders": "Live orders:",
       "gross": "Real gross sales:",

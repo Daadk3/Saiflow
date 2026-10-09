@@ -182,6 +182,11 @@ describe("the revenue views", () => {
       assert.ok(page.includes(`t("${key}")`), `admin page uses ${key}`);
     }
     assert.match(page, /stats\.revenue\.real\.net/);
+    // The status line says what is true: off, test mode, or live; never a fixed "not enabled".
+    assert.match(
+      page,
+      /paymentsEnabled && isGeideaConfigured\(\) && geideaMode\(\) === "production"\s*\?\s*t\("payments\.enabledLive"\)\s*:\s*paymentsEnabled && isGeideaConfigured\(\) && geideaMode\(\) === "test"\s*\?\s*t\("payments\.enabledTest"\)\s*:\s*t\("payments\.disabled"\)/
+    );
     assert.match(page, /stats\.revenue\.test\.gross/);
   });
 });
