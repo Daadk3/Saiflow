@@ -135,9 +135,11 @@ model Shop {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  shopUsers  ShopUser[]
-  products   Product[]
-  fileAssets FileAsset[]
+  shopUsers     ShopUser[]
+  products      Product[]
+  fileAssets    FileAsset[]
+  payoutAccount SellerPayoutAccount?
+  payouts       Payout[]
 
   @@index([slug])
   @@index([isActive])
@@ -416,6 +418,11 @@ model Order {
   /// The rate applied, in basis points (700 = 7%), and the rule version.
   commissionRateBps   Int?
   commissionVersion   String?
+
+  /// The manual payout that paid the seller's share of this order; null
+  /// while it is still owed. Set once, by lib/payouts' recording, in the
+  /// same transaction that creates the Payout.
+  payoutId            String?
   createdAt       DateTime @default(now())
 
   /// Restrict: a purchase outlives any attempt to delete its product. The
@@ -426,9 +433,13 @@ model Order {
   /// The attempt this order came from. Optional: Stripe rows have none, and
   /// SetNull so an attempt row can never take a purchase with it.
   paymentSession PaymentSession? @relation(fields: [merchantReferenceId], references: [merchantReferenceId], onDelete: SetNull)
+  /// Restrict: a recorded payout is financial history and is never deleted
+  /// out from under the orders it paid for.
+  payout         Payout?         @relation(fields: [payoutId], references: [id], onDelete: Restrict)
 
   @@unique([paymentProvider, providerOrderId])
   @@index([productId])
+  @@index([payoutId])
   @@index([customerEmail])
   @@index([createdAt])
 }
@@ -621,4 +632,49 @@ model AiGeneration {
 enum AiGenerationStatus {
   SUCCEEDED
   FAILED
+}
+
+/// Where a shop's earnings are paid, entered by the shop's OWNER (lib/payouts).
+/// Bank details are personal data: read only by that shop's owners, masked,
+/// and by SaiFlow's admins, who need the full number to send a transfer.
+model SellerPayoutAccount {
+  id          String   @id @default(cuid())
+  shopId      String   @unique
+  /// The name on the bank account, as the owner entered it.
+  holderName  String
+  /// Saudi IBAN in canonical form, checksum-validated by lib/payouts.
+  iban        String
+  bankName    String?
+  /// The user who last saved these details.
+  updatedById String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  shop Shop @relation(fields: [shopId], references: [id], onDelete: Cascade)
+}
+
+/// One bank transfer to a shop, made by SaiFlow's admin outside SaiFlow and
+/// recorded here afterwards against exactly the orders it pays for.
+model Payout {
+  id            String   @id @default(cuid())
+  shopId        String
+  /// The sum of the paid orders' sellerNetAmount, exactly, in riyals.
+  amount        Decimal  @db.Decimal(10, 2)
+  currency      String   @default("SAR")
+  orderCount    Int
+  /// The bank's own reference for the transfer.
+  bankReference String
+  /// The last four characters of the IBAN paid to; never the full number.
+  ibanLast4     String
+  paidAt        DateTime
+  /// The admin who recorded it, by email.
+  recordedBy    String
+  createdAt     DateTime @default(now())
+
+  /// Restrict: a shop with payout history keeps it.
+  shop   Shop    @relation(fields: [shopId], references: [id], onDelete: Restrict)
+  orders Order[]
+
+  @@index([shopId])
+  @@index([paidAt])
 }

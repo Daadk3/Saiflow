@@ -402,7 +402,9 @@ describe("the migration is additive and matches the schema", () => {
     // Later: the commission snapshot (add_order_commission_snapshot), which is
     // nullable-only and checked in commission-ux; then checkout attempts with
     // payment-record retention, checked in product-payment-records, whose only
-    // DROPs are the two product foreign keys it re-creates as RESTRICT.
+    // DROPs are the two product foreign keys it re-creates as RESTRICT; then
+    // seller payouts, checked in payouts, which creates two new tables (whose
+    // own NOT NULL columns touch no existing row) and one nullable column.
     const dirs = readdirSync(new URL("../prisma/migrations", import.meta.url))
       .filter((d) => /^\d{14}_/.test(d))
       .sort();
@@ -416,7 +418,9 @@ describe("the migration is additive and matches the schema", () => {
         .filter((s) => s.length > 0);
       for (const s of stmts) {
         assert.ok(!/^(UPDATE|DELETE|TRUNCATE|INSERT)\b/i.test(s), `${later} rewrites rows: ${s}`);
-        assert.ok(!/\bNOT NULL\b|\bRENAME\b/i.test(s), `${later} is not additive: ${s}`);
+        assert.ok(!/\bRENAME\b/i.test(s), `${later} is not additive: ${s}`);
+        // NOT NULL only inside a brand-new table: it constrains rows yet to be written.
+        if (!/^CREATE TABLE\b/i.test(s)) assert.ok(!/\bNOT NULL\b/i.test(s), `${later} is not additive: ${s}`);
         const dropped = /^ALTER TABLE "(\w+)" DROP CONSTRAINT "(\w+_productId_fkey)"$/.exec(s);
         if (dropped === null) {
           assert.ok(!/\bDROP\b/i.test(s), `${later} is not additive: ${s}`);

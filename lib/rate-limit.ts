@@ -129,6 +129,10 @@ export const rateLimiters = {
   passwordReset: (ip: string) =>
     rateLimit(`password-reset:${ip}`, { windowMs: 60 * 60 * 1000, maxRequests: 3 }),
 
+  // Payout bank details: 10 saves per hour (they change rarely)
+  payoutAccount: (ip: string) =>
+    rateLimit(`payout-account:${ip}`, { windowMs: 60 * 60 * 1000, maxRequests: 10 }),
+
   // General API: 100 requests per minute
   api: (ip: string) =>
     rateLimit(`api:${ip}`, { windowMs: 60 * 1000, maxRequests: 100 }),

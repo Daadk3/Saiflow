@@ -263,7 +263,7 @@ export default async function FounderDashboardPage() {
             )}
           </section>
 
-          {/* 7 — QUICK ACTIONS (exactly three) */}
+          {/* 7 — QUICK ACTIONS */}
           <nav className="flex flex-wrap gap-2 pt-1">
             <Link
               href="/dashboard/admin/products?filter=needs_review"
@@ -282,6 +282,12 @@ export default async function FounderDashboardPage() {
               className="rounded-lg border border-gray-800 bg-[#111] px-4 py-2 text-sm text-gray-300 transition-colors hover:border-gray-700 hover:text-white"
             >
               {t("actions.queue")}
+            </Link>
+            <Link
+              href="/dashboard/admin/payouts"
+              className="rounded-lg border border-gray-800 bg-[#111] px-4 py-2 text-sm text-gray-300 transition-colors hover:border-gray-700 hover:text-white"
+            >
+              {t("actions.payouts")}
             </Link>
           </nav>
         </div>

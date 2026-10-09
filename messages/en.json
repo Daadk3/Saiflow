@@ -243,6 +243,7 @@
       "addProduct": "Add product",
       "viewPublicShop": "View public shop",
       "editShop": "Edit shop",
+      "payouts": "Payouts",
       "totalProducts": "Total products",
       "totalSales": "Total sales",
       "totalRevenue": "Total revenue",
@@ -891,7 +892,8 @@
     "actions": {
       "startReview": "Start review",
       "products": "Products",
-      "queue": "Moderation queue"
+      "queue": "Moderation queue",
+      "payouts": "Seller payouts"
     },
     "firstVisit": {
       "title": "Why do products say “Not yet reviewed”?",
@@ -999,5 +1001,66 @@
       "INVALID_OUTPUT": "The response wasn't usable. Try generating again."
     },
     "titleUnchanged": "Your title was already strong — no change suggested"
+  },
+  "payouts": {
+    "heading": "Payouts",
+    "subtitle": "Where SaiFlow sends your earnings, and what has been paid.",
+    "backToShop": "Back to your shop",
+    "loading": "Loading payouts…",
+    "loadFailed": "Payout details couldn't be loaded. Please try again.",
+    "ownerOnly": "Only the shop's owner can see or change its payout details.",
+    "owedHeading": "Owed to you now",
+    "owedOrders": "{count, plural, one {From # paid order} other {From # paid orders}}",
+    "owedNote": "Your share of each paid order, after SaiFlow's commission. SaiFlow sends payouts by bank transfer to the account below.",
+    "unreadable": "{count, plural, one {# order needs checking by SaiFlow before it can be paid.} other {# orders need checking by SaiFlow before they can be paid.}}",
+    "accountHeading": "Bank account for payouts",
+    "formIntro": "Enter a Saudi bank account in the name of the person or business that owns this shop.",
+    "holderName": "Account holder name",
+    "iban": "IBAN",
+    "bankName": "Bank name (optional)",
+    "save": "Save bank details",
+    "saving": "Saving…",
+    "saved": "Bank details saved.",
+    "cancel": "Cancel",
+    "change": "Change bank details",
+    "updated": "Last updated {date}",
+    "historyHeading": "Payout history",
+    "historyEmpty": "No payouts yet.",
+    "historyOrders": "{count, plural, one {# order} other {# orders}}",
+    "historyReference": "Reference",
+    "errors": {
+      "iban": "Enter a valid Saudi IBAN: SA followed by 22 characters.",
+      "holderName": "Enter the account holder's name.",
+      "bankName": "The bank name is too long.",
+      "tooMany": "Too many changes. Please wait and try again.",
+      "generic": "The bank details couldn't be saved. Please try again."
+    }
+  },
+  "adminPayouts": {
+    "heading": "Seller payouts",
+    "subtitle": "Send each transfer from the bank first, then record it here.",
+    "back": "Back to the founder dashboard",
+    "loading": "Loading…",
+    "nothingOwed": "No shop is owed money right now.",
+    "refundWarning": "Before paying, check Geidea for refunds or chargebacks on these orders. Refunds aren't recorded on orders yet, so a refunded order still shows here.",
+    "ordersSince": "{count, plural, one {# order} other {# orders}}, oldest from {date}",
+    "unreadable": "{count, plural, one {# order has an unreadable amount and is not included.} other {# orders have unreadable amounts and are not included.}}",
+    "noAccount": "No bank details yet. The shop owner must add them before they can be paid.",
+    "changedRecently": "Bank details changed on {date}. Confirm them with the shop owner before paying.",
+    "recordTransfer": "Record a transfer",
+    "bankReference": "Bank transfer reference",
+    "paidOn": "Date sent",
+    "confirm": "I have sent {amount} to the IBAN ending {last4}.",
+    "record": "Record payout",
+    "recording": "Recording…",
+    "recorded": "Payout to {name} recorded.",
+    "errors": {
+      "load": "Payouts couldn't be loaded.",
+      "balanceChanged": "The amount owed changed since this page loaded. Reload and check it before recording.",
+      "noAccount": "This shop has no bank details.",
+      "reference": "Enter the bank's reference for the transfer.",
+      "date": "Enter the date the transfer was sent.",
+      "generic": "The payout couldn't be recorded. Please try again."
+    }
   }
 }

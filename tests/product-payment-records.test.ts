@@ -202,7 +202,11 @@ describe("the database refuses the delete, whatever order requests arrive in", (
   const schema = read("prisma/schema.prisma");
 
   test("a purchase and a payment attempt each hold their product with ON DELETE RESTRICT", () => {
-    assert.deepEqual(relations(modelBlock(schema, "Order")), ["product Product Restrict", "paymentSession PaymentSession? SetNull"]);
+    assert.deepEqual(relations(modelBlock(schema, "Order")), [
+      "product Product Restrict",
+      "paymentSession PaymentSession? SetNull",
+      "payout Payout? Restrict",
+    ]);
     assert.deepEqual(relations(modelBlock(schema, "PaymentSession")), ["product Product Restrict"]);
   });
 
@@ -259,13 +263,14 @@ describe("the migration only adds, and replaces the two delete rules", () => {
     assert.equal(statements[0], `CREATE TYPE "CheckoutPresentation" AS ENUM (${members.map((m) => `'${m}'`).join(", ")})`);
   });
 
-  test("it is the newest migration, after the commission snapshot", () => {
+  test("it follows the commission snapshot, and only seller payouts follow it", () => {
     const dirs = readdirSync(resolve(ROOT, MIGRATIONS), { withFileTypes: true })
       .filter((entry) => entry.isDirectory())
       .map((entry) => entry.name)
       .sort();
-    assert.equal(dirs[dirs.length - 1], MIGRATION_DIR);
-    assert.equal(dirs[dirs.length - 2], "20260924130000_add_order_commission_snapshot");
+    const at = dirs.indexOf(MIGRATION_DIR);
+    assert.equal(dirs[at - 1], "20260924130000_add_order_commission_snapshot");
+    assert.deepEqual(dirs.slice(at + 1), ["20261009120000_seller_payouts"]);
   });
 });
 

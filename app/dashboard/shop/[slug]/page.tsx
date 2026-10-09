@@ -264,6 +264,12 @@ export default function ShopDashboard() {
             >
               {t("editShop")}
             </Link>
+            <Link
+              href={`/dashboard/shop/${shop.slug}/payouts`}
+              className="bg-[#111111] border border-gray-800 hover:border-gray-700 text-gray-200 px-5 py-2.5 rounded-lg font-medium transition-colors flex items-center gap-2"
+            >
+              {t("payouts")}
+            </Link>
           </div>
         </div>
 
