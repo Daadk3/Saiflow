@@ -3,6 +3,8 @@ import { prisma } from "@/lib/prisma";
 import bcrypt from "bcrypt";
 import { rateLimiters, getClientIp } from "@/lib/rate-limit";
 import { signupSchema, formatZodError } from "@/lib/validations";
+import { issueVerificationToken, verificationUrl } from "@/lib/auth/email-verification";
+import { sendVerificationEmail } from "@/lib/email";
 
 export async function POST(req: Request) {
   try {
@@ -59,7 +61,8 @@ export async function POST(req: Request) {
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Store email as lowercase
+    // Store email as lowercase. The account starts unverified and cannot sign
+    // in until its owner confirms the address from the emailed link.
     const user = await prisma.user.create({
       data: {
         name,
@@ -69,12 +72,18 @@ export async function POST(req: Request) {
       select: {
         id: true,
         email: true,
-        name: true,
-        createdAt: true,
       },
     });
 
-    return NextResponse.json({ message: "Signup successful!", user });
+    // A failed send still leaves a valid account: the login page offers to
+    // resend the link, so the user is told to check their inbox either way.
+    const token = await issueVerificationToken(user);
+    const verificationEmailSent = await sendVerificationEmail({
+      to: user.email,
+      url: verificationUrl(token),
+    });
+
+    return NextResponse.json({ message: "Check your email to verify your account.", verificationEmailSent });
   } catch (error) {
     console.error("Signup error:", error);
     return NextResponse.json({ error: "Server error" }, { status: 500 });

@@ -63,13 +63,18 @@ export async function POST(req: Request) {
     // Hash new password
     const hashedPassword = await bcrypt.hash(password, 12);
 
-    // Update password and clear reset token
+    // Update password and clear reset token. Completing a reset proves the
+    // inbox, and the password is now one its owner chose, so the address
+    // counts as verified. This is also how an owner reclaims an address that
+    // someone else registered first: the old password, and every session
+    // opened with it, stop working here.
     await prisma.user.update({
       where: { id: user.id },
       data: {
         password: hashedPassword,
         resetToken: null,
         resetTokenExpiry: null,
+        emailVerified: user.emailVerified ?? new Date(),
       },
     });
 

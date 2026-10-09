@@ -394,7 +394,9 @@
       "submitting": "Creating account...",
       "alreadyHaveAccount": "Already have an account? <link>Log in</link>",
       "termsAgreement": "By creating an account, you agree to our <terms>Terms of Service</terms> and <privacy>Privacy Policy</privacy>",
-      "successMessage": "Account created! Redirecting to login...",
+      "successMessage": "Account created. We've emailed you a confirmation link: open it and enter your password to activate your account.",
+      "successEmailFailed": "Account created, but we couldn't send the confirmation email just now. Use the button below to send it again.",
+      "resendButton": "Didn't get it? Send it again",
       "errorFallback": "Signup failed",
       "errorGeneric": "Something went wrong. Please try again."
     },
@@ -404,7 +406,30 @@
       "submitButton": "Log in",
       "submitting": "Signing in...",
       "errorInvalid": "Invalid email or password",
-      "errorGeneric": "Something went wrong"
+      "errorGeneric": "Something went wrong",
+      "errorUnverified": "Please confirm your email first. Open the link we sent you, or ask for a new one.",
+      "resendButton": "Send a new confirmation link",
+      "resending": "Sending...",
+      "resendSent": "Request received. If this account still needs confirming, a new link should arrive within a few minutes. Check your spam folder too, and ask again if nothing arrives.",
+      "resendWait": "You can ask again in a minute",
+      "resendError": "We couldn't send the link right now. Please try again in a few minutes."
+    },
+    "verifyEmail": {
+      "title": "Confirm your email",
+      "subtitle": "Enter your account password to finish confirming this address.",
+      "passwordPlaceholder": "Your account password",
+      "submit": "Confirm email",
+      "submitting": "Confirming...",
+      "successTitle": "Email confirmed",
+      "successBody": "Your email is confirmed. You can log in now.",
+      "successCta": "Log in",
+      "errorWrongPassword": "That password doesn't match this account.",
+      "errorExpired": "This link has expired. Log in to ask for a new one.",
+      "errorInvalid": "This link isn't valid, was already used, or was replaced by a newer one. Open the most recent confirmation email, or log in to ask for a new link.",
+      "errorRateLimited": "Too many attempts. Please wait a minute and try again.",
+      "errorGeneric": "Something went wrong. Please try again.",
+      "missingToken": "Open this page from the link in your confirmation email.",
+      "notYours": "Didn't create this account? Don't enter a password here. If the address is yours, use \"Forgot password\" on the login page to take it over."
     },
     "backToLogin": "Back to login",
     "forgotPasswordPage": {

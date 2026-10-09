@@ -5,6 +5,8 @@ import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
+import { EMAIL_NOT_VERIFIED } from "@/lib/auth/errors";
+import { ResendVerification } from "@/components/auth/ResendVerification";
 
 export default function LoginPage() {
   const t = useTranslations();
@@ -12,11 +14,14 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // The address that was refused as unverified, for "send the link again".
+  const [unverifiedEmail, setUnverifiedEmail] = useState<string | null>(null);
   const router = useRouter();
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError(null);
+    setUnverifiedEmail(null);
     setLoading(true);
 
     try {
@@ -26,7 +31,10 @@ export default function LoginPage() {
         redirect: false,
       });
 
-      if (result?.error) {
+      if (result?.error === EMAIL_NOT_VERIFIED) {
+        setUnverifiedEmail(email);
+        setError(t('auth.login.errorUnverified'));
+      } else if (result?.error) {
         setError(t('auth.login.errorInvalid'));
       } else if (result?.ok) {
         router.push("/dashboard");
@@ -147,8 +155,11 @@ export default function LoginPage() {
 
               {/* Error Message */}
           {error && (
-                <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-xl">
+                <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-xl" role="alert">
                   <p className="text-red-400 text-sm">{error}</p>
+                  {unverifiedEmail && (
+                    <ResendVerification email={unverifiedEmail} label={t('auth.login.resendButton')} />
+                  )}
                 </div>
           )}
 
