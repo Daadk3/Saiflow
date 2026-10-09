@@ -1,10 +1,16 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 
 interface BuyButtonProps {
-  productId: string;
+  /**
+   * SaiFlow's own checkout page for this product, built by the server page.
+   * The button only navigates: no payment session exists until the buyer's
+   * browser is on that page and asks for one.
+   */
+  checkoutHref: string;
   /**
    * Whether this product's CURRENT deliverable passes the canonical safety
    * gate — NOT whether a file column happens to be populated. The caller
@@ -25,57 +31,21 @@ interface BuyButtonProps {
  * Presentation only. The authority remains isDeliverableSafe on the server,
  * enforced at checkout and download; nothing here can grant a sale.
  */
-export default function BuyButton({ productId, sellable = false, preLaunchMode = false }: BuyButtonProps) {
+export default function BuyButton({ checkoutHref, sellable = false, preLaunchMode = false }: BuyButtonProps) {
   const t = useTranslations();
+  const router = useRouter();
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [fileInvalid, setFileInvalid] = useState(false);
 
-  // Hard block: Don't allow checkout if pre-launch mode, no file, or file is invalid
-  const isDisabled = loading || preLaunchMode || !sellable || fileInvalid;
+  // Hard block: Don't allow checkout if pre-launch mode or the file is not sellable
+  const isDisabled = loading || preLaunchMode || !sellable;
 
-  async function handleCheckout() {
+  function handleCheckout() {
     // Pre-launch hard block — defense in depth alongside the disabled button.
     if (preLaunchMode) return;
-    // Double-check on client side
-    if (!sellable) {
-      setError(t("storefront.productDetail.notAvailableForPurchase"));
-      return;
-    }
-
+    if (!sellable) return;
+    // The spinner covers the moment the checkout page takes to render.
     setLoading(true);
-    setError(null);
-
-    try {
-      const res = await fetch("/api/checkout", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ productId }),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        const errorMessage = data.error || t("dashboard.shop.somethingWrong");
-        setError(errorMessage);
-
-        // Keywords intentionally untranslated; matches API's English error strings. See backlog for structured-error-code refactor.
-        if (errorMessage.includes("file") || errorMessage.includes("not available") || errorMessage.includes("not accessible")) {
-          setFileInvalid(true);
-        }
-        return;
-      }
-
-      if (data.url) {
-        window.location.href = data.url;
-      } else {
-        setError(t("dashboard.shop.somethingWrong"));
-      }
-    } catch {
-      setError(t("storefront.productDetail.checkoutErrorRetry"));
-    } finally {
-      setLoading(false);
-    }
+    router.push(checkoutHref);
   }
 
   // Pre-launch disabled state — takes precedence over the sellable branch
@@ -124,11 +94,7 @@ export default function BuyButton({ productId, sellable = false, preLaunchMode =
       <button
         onClick={handleCheckout}
         disabled={isDisabled}
-        className={`w-full sm:w-auto px-8 py-4 rounded-xl text-lg font-semibold transition-all duration-200 flex items-center justify-center gap-3 ${
-          fileInvalid
-            ? "bg-gray-600 cursor-not-allowed text-gray-400 opacity-60"
-            : "bg-teal-500 hover:bg-teal-400 disabled:bg-teal-500/50 disabled:cursor-not-allowed text-white hover:shadow-lg hover:shadow-teal-500/25"
-        }`}
+        className="w-full sm:w-auto px-8 py-4 rounded-xl text-lg font-semibold transition-all duration-200 flex items-center justify-center gap-3 bg-teal-500 hover:bg-teal-400 disabled:bg-teal-500/50 disabled:cursor-not-allowed text-white hover:shadow-lg hover:shadow-teal-500/25"
       >
         {loading ? (
           <>
@@ -147,12 +113,6 @@ export default function BuyButton({ productId, sellable = false, preLaunchMode =
           </>
         )}
       </button>
-      
-      {error && (
-        <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
-          <p className="text-red-400 text-sm text-center">{error}</p>
-        </div>
-      )}
     </div>
   );
 }

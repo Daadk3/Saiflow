@@ -36,6 +36,7 @@ const SURFACES: [string, string][] = [
   ["browse", "app/browse/page.tsx"],
   ["shop storefront", "app/shop/[slug]/page.tsx"],
   ["product page", "app/shop/[slug]/product/[productSlug]/page.tsx"],
+  ["checkout page", "app/checkout/[slug]/[productSlug]/page.tsx"],
   ["sitemap", "app/sitemap.ts"],
 ];
 

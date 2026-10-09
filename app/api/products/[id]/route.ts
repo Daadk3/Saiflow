@@ -22,6 +22,16 @@ import { priceProblemMessage, validatePrice } from "@/lib/pricing";
 // see app/api/products/route.ts for why this route carries the worker's budget.
 export const maxDuration = 300;
 
+/**
+ * The database refused a product delete because an Order or a PaymentSession
+ * still names it (ON DELETE RESTRICT). Prisma reports a foreign-key
+ * violation as P2003, and a required relation it would break as P2014.
+ */
+function isRestrictedByPaymentRecords(error: unknown): boolean {
+  const code = typeof error === "object" && error !== null ? (error as { code?: unknown }).code : undefined;
+  return code === "P2003" || code === "P2014";
+}
+
 // GET - Get a single product by ID (seller dashboard only)
 // SECURITY: this returns the full row including fileUrl (the paid asset),
 // so it must be restricted to authenticated members of the owning shop.
@@ -404,10 +414,27 @@ export async function DELETE(
       );
     }
 
-    // Delete the product
-    await prisma.product.delete({
-      where: { id },
-    });
+    // Delete the product. The database decides whether it may go: Order and
+    // PaymentSession refer to it with ON DELETE RESTRICT, so a product with
+    // any purchase or payment attempt is refused there, atomically, even if a
+    // checkout starts at this very moment. No count is taken here first: a
+    // check made before the delete could be stale by the time it runs.
+    try {
+      await prisma.product.delete({
+        where: { id },
+      });
+    } catch (error) {
+      if (isRestrictedByPaymentRecords(error)) {
+        return NextResponse.json(
+          {
+            error: "has_payment_records",
+            message: "This product has sales or payment records, so it can't be deleted.",
+          },
+          { status: 409 }
+        );
+      }
+      throw error;
+    }
 
     return NextResponse.json({ success: true });
   } catch (error) {

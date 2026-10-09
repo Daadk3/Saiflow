@@ -69,6 +69,9 @@ interface SessionRow {
   providerStatus: string | null;
   failureReason: string | null;
   callbackReceivedAt: Date | null;
+  /** Read by checkout, never by the callback; present here to show that. */
+  expiresAt?: Date | null;
+  currentAttemptKey?: string | null;
 }
 
 interface OrderRow extends Record<string, unknown> {
@@ -1242,5 +1245,25 @@ describe("a fulfilled Order carries the commission split", () => {
     await post(callback());
     assert.equal(db.orders.length, 1);
     assert.equal(db.orders[0].sellerNetAmount, "0.93");
+  });
+});
+
+/* ------------------------------------------------------------------ */
+/* A success delivered long after the session's deadline                */
+/* ------------------------------------------------------------------ */
+
+describe("a success whose callback arrives more than 30 minutes after the session expired", () => {
+  test("still fulfils: one Order, the attempt PAID, and it stays the browser's attempt for checkout to answer as paid", async () => {
+    // Geidea's expiry is a deadline for starting its checkout, not a verdict
+    // on a payment already made; checkout never replaced this attempt.
+    const key = `${"a".repeat(64)}:${PRODUCT_ID}`;
+    seed({ expiresAt: new Date(Date.now() - 45 * 60 * 1000), currentAttemptKey: key });
+    const res = await post(callback());
+    assert.equal(res.status, 200);
+    assert.deepEqual(res.body, { received: true, result: "fulfilled" });
+    assert.equal(db.orders.length, 1);
+    assert.equal(db.orders[0].merchantReferenceId, REF);
+    assert.equal(session().status, "PAID");
+    assert.equal(session().currentAttemptKey, key);
   });
 });

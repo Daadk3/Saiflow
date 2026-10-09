@@ -102,6 +102,22 @@ function createTableColumns(table: string): Map<string, string> {
 }
 
 /** The ADD COLUMN / ALTER COLUMN actions of the one ALTER TABLE "Order" statement. */
+/** Columns that migrations after this one add to PaymentSession, with their SQL types. */
+function laterPaymentSessionColumns(): Map<string, string> {
+  const dirs = readdirSync(new URL("../prisma/migrations", import.meta.url))
+    .filter((d) => /^\d{14}_/.test(d))
+    .sort();
+  const added = new Map<string, string>();
+  for (const later of dirs.slice(dirs.indexOf(MIGRATION_DIR) + 1)) {
+    const sql = readFileSync(new URL(`../prisma/migrations/${later}/migration.sql`, import.meta.url), "utf8");
+    for (const stmt of sql.replace(/--[^\n]*/g, "").split(";").map((s) => s.replace(/\s+/g, " ").trim())) {
+      if (!stmt.startsWith('ALTER TABLE "PaymentSession" ADD COLUMN')) continue;
+      for (const m of stmt.matchAll(/ADD COLUMN "(\w+)" ([^,]+)/g)) added.set(m[1], m[2].trim());
+    }
+  }
+  return added;
+}
+
 function orderAlterActions(): string[] {
   const stmt = statements.filter((s) => /^ALTER TABLE "Order" (ADD COLUMN|ALTER COLUMN)/.test(s));
   assert.equal(stmt.length, 1, "exactly one ALTER TABLE \"Order\" column statement");
@@ -181,10 +197,15 @@ describe("PaymentSession: a payment attempt with everything a callback must be c
     }
   });
 
-  test("belongs to a product, and cascades with it exactly as Order does", () => {
+  test("belongs to a product, and keeps it from being deleted exactly as Order does", () => {
+    // Created ON DELETE CASCADE by this migration; re-created ON DELETE
+    // RESTRICT by checkout_attempts_and_payment_record_retention, tested in
+    // product-payment-records.
     const product = field(body, "product");
     assert.equal(product.type, "Product");
-    assert.match(product.attrs, /@relation\(fields: \[productId\], references: \[id\], onDelete: Cascade\)/);
+    const restrict = /@relation\(fields: \[productId\], references: \[id\], onDelete: Restrict\)/;
+    assert.match(product.attrs, restrict);
+    assert.match(field(block("model", "Order"), "product").attrs, restrict);
     assert.ok(block("model", "Product").includes("paymentSessions  PaymentSession[]"));
   });
 
@@ -378,15 +399,37 @@ describe("test and production payment records can be distinguished", () => {
 
 describe("the migration is additive and matches the schema", () => {
   test("it is present, and everything after it is additive too", () => {
-    // The commission snapshot (add_order_commission_snapshot) followed it;
-    // that migration is nullable-only and is checked in commission-ux.
+    // Later: the commission snapshot (add_order_commission_snapshot), which is
+    // nullable-only and checked in commission-ux; then checkout attempts with
+    // payment-record retention, checked in product-payment-records, whose only
+    // DROPs are the two product foreign keys it re-creates as RESTRICT.
     const dirs = readdirSync(new URL("../prisma/migrations", import.meta.url))
       .filter((d) => /^\d{14}_/.test(d))
       .sort();
     assert.ok(dirs.includes(MIGRATION_DIR));
     for (const later of dirs.slice(dirs.indexOf(MIGRATION_DIR) + 1)) {
       const sql = readFileSync(new URL(`../prisma/migrations/${later}/migration.sql`, import.meta.url), "utf8");
-      assert.ok(!/\b(UPDATE|DELETE|TRUNCATE|DROP|NOT NULL)\b/i.test(sql.replace(/--[^\n]*/g, "")), `${later} is not additive`);
+      const stmts = sql
+        .replace(/--[^\n]*/g, "")
+        .split(";")
+        .map((s) => s.replace(/\s+/g, " ").trim())
+        .filter((s) => s.length > 0);
+      for (const s of stmts) {
+        assert.ok(!/^(UPDATE|DELETE|TRUNCATE|INSERT)\b/i.test(s), `${later} rewrites rows: ${s}`);
+        assert.ok(!/\bNOT NULL\b|\bRENAME\b/i.test(s), `${later} is not additive: ${s}`);
+        const dropped = /^ALTER TABLE "(\w+)" DROP CONSTRAINT "(\w+_productId_fkey)"$/.exec(s);
+        if (dropped === null) {
+          assert.ok(!/\bDROP\b/i.test(s), `${later} is not additive: ${s}`);
+          continue;
+        }
+        const [, table, name] = dropped;
+        assert.ok(
+          stmts.includes(
+            `ALTER TABLE "${table}" ADD CONSTRAINT "${name}" FOREIGN KEY ("productId") REFERENCES "Product"("id") ON DELETE RESTRICT ON UPDATE CASCADE`
+          ),
+          `${later} drops ${name} only to re-create it as RESTRICT`
+        );
+      }
     }
   });
 
@@ -407,13 +450,20 @@ describe("the migration is additive and matches the schema", () => {
     }
   });
 
-  test("CREATE TABLE PaymentSession has exactly the schema's scalar columns, correctly typed", () => {
+  test("CREATE TABLE PaymentSession, with the columns later migrations add, has exactly the schema's scalar columns, correctly typed", () => {
     const columns = createTableColumns("PaymentSession");
+    const added = laterPaymentSessionColumns();
+    for (const name of added.keys()) assert.ok(!columns.has(name), `${name} is created once`);
     const scalars = fields(block("model", "PaymentSession"))
       .filter((f) => !modelNames().includes(f.type.replace(/[?\[\]]/g, "")))
       .map((f) => f.name)
       .sort();
-    assert.deepEqual([...columns.keys()].sort(), scalars);
+    assert.deepEqual([...columns.keys(), ...added.keys()].sort(), scalars);
+    assert.deepEqual(Object.fromEntries(added), {
+      clientTokenHash: "TEXT",
+      currentAttemptKey: "TEXT",
+      presentation: `"CheckoutPresentation"`,
+    }, "the attempt columns are nullable, with no default");
 
     assert.equal(columns.get("id"), "TEXT NOT NULL");
     assert.equal(columns.get("merchantReferenceId"), "TEXT NOT NULL");

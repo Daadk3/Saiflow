@@ -6,11 +6,28 @@ import { isDeliverableSafe } from "@/lib/file-safety";
 import { rateLimiters, getClientIp } from "@/lib/rate-limit";
 import { redactId } from "@/lib/redact-id";
 import {
+  checkoutRedirectUrl,
+  checkoutScriptUrl,
   createSession,
   geideaMode,
   isGeideaConfigured,
 } from "@/lib/payments/geidea/client";
+import type { SessionAppearance } from "@/lib/payments/geidea/client";
 import { canonicalAmount } from "@/lib/payments/geidea/callback";
+import {
+  SESSION_CREATE_FAILED,
+  attemptKey,
+  bearerCookie,
+  bearerHash,
+  decide,
+  newBearer,
+  readBearer,
+  releaseArgs,
+  type CurrentAttempt,
+  type Decision,
+  type Expected,
+  type Presentation as AttemptPresentation,
+} from "@/lib/checkout/attempt";
 
 /**
  * Checkout: the one place a purchase attempt begins.
@@ -35,6 +52,30 @@ import { canonicalAmount } from "@/lib/payments/geidea/callback";
  * TEST PHASE: while `LIVE_GEIDEA_ALLOWED` is false, a deployment configured
  * for a production Geidea account is refused here, whatever its credentials.
  * PRE_LAUNCH_MODE gates independently, first, and stays on.
+ *
+ * TWO PRESENTATIONS, ONE PURCHASE. By default Geidea's form opens on its own
+ * hosted page and the reply is `{ url }`, exactly as before. SaiFlow's own
+ * checkout page asks for `?presentation=dropin` instead, and receives what it
+ * needs to embed Geidea's form: the session id, Geidea's library URL, the
+ * session's expiry and the success path. The choice lives in the query
+ * string so the body contract is untouched, and it selects presentation and
+ * nothing else: the gates, the attempt row, the amount, the currency, the
+ * reference, the environment and both Geidea URLs are identical either way,
+ * and the verified callback remains the only thing that makes an Order.
+ *
+ * ONE CURRENT ATTEMPT PER BROWSER AND PRODUCT (lib/checkout/attempt). Every
+ * new attempt is a separately payable Geidea session, so a reload, a retry,
+ * a second tab or a fallback must never mint a second one while the first
+ * could still take money. A request without the browser's HttpOnly bearer
+ * is answered with a bearer and nothing else, so a session is only ever
+ * created for a bearer the browser already held. A request bearing it, for
+ * the same product, is answered from that browser's attempt: the same
+ * session, re-checked against today's trusted values; or that attempt's
+ * status page, for as long as its outcome is unknown; or, only when no
+ * session id from it ever reached a browser, a replacement. The database's
+ * unique `currentAttemptKey` holds this when requests race, and every
+ * release and every stored session id is a conditional write whose count is
+ * checked. The bearer chooses nothing about money.
  */
 
 /** Flip only through the release process, with PRE_LAUNCH_MODE's own switch. */
@@ -110,10 +151,152 @@ function errorFields(error: unknown): LogFields {
   };
 }
 
+type Presentation = "redirect" | "dropin";
+
+/** Absent means the hosted page, as before; anything but these two is refused. */
+function requestedPresentation(req: Request): Presentation | null {
+  const value = new URL(req.url).searchParams.get("presentation");
+  if (value === null) return "redirect";
+  return value === "dropin" ? "dropin" : null;
+}
+
+/**
+ * SaiFlow's embedded checkout, in Geidea's documented appearance fields only:
+ * the drop-in presentation, compact, in SaiFlow's accent, asking the buyer
+ * for nothing but payment, and handing control straight back to SaiFlow
+ * instead of showing Geidea's own receipt. No logo: none of SaiFlow's current
+ * image assets suits a payment form, and the page around the frame already
+ * carries the brand.
+ */
+const DROPIN_APPEARANCE: SessionAppearance = {
+  uiMode: "dropin",
+  showEmail: false,
+  showAddress: false,
+  showPhone: false,
+  receiptPage: false,
+  merchant: { name: "SaiFlow" },
+  styles: { headerColor: "#14b8a6", hideGeideaLogo: true, hppProfile: "compressed" },
+};
+
 /** Geidea's ISO expiry carries seven fractional digits; Date wants at most three. */
 function parseExpiry(value: string, fallback: Date): Date {
   const parsed = new Date(value.replace(/(\.\d{3})\d+/, "$1"));
   return Number.isNaN(parsed.getTime()) ? fallback : parsed;
+}
+
+/** SaiFlow's status page for one attempt: the success page, by its reference. */
+function statusPathFor(merchantReferenceId: string): string {
+  return `/success?ref=${encodeURIComponent(merchantReferenceId)}`;
+}
+
+function errorCode(error: unknown): unknown {
+  return typeof error === "object" && error !== null ? (error as { code?: unknown }).code : undefined;
+}
+
+/** Prisma's unique-constraint violation; on attempt creation only currentAttemptKey can collide. */
+function isUniqueViolation(error: unknown): boolean {
+  return errorCode(error) === "P2002";
+}
+
+/** Prisma's foreign-key violation: here, a product deleted between its read and the attempt's insert. */
+function isForeignKeyViolation(error: unknown): boolean {
+  return errorCode(error) === "P2003";
+}
+
+type HeldAttempt = CurrentAttempt & { id: string };
+
+/** This browser's current attempt for this product, if it has one. */
+async function currentAttempt(key: string): Promise<HeldAttempt | null> {
+  return prisma.paymentSession.findUnique({
+    where: { currentAttemptKey: key },
+    select: {
+      id: true,
+      merchantReferenceId: true,
+      clientTokenHash: true,
+      productId: true,
+      provider: true,
+      environment: true,
+      amount: true,
+      currency: true,
+      status: true,
+      presentation: true,
+      providerSessionId: true,
+      failureReason: true,
+      expiresAt: true,
+      createdAt: true,
+      order: { select: { id: true } },
+    },
+  });
+}
+
+/**
+ * The answer for a browser whose current attempt stands: the same session,
+ * or that attempt's status page. Never a new session. A status path goes
+ * only to the bearer the attempt was made for.
+ */
+function answerExisting(
+  held: HeldAttempt,
+  decision: Exclude<Decision, { kind: "replace" }>,
+  presentation: Presentation,
+  scriptUrl: string | null,
+  cookie: string
+): NextResponse {
+  const statusPath = statusPathFor(held.merchantReferenceId);
+  const fields = { attempt: held.id, ref: redactId(held.merchantReferenceId) };
+  switch (decision.kind) {
+    case "resume":
+      log("log", "attempt_resumed", { ...fields, presentation });
+      return NextResponse.json(
+        presentation === "dropin"
+          ? {
+              sessionId: decision.sessionId,
+              scriptUrl,
+              expiresAt: decision.expiresAt.toISOString(),
+              successPath: statusPath,
+            }
+          : { url: checkoutRedirectUrl(decision.sessionId) },
+        { headers: { "Set-Cookie": cookie } }
+      );
+    case "paid":
+      log("log", "attempt_paid", fields);
+      return NextResponse.json({ error: "already_paid", statusPath }, { status: 409 });
+    case "pending":
+      log("log", "attempt_pending", fields);
+      return NextResponse.json({ error: "attempt_pending", statusPath }, { status: 409 });
+    case "open":
+      log("log", "attempt_open", { ...fields, reason: decision.reason });
+      return NextResponse.json(
+        decision.reason === "bearer" ? { error: "attempt_open" } : { error: "attempt_open", statusPath },
+        { status: 409 }
+      );
+  }
+}
+
+/**
+ * The answer when this browser's attempt changed under the request: a
+ * callback claimed it, or another of the browser's own requests released or
+ * created it first. Whatever the attempt is now decides, and nothing new is
+ * started from here.
+ */
+async function answerCurrent(
+  key: string,
+  expected: Expected,
+  presentation: Presentation,
+  scriptUrl: string | null,
+  cookie: string
+): Promise<NextResponse> {
+  const current = await currentAttempt(key);
+  if (current === null) {
+    return NextResponse.json({ error: "attempt_pending" }, { status: 409 });
+  }
+  const decision = decide(current, expected, new Date());
+  return answerExisting(
+    current,
+    decision.kind === "replace" ? { kind: "pending" } : decision,
+    presentation,
+    scriptUrl,
+    cookie
+  );
 }
 
 export async function POST(req: Request) {
@@ -135,6 +318,11 @@ export async function POST(req: Request) {
   // call. Fifteen per ten minutes per address allows a buyer's retries.
   if (!rateLimiters.checkout(getClientIp(req)).success) {
     return NextResponse.json({ error: "Too many requests" }, { status: 429 });
+  }
+
+  const presentation = requestedPresentation(req);
+  if (presentation === null) {
+    return NextResponse.json({ error: "invalid_presentation" }, { status: 400 });
   }
 
   try {
@@ -272,6 +460,78 @@ export async function POST(req: Request) {
         { status: 503 }
       );
     }
+    // The embedded form loads Geidea's library from the configured hosted-page
+    // host. Resolved before anything is recorded, so a host that cannot serve
+    // it over https refuses cleanly rather than leaving an attempt behind.
+    let scriptUrl: string | null = null;
+    if (presentation === "dropin") {
+      try {
+        scriptUrl = checkoutScriptUrl();
+      } catch (error) {
+        log("error", "refused", { reason: "script_url", product: product.id, ...errorFields(error) });
+        return NextResponse.json(
+          { error: "payment_unavailable", message: "Payments are not yet available." },
+          { status: 503 }
+        );
+      }
+    }
+
+    // THE BROWSER'S CHECKOUT IDENTITY COMES FIRST. A request that does not
+    // already hold a bearer is given one and nothing else: no attempt, no
+    // Geidea session. Two first requests racing from two tabs therefore
+    // start nothing payable between them, and the session the browser later
+    // asks for belongs to a bearer it already held, which every tab, reload
+    // and retry presents again. The bearer only says whose attempt to look
+    // at; it never sets an amount, an outcome or a right to a file.
+    const heldBearer = readBearer(req.headers.get("cookie"));
+    const secureCookie = origin.protocol === "https:";
+    if (heldBearer === null) {
+      log("log", "identity_issued", { product: product.id });
+      return NextResponse.json(
+        { error: "identity_required" },
+        { status: 428, headers: { "Set-Cookie": bearerCookie(newBearer(), secureCookie) } }
+      );
+    }
+
+    // This browser's current attempt for this product. Everything compared
+    // below came from the product row and the deployment.
+    const presented: AttemptPresentation = presentation === "dropin" ? "DROPIN" : "REDIRECT";
+    const tokenHash = bearerHash(heldBearer);
+    const key = attemptKey(tokenHash, product.id);
+    const cookie = bearerCookie(heldBearer, secureCookie);
+    const expected: Expected = {
+      tokenHash,
+      productId: product.id,
+      environment,
+      amount,
+      currency: CURRENCY,
+      presentation: presented,
+    };
+
+    const held = await currentAttempt(key);
+    if (held !== null) {
+      const decision = decide(held, expected, new Date());
+      if (decision.kind !== "replace") {
+        return answerExisting(held, decision, presentation, scriptUrl, cookie);
+      }
+      // No session id from it ever reached a browser. Released in one
+      // conditional statement that matches only while it is still current and
+      // still in exactly that state: a callback that claimed it, or another
+      // request that got here first, leaves nothing to match, and then the
+      // attempt as it is now is the answer. Nothing is started on a release
+      // that did not happen.
+      const released = await prisma.paymentSession.updateMany(releaseArgs(held.id, key, decision.when));
+      if (released.count !== 1) {
+        log("log", "attempt_release_refused", { attempt: held.id, product: product.id });
+        return answerCurrent(key, expected, presentation, scriptUrl, cookie);
+      }
+      log("log", "attempt_superseded", {
+        attempt: held.id,
+        ref: redactId(held.merchantReferenceId),
+        product: product.id,
+      });
+    }
+
     const merchantReferenceId = randomUUID();
     const callbackUrl = new URL("/api/webhooks/geidea", origin).toString();
     const returnUrl = new URL("/success", origin);
@@ -282,23 +542,42 @@ export async function POST(req: Request) {
 
     // The attempt, recorded before Geidea knows anything. The callback route
     // will check Geidea's answer against these values, never against itself.
-    const attempt = await prisma.paymentSession.create({
-      data: {
-        merchantReferenceId,
-        provider: "GEIDEA",
-        productId: product.id,
-        amount: product.price,
-        currency: CURRENCY,
-        environment,
-        status: "CREATED",
-        // The current checkout is a guest flow and sends no email; the
-        // callback never reads one from Geidea. Null until a later step
-        // collects it before the redirect.
-        buyerEmail: null,
-        expiresAt: new Date(Date.now() + SESSION_LIFETIME_MS),
-      },
-      select: { id: true },
-    });
+    // It is current for this browser and product from the moment it exists.
+    let attempt: { id: string };
+    try {
+      attempt = await prisma.paymentSession.create({
+        data: {
+          merchantReferenceId,
+          provider: "GEIDEA",
+          productId: product.id,
+          amount: product.price,
+          currency: CURRENCY,
+          environment,
+          status: "CREATED",
+          // The current checkout is a guest flow and sends no email; the
+          // callback never reads one from Geidea. Null until a later step
+          // collects it before the redirect.
+          buyerEmail: null,
+          expiresAt: new Date(Date.now() + SESSION_LIFETIME_MS),
+          clientTokenHash: tokenHash,
+          currentAttemptKey: key,
+          presentation: presented,
+        },
+        select: { id: true },
+      });
+    } catch (error) {
+      if (isUniqueViolation(error)) {
+        // Another request from this browser, for this product, made the
+        // current attempt first. Answer from that one; never a second.
+        return answerCurrent(key, expected, presentation, scriptUrl, cookie);
+      }
+      if (isForeignKeyViolation(error)) {
+        // The product was deleted after it was read. The database refused
+        // the attempt rather than keep one without its product.
+        return NextResponse.json({ error: "Product not found" }, { status: 404 });
+      }
+      throw error;
+    }
 
     let created;
     try {
@@ -309,13 +588,16 @@ export async function POST(req: Request) {
         callbackUrl,
         returnUrl: returnUrl.toString(),
         language: hostedPageLanguage(req),
+        ...(presentation === "dropin" ? { appearance: DROPIN_APPEARANCE } : {}),
       });
     } catch (error) {
       // The attempt closes as failed. Conditional on CREATED so that nothing
       // that somehow moved it already is overwritten. No Order exists or can.
+      // No session id reached the browser, so nothing can pay it: it stops
+      // being current, and the buyer's next try may start a new attempt.
       await prisma.paymentSession.updateMany({
         where: { id: attempt.id, status: "CREATED" },
-        data: { status: "FAILED", failureReason: "session_create_failed" },
+        data: { status: "FAILED", failureReason: SESSION_CREATE_FAILED, currentAttemptKey: null },
       });
       log("warn", "session_create_failed", {
         attempt: attempt.id,
@@ -332,27 +614,53 @@ export async function POST(req: Request) {
       );
     }
 
-    // Conditional on CREATED: if a callback for this session has somehow
-    // already settled the attempt, this must not move it back.
-    await prisma.paymentSession.updateMany({
+    // Stored before any reply carries it, and only while the attempt is still
+    // CREATED. If it is not, it was replaced while Geidea was asked (a
+    // release closes a CREATED attempt in the same statement), and this
+    // session id goes to no browser at all: nothing can pay it. The browser
+    // is answered from the attempt that is current now.
+    const expiresAt = parseExpiry(
+      created.session.expiryDate,
+      new Date(Date.now() + SESSION_LIFETIME_MS)
+    );
+    const stored = await prisma.paymentSession.updateMany({
       where: { id: attempt.id, status: "CREATED" },
       data: {
         providerSessionId: created.session.sessionId,
         status: "SESSION_CREATED",
-        expiresAt: parseExpiry(
-          created.session.expiryDate,
-          new Date(Date.now() + SESSION_LIFETIME_MS)
-        ),
+        expiresAt,
       },
     });
+    if (stored.count !== 1) {
+      log("warn", "session_withheld", { attempt: attempt.id, product: product.id });
+      return answerCurrent(key, expected, presentation, scriptUrl, cookie);
+    }
     log("log", "session_created", {
       attempt: attempt.id,
       ref: redactId(merchantReferenceId),
       product: product.id,
       environment,
+      presentation,
     });
 
-    return NextResponse.json({ url: created.redirectUrl });
+    // The bearer goes back with the session, so this browser's next request
+    // for this product finds this attempt instead of starting another.
+    if (presentation === "dropin") {
+      // What the embedded form needs and nothing more. The success path
+      // carries only the reference the hosted page would otherwise hand the
+      // buyer on return; the success page, and the status endpoint behind
+      // it, remain the only things that say whether anything was paid.
+      return NextResponse.json(
+        {
+          sessionId: created.session.sessionId,
+          scriptUrl,
+          expiresAt: expiresAt.toISOString(),
+          successPath: statusPathFor(merchantReferenceId),
+        },
+        { headers: { "Set-Cookie": cookie } }
+      );
+    }
+    return NextResponse.json({ url: created.redirectUrl }, { headers: { "Set-Cookie": cookie } });
   } catch (error) {
     // Never the message: it could quote a body or a URL.
     log("error", "unhandled", { error: error instanceof Error ? error.name : "Error" });

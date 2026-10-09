@@ -418,7 +418,11 @@ model Order {
   commissionVersion   String?
   createdAt       DateTime @default(now())
 
-  product        Product         @relation(fields: [productId], references: [id], onDelete: Cascade)
+  /// Restrict: a purchase outlives any attempt to delete its product. The
+  /// database refuses to delete a product that any Order names, so a buyer's
+  /// record, its commission snapshot and its download right cannot vanish
+  /// with the listing, whatever order requests arrive in.
+  product        Product         @relation(fields: [productId], references: [id], onDelete: Restrict)
   /// The attempt this order came from. Optional: Stripe rows have none, and
   /// SetNull so an attempt row can never take a purchase with it.
   paymentSession PaymentSession? @relation(fields: [merchantReferenceId], references: [merchantReferenceId], onDelete: SetNull)
@@ -461,6 +465,13 @@ enum PaymentSessionStatus {
   FAILED
   CANCELLED
   EXPIRED
+}
+
+/// How a checkout attempt's provider session was created to be shown:
+/// Geidea's hosted page, or its drop-in inside SaiFlow's checkout page.
+enum CheckoutPresentation {
+  REDIRECT
+  DROPIN
 }
 
 /// A payment ATTEMPT, from the moment a buyer clicks Buy until the provider
@@ -518,10 +529,32 @@ model PaymentSession {
   /// after creation). A late callback is still verified on its own merits;
   /// this exists for expiring stale attempts and for support.
   expiresAt           DateTime?
+
+  // ---------------------------------------------------------------------
+  // One current attempt per browser and product (see lib/checkout/attempt).
+  // All three are null on attempts made before attempts could be resumed:
+  // such a row is never resumed and never blocks a new attempt.
+  // ---------------------------------------------------------------------
+  /// SHA-256 (hex) of the checkout bearer, a random secret the server gave
+  /// the buyer's browser in an HttpOnly cookie. Never the secret itself.
+  clientTokenHash     String?
+  /// "<clientTokenHash>:<productId>" while this is that browser's current
+  /// attempt for that product; null once superseded or never payable.
+  /// Unique, so the database itself allows one current attempt per browser
+  /// and product, however requests race.
+  currentAttemptKey   String?              @unique
+  /// How the provider session was created to be shown. A resume reuses the
+  /// session only in this presentation and never switches it.
+  presentation        CheckoutPresentation?
+
   createdAt           DateTime             @default(now())
   updatedAt           DateTime             @updatedAt
 
-  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  /// Restrict: payment history outlives any attempt to delete its product.
+  /// The database refuses the delete while any attempt names the product,
+  /// which also settles a delete racing a checkout: whichever commits first,
+  /// the other fails rather than leaving an attempt without its product.
+  product Product @relation(fields: [productId], references: [id], onDelete: Restrict)
   /// The Order this attempt produced once PAID. Absent for every other status.
   order   Order?
 

@@ -156,6 +156,9 @@ export default function ShopDashboard() {
           ...prev,
           products: prev.products.filter((p) => p.id !== productId),
         } : null);
+      } else if (res.status === 409) {
+        // Sales or payment records keep a product: the database refused the delete.
+        alert(t("deleteBlocked"));
       }
     } catch (err) {
       console.error("Error deleting product:", err);

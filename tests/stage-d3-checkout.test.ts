@@ -20,6 +20,7 @@
 import { test, describe, mock, before } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
+import { randomBytes } from "node:crypto";
 
 const routeSrc = () =>
   readFileSync(new URL("../app/api/checkout/route.ts", import.meta.url), "utf8");
@@ -72,6 +73,8 @@ before(async () => {
         // The attempt row checkout records before asking Geidea. Its own
         // tests live in geidea-checkout.test.ts; here it only has to exist.
         paymentSession: {
+          // Each request is a new browser: it has no attempt yet.
+          findUnique: async () => null,
           create: async () => ({ id: "ps_1" }),
           updateMany: async () => ({ count: 1 }),
         },
@@ -111,6 +114,8 @@ before(async () => {
     namedExports: {
       isGeideaConfigured: () => true,
       geideaMode: () => "test",
+      checkoutScriptUrl: () => "https://checkout.geidea.test/hpp/geideaCheckout.min.js",
+      checkoutRedirectUrl: (sessionId: string) => `https://checkout.geidea.test/hpp/checkout/?${sessionId}`,
       createSession: async (args: unknown) => {
         state.sessionCalls.push(args);
         return {
@@ -163,11 +168,19 @@ const product = (over: Partial<ProductRow> = {}): ProductRow => ({
   ...over,
 });
 
+/**
+ * A request from a browser that already holds its checkout identity, so the
+ * gates below are what decide. The identity step itself is tested in
+ * geidea-checkout.test.ts.
+ */
 const checkout = (body: unknown = { productId: "prod_1" }) =>
   POST(
     new Request("https://saiflow.test/api/checkout", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        cookie: `saiflow_checkout=${randomBytes(32).toString("base64url")}`,
+      },
       body: JSON.stringify(body),
     })
   );

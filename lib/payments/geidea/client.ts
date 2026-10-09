@@ -5,7 +5,9 @@
  * `lib/env`, whose server block throws if touched from a browser bundle, and
  * it refuses to load at all when a `window` exists. Nothing exported here is
  * safe to call from a client component, and nothing here should ever need to
- * be: the browser only ever receives a redirect URL.
+ * be: the browser only ever receives what a checkout page needs to show
+ * Geidea's own form — a redirect URL, or a session id and the address of
+ * Geidea's checkout library — and never a credential.
  *
  * Two operations, both against `GEIDEA_API_BASE_URL`:
  *
@@ -458,6 +460,42 @@ export interface CreateSessionInput {
   returnUrl: string;
   /** Hosted page language. */
   language: "en" | "ar";
+  /**
+   * How Geidea's own form presents itself. Optional: a session without it is
+   * byte-for-byte the session this client sent before it existed.
+   */
+  appearance?: SessionAppearance;
+}
+
+/**
+ * Geidea Checkout v2 `appearance`, limited to the fields and values Geidea's
+ * Create Session v2 reference documents:
+ *
+ *   uiMode                  "modal" (Geidea's default) | "dropin" | "redirection"
+ *   showEmail, showAddress, showPhone, receiptPage      booleans
+ *   merchant.name           shown on Geidea's form
+ *   merchant.logoUrl        https
+ *   styles.headerColor      "#RRGGBB"
+ *   styles.hideGeideaLogo   boolean
+ *   styles.hppProfile       "simple" | "compressed"
+ *
+ * PRESENTATION ONLY. None of it is signed, none of it reaches the amount,
+ * the currency, the reference or either URL, and anything outside this list
+ * is refused rather than passed through: an undocumented field is a guess
+ * about Geidea's behaviour, and a payment request is no place for guesses.
+ */
+export interface SessionAppearance {
+  uiMode?: "modal" | "dropin" | "redirection";
+  showEmail?: boolean;
+  showAddress?: boolean;
+  showPhone?: boolean;
+  receiptPage?: boolean;
+  merchant?: { name?: string; logoUrl?: string };
+  styles?: {
+    headerColor?: string;
+    hideGeideaLogo?: boolean;
+    hppProfile?: "simple" | "compressed";
+  };
 }
 
 /** The fields of Geidea's session object that SaiFlow reads. Nothing else survives decoding. */
@@ -485,6 +523,7 @@ interface ValidatedCreateSessionInput {
   callbackUrl: string;
   returnUrl: string;
   language: "en" | "ar";
+  appearance: SessionAppearance | null;
 }
 
 function httpsUrl(name: string, value: unknown): string {
@@ -501,6 +540,91 @@ function httpsUrl(name: string, value: unknown): string {
     throw new GeideaRequestError(`${name} must be an https URL`);
   }
   return value;
+}
+
+const UI_MODES = ["modal", "dropin", "redirection"] as const;
+const HPP_PROFILES = ["simple", "compressed"] as const;
+const HEX_COLOR = /^#[0-9a-fA-F]{6}$/;
+/** A display name: printable, bounded, no control characters. */
+const DISPLAY_NAME = /^[^\u0000-\u001f\u007f]{1,60}$/;
+
+function plainObject(name: string, value: unknown, allowed: readonly string[]): Record<string, unknown> {
+  if (value === null || typeof value !== "object" || Array.isArray(value)) {
+    throw new GeideaRequestError(`${name} must be an object`);
+  }
+  for (const key of Object.keys(value)) {
+    if (!allowed.includes(key)) {
+      throw new GeideaRequestError(`${name}.${key} is not a documented field`);
+    }
+  }
+  return value as Record<string, unknown>;
+}
+
+function optionalBoolean(name: string, value: unknown): boolean | undefined {
+  if (value === undefined) return undefined;
+  if (typeof value !== "boolean") throw new GeideaRequestError(`${name} must be a boolean`);
+  return value;
+}
+
+function optionalMember<T extends string>(name: string, value: unknown, members: readonly T[]): T | undefined {
+  if (value === undefined) return undefined;
+  if (typeof value !== "string" || !(members as readonly string[]).includes(value)) {
+    throw new GeideaRequestError(`${name} must be one of ${members.join(", ")}`);
+  }
+  return value as T;
+}
+
+/** Copy a defined value only, so an omitted field stays omitted in the body. */
+function put<T extends object, K extends keyof T>(target: T, key: K, value: T[K] | undefined): void {
+  if (value !== undefined) target[key] = value;
+}
+
+/**
+ * The appearance, checked field by field and rebuilt from scratch: only the
+ * documented keys, only their documented types and values, and nothing a
+ * caller passed survives by reference.
+ */
+function validateAppearance(value: unknown): SessionAppearance {
+  const raw = plainObject("appearance", value, [
+    "uiMode", "showEmail", "showAddress", "showPhone", "receiptPage", "merchant", "styles",
+  ]);
+  const out: SessionAppearance = {};
+  put(out, "uiMode", optionalMember("appearance.uiMode", raw.uiMode, UI_MODES));
+  put(out, "showEmail", optionalBoolean("appearance.showEmail", raw.showEmail));
+  put(out, "showAddress", optionalBoolean("appearance.showAddress", raw.showAddress));
+  put(out, "showPhone", optionalBoolean("appearance.showPhone", raw.showPhone));
+  put(out, "receiptPage", optionalBoolean("appearance.receiptPage", raw.receiptPage));
+
+  if (raw.merchant !== undefined) {
+    const merchant = plainObject("appearance.merchant", raw.merchant, ["name", "logoUrl"]);
+    const clean: NonNullable<SessionAppearance["merchant"]> = {};
+    if (merchant.name !== undefined) {
+      if (typeof merchant.name !== "string" || !DISPLAY_NAME.test(merchant.name)) {
+        throw new GeideaRequestError("appearance.merchant.name must be 1-60 printable characters");
+      }
+      clean.name = merchant.name;
+    }
+    if (merchant.logoUrl !== undefined) {
+      clean.logoUrl = httpsUrl("appearance.merchant.logoUrl", merchant.logoUrl);
+    }
+    out.merchant = clean;
+  }
+
+  if (raw.styles !== undefined) {
+    const styles = plainObject("appearance.styles", raw.styles, ["headerColor", "hideGeideaLogo", "hppProfile"]);
+    const clean: NonNullable<SessionAppearance["styles"]> = {};
+    if (styles.headerColor !== undefined) {
+      if (typeof styles.headerColor !== "string" || !HEX_COLOR.test(styles.headerColor)) {
+        throw new GeideaRequestError("appearance.styles.headerColor must be a #RRGGBB colour");
+      }
+      clean.headerColor = styles.headerColor;
+    }
+    put(clean, "hideGeideaLogo", optionalBoolean("appearance.styles.hideGeideaLogo", styles.hideGeideaLogo));
+    put(clean, "hppProfile", optionalMember("appearance.styles.hppProfile", styles.hppProfile, HPP_PROFILES));
+    out.styles = clean;
+  }
+
+  return out;
 }
 
 /**
@@ -539,6 +663,7 @@ function validateCreateSessionInput(
   if (input.language !== "en" && input.language !== "ar") {
     throw new GeideaRequestError('language must be "en" or "ar"');
   }
+  const appearance = input.appearance === undefined ? null : validateAppearance(input.appearance);
 
   return {
     amount,
@@ -547,6 +672,7 @@ function validateCreateSessionInput(
     callbackUrl,
     returnUrl,
     language: input.language,
+    appearance,
   };
 }
 
@@ -560,6 +686,32 @@ function checkoutRedirectUrlFor(config: GeideaConfig, sessionId: string): string
 /** The hosted checkout page for an existing session id. */
 export function checkoutRedirectUrl(sessionId: string): string {
   return checkoutRedirectUrlFor(readConfig(), sessionId);
+}
+
+const CHECKOUT_SCRIPT_PATH = "/hpp/geideaCheckout.min.js";
+
+function checkoutScriptUrlFor(config: GeideaConfig): string {
+  let parsed: URL;
+  try {
+    parsed = new URL(config.hppBaseUrl);
+  } catch {
+    throw new GeideaConfigError("GEIDEA_HPP_BASE_URL is not a valid URL");
+  }
+  // A script runs with the page's full authority. It is loaded over https
+  // or not at all, whatever the variable says.
+  if (parsed.protocol !== "https:") {
+    throw new GeideaConfigError("GEIDEA_HPP_BASE_URL must be https to serve the checkout script");
+  }
+  return `${config.hppBaseUrl}${CHECKOUT_SCRIPT_PATH}`;
+}
+
+/**
+ * Geidea's Checkout v2 JavaScript library, on the configured hosted-page
+ * host: the same host the redirect URL uses, so test and live follow the
+ * deployment's own GEIDEA_HPP_BASE_URL and no Geidea host is written here.
+ */
+export function checkoutScriptUrl(): string {
+  return checkoutScriptUrlFor(readConfig());
 }
 
 /**
@@ -600,6 +752,7 @@ export async function createSession(
     returnUrl: request.returnUrl,
     language: request.language,
     paymentOperation: "Pay",
+    ...(request.appearance === null ? {} : { appearance: request.appearance }),
   };
 
   const json = await send(config, deps, "createSession", "POST", SESSION_PATH, body);
