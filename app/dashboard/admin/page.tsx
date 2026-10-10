@@ -2,6 +2,8 @@ import Link from "next/link";
 import { getTranslations, getLocale } from "next-intl/server";
 import { getFounderStats } from "@/lib/admin-stats";
 import { formatNumber } from "@/lib/formatNumber";
+import { formatPrice } from "@/lib/formatPrice";
+import { geideaMode, isGeideaConfigured } from "@/lib/payments/geidea/client";
 import FirstVisitNote from "@/components/admin/FirstVisitNote";
 import MissionMascot from "@/components/admin/MissionMascot";
 
@@ -226,20 +228,43 @@ export default async function FounderDashboardPage() {
             </dl>
           </section>
 
-          {/* 6 — PAYMENTS (never computes revenue) */}
+          {/* 6 — PAYMENTS: the platform's view of the money, from the Order
+              snapshots lib/pricing wrote. Real (PRODUCTION) and test are never
+              added together; display only, no arithmetic here. */}
           <section className="rounded-xl border border-gray-800/70 bg-[#0f0f0f] px-5 py-4">
             <p className={`${eyebrow} text-gray-600`}>
               {t("payments.eyebrow")}
             </p>
-            <p className="mt-2 text-sm text-gray-300">{t("payments.disabled")}</p>
-            <div className="mt-3 flex gap-6 text-sm">
-              <span className="text-gray-500">
-                {t("payments.revenue")} <span className="text-gray-400">—</span>
-              </span>
-              <span className="text-gray-500">
-                {t("payments.liveOrders")} <span className="text-gray-400">—</span>
-              </span>
-            </div>
+            <p className="mt-2 text-sm text-gray-300">
+              {/* Enabled only as checkout itself sees it: pre-launch off and Geidea
+                  fully configured, in a stated mode. Anything else is "not enabled". */}
+              {paymentsEnabled && isGeideaConfigured() && geideaMode() === "production"
+                ? t("payments.enabledLive")
+                : paymentsEnabled && isGeideaConfigured() && geideaMode() === "test"
+                  ? t("payments.enabledTest")
+                  : t("payments.disabled")}
+            </p>
+            <dl className="mt-3 grid grid-cols-2 gap-x-6 gap-y-1.5 text-sm sm:grid-cols-4">
+              {([
+                ["gross", stats.revenue.real.gross],
+                ["commission", stats.revenue.real.commission],
+                ["net", stats.revenue.real.net],
+              ] as const).map(([key, value]) => (
+                <div key={key}>
+                  <dt className="text-gray-500">{t(`payments.${key}`)}</dt>
+                  <dd className="font-mono tabular-nums text-gray-200"><bdi>{formatPrice(Number(value), "SAR", locale)}</bdi></dd>
+                </div>
+              ))}
+              <div>
+                <dt className="text-gray-500">{t("payments.realOrders")}</dt>
+                <dd className="font-mono tabular-nums text-gray-200">{n(stats.revenue.real.orders)}</dd>
+              </div>
+            </dl>
+            <p className="mt-3 text-xs text-gray-600">
+              {t("payments.testGross")} <bdi>{formatPrice(Number(stats.revenue.test.gross), "SAR", locale)}</bdi>
+              {" · "}
+              {t("payments.testOrders")} {n(stats.revenue.test.orders)}
+            </p>
             {stats.testOrders > 0 && (
               <p className="mt-3 text-xs text-gray-600">
                 {t("payments.testNote", { count: n(stats.testOrders) })}
@@ -247,7 +272,7 @@ export default async function FounderDashboardPage() {
             )}
           </section>
 
-          {/* 7 — QUICK ACTIONS (exactly three) */}
+          {/* 7 — QUICK ACTIONS */}
           <nav className="flex flex-wrap gap-2 pt-1">
             <Link
               href="/dashboard/admin/products?filter=needs_review"
@@ -266,6 +291,12 @@ export default async function FounderDashboardPage() {
               className="rounded-lg border border-gray-800 bg-[#111] px-4 py-2 text-sm text-gray-300 transition-colors hover:border-gray-700 hover:text-white"
             >
               {t("actions.queue")}
+            </Link>
+            <Link
+              href="/dashboard/admin/payouts"
+              className="rounded-lg border border-gray-800 bg-[#111] px-4 py-2 text-sm text-gray-300 transition-colors hover:border-gray-700 hover:text-white"
+            >
+              {t("actions.payouts")}
             </Link>
           </nav>
         </div>

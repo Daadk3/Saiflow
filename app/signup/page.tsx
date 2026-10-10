@@ -1,13 +1,12 @@
 "use client";
 
 import { FormEvent, useState } from "react";
-import { useRouter } from "next/navigation";
 import { signIn } from "next-auth/react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
+import { ResendVerification } from "@/components/auth/ResendVerification";
 
 export default function SignupPage() {
-  const router = useRouter();
   const t = useTranslations();
 
   const [name, setName] = useState("");
@@ -16,11 +15,14 @@ export default function SignupPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  // The address the account was created with, kept for "send it again".
+  const [createdEmail, setCreatedEmail] = useState<string | null>(null);
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError(null);
     setSuccess(null);
+    setCreatedEmail(null);
     setLoading(true);
 
     try {
@@ -40,13 +42,16 @@ export default function SignupPage() {
         return;
       }
 
-      setSuccess(t('auth.signup.successMessage'));
+      // No automatic redirect: the account cannot sign in until the email is
+      // confirmed, so the message has to stay on screen long enough to read.
+      // If the first email did not go out, say so rather than "check your inbox".
+      setCreatedEmail(email);
+      setSuccess(
+        data.verificationEmailSent === false
+          ? t('auth.signup.successEmailFailed')
+          : t('auth.signup.successMessage')
+      );
       setLoading(false);
-
-      // wait a moment then go to /login
-      setTimeout(() => {
-        router.push("/login");
-      }, 1000);
     } catch (err) {
       console.error(err);
       setError(t('auth.signup.errorGeneric'));
@@ -181,8 +186,11 @@ export default function SignupPage() {
 
               {/* Success Message */}
               {success && (
-                <div className="p-4 bg-teal-500/10 border border-teal-500/20 rounded-xl">
+                <div className="p-4 bg-teal-500/10 border border-teal-500/20 rounded-xl" role="status">
                   <p className="text-teal-400 text-sm">{success}</p>
+                  {createdEmail && (
+                    <ResendVerification email={createdEmail} label={t('auth.signup.resendButton')} />
+                  )}
                 </div>
               )}
 

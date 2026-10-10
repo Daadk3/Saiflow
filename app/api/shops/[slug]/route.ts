@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { authOptions } from "../../auth/authOptions";
 import { isAllowedAssetUrl } from "@/lib/validations";
 import { creatorFileStatus } from "@/lib/creator-file-status";
+import { sellerFileState, type SellerAssetView } from "@/lib/seller-file-state";
 
 export async function GET(
   req: Request,
@@ -59,6 +60,7 @@ export async function GET(
             fileKey: true,
             fileScanStatus: true,
             fileScanKey: true,
+            updatedAt: true,
           },
         },
         // Membership, for the authorisation check only. Emails are compared
@@ -96,6 +98,56 @@ export async function GET(
     const { shopUsers: _members, products, ...shopFields } = shop;
     void _members;
 
+
+    // The FileAsset rows behind the attached files, read here and only here,
+
+    // so the four-word seller state can be derived without any scan column
+
+    // leaving the server. Dropped before the response is built, like the
+
+    // product's own scan columns above.
+
+    const keys = products.map((p) => p.fileKey).filter((k): k is string => k !== null);
+
+    const assets: SellerAssetView[] =
+
+      keys.length === 0
+
+        ? []
+
+        : await prisma.fileAsset.findMany({
+
+            where: { key: { in: keys } },
+
+            select: {
+
+              key: true,
+
+              shopId: true,
+
+              route: true,
+
+              scanStatus: true,
+
+              scanAttempts: true,
+
+              scanAt: true,
+
+              scanReason: true,
+
+              scanClaimToken: true,
+
+              scanClaimedAt: true,
+
+              createdAt: true,
+
+            },
+
+          });
+
+    const assetByKey = new Map(assets.map((a) => [a.key, a]));
+
+
     return NextResponse.json({
       ...shopFields,
       products: products.map((p) => ({
@@ -124,6 +176,10 @@ export async function GET(
         // reviewed vocabulary. The browser renders this string; it cannot
         // compute it, contradict it, or send one back.
         fileSafety: creatorFileStatus(p),
+        fileState: sellerFileState(
+          { ...p, shopId: shop.id },
+          p.fileKey ? assetByKey.get(p.fileKey) ?? null : null
+        ),
       })),
     });
   } catch (error) {

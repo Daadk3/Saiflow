@@ -11,6 +11,15 @@ import {
   reconcileProductScanState,
 } from "@/lib/file-safety";
 import { isProductCategory } from "@/lib/categories";
+import { scheduleScan } from "@/lib/scan/schedule";
+import { announceReadyAtAttach } from "@/lib/scan/announce";
+import { priceProblemMessage, validatePrice } from "@/lib/pricing";
+import { accountKey, rateLimiters, retryAfterSeconds } from "@/lib/rate-limit";
+
+// Attaching a file schedules its scan to run after this response is sent;
+// the scan moves the file twice, so this route carries the worker's budget.
+// The request itself still returns as soon as the product is written.
+export const maxDuration = 300;
 
 // POST - Create a new product
 export async function POST(req: Request) {
@@ -21,6 +30,17 @@ export async function POST(req: Request) {
       return NextResponse.json(
         { error: "Unauthorized" },
         { status: 401 }
+      );
+    }
+
+    // Every product past the gates costs a file scan and, once it passes, an
+    // email to the founder. 20 an hour per account fits a catalogue and
+    // starves an abuser, decided before the body is even read.
+    const limit = rateLimiters.createProduct(accountKey(session.user.email));
+    if (!limit.success) {
+      return NextResponse.json(
+        { error: "Too many requests" },
+        { status: 429, headers: { "Retry-After": String(retryAfterSeconds(limit.resetTime)) } }
       );
     }
 
@@ -49,12 +69,12 @@ export async function POST(req: Request) {
         { status: 400 }
       );
     }
-    const numericPrice = Number(price);
-    if (!Number.isFinite(numericPrice) || numericPrice < 0 || numericPrice > 100000) {
-      return NextResponse.json(
-        { error: "Price must be between 0 and 100,000 SAR" },
-        { status: 400 }
-      );
+    // The one price validator (lib/pricing): exact halalas, two decimals at
+    // most, within the ceiling. The edit route uses the same one, so the two
+    // cannot disagree, and the stored value is the exact two-decimal string.
+    const priceCheck = validatePrice(price);
+    if (!priceCheck.ok) {
+      return NextResponse.json({ error: priceProblemMessage(priceCheck.reason) }, { status: 400 });
     }
     if (description !== undefined && description !== null && (typeof description !== "string" || description.length > 10000)) {
       return NextResponse.json(
@@ -162,7 +182,7 @@ export async function POST(req: Request) {
           name: name.trim(),
           slug,
           description,
-          price: numericPrice,
+          price: priceCheck.price,
           category: category || null,
           shopId,
           fileUrl,
@@ -200,11 +220,23 @@ export async function POST(req: Request) {
      * a reconciliation failure must not turn a successful save into an error.
      */
     if (fileKey) {
+      // The file already had a verdict and the insert above carried it. If
+      // that verdict is a pass, nothing downstream will announce the product
+      // (the worker skips a settled file, the reconciliation only moves
+      // PENDING_SCAN rows), so the founder hears about it from here — after
+      // the commit, after the response, and never at the seller's expense.
+      try {
+        await announceReadyAtAttach(product);
+      } catch (error) {
+        console.error("[notify] announce after create failed", (error as Error)?.name);
+      }
       try {
         await reconcileProductScanState(product.id, fileKey);
       } catch (error) {
         console.error("[scan] reconcile after create failed", (error as Error)?.name);
       }
+      // The file is attached: scan it now rather than at the next sweep.
+      scheduleScan(fileKey);
     }
 
     return NextResponse.json(product, { status: 201 });

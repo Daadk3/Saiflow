@@ -21,5 +21,7 @@ declare module "next-auth" {
 declare module "next-auth/jwt" {
   interface JWT {
     id: string;
+    /** Fingerprint of the password hash at sign-in; see lib/auth/session-guard. */
+    cv?: string;
   }
 }

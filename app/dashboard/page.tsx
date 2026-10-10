@@ -70,7 +70,8 @@ export default function Dashboard() {
         const orderRows: Array<{ product?: { currency?: string } }> = ordersData.orders || [];
         const currencies = new Set(orderRows.map((o) => o.product?.currency || "SAR"));
         setOrderStats({
-          totalRevenue: ordersData.totalRevenue || 0,
+          // The seller's share of REAL sales, computed server-side by lib/pricing.
+          totalRevenue: Number(ordersData.totals?.real?.net ?? 0),
           totalSales: ordersData.totalSales || 0,
           currency: currencies.size === 1 ? [...currencies][0] : "SAR",
           isMixed: currencies.size > 1,
@@ -157,7 +158,7 @@ export default function Dashboard() {
           <div className="bg-[#111111] p-6 rounded-xl border border-gray-800 shadow-sm">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-gray-400 text-sm">{t('dashboard.totalRevenue')}</p>
+                <p className="text-gray-400 text-sm">{t('dashboard.netEarnings')}</p>
                 <p className="text-3xl font-bold text-white mt-1">
                   {orderStats.isMixed ? t('dashboard.mixedCurrency') : <bdi>{formatPrice(Number(orderStats.totalRevenue), orderStats.currency, locale)}</bdi>}
                 </p>

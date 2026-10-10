@@ -14,6 +14,23 @@ import {
   attachedScanFields,
   reconcileProductScanState,
 } from "@/lib/file-safety";
+import { scheduleScan } from "@/lib/scan/schedule";
+import { announceReadyAtAttach } from "@/lib/scan/announce";
+import { priceProblemMessage, validatePrice } from "@/lib/pricing";
+
+// A replacement file schedules its scan to run after the response is sent;
+// see app/api/products/route.ts for why this route carries the worker's budget.
+export const maxDuration = 300;
+
+/**
+ * The database refused a product delete because an Order or a PaymentSession
+ * still names it (ON DELETE RESTRICT). Prisma reports a foreign-key
+ * violation as P2003, and a required relation it would break as P2014.
+ */
+function isRestrictedByPaymentRecords(error: unknown): boolean {
+  const code = typeof error === "object" && error !== null ? (error as { code?: unknown }).code : undefined;
+  return code === "P2003" || code === "P2014";
+}
 
 // GET - Get a single product by ID (seller dashboard only)
 // SECURITY: this returns the full row including fileUrl (the paid asset),
@@ -101,6 +118,18 @@ export async function PUT(
 
     if (category && !isProductCategory(category)) {
       return NextResponse.json({ error: "Invalid category" }, { status: 400 });
+    }
+
+    // A submitted price goes through the same validator as on create. This
+    // route used to write whatever it was sent, so a negative, oversized or
+    // three-decimal price could reach the row here and nowhere else.
+    let nextPrice: string | undefined;
+    if (price !== undefined) {
+      const priceCheck = validatePrice(price);
+      if (!priceCheck.ok) {
+        return NextResponse.json({ error: priceProblemMessage(priceCheck.reason) }, { status: 400 });
+      }
+      nextPrice = priceCheck.price;
     }
 
     /**
@@ -282,7 +311,7 @@ export async function PUT(
       data: {
         name: name || product.name,
         description: description !== undefined ? description : product.description,
-        price: price !== undefined ? price : product.price,
+        price: nextPrice !== undefined ? nextPrice : product.price,
         category: category !== undefined ? (category || null) : product.category,
         fileUrl: fileUrl !== undefined ? fileUrl || null : product.fileUrl,
         thumbnailUrl:
@@ -295,11 +324,20 @@ export async function PUT(
     // Same race as on create: the worker may have settled the new file
     // between the provenance read and this write.
     if (fileChanged && nextFileKey) {
+      // Same as on create: a replacement whose verdict was already SAFE was
+      // written SAFE just now, and only this call site can announce it.
+      try {
+        await announceReadyAtAttach(updatedProduct);
+      } catch (error) {
+        console.error("[notify] announce after edit failed", (error as Error)?.name);
+      }
       try {
         await reconcileProductScanState(updatedProduct.id, nextFileKey);
       } catch (error) {
         console.error("[scan] reconcile after edit failed", (error as Error)?.name);
       }
+      // The file changed: scan the new bytes now rather than at the next sweep.
+      scheduleScan(nextFileKey);
     }
 
     return NextResponse.json(updatedProduct);
@@ -376,10 +414,27 @@ export async function DELETE(
       );
     }
 
-    // Delete the product
-    await prisma.product.delete({
-      where: { id },
-    });
+    // Delete the product. The database decides whether it may go: Order and
+    // PaymentSession refer to it with ON DELETE RESTRICT, so a product with
+    // any purchase or payment attempt is refused there, atomically, even if a
+    // checkout starts at this very moment. No count is taken here first: a
+    // check made before the delete could be stale by the time it runs.
+    try {
+      await prisma.product.delete({
+        where: { id },
+      });
+    } catch (error) {
+      if (isRestrictedByPaymentRecords(error)) {
+        return NextResponse.json(
+          {
+            error: "has_payment_records",
+            message: "This product has sales or payment records, so it can't be deleted.",
+          },
+          { status: 409 }
+        );
+      }
+      throw error;
+    }
 
     return NextResponse.json({ success: true });
   } catch (error) {

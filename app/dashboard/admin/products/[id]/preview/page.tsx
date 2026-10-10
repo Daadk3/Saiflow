@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { RescanButton } from "@/components/admin/RescanButton";
 import Link from "next/link";
 import Image from "next/image";
 import { notFound, redirect } from "next/navigation";
@@ -268,6 +269,19 @@ function FileSafetyPanel({
           ? t("fileSafety.publishable")
           : t("fileSafety.notPublishable")}
       </p>
+
+      {(safety.reason === "scan_error" || safety.reason === "pending_scan") && (
+        <RescanButton
+          productId={productId}
+          labels={{
+            retry: t("fileSafety.retry"),
+            retrying: t("fileSafety.retrying"),
+            started: t("fileSafety.retryStarted"),
+            refused: t("fileSafety.retryRefused"),
+            limited: t("fileSafety.retryLimited"),
+          }}
+        />
+      )}
 
       {canInspect ? (
         <a

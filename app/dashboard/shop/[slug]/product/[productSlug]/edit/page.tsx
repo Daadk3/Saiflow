@@ -13,9 +13,14 @@ import { PRODUCT_CATEGORIES, CATEGORY_LABEL_KEYS } from "@/lib/categories";
 import { productUrl } from "@/lib/site-url";
 import { productLinkStatus, productLinkStatusKey } from "@/lib/product-link-status";
 import CopyLinkButton from "@/components/CopyLinkButton";
+import { PriceBreakdown } from "@/components/PriceBreakdown";
 // TYPE ONLY — lib/creator-file-status builds a Prisma clause at load and
 // must not enter this bundle. The server sends the derived string.
 import type { CreatorFileStatus } from "@/lib/creator-file-status";
+import { FileScanState, type FileScanStateView } from "@/components/FileScanState";
+// Live refresh of the file check only; see lib/scan-status-polling.
+import { isScanInProgress } from "@/lib/scan-status-polling";
+import { useScanStatusPolling } from "@/lib/use-scan-status-polling";
 
 interface Product {
   id: string;
@@ -33,6 +38,7 @@ interface Product {
    * shop payload rather than added to the product route, so no API changes.
    */
   fileSafety?: CreatorFileStatus;
+  fileState?: FileScanStateView | null;
   thumbnailUrl: string | null;
   shop: {
     id: string;
@@ -53,6 +59,7 @@ export default function EditProductPage() {
   const [fileName, setFileName] = useState("");
   const [thumbnailUrl, setThumbnailUrl] = useState("");
   const [fileSafety, setFileSafety] = useState<CreatorFileStatus>(null);
+  const [fileState, setFileState] = useState<FileScanStateView | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -84,6 +91,12 @@ export default function EditProductPage() {
     }
   }, [status, slug, productSlug, router]);
 
+  // Live refresh of the file check, only while its badge is on screen (the
+  // saved file is the one shown) and the check is still running.
+  const scanInProgress =
+    product !== null && fileUrl === product.fileUrl && isScanInProgress(fileState);
+  useScanStatusPolling(scanInProgress, refreshFileState);
+
   async function fetchProduct() {
     try {
       // First get the shop to find the product
@@ -111,6 +124,7 @@ export default function EditProductPage() {
       // is already loaded here. Taking it now is why this feature needs no
       // change to GET /api/products/[id] and no new field anywhere.
       setFileSafety(foundProduct.fileSafety ?? null);
+      setFileState(foundProduct.fileState ?? null);
 
       // Fetch full product details
       const productRes = await fetch(`/api/products/${foundProduct.id}`);
@@ -137,6 +151,25 @@ export default function EditProductPage() {
     } finally {
       setLoading(false);
     }
+  }
+
+  /**
+   * Live refresh of the file check only (see lib/scan-status-polling).
+   *
+   * Reads the shop payload, the one place the derived state exists, and
+   * updates the two file fields. Deliberately NOT fetchProduct: that reloads
+   * the form from the server and would overwrite whatever the seller is
+   * typing. Silent on failure; the poller retries and stops on its own.
+   */
+  async function refreshFileState() {
+    if (!product) return;
+    const res = await fetch(`/api/shops/${slug}`);
+    if (!res.ok) return;
+    const shopData = await res.json();
+    const found = shopData.products?.find((p: Product) => p.id === product.id);
+    if (!found) return;
+    setFileSafety(found.fileSafety ?? null);
+    setFileState(found.fileState ?? null);
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -405,6 +438,10 @@ export default function EditProductPage() {
                   />
                 </div>
                 <p className="mt-1 text-xs text-gray-500">{t("dashboard.product.priceHelp")}</p>
+                {/* What this price means for the seller, live, from lib/pricing:
+                    the buyer's price, SaiFlow's commission, the seller's share.
+                    The server snapshots the same split when an order is fulfilled. */}
+                <PriceBreakdown price={price} />
               </div>
 
               {/* Category */}
@@ -533,6 +570,11 @@ export default function EditProductPage() {
                         server to authorise — and it would otherwise link to
                         the file this one replaces. */}
                     <div className="flex items-center gap-2">
+                      {product && fileUrl === product.fileUrl && (
+                        <div className="mt-3">
+                          <FileScanState productId={product.id} value={fileState} onRetried={fetchProduct} />
+                        </div>
+                      )}
                       {product && fileUrl === product.fileUrl && (
                         <a
                           href={`/api/products/${product.id}/inspect`}

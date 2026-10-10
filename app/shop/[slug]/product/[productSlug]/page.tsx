@@ -11,6 +11,7 @@ import ShareButton from "@/components/ShareButton";
 import { getLocale, getTranslations } from "next-intl/server";
 import { formatPrice } from "@/lib/formatPrice";
 import { env } from "@/lib/env";
+import { checkoutPath } from "@/lib/checkout/embedded";
 
 const BASE_URL = "https://www.saiflow.io";
 
@@ -130,6 +131,8 @@ export default async function ProductPage({
   const locale = await getLocale();
   const t = await getTranslations();
   const preLaunchMode = env.PRE_LAUNCH_MODE;
+  // Buying opens SaiFlow's own checkout page; the payment session starts there.
+  const checkoutHref = checkoutPath(product.shop.slug, product.slug);
 
   return (
     <div className="min-h-screen bg-[#0a0a0a]">
@@ -292,7 +295,7 @@ export default async function ProductPage({
               </div>
 
               <div className="mt-6">
-                <BuyButton productId={product.id} sellable preLaunchMode={preLaunchMode} />
+                <BuyButton checkoutHref={checkoutHref} sellable preLaunchMode={preLaunchMode} />
               </div>
 
               <div className="mt-3 flex justify-center">
@@ -338,7 +341,7 @@ export default async function ProductPage({
           </p>
         </div>
         <div className="flex-1 ps-4">
-          <BuyButton productId={product.id} sellable preLaunchMode={preLaunchMode} />
+          <BuyButton checkoutHref={checkoutHref} sellable preLaunchMode={preLaunchMode} />
         </div>
       </div>
     </div>

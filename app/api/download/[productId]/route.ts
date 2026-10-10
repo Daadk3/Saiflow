@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { rateLimiters, getClientIp } from "@/lib/rate-limit";
 import { isDeliverableSafe } from "@/lib/file-safety";
+import { isMerchantReference } from "@/lib/payments/payment-status";
+import { redactId } from "@/lib/redact-id";
 import { createDeliveryUrl, MAX_DELIVERY_TTL_SECONDS } from "@/lib/storage/provider";
 
 /**
@@ -9,9 +11,11 @@ import { createDeliveryUrl, MAX_DELIVERY_TTL_SECONDS } from "@/lib/storage/provi
  *
  * Two independent conditions, both required, in this order:
  *
- *   1. PROOF OF PURCHASE — unchanged from before. Orders are written only by
- *      the signature-verified Stripe webhook, and only for sessions already
- *      marked paid, so a matching Order's mere existence IS the proof.
+ *   1. PROOF OF PURCHASE. Orders are written only by signature-verified
+ *      provider confirmations — the Stripe webhook for a session already
+ *      marked paid, and the Geidea callback after its signature, amount,
+ *      currency, environment and order-inquiry checks — so a matching
+ *      Order's mere existence IS the proof. An attempt row is never proof.
  *   2. DELIVERABLE SAFETY — new. `isDeliverableSafe` is the single reviewed
  *      authority: a non-null current fileKey, a SAFE verdict, and that verdict
  *      bound to THAT key. Nothing else delivers.
@@ -61,6 +65,7 @@ export async function GET(
     const { productId } = await params;
     const { searchParams } = new URL(req.url);
     const orderId = searchParams.get("orderId");
+    const ref = searchParams.get("ref");
 
     if (!productId) {
       return NextResponse.json(
@@ -69,23 +74,59 @@ export async function GET(
       );
     }
 
-    // P0 AUTHORIZATION: a download requires proof of purchase.
-    // Orders are created ONLY by the signature-verified Stripe webhook, and only
-    // for sessions with payment_status === "paid" — so a matching Order's mere
-    // existence IS proof of a completed, paid purchase. No order => no file.
+    // P0 AUTHORIZATION: a download requires proof of purchase, and proof of
+    // purchase is an Order row. Orders are written only by signature-verified
+    // provider confirmations, so a matching Order's mere existence IS proof
+    // of a completed, paid purchase. No order => no file. The attempt table
+    // that checkout writes is never consulted here: an attempt records an
+    // intention, and nothing about it, not even a PAID status, is proof.
     //
-    // Unchanged by D4. The safety gate is added AFTER this, never in place of it.
+    // Three channels, explicit and mutually exclusive. A request presenting
+    // more than one credential is refused rather than resolved, so nothing
+    // ever falls through from one channel into another.
+    //
+    //   geidea  bare productId + ?ref=<merchantReferenceId>   (success page)
+    //   stripe  path is a Stripe session id `cs_…`, no query   (legacy success page)
+    //   email   bare productId + ?orderId=<Order id>           (receipt email)
+    //
+    // The safety gate is added AFTER this, never in place of it.
     let order: { id: string; productId: string } | null = null;
+    let channel: "geidea" | "stripe" | "email" | null = null;
 
-    if (productId.startsWith("cs_")) {
-      // Success-page channel: the path param is a Stripe checkout session id.
+    if (ref !== null && orderId !== null) {
+      // Two credentials at once is ambiguous by construction. Refused below.
+    } else if (ref !== null) {
+      // Geidea success-page channel. The reference is the buyer's bearer for
+      // exactly one Order, and that Order must be a Geidea order for exactly
+      // the requested product: a reference for product A never opens product
+      // B. A malformed reference is refused without a query.
+      channel = "geidea";
+      if (isMerchantReference(ref) && !productId.startsWith("cs_")) {
+        const found = await prisma.order.findUnique({
+          where: { merchantReferenceId: ref },
+          select: { id: true, productId: true, paymentProvider: true },
+        });
+        if (
+          found &&
+          found.paymentProvider === "GEIDEA" &&
+          found.productId === productId
+        ) {
+          order = { id: found.id, productId: found.productId };
+        }
+      }
+    } else if (productId.startsWith("cs_")) {
+      // Stripe success-page channel: the path param is a Stripe checkout
+      // session id. Kept for the dormant integration's historical orders.
+      channel = "stripe";
       order = await prisma.order.findUnique({
         where: { stripeSessionId: productId },
         select: { id: true, productId: true },
       });
     } else if (orderId) {
       // Email channel: bare productId + ?orderId=. The order must exist AND
-      // belong to the requested product.
+      // belong to the requested product. Provider-agnostic: both receipts
+      // link here.
+      channel = "email";
       const found = await prisma.order.findUnique({
         where: { id: orderId },
         select: { id: true, productId: true },
@@ -154,9 +195,11 @@ export async function GET(
       );
     }
 
-    // Identifiers only — never the key, never a URL.
+    // Identifiers only — never the key, never a URL, and never a bearer in
+    // full: the Order id opens the file on the receipt channel, so it is
+    // logged redacted. The merchant reference is not logged at all.
     console.log(
-      `Download authorized: product=${product.id} order=${actualOrderId}`
+      `Download authorized: product=${product.id} order=${redactId(actualOrderId)} channel=${channel}`
     );
 
     /**
@@ -174,9 +217,12 @@ export async function GET(
         productName: product.name,
         // Rebuilt from validated inputs rather than echoing the request, so no
         // client-supplied query parameter can ride along.
-        downloadUrl: productId.startsWith("cs_")
-          ? `/api/download/${encodeURIComponent(productId)}`
-          : `/api/download/${encodeURIComponent(productId)}?orderId=${encodeURIComponent(actualOrderId)}`,
+        downloadUrl:
+          channel === "geidea"
+            ? `/api/download/${encodeURIComponent(productId)}?ref=${encodeURIComponent(ref ?? "")}`
+            : channel === "stripe"
+              ? `/api/download/${encodeURIComponent(productId)}`
+              : `/api/download/${encodeURIComponent(productId)}?orderId=${encodeURIComponent(actualOrderId)}`,
       });
     }
 

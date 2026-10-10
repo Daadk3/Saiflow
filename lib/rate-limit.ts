@@ -3,6 +3,8 @@
  * For production at scale, consider using Redis-based rate limiting
  */
 
+import { createHash } from "node:crypto";
+
 interface RateLimitEntry {
   count: number;
   resetTime: number;
@@ -10,8 +12,8 @@ interface RateLimitEntry {
 
 const rateLimitStore = new Map<string, RateLimitEntry>();
 
-// Clean up expired entries every 5 minutes
-setInterval(() => {
+// Clean up expired entries every 5 minutes.
+const cleanupTimer: unknown = setInterval(() => {
   const now = Date.now();
   for (const [key, entry] of rateLimitStore.entries()) {
     if (entry.resetTime < now) {
@@ -19,6 +21,12 @@ setInterval(() => {
     }
   }
 }, 5 * 60 * 1000);
+// The timer must never be the only thing keeping a process alive: a route
+// test that imports this module would otherwise never exit. A running server
+// keeps the process alive on its own, so nothing is lost in production.
+if (typeof (cleanupTimer as { unref?: unknown }).unref === "function") {
+  (cleanupTimer as { unref: () => void }).unref();
+}
 
 interface RateLimitConfig {
   windowMs: number; // Time window in milliseconds
@@ -72,6 +80,23 @@ export function rateLimit(
 }
 
 /**
+ * A per-account limiter key that is not the account.
+ *
+ * Creation limits are keyed by who is signed in, not by IP, because the
+ * quota they protect (file scans, founder emails) is spent per account.
+ * The address itself never enters the store: a short digest identifies the
+ * account just as well and leaves nothing to leak from a memory dump.
+ */
+export function accountKey(email: string): string {
+  return createHash("sha256").update(email.trim().toLowerCase()).digest("hex").slice(0, 16);
+}
+
+/** Whole seconds until the window resets, never below one, for a Retry-After header. */
+export function retryAfterSeconds(resetTime: number, now: number = Date.now()): number {
+  return Math.max(1, Math.ceil((resetTime - now) / 1000));
+}
+
+/**
  * Get client IP from request headers
  */
 export function getClientIp(request: Request): string {
@@ -104,6 +129,10 @@ export const rateLimiters = {
   passwordReset: (ip: string) =>
     rateLimit(`password-reset:${ip}`, { windowMs: 60 * 60 * 1000, maxRequests: 3 }),
 
+  // Payout bank details: 10 saves per hour (they change rarely)
+  payoutAccount: (ip: string) =>
+    rateLimit(`payout-account:${ip}`, { windowMs: 60 * 60 * 1000, maxRequests: 10 }),
+
   // General API: 100 requests per minute
   api: (ip: string) =>
     rateLimit(`api:${ip}`, { windowMs: 60 * 1000, maxRequests: 100 }),
@@ -111,4 +140,24 @@ export const rateLimiters = {
   // Product reports: 5 per hour (genuine abuse reports are rare; spam is not)
   report: (ip: string) =>
     rateLimit(`report:${ip}`, { windowMs: 60 * 60 * 1000, maxRequests: 5 }),
+
+  // Checkout: 15 per 10 minutes. A real buyer clicks once, or a handful of
+  // times across a cancelled hosted page and a retry. Every call past the
+  // gates writes an attempt row and asks the payment provider for a session,
+  // which is exactly what an abuser would be spending.
+  checkout: (ip: string) =>
+    rateLimit(`checkout:${ip}`, { windowMs: 10 * 60 * 1000, maxRequests: 15 }),
+
+  // Store creation: 3 per hour per account (see accountKey). A creator opens
+  // one store, perhaps a second. Every store emails the founder, so this is
+  // what keeps one account from spending the notification quota.
+  createShop: (account: string) =>
+    rateLimit(`create-shop:${account}`, { windowMs: 60 * 60 * 1000, maxRequests: 3 }),
+
+  // Product creation: 20 per hour per account. Listing a catalogue fits
+  // comfortably; every product past the gates schedules a file scan and, once
+  // it passes, an email to the founder, which is exactly what an abuser would
+  // be spending.
+  createProduct: (account: string) =>
+    rateLimit(`create-product:${account}`, { windowMs: 60 * 60 * 1000, maxRequests: 20 }),
 };

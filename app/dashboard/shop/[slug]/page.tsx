@@ -12,6 +12,14 @@ import { formatNumber } from "@/lib/formatNumber";
 // imports lib/file-safety, which builds a Prisma clause at load time and
 // must not enter this bundle. The browser renders the string the API sends.
 import type { CreatorFileStatus } from "@/lib/creator-file-status";
+import { FileScanState, type FileScanStateView } from "@/components/FileScanState";
+// Live refresh while a file is being checked: the poller decides WHEN, the
+// page's own reload decides WHAT, and neither can write anything.
+import { hasScanInProgress } from "@/lib/scan-status-polling";
+import { useScanStatusPolling } from "@/lib/use-scan-status-polling";
+// What the row says about a product's status, from the server's moderation
+// outcome and file state. Presentation only; no gate reads it.
+import { sellerProductBadges } from "@/lib/seller-product-badges";
 // The permanent public address is built from a pinned origin, never from
 // window.location: this dashboard renders identically on a Vercel Preview,
 // where the current location is a *.vercel.app host that dies with the
@@ -37,6 +45,12 @@ interface Product {
    * or override it, and no scan enum, key or hash reaches the browser.
    */
   fileSafety: CreatorFileStatus;
+  /**
+   * The four-word state the seller acts on: uploaded, scanning, passed or
+   * failed, with a safe reason category and whether a retry is allowed. Also
+   * derived server-side; this page only renders it.
+   */
+  fileState: FileScanStateView | null;
   createdAt: string;
 }
 
@@ -78,6 +92,11 @@ export default function ShopDashboard() {
     }
   }, [status, slug, router]);
 
+  // True while any product's file is still uploaded or scanning. Drives both
+  // the review notice below and the live refresh; passed and failed end it.
+  const scanInProgress = hasScanInProgress((shop?.products ?? []).map((p) => p.fileState));
+  useScanStatusPolling(scanInProgress, refreshShop);
+
   async function fetchShop() {
     try {
       const res = await fetch(`/api/shops/${slug}`);
@@ -96,6 +115,33 @@ export default function ShopDashboard() {
     }
   }
 
+  /**
+   * Live refresh while a file is being checked (see lib/scan-status-polling).
+   *
+   * The same GET as fetchShop, but it merges only each product's file fields
+   * and is silent on failure: the poller retries on its own schedule and
+   * stops by itself, and a transient error must not swap the whole dashboard
+   * for the error screen. Nothing here is written to the server.
+   */
+  async function refreshShop() {
+    const res = await fetch(`/api/shops/${slug}`);
+    if (!res.ok) return;
+    const data: Shop = await res.json();
+    const byId = new Map((data.products ?? []).map((p) => [p.id, p] as const));
+    setShop((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        products: (prev.products ?? []).map((p) => {
+          const next = byId.get(p.id);
+          return next
+            ? { ...p, hasFile: next.hasFile, fileSafety: next.fileSafety, fileState: next.fileState }
+            : p;
+        }),
+      };
+    });
+  }
+
   async function handleDeleteProduct(productId: string) {
     if (!confirm(t("deleteConfirm"))) return;
     
@@ -110,6 +156,9 @@ export default function ShopDashboard() {
           ...prev,
           products: prev.products.filter((p) => p.id !== productId),
         } : null);
+      } else if (res.status === 409) {
+        // Sales or payment records keep a product: the database refused the delete.
+        alert(t("deleteBlocked"));
       }
     } catch (err) {
       console.error("Error deleting product:", err);
@@ -215,6 +264,12 @@ export default function ShopDashboard() {
             >
               {t("editShop")}
             </Link>
+            <Link
+              href={`/dashboard/shop/${shop.slug}/payouts`}
+              className="bg-[#111111] border border-gray-800 hover:border-gray-700 text-gray-200 px-5 py-2.5 rounded-lg font-medium transition-colors flex items-center gap-2"
+            >
+              {t("payouts")}
+            </Link>
           </div>
         </div>
 
@@ -254,8 +309,10 @@ export default function ShopDashboard() {
             than behind a separate success step. It appears only while at least
             one file is still being checked, and disappears on its own once the
             checks finish; there is nothing for the creator to dismiss or act
-            on. Logical properties (ps-*, text-start) keep it correct in RTL. */}
-        {shop.products?.some((p) => p.fileSafety === "checking") && (
+            on. While it is shown the page refreshes itself, so the finish
+            is seen without a reload (useScanStatusPolling above). Logical
+            properties (ps-*, text-start) keep it correct in RTL. */}
+        {scanInProgress && (
           <div
             role="status"
             className="mb-6 rounded-xl border border-blue-500/20 bg-blue-500/5 p-5 text-start"
@@ -288,7 +345,9 @@ export default function ShopDashboard() {
 
           {shop.products && shop.products.length > 0 ? (
             <div className="grid gap-4">
-              {shop.products.map((product) => (
+              {shop.products.map((product) => {
+                const badges = sellerProductBadges(product);
+                return (
                 <div
                   key={product.id}
                   className="group flex flex-col xl:flex-row xl:items-center gap-4 p-4 min-w-0 rounded-xl bg-[#0a0a0a] border border-gray-800/50 hover:border-teal-500/30 transition-all duration-200"
@@ -325,58 +384,36 @@ export default function ShopDashboard() {
                       >
                         {product.name}
                       </h3>
-                      {product.moderationStatus === "PENDING" && (
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-500/10 text-blue-400 border border-blue-500/20">
-                          {tModeration("pendingBadge")}
-                        </span>
-                      )}
-                      {product.moderationStatus === "REJECTED" && (
+                      {/* Seller-facing status, from lib/seller-product-badges
+                          (presentation only; no gate reads it):
+                            rejected               → مرفوض
+                            file passed + approved → جاهز للبيع, on its own
+                            file passed, pending   → تم فحص الملف + بانتظار اعتماد المنتج
+                            checking or failed     → the file badge, with a retry when possible
+                            no file                → لا يوجد ملف, below */}
+                      {badges.includes("rejected") && (
                         <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-500/10 text-red-400 border border-red-500/20">
                           {tModeration("rejectedBadge")}
                         </span>
                       )}
-                      {/* File-safety status, separate from the moderation
-                          badge above: that one reports the listing review,
-                          this one reports the file check. They can differ. */}
-                      {product.fileSafety === "checking" && (
-                        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium bg-blue-500/10 text-blue-400 border border-blue-500/20">
-                          <svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24" aria-hidden="true">
-                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                          </svg>
-                          {tFileSafety("checking")}
-                        </span>
-                      )}
-                      {product.fileSafety === "ready" && (
-                        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium bg-teal-500/10 text-teal-400 border border-teal-500/20">
+                      {badges.includes("ready") && (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-teal-500/10 text-teal-400 border border-teal-500/20">
                           <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} aria-hidden="true">
                             <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                           </svg>
-                          {tFileSafety("ready")}
+                          {t("readyToSell")}
                         </span>
                       )}
-                      {/* The check ran and could not finish. Amber, not red:
-                          nothing is wrong with the creator's file as far as we
-                          know, so this asks them to wait or retry rather than
-                          telling them they did something wrong. */}
-                      {product.fileSafety === "needs_attention" && (
-                        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium bg-amber-500/10 text-amber-400 border border-amber-500/20">
-                          <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
-                          </svg>
-                          {tFileSafety("needsAttention")}
-                        </span>
+                      {badges.includes("file_state") && (
+                        <FileScanState
+                          productId={product.id}
+                          value={product.fileState}
+                          onRetried={fetchShop}
+                        />
                       )}
-                      {/* The file did not pass. Says what to do — replace it —
-                          and nothing about what was found: the creator cannot
-                          act on a detection detail, and publishing one tells
-                          anyone probing the marketplace what gets through. */}
-                      {product.fileSafety === "blocked" && (
-                        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium bg-red-500/10 text-red-400 border border-red-500/20">
-                          <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
-                          </svg>
-                          {tFileSafety("blocked")}
+                      {badges.includes("awaiting_approval") && (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                          {t("awaitingApproval")}
                         </span>
                       )}
                       {!product.hasFile && (
@@ -391,19 +428,6 @@ export default function ShopDashboard() {
                     <p className="text-gray-500 text-sm mt-1 line-clamp-1">
                       {product.description || t("noDescription")}
                     </p>
-                    {/* A badge names the state; these say what to do about it.
-                        Only the two actionable states get a sentence — "ready"
-                        and "checking" need nothing from the creator. */}
-                    {product.fileSafety === "needs_attention" && (
-                      <p className="text-xs text-amber-400/80 mt-1 leading-relaxed">
-                        {tFileSafety("needsAttentionBody")}
-                      </p>
-                    )}
-                    {product.fileSafety === "blocked" && (
-                      <p className="text-xs text-red-400/80 mt-1 leading-relaxed">
-                        {tFileSafety("blockedBody")}
-                      </p>
-                    )}
                     {/* No longer an either/or. The URL is reserved from
                         creation, so a creator may copy it before a file
                         exists; making it the alternative to this warning hid
@@ -500,7 +524,8 @@ export default function ShopDashboard() {
                     </div>
                   </div>
                 </div>
-              ))}
+                );
+              })}
             </div>
           ) : (
             <div className="text-center py-12">
