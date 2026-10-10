@@ -16,6 +16,7 @@ import {
 } from "@/lib/file-safety";
 import { scheduleScan } from "@/lib/scan/schedule";
 import { announceReadyAtAttach } from "@/lib/scan/announce";
+import { redactId } from "@/lib/redact-id";
 import { priceProblemMessage, validatePrice } from "@/lib/pricing";
 
 // A replacement file schedules its scan to run after the response is sent;
@@ -321,6 +322,53 @@ export async function PUT(
       },
     });
 
+    /**
+     * A rejected product returns to review when its seller saves an edit.
+     *
+     * The rejection email tells the seller to read the reason and edit the
+     * product; before this, the edit changed nothing about the decision, so
+     * the product stayed REJECTED and no one was asked to look again.
+     *
+     * Only after the edit itself is saved, so a review state never changes
+     * without the seller's change behind it. The return is conditional on the
+     * row still being REJECTED, in one transaction with its entry in the
+     * append-only moderation log (RESUBMITTED, by the seller), so a decision
+     * an admin makes at the same moment is never overwritten. PENDING keeps
+     * the product off the storefront until an admin decides again; nothing
+     * here can approve or publish anything.
+     */
+    let resubmitted = false;
+    // A suspended shop (isActive false, the runbook's suspension) cannot reopen
+    // anything: its rejections stand until an admin restores the shop.
+    if (product.moderationStatus === "REJECTED" && product.shop.isActive) {
+      try {
+        resubmitted = await prisma.$transaction(async (tx) => {
+          const reopened = await tx.product.updateMany({
+            where: { id, moderationStatus: "REJECTED" },
+            data: { moderationStatus: "PENDING" },
+          });
+          if (reopened.count !== 1) return false;
+          await tx.moderationEvent.create({
+            data: {
+              productId: id,
+              action: "RESUBMITTED",
+              actor: `seller:${user.id}`,
+              reason: null,
+              previousStatus: "REJECTED",
+              newStatus: "PENDING",
+            },
+          });
+          return true;
+        });
+      } catch (error) {
+        // The edit is saved; it stays REJECTED and a later save can retry.
+        console.error("[moderation] resubmit failed", (error as Error)?.name);
+      }
+      if (resubmitted) {
+        console.log(`[moderation] resubmitted product=${redactId(id)} by=seller`);
+      }
+    }
+
     // Same race as on create: the worker may have settled the new file
     // between the provenance read and this write.
     if (fileChanged && nextFileKey) {
@@ -340,7 +388,19 @@ export async function PUT(
       scheduleScan(nextFileKey);
     }
 
-    return NextResponse.json(updatedProduct);
+    // Back in review. The announcement above saw the row as written, still
+    // REJECTED, so it sent nothing; this is the one that can. If the file is
+    // SAFE the founder hears now; if it is still being scanned, the scan that
+    // settles it announces, since the product is PENDING again.
+    if (resubmitted) {
+      try {
+        await announceReadyAtAttach({ ...updatedProduct, moderationStatus: "PENDING" });
+      } catch (error) {
+        console.error("[notify] announce after resubmit failed", (error as Error)?.name);
+      }
+    }
+
+    return NextResponse.json(resubmitted ? { ...updatedProduct, moderationStatus: "PENDING" } : updatedProduct);
   } catch (error) {
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
       return NextResponse.json(

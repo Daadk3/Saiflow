@@ -351,6 +351,9 @@ describe("a moderation decision", () => {
     assert.ok(sent[0].html.includes("السبب: &lt;script&gt;alert(1)&lt;/script&gt; &amp; &quot;quotes&quot;"));
     assert.ok(!sent[0].html.includes("<script>"));
     assert.ok(sent[0].html.includes(`href="${ORIGIN}/dashboard/shop/daad-s-store/product/planner/edit"`));
+    // Editing really does send it back now (app/api/products/[id]/route.ts), so the email says so.
+    assert.ok(sent[0].html.includes("عند حفظ التعديل يعود منتجك إلى المراجعة."));
+    assert.ok(sent[0].html.includes("Saving your changes sends it back for review."));
   });
 
   test("a rejection with no reason still says so, honestly", async () => {

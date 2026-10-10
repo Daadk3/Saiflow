@@ -59,5 +59,8 @@ Product in /dashboard/moderation
 - **A human always decides:** `child_safety` (report duty is human), `political`, `religious` (cultural judgment), `copyright` (evidence weighing), any seller suspension, any appeal, anything the AI marks 0.5–0.9.
 - Every AI decision carries model id + reasoning + confidence in the audit log, or it doesn't happen.
 
+## Resubmission after a fix (automatic)
+When a seller saves an edit to a REJECTED product, it returns to PENDING and the log records `RESUBMITTED` (actor `seller:<id>`). You get the "awaiting your approval" email once its file is SAFE. Nothing about it is approved or public until you decide again. A suspended shop (`Shop.isActive = false`) cannot resubmit. Each resubmission needs a fresh rejection first, so a seller can't send more than one per decision you make. Repeated resubmissions of the same unchanged problem: reject with the same reason, and treat a pattern as a policy question (suspension per the table above).
+
 ## Appeals (Tier 0 flow)
-Seller emails support@ → you re-review with fresh eyes → outcome is a new `ModerationEvent` (RESUBMITTED → APPROVED/REJECTED) with reasoning. One appeal per product; second appeal only with new evidence.
+Seller emails support@ → you re-review with fresh eyes → outcome is a new `ModerationEvent` (RESUBMITTED → APPROVED/REJECTED) with reasoning. One appeal per product; second appeal only with new evidence. (Appeals are about a decision the seller disputes without changing the product; a fix-and-resave is the resubmission above, not an appeal.)
