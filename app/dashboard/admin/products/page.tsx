@@ -155,7 +155,14 @@ export default async function AdminProductsPage({
                           </div>
                           <div className="min-w-0">
                             <p className="truncate font-medium text-gray-100">
-                              <bdi>{p.name}</bdi>
+                              {/* Every product opens its page, reviewed or not: that is
+                                  where its file can be inspected and a failed check retried. */}
+                              <Link
+                                href={`/dashboard/admin/products/${p.id}/preview`}
+                                className="hover:text-teal-400 hover:underline underline-offset-4"
+                              >
+                                <bdi>{p.name}</bdi>
+                              </Link>
                             </p>
                             <p className="truncate text-xs text-gray-500">
                               <bdi>{p.creatorName}</bdi>
@@ -219,7 +226,14 @@ export default async function AdminProductsPage({
                       )}
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className="truncate font-medium"><bdi>{p.name}</bdi></p>
+                      <p className="truncate font-medium">
+                        <Link
+                          href={`/dashboard/admin/products/${p.id}/preview`}
+                          className="hover:text-teal-400 hover:underline underline-offset-4"
+                        >
+                          <bdi>{p.name}</bdi>
+                        </Link>
+                      </p>
                       <p className="truncate text-xs text-gray-500">
                         <bdi>{p.shopName}</bdi> · <bdi>{formatPrice(p.price, p.currency, locale)}</bdi>
                       </p>
