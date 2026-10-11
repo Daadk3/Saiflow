@@ -920,11 +920,27 @@
       "testOrders": "Test orders:",
       "testNote": "{count} historical test orders excluded."
     },
+    "stores": {
+      "title": "Stores",
+      "subtitle": "Every store on SaiFlow, newest first, including stores with no products yet.",
+      "search": "Search by store name",
+      "searchButton": "Search",
+      "count": "{count, plural, one {# store} other {# stores}}",
+      "showingFirst": "showing the newest {count}",
+      "empty": "No stores match.",
+      "active": "Active",
+      "suspended": "Suspended",
+      "owner": "Owner",
+      "products": "Products",
+      "productCounts": "{total} total · {live} live",
+      "created": "Created"
+    },
     "actions": {
       "startReview": "Start review",
       "products": "Products",
       "queue": "Moderation queue",
-      "payouts": "Seller payouts"
+      "payouts": "Seller payouts",
+      "stores": "Stores"
     },
     "firstVisit": {
       "title": "Why do products say “Not yet reviewed”?",
