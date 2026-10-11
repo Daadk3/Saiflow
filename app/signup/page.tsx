@@ -173,8 +173,13 @@ export default function SignupPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
+                  minLength={8}
+                  aria-describedby="password-rule"
                   placeholder={t('auth.signup.passwordPlaceholder')}
             />
+                <p id="password-rule" className="mt-2 text-xs text-gray-500">
+                  {t('auth.signup.passwordRule')}
+                </p>
         </div>
 
               {/* Error Message */}

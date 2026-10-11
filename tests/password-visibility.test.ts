@@ -32,14 +32,22 @@ describe("the shared password field", () => {
   test("it toggles only the input's type, starting hidden", () => {
     assert.match(component, /useState\(false\)/);
     assert.match(component, /type=\{visible \? "text" : "password"\}/);
-    assert.match(component, /<input \{\.\.\.props\} type=/, "the caller's value, handlers and attributes pass through");
+    // The caller's props come first, so type, the no-autocorrect flags and the class always win.
+    assert.match(component, /<input\s+\{\.\.\.props\}\s+type=\{visible[\s\S]*?className=\{FIELD\}\s*\/>/, "the caller's value, handlers and attributes pass through");
   });
 
   test("the button is a real, labelled toggle that never submits the form", () => {
     assert.match(component, /<button\s+type="button"/);
     assert.match(component, /aria-label=\{visible \? t\("hidePassword"\) : t\("showPassword"\)\}/);
-    assert.match(component, /aria-pressed=\{visible\}/);
+    assert.ok(!component.includes("aria-pressed"), "one signal, the label, not a label that changes and a pressed state");
+    assert.match(component, /focus-visible:ring-2/, "a visible focus ring for keyboard users");
     assert.match(component, /aria-controls=\{props\.id\}/);
+  });
+
+  test("shown as text, it is never capitalised, corrected or spell-checked", () => {
+    assert.match(component, /autoCapitalize="none"/);
+    assert.match(component, /autoCorrect="off"/);
+    assert.match(component, /spellCheck=\{false\}/);
   });
 
   test("it sits at the inline end, so it follows the language direction", () => {
@@ -74,6 +82,15 @@ describe("every password field uses it", () => {
   });
 });
 
+describe("sign-up states the rule before the server has to refuse", () => {
+  test("the rule sits under the field, tied to it, with the same minimum", () => {
+    const page = strip(read("app/signup/page.tsx"));
+    const field = /<PasswordInput[\s\S]*?\/>/.exec(page)?.[0] ?? "";
+    assert.ok(field.includes("minLength={8}") && field.includes('aria-describedby="password-rule"'));
+    assert.match(page, /<p id="password-rule"[^>]*>\s*\{t\('auth\.signup\.passwordRule'\)\}/);
+  });
+});
+
 describe("the reset page states the rule the server enforces", () => {
   test("8 characters with an uppercase letter, a lowercase letter and a number, in both languages", () => {
     const page = strip(read("app/reset-password/page.tsx"));
@@ -89,6 +106,10 @@ describe("the reset page states the rule the server enforces", () => {
         assert.ok(!/\b6\b/.test(text), `${lang}: ${text}`);
       }
       assert.ok(auth.showPassword && auth.hidePassword, `${lang} toggle labels`);
+      // The rule needs Latin letters; Arabic has no case, so the words must say "English".
+      for (const text of [auth.resetPassword.heroSubtitle, auth.signup.passwordRule]) {
+        assert.match(text, lang === "ar" ? /إنجليزي/ : /English/, `${lang}: ${text}`);
+      }
     }
   });
 });

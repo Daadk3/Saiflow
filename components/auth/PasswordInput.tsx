@@ -15,8 +15,8 @@ const FIELD =
  *
  * Typing a password blind is where mismatched confirmations and forgotten
  * passwords start. The button sits at the inline end, so it is on the left in
- * Arabic and the right in English, and announces what it will do next
- * ("Show password" / "Hide password") with its pressed state. It only changes
+ * Arabic and the right in English, and its label says what it will do next
+ * ("Show password" / "Hide password"). It only changes
  * how this field is displayed: the value, validation and submission are the
  * caller's, exactly as with a plain input.
  */
@@ -26,14 +26,21 @@ export function PasswordInput(props: PasswordInputProps) {
 
   return (
     <div className="relative">
-      <input {...props} type={visible ? "text" : "password"} className={FIELD} />
+      {/* Shown as text, a password must still not be capitalised, corrected or learned by the keyboard. */}
+      <input
+        {...props}
+        type={visible ? "text" : "password"}
+        autoCapitalize="none"
+        autoCorrect="off"
+        spellCheck={false}
+        className={FIELD}
+      />
       <button
         type="button"
         onClick={() => setVisible((shown) => !shown)}
         aria-label={visible ? t("hidePassword") : t("showPassword")}
-        aria-pressed={visible}
         aria-controls={props.id}
-        className="absolute inset-y-0 end-0 flex w-12 items-center justify-center rounded-e-xl text-gray-500 transition-colors hover:text-gray-300 focus:outline-none focus-visible:text-teal-400"
+        className="absolute inset-y-0 end-0 flex w-12 items-center justify-center rounded-e-xl text-gray-500 transition-colors hover:text-gray-300 focus:outline-none focus-visible:text-teal-400 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-teal-500"
       >
         {visible ? (
           <svg aria-hidden="true" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24">
