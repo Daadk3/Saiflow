@@ -405,8 +405,8 @@ export async function notifyProductModerated(input: {
       { ar: `المنتج: ${product.name}`, en: `Product: ${product.name}` },
       { ar: `السبب: ${input.reason ?? "—"}`, en: `Reason: ${input.reason ?? "—"}` },
       {
-        ar: "راجع السبب أعلاه وعدّل المنتج من لوحة متجرك.",
-        en: "Read the reason above and edit the product from your store dashboard.",
+        ar: "راجع السبب أعلاه وعدّل المنتج من لوحة متجرك. عند حفظ التعديل يعود منتجك إلى المراجعة.",
+        en: "Read the reason above and edit the product from your store dashboard. Saving your changes sends it back for review.",
       },
     ],
     link: {

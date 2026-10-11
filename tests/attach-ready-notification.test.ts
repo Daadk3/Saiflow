@@ -276,7 +276,7 @@ beforeEach(() => {
   testNumber++;
   const account = `seller-${testNumber}@example.test`;
   db.users = [{ id: "user_1", email: account }];
-  db.shops = [{ id: "shop_1", name: "متجر داد", slug: "daad-s-store" }];
+  db.shops = [{ id: "shop_1", name: "متجر داد", slug: "daad-s-store", isActive: true }];
   db.shopUsers = [{ id: "su_1", shopId: "shop_1", userId: "user_1", role: "OWNER" }];
   db.products = [];
   db.fileAssets = [];
@@ -386,17 +386,9 @@ describe("H1: a product written already SAFE is announced exactly once", () => {
 /* 3–5. Never for decided products or bad verdicts                      */
 /* ------------------------------------------------------------------ */
 
-describe("no announcement for decided products or non-SAFE verdicts", () => {
+describe("no announcement for approved products or non-SAFE verdicts", () => {
   test("already-SAFE replacement on an APPROVED product", async () => {
     const id = await seedSafeProduct("keyAAAA0001", "APPROVED");
-    seedAsset("keyBBBB0002", "SAFE");
-    assert.equal((await replace(id, { fileUrl: fileUrl("keyBBBB0002") })).status, 200);
-    await drain();
-    assert.equal(sent.length, 0);
-  });
-
-  test("already-SAFE replacement on a REJECTED product", async () => {
-    const id = await seedSafeProduct("keyAAAA0001", "REJECTED");
     seedAsset("keyBBBB0002", "SAFE");
     assert.equal((await replace(id, { fileUrl: fileUrl("keyBBBB0002") })).status, 200);
     await drain();
@@ -555,5 +547,137 @@ describe("a replacement before the deferred email runs cancels the stale one", (
     product(id).moderationStatus = "APPROVED";
     await drain();
     assert.equal(sent.length, 0);
+  });
+});
+
+/* ------------------------------------------------------------------ */
+/* Resubmission: a seller's edit returns a REJECTED product to review    */
+/* ------------------------------------------------------------------ */
+
+describe("a rejected product returns to review when its seller edits it", () => {
+  const resubmissions = () => db.events.filter((e) => e.action === "RESUBMITTED");
+
+  test("an edit that keeps the SAFE file reopens it, logs it, and tells the founder once", async () => {
+    const id = await seedSafeProduct("keyAAAA0001", "REJECTED");
+    const res = await replace(id, { name: "Habits check, fixed", fileUrl: fileUrl("keyAAAA0001") });
+    const text = await res.text();
+    assert.equal(res.status, 200, text);
+    assert.equal((JSON.parse(text) as { moderationStatus: string }).moderationStatus, "PENDING", "the reply says what is now true");
+    assert.equal(product(id).moderationStatus, "PENDING");
+    assert.equal(product(id).name, "Habits check, fixed");
+    assert.deepEqual(resubmissions(), [
+      { productId: id, action: "RESUBMITTED", actor: "seller:user_1", reason: null, previousStatus: "REJECTED", newStatus: "PENDING" },
+    ]);
+    assert.equal(sent.length, 0, "nothing before the response");
+    await drain();
+    assert.equal(sent.length, 1, "exactly one founder email");
+    assert.deepEqual(sent[0].to, [FOUNDER]);
+    assert.ok(sent[0].html.includes(reviewLink(id)));
+  });
+
+  test("a replacement file that is already SAFE is announced once, not twice", async () => {
+    const id = await seedSafeProduct("keyAAAA0001", "REJECTED");
+    seedAsset("keyBBBB0002", "SAFE");
+    assert.equal((await replace(id, { fileUrl: fileUrl("keyBBBB0002") })).status, 200);
+    assert.equal(product(id).moderationStatus, "PENDING");
+    assert.equal(resubmissions().length, 1);
+    await drain();
+    assert.equal(sent.length, 1);
+  });
+
+  test("a replacement still being scanned is announced by the scan that clears it", async () => {
+    const id = await seedSafeProduct("keyAAAA0001", "REJECTED");
+    seedAsset("keyCCCC0003", "PENDING_SCAN");
+    assert.equal((await replace(id, { fileUrl: fileUrl("keyCCCC0003") })).status, 200);
+    assert.equal(product(id).moderationStatus, "PENDING");
+    assert.equal(product(id).fileScanStatus, "PENDING_SCAN");
+    await drain(); // runs the scheduled scan, which settles SAFE and announces
+    assert.equal(product(id).fileScanStatus, "SAFE");
+    assert.equal(sent.length, 1, "one email, from the scan");
+    assert.ok(sent[0].html.includes(reviewLink(id)));
+  });
+
+  test("a rejected product whose file is not SAFE reopens without an email", async () => {
+    const id = await seedSafeProduct("keyAAAA0001", "REJECTED");
+    seedAsset("keyUUUU0004", "UNSAFE");
+    assert.equal((await replace(id, { fileUrl: fileUrl("keyUUUU0004") })).status, 200);
+    assert.equal(product(id).moderationStatus, "PENDING", "it waits in review; the gates still hide an UNSAFE file");
+    assert.equal(resubmissions().length, 1);
+    await drain();
+    assert.equal(sent.length, 0);
+  });
+
+  test("a second edit while it waits does not log or announce again", async () => {
+    const id = await seedSafeProduct("keyAAAA0001", "REJECTED");
+    assert.equal((await replace(id, { name: "One", fileUrl: fileUrl("keyAAAA0001") })).status, 200);
+    await drain();
+    assert.equal((await replace(id, { name: "Two", fileUrl: fileUrl("keyAAAA0001") })).status, 200);
+    await drain();
+    assert.equal(resubmissions().length, 1);
+    assert.equal(sent.length, 1);
+  });
+
+  test("edits to PENDING or APPROVED products change no decision and log nothing", async () => {
+    for (const status of ["PENDING", "APPROVED"]) {
+      db.events = [];
+      const id = await seedSafeProduct(`key${status}`, status);
+      assert.equal((await replace(id, { name: `Renamed ${status}`, fileUrl: fileUrl(`key${status}`) })).status, 200);
+      assert.equal(product(id).moderationStatus, status);
+      assert.equal(resubmissions().length, 0, status);
+    }
+  });
+
+  test("a decision made while the edit is saving is never overwritten", async () => {
+    const id = await seedSafeProduct("keyAAAA0001", "REJECTED");
+    // The route loaded REJECTED; an admin approves before its transaction runs.
+    const original = prisma.$transaction;
+    prisma.$transaction = async (fn) => {
+      product(id).moderationStatus = "APPROVED";
+      return original(fn);
+    };
+    try {
+      assert.equal((await replace(id, { name: "Late edit", fileUrl: fileUrl("keyAAAA0001") })).status, 200);
+    } finally {
+      prisma.$transaction = original;
+    }
+    assert.equal(product(id).moderationStatus, "APPROVED", "the admin's decision stands");
+    assert.equal(resubmissions().length, 0);
+    await drain();
+    assert.equal(sent.length, 0);
+  });
+
+  test("if reopening fails, the edit is still saved and the product stays rejected", async () => {
+    const id = await seedSafeProduct("keyAAAA0001", "REJECTED");
+    const original = prisma.$transaction;
+    prisma.$transaction = async () => {
+      throw new Error("connection reset");
+    };
+    try {
+      assert.equal((await replace(id, { name: "Saved anyway", fileUrl: fileUrl("keyAAAA0001") })).status, 200);
+    } finally {
+      prisma.$transaction = original;
+    }
+    assert.equal(product(id).name, "Saved anyway");
+    assert.equal(product(id).moderationStatus, "REJECTED");
+    assert.equal(resubmissions().length, 0);
+  });
+
+  test("a suspended shop cannot reopen it", async () => {
+    const id = await seedSafeProduct("keyAAAA0001", "REJECTED");
+    db.shops[0].isActive = false;
+    assert.equal((await replace(id, { name: "Still trying", fileUrl: fileUrl("keyAAAA0001") })).status, 200);
+    assert.equal(product(id).moderationStatus, "REJECTED");
+    assert.equal(resubmissions().length, 0);
+    await drain();
+    assert.equal(sent.length, 0);
+  });
+
+  test("someone outside the shop cannot reopen it", async () => {
+    const id = await seedSafeProduct("keyAAAA0001", "REJECTED");
+    db.users.push({ id: "user_2", email: "outsider@example.test" });
+    state.session = { user: { email: "outsider@example.test" } };
+    assert.equal((await replace(id, { name: "Hijack", fileUrl: fileUrl("keyAAAA0001") })).status, 403);
+    assert.equal(product(id).moderationStatus, "REJECTED");
+    assert.equal(resubmissions().length, 0);
   });
 });
