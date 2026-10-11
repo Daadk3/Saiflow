@@ -5,6 +5,7 @@ import { signIn } from "next-auth/react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { ResendVerification } from "@/components/auth/ResendVerification";
+import { PasswordInput } from "@/components/auth/PasswordInput";
 
 export default function SignupPage() {
   const t = useTranslations();
@@ -166,15 +167,19 @@ export default function SignupPage() {
                 <label htmlFor="password" className="block text-sm font-medium text-gray-300 mb-2">
                   {t('auth.signup.passwordLabel')}
                 </label>
-            <input
+            <PasswordInput
                   id="password"
-              type="password"
+                  autoComplete="new-password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
+                  minLength={8}
+                  aria-describedby="password-rule"
                   placeholder={t('auth.signup.passwordPlaceholder')}
-                  className="w-full px-4 py-3 bg-[#0a0a0a] border border-gray-800 rounded-xl text-white placeholder-gray-600 focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500 transition-colors"
             />
+                <p id="password-rule" className="mt-2 text-xs text-gray-500">
+                  {t('auth.signup.passwordRule')}
+                </p>
         </div>
 
               {/* Error Message */}

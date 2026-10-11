@@ -7,6 +7,7 @@ import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { EMAIL_NOT_VERIFIED } from "@/lib/auth/errors";
 import { ResendVerification } from "@/components/auth/ResendVerification";
+import { PasswordInput } from "@/components/auth/PasswordInput";
 
 export default function LoginPage() {
   const t = useTranslations();
@@ -142,14 +143,13 @@ export default function LoginPage() {
                     {t('auth.forgotPassword')}
                   </Link>
                 </div>
-            <input
+            <PasswordInput
               id="password"
-              type="password"
+              autoComplete="current-password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
                   placeholder={t('auth.login.passwordPlaceholder')}
-                  className="w-full px-4 py-3 bg-[#0a0a0a] border border-gray-800 rounded-xl text-white placeholder-gray-600 focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500 transition-colors"
             />
           </div>
 

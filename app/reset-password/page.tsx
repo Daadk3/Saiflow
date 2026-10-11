@@ -4,6 +4,7 @@ import { FormEvent, useState, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
+import { PasswordInput } from "@/components/auth/PasswordInput";
 
 function ResetPasswordForm() {
   const t = useTranslations();
@@ -26,7 +27,9 @@ function ResetPasswordForm() {
       return;
     }
 
-    if (password.length < 6) {
+    // The same rule the server enforces (resetPasswordSchema), checked here
+    // first so the message names it before a round trip.
+    if (password.length < 8 || !/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(password)) {
       setError(t('auth.resetPassword.passwordTooShort'));
       return;
     }
@@ -125,15 +128,14 @@ function ResetPasswordForm() {
           <label htmlFor="password" className="block text-sm font-medium text-gray-300 mb-2">
             {t('auth.resetPassword.newPasswordLabel')}
           </label>
-          <input
+          <PasswordInput
             id="password"
-            type="password"
+            autoComplete="new-password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
-            minLength={6}
+            minLength={8}
             placeholder={t('auth.resetPassword.newPasswordPlaceholder')}
-            className="w-full px-4 py-3 bg-[#0a0a0a] border border-gray-800 rounded-xl text-white placeholder-gray-600 focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500 transition-colors"
           />
         </div>
 
@@ -142,15 +144,14 @@ function ResetPasswordForm() {
           <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-300 mb-2">
             {t('auth.resetPassword.confirmPasswordLabel')}
           </label>
-          <input
+          <PasswordInput
             id="confirmPassword"
-            type="password"
+            autoComplete="new-password"
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
             required
-            minLength={6}
+            minLength={8}
             placeholder={t('auth.resetPassword.confirmPasswordPlaceholder')}
-            className="w-full px-4 py-3 bg-[#0a0a0a] border border-gray-800 rounded-xl text-white placeholder-gray-600 focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500 transition-colors"
           />
         </div>
 

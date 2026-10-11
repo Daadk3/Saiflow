@@ -390,6 +390,7 @@
       "emailPlaceholder": "you@example.com",
       "passwordLabel": "Password",
       "passwordPlaceholder": "Create a password",
+      "passwordRule": "At least 8 characters, with an uppercase English letter, a lowercase English letter and a number.",
       "submitButton": "Create account",
       "submitting": "Creating account...",
       "alreadyHaveAccount": "Already have an account? <link>Log in</link>",
@@ -431,6 +432,8 @@
       "missingToken": "Open this page from the link in your confirmation email.",
       "notYours": "Didn't create this account? Don't enter a password here. If the address is yours, use \"Forgot password\" on the login page to take it over."
     },
+    "showPassword": "Show password",
+    "hidePassword": "Hide password",
     "backToLogin": "Back to login",
     "forgotPasswordPage": {
       "heroTitle": "Forgot password?",
@@ -446,7 +449,7 @@
     },
     "resetPassword": {
       "heroTitle": "Set new password",
-      "heroSubtitle": "Your new password must be at least 6 characters.",
+      "heroSubtitle": "Your new password must be at least 8 characters, with an uppercase English letter, a lowercase English letter and a number.",
       "newPasswordLabel": "New Password",
       "newPasswordPlaceholder": "Enter new password",
       "confirmPasswordLabel": "Confirm Password",
@@ -454,7 +457,7 @@
       "submitButton": "Reset Password",
       "submitting": "Resetting...",
       "passwordsDoNotMatch": "Passwords do not match",
-      "passwordTooShort": "Password must be at least 6 characters",
+      "passwordTooShort": "Password must be at least 8 characters, with an uppercase English letter, a lowercase English letter and a number",
       "errorGeneric": "Something went wrong",
       "invalidTitle": "Invalid Link",
       "invalidBody": "This password reset link is invalid or has expired.",
