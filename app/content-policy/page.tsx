@@ -1,4 +1,5 @@
 import { getLocale } from "next-intl/server";
+import { LISTING_STANDARDS } from "@/lib/listing-standards";
 
 // Prohibited Content Policy — bilingual, Saudi-first.
 // Linked from the mandatory seller certification at upload and the footer.
@@ -57,7 +58,7 @@ export default async function ContentPolicyPage() {
             {ar ? "سياسة المحتوى" : "Content Policy"}
           </h1>
           <p className="text-gray-400">
-            {ar ? "آخر تحديث: يوليو 2026" : "Last updated: July 2026"}
+            {ar ? "آخر تحديث: أكتوبر 2026" : "Last updated: October 2026"}
           </p>
         </div>
       </section>
@@ -84,6 +85,34 @@ export default async function ContentPolicyPage() {
                 </li>
               ))}
             </ul>
+          </section>
+
+          <section>
+            <h2 className="text-2xl font-bold text-white mb-4">
+              {ar ? "معايير قبول المنتج" : "Listing Standards"}
+            </h2>
+            <p className="mb-3">
+              {ar
+                ? "تُراجع كل المنتجات قبل ظهورها للمشترين. ليُعتمد المنتج يجب أن يستوفي ما يلي:"
+                : "Every product is reviewed before buyers can see it. To be approved, a listing must meet all of the following:"}
+            </p>
+            <ul className="space-y-3">
+              {LISTING_STANDARDS.map((item) => (
+                <li key={item.en} className="flex gap-3">
+                  <span className="text-teal-400 flex-shrink-0 mt-0.5">✓</span>
+                  <span>{ar ? item.ar : item.en}</span>
+                </li>
+              ))}
+            </ul>
+            <p className="mt-3">
+              {ar
+                ? "المنتجات التي لا تستوفي هذه المعايير تُرفض مع ذكر السبب، ويمكن للبائع تعديلها وإعادة إرسالها للمراجعة. ويحق للمشتري استرداد المبلغ إذا كان المنتج مختلفًا جوهريًا عن وصفه، وفق "
+                : "Products that miss these are rejected with a reason, and the seller can fix them and send them back for review. A buyer is entitled to a refund when a product is materially different from its description, under the "}
+              <a href="/refunds" className="text-teal-400 hover:text-teal-300 underline">
+                {ar ? "سياسة الاسترجاع" : "Refund Policy"}
+              </a>
+              .
+            </p>
           </section>
 
           <section>

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { RescanButton } from "@/components/admin/RescanButton";
 import DecisionButtons from "@/components/admin/DecisionButtons";
+import { ListingStandards } from "@/components/ListingStandards";
 import Link from "next/link";
 import Image from "next/image";
 import { notFound, redirect } from "next/navigation";
@@ -180,6 +181,8 @@ export default async function AdminProductPreviewPage({
               {/* The decision can always be changed: reject an approved product, approve a rejected one. */}
               <DecisionButtons productId={product.id} status={product.moderationStatus} />
             </div>
+
+            <ListingStandards ar={locale.startsWith("ar")} variant="admin" />
 
             <FileSafetyPanel
               safety={product.fileSafety}

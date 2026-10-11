@@ -5,7 +5,8 @@ import { useRouter, useParams } from "next/navigation";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
 import Image from "next/image";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
+import { ListingStandards } from "@/components/ListingStandards";
 import { UploadButton } from "@/lib/uploadthing";
 import { PRODUCT_CATEGORIES, CATEGORY_LABEL_KEYS } from "@/lib/categories";
 // Pinned origin, never window.location — this page renders identically on a
@@ -49,6 +50,7 @@ interface Product {
 
 export default function EditProductPage() {
   const t = useTranslations();
+  const locale = useLocale();
   const tLink = useTranslations("productLink");
   const [product, setProduct] = useState<Product | null>(null);
   const [name, setName] = useState("");
@@ -637,6 +639,8 @@ export default function EditProductPage() {
                   <p className="text-teal-400 text-sm">{success}</p>
                 </div>
               )}
+
+              <ListingStandards ar={locale.startsWith("ar")} variant="seller" />
 
               {/* Action Buttons */}
               <div className="flex gap-4">
