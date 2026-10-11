@@ -5,7 +5,8 @@ import { useRouter, useParams } from "next/navigation";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
 import Image from "next/image";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
+import { ListingStandards } from "@/components/ListingStandards";
 import { UploadButton } from "@/lib/uploadthing";
 import { PRODUCT_CATEGORIES, CATEGORY_LABEL_KEYS, type ProductCategory } from "@/lib/categories";
 import ListingAssistant from "@/components/ai/ListingAssistant";
@@ -13,6 +14,7 @@ import { PriceBreakdown } from "@/components/PriceBreakdown";
 
 export default function AddProductPage() {
   const t = useTranslations();
+  const locale = useLocale();
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [price, setPrice] = useState("");
@@ -423,6 +425,8 @@ export default function AddProductPage() {
                   }}
                 />
               )}
+
+              <ListingStandards ar={locale.startsWith("ar")} variant="seller" />
 
               {/* Seller certification — required before every upload */}
               <div className="p-4 bg-[#111] border border-white/10 rounded-xl">
