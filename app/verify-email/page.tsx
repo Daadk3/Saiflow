@@ -4,6 +4,7 @@ import { FormEvent, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
+import { PasswordInput } from "@/components/auth/PasswordInput";
 
 /**
  * The page a verification email links to.
@@ -99,15 +100,13 @@ function VerifyEmailForm() {
           <label htmlFor="password" className="block text-sm font-medium text-gray-300 mb-2">
             {t("auth.password")}
           </label>
-          <input
+          <PasswordInput
             id="password"
-            type="password"
             autoComplete="current-password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
             placeholder={t("auth.verifyEmail.passwordPlaceholder")}
-            className="w-full px-4 py-3 bg-[#0a0a0a] border border-gray-800 rounded-xl text-white placeholder-gray-600 focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500 transition-colors"
           />
         </div>
 
