@@ -324,11 +324,13 @@ export async function getProductsDirectory(opts: {
   cursor?: string;
   q?: string;
 }): Promise<DirectoryPage> {
+  // Combined with AND, never by spreading: a filter's own OR (the
+  // no_safe_file rule has one) must not be overwritten by another clause.
   const where: Prisma.ProductWhereInput = {
-    ...filterWhere(opts.filter),
-    ...(opts.q
-      ? { name: { contains: opts.q.slice(0, 100), mode: "insensitive" as const } }
-      : {}),
+    AND: [
+      filterWhere(opts.filter),
+      ...(opts.q ? [{ name: { contains: opts.q.slice(0, 100), mode: "insensitive" as const } }] : []),
+    ],
   };
 
   const [totalForFilter, approvedNotSellable, products] = await prisma.$transaction([

@@ -115,12 +115,21 @@ describe("one rule for 'approved, not sellable'", () => {
 describe("every public page lists only what is sellable", () => {
   const PUBLIC = ["app/page.tsx", "app/browse/page.tsx", "app/shop/[slug]/page.tsx", "app/shop/[slug]/product/[productSlug]/page.tsx", "app/checkout/[slug]/[productSlug]/page.tsx", "app/sitemap.ts"];
 
-  test("each uses SELLABLE_PRODUCT_WHERE and none writes its own moderation condition", () => {
+  test("each applies SELLABLE_PRODUCT_WHERE in its query (not merely imports it) and writes no moderation condition of its own", () => {
+    const USE: Record<string, RegExp> = {
+      "app/page.tsx": /where: SELLABLE_PRODUCT_WHERE,/,
+      "app/browse/page.tsx": /const where: Prisma\.ProductWhereInput = \{ \.\.\.SELLABLE_PRODUCT_WHERE \};/,
+      "app/shop/[slug]/page.tsx": /products: \{\s*where: SELLABLE_PRODUCT_WHERE,/,
+      "app/shop/[slug]/product/[productSlug]/page.tsx": /\.\.\.SELLABLE_PRODUCT_WHERE,\s*shop: \{ \.\.\.SELLABLE_SHOP_WHERE, slug: shopSlug \}/,
+      "app/checkout/[slug]/[productSlug]/page.tsx": /\.\.\.SELLABLE_PRODUCT_WHERE,\s*shop: \{ \.\.\.SELLABLE_SHOP_WHERE, slug: shopSlug \}/,
+      "app/sitemap.ts": /products: \{\s*where: SELLABLE_PRODUCT_WHERE,/,
+    };
     for (const file of PUBLIC) {
       const code = strip(read(file));
-      assert.ok(code.includes("SELLABLE_PRODUCT_WHERE"), file);
-      assert.ok(!/moderationStatus: "APPROVED"/.test(code), `${file} restates the rule`);
+      assert.match(code, USE[file], `${file} must apply the shared rule in its product query`);
+      assert.ok(!/moderationStatus:\s*["'{]/.test(code), `${file} restates the rule`);
     }
+    assert.match(strip(read("lib/admin-stores.ts")), /shopId: \{ in: shops\.map\(\(shop\) => shop\.id\) \},\s*\.\.\.SELLABLE_PRODUCT_WHERE,/);
   });
 
   test("no other public page queries products by moderation status on its own", () => {
@@ -149,7 +158,7 @@ describe("every way to approve goes through the safe-file condition", () => {
     for (const name of readdirSync(dir)) {
       const full = join(dir, name);
       if (statSync(full).isDirectory()) walk(full);
-      else if (/\.(tsx?|mts|ts)$/.test(name)) sources.push(relative(ROOT, full));
+      else if (/\.(tsx?|mts|ts|mjs|js)$/.test(name)) sources.push(relative(ROOT, full));
     }
   };
   for (const dir of ["app", "lib", "components", "scripts"]) walk(resolve(ROOT, dir));
@@ -158,7 +167,7 @@ describe("every way to approve goes through the safe-file condition", () => {
     const writes: string[] = [];
     for (const file of sources) {
       const code = strip(read(file));
-      for (const m of code.matchAll(/data:\s*\{[^}]*?moderationStatus:\s*([^,}\s]+)/g)) {
+      for (const m of code.matchAll(/(?:data|create|update):\s*\{[^}]*?moderationStatus:\s*([^,}\s]+)/g)) {
         const value = m[1];
         writes.push(`${file}: ${value}`);
         if (value === '"PENDING"' || value === '"REJECTED"') continue;
