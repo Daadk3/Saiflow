@@ -36,11 +36,13 @@ export default function RejectDialog({
   const [reason, setReason] = useState("");
   const fieldId = useId();
 
+  // The effect only opens and closes the native dialog. The text is cleared
+  // by the dialog's own close event below, so every opening starts empty
+  // without setting state inside an effect.
   useEffect(() => {
     const dialog = ref.current;
     if (!dialog) return;
     if (open && !dialog.open) {
-      setReason("");
       dialog.showModal();
     } else if (!open && dialog.open) {
       dialog.close();
@@ -56,6 +58,7 @@ export default function RejectDialog({
         e.preventDefault();
         if (!busy) onCancel();
       }}
+      onClose={() => setReason("")}
       aria-labelledby={`${fieldId}-title`}
       className="w-[min(36rem,calc(100vw-2rem))] rounded-2xl border border-gray-800 bg-[#111111] p-0 text-start text-gray-200 backdrop:bg-black/70"
     >
