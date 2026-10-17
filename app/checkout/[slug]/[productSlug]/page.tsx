@@ -3,7 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { prisma } from "@/lib/prisma";
-import { SAFE_DELIVERABLE_WHERE } from "@/lib/file-safety";
+import { SELLABLE_PRODUCT_WHERE, SELLABLE_SHOP_WHERE } from "@/lib/sellable";
 import { env } from "@/lib/env";
 import { checkoutScriptUrl, isGeideaConfigured } from "@/lib/payments/geidea/client";
 import { CheckoutSummary } from "@/components/checkout/CheckoutSummary";
@@ -43,13 +43,9 @@ async function getCheckoutProduct(shopSlug: string, productSlug: string) {
   return prisma.product.findFirst({
     where: {
       slug: productSlug,
-      isActive: true,
-      moderationStatus: "APPROVED",
-      shop: {
-        slug: shopSlug,
-        isActive: true,
-      },
-      ...SAFE_DELIVERABLE_WHERE,
+      // The one storefront rule (lib/sellable), plus this page's shop slug.
+      ...SELLABLE_PRODUCT_WHERE,
+      shop: { ...SELLABLE_SHOP_WHERE, slug: shopSlug },
     },
     select: {
       id: true,

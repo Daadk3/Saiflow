@@ -1,7 +1,7 @@
 import { cache } from "react";
 import type { Metadata } from "next";
 import { prisma } from "@/lib/prisma";
-import { SAFE_DELIVERABLE_WHERE } from "@/lib/file-safety";
+import { SELLABLE_PRODUCT_WHERE } from "@/lib/sellable";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
@@ -38,12 +38,8 @@ const getShop = cache(async function getShop(slug: string): Promise<Shop | null>
     where: { slug },
     include: {
       products: {
-        // Stage E2: publication AND deliverable safety, kept separate.
-        where: {
-          isActive: true,
-          moderationStatus: "APPROVED",
-          ...SAFE_DELIVERABLE_WHERE,
-        },
+        // The one storefront rule (lib/sellable).
+        where: SELLABLE_PRODUCT_WHERE,
         orderBy: { createdAt: "desc" },
       },
     },

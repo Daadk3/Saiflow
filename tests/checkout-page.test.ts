@@ -62,10 +62,10 @@ describe("only what the storefront sells can reach checkout", () => {
 
   test("the page's product rule is the public product page's rule, clause for clause", () => {
     assert.equal(whereClause(read(PAGE)), whereClause(read(PRODUCT_PAGE)));
-    assert.ok(page.includes("...SAFE_DELIVERABLE_WHERE"));
-    assert.match(page, /from "@\/lib\/file-safety"/);
-    assert.match(page, /moderationStatus: "APPROVED"/);
-    assert.match(page, /isActive: true/);
+    // The one storefront rule (lib/sellable), with this page's shop slug.
+    assert.ok(page.includes("...SELLABLE_PRODUCT_WHERE,"));
+    assert.match(page, /shop: \{ \.\.\.SELLABLE_SHOP_WHERE, slug: shopSlug \}/);
+    assert.match(page, /from "@\/lib\/sellable"/);
   });
 
   test("a product outside that rule is a 404, like on the product page", () => {

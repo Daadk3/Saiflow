@@ -33,11 +33,9 @@ const ar = JSON.parse(read("messages/ar.json")) as Record<string, Record<string,
 const en = JSON.parse(read("messages/en.json")) as Record<string, Record<string, Record<string, string>>>;
 
 describe("visibility: the gate and the filters are unchanged", () => {
-  test("the query keeps every gate and spreads the canonical safety clause", () => {
-    assert.ok(/isActive:\s*true/.test(code));
-    assert.ok(/moderationStatus:\s*"APPROVED"/.test(code));
-    assert.ok(/\.\.\.SAFE_DELIVERABLE_WHERE/.test(code));
-    assert.ok(/from "@\/lib\/file-safety"/.test(code));
+  test("the query keeps every gate: the one storefront rule (lib/sellable)", () => {
+    assert.ok(/const where: Prisma\.ProductWhereInput = \{ \.\.\.SELLABLE_PRODUCT_WHERE \};/.test(code));
+    assert.ok(/from "@\/lib\/sellable"/.test(code));
     assert.ok(!/fileScanStatus|fileScanKey|fileKey/.test(code), "no hand-rolled safety condition");
     assert.ok(/export const dynamic = "force-dynamic"/.test(code));
   });

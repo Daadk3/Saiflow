@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { SAFE_DELIVERABLE_WHERE } from "@/lib/file-safety";
+import { SELLABLE_PRODUCT_WHERE } from "@/lib/sellable";
 
 /** How many stores the page lists at once, newest first. */
 export const STORES_PAGE_SIZE = 200;
@@ -23,8 +23,8 @@ export interface StoreRow {
  * which is the point: until now the only trace of a new store was its
  * notification email.
  *
- * `live` uses the storefront's own gate (approved, active, SAFE file), so the
- * number matches what buyers see rather than a looser count.
+ * `live` uses the storefront's own rule (lib/sellable: approved, active, shop
+ * active, SAFE file), so the number matches what buyers see.
  */
 export async function getStoresDirectory(q?: string): Promise<{ rows: StoreRow[]; total: number }> {
   const where = q ? { name: { contains: q, mode: "insensitive" as const } } : {};
@@ -55,9 +55,8 @@ export async function getStoresDirectory(q?: string): Promise<{ rows: StoreRow[]
         by: ["shopId"],
         where: {
           shopId: { in: shops.map((shop) => shop.id) },
-          isActive: true,
-          moderationStatus: "APPROVED",
-          ...SAFE_DELIVERABLE_WHERE,
+          // "Live" is what a buyer can reach: the one storefront rule.
+          ...SELLABLE_PRODUCT_WHERE,
         },
         _count: { _all: true },
       })

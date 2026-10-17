@@ -1,6 +1,6 @@
 import type { MetadataRoute } from "next";
 import { prisma } from "@/lib/prisma";
-import { SAFE_DELIVERABLE_WHERE } from "@/lib/file-safety";
+import { SELLABLE_PRODUCT_WHERE } from "@/lib/sellable";
 
 const BASE = "https://www.saiflow.io";
 
@@ -55,11 +55,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         // engines either — an indexed URL that 404s on click is worse than an
         // absent one.
         products: {
-          where: {
-            isActive: true,
-            moderationStatus: "APPROVED",
-            ...SAFE_DELIVERABLE_WHERE,
-          },
+          where: SELLABLE_PRODUCT_WHERE,
           select: { slug: true },
         },
       },

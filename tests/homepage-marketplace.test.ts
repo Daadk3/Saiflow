@@ -134,11 +134,9 @@ describe("copy: one namespace, both locales, nothing fabricated", () => {
 describe("the homepage shows only what can be bought, and links to real routes", () => {
   test("the featured query keeps every visibility gate and never hand-rolls safety", () => {
     const code = strip(page);
-    assert.ok(/\.\.\.SAFE_DELIVERABLE_WHERE/.test(code));
-    assert.ok(/from "@\/lib\/file-safety"/.test(code));
-    assert.ok(/isActive:\s*true/.test(code));
-    assert.ok(/moderationStatus:\s*"APPROVED"/.test(code));
-    assert.ok(/shop:\s*\{\s*isActive:\s*true\s*\}/.test(code));
+    // The one storefront rule (lib/sellable): active, approved, shop active, safe file.
+    assert.ok(/where: SELLABLE_PRODUCT_WHERE,/.test(code));
+    assert.ok(/from "@\/lib\/sellable"/.test(code));
     assert.ok(!/fileScanStatus:\s*"SAFE"/.test(code));
     assert.ok(/category:\s*true/.test(code), "the card needs the category");
     assert.ok(/export const dynamic = "force-dynamic"/.test(code));

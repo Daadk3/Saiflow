@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { SAFE_DELIVERABLE_WHERE } from "@/lib/file-safety";
+import { SELLABLE_PRODUCT_WHERE } from "@/lib/sellable";
 import {
   BuyerFlow,
   CategoriesGrid,
@@ -27,17 +27,10 @@ const FEATURED_LIMIT = 8;
 async function getFeaturedProducts(): Promise<FeaturedProduct[]> {
   try {
     const products = await prisma.product.findMany({
-      where: {
-        isActive: true,
-        moderationStatus: "APPROVED",
-        shop: { isActive: true },
-        // Stage E2. Publication and file safety are separate requirements and
-        // are ANDed here, never merged: moderation decides whether a listing
-        // may be shown, this decides whether its deliverable could actually be
-        // bought. Spread from the canonical clause in lib/file-safety.ts so
-        // this surface cannot drift from what checkout and download enforce.
-        ...SAFE_DELIVERABLE_WHERE,
-      },
+      // Active, approved, shop active, and a file that passed its check:
+      // the one storefront rule (lib/sellable), shared with every public
+      // surface and checkout, so they cannot drift apart.
+      where: SELLABLE_PRODUCT_WHERE,
       take: FEATURED_LIMIT,
       orderBy: { createdAt: "desc" },
       select: {

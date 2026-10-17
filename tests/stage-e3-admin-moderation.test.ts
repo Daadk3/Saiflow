@@ -294,17 +294,19 @@ describe("Stage E2 storefront gate survives E3 untouched", () => {
   ];
 
   for (const surface of SURFACES) {
-    test(`${surface} still applies SAFE_DELIVERABLE_WHERE`, () => {
+    test(`${surface} still applies the safety clause, through the shared storefront rule`, () => {
       const src = strip(read(surface));
-      assert.ok(src.includes("SAFE_DELIVERABLE_WHERE"), surface);
-      assert.ok(src.includes("...SAFE_DELIVERABLE_WHERE"), surface);
+      assert.ok(src.includes("SELLABLE_PRODUCT_WHERE"), surface);
+      assert.ok(strip(read("lib/sellable.ts")).includes("...SAFE_DELIVERABLE_WHERE,"), "lib/sellable");
     });
   }
 
-  test("the buyer product page still requires APPROVED moderation", () => {
+  test("the buyer product page still requires APPROVED moderation, through the shared rule", () => {
     const src = strip(read("app/shop/[slug]/product/[productSlug]/page.tsx"));
-    assert.ok(src.includes('moderationStatus: "APPROVED"'));
-    assert.ok(src.includes("isActive: true"));
+    assert.ok(src.includes("...SELLABLE_PRODUCT_WHERE,"));
+    const rule = strip(read("lib/sellable.ts"));
+    assert.ok(rule.includes('moderationStatus: "APPROVED"'));
+    assert.ok(rule.includes("isActive: true"));
   });
 
   test("the safety authority itself is byte-for-byte unmodified", () => {

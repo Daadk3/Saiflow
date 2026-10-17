@@ -185,8 +185,10 @@ describe("the review buttons say why Approve is unavailable", () => {
 describe("an approved product without a safe file still reaches no buyer", () => {
   test("every public listing, checkout and download carry the safety gate", () => {
     for (const file of ["app/page.tsx", "app/browse/page.tsx", "app/shop/[slug]/page.tsx", "app/shop/[slug]/product/[productSlug]/page.tsx"]) {
-      assert.ok(read(file).includes("...SAFE_DELIVERABLE_WHERE"), file);
+      assert.ok(read(file).includes("SELLABLE_PRODUCT_WHERE"), file);
     }
+    // The shared storefront rule carries the safety clause itself (lib/sellable).
+    assert.ok(read("lib/sellable.ts").includes("...SAFE_DELIVERABLE_WHERE,"));
     for (const file of ["app/api/checkout/route.ts", "app/api/download/[productId]/route.ts"]) {
       assert.ok(read(file).includes("if (!isDeliverableSafe(product))"), file);
     }

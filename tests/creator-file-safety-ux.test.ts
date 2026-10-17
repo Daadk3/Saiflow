@@ -564,7 +564,7 @@ describe("no gate was touched", () => {
   test("the E2 storefront gate is intact on all five surfaces", () => {
     for (const f of ["app/page.tsx","app/browse/page.tsx","app/shop/[slug]/page.tsx",
                      "app/shop/[slug]/product/[productSlug]/page.tsx","app/sitemap.ts"]) {
-      assert.ok(strip(read(f)).includes("...SAFE_DELIVERABLE_WHERE"), f);
+      assert.ok(strip(read(f)).includes("SELLABLE_PRODUCT_WHERE"), f);
     }
   });
 
