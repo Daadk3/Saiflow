@@ -592,6 +592,7 @@ describe("the preview payload carries no internals", () => {
       "isActive",
       "moderationStatus",
       "name",
+      "notSellableReason",
       "price",
       "shop",
       "slug",
@@ -761,18 +762,21 @@ describe("legacy rows never look like they have a scannable deliverable", () => 
   });
 });
 
-describe("the overview's missing-file list keys on the storage key", () => {
-  test("its query asks for fileKey null, not fileUrl null", async () => {
+describe("the overview's attention list is the shared approved-not-sellable rule", () => {
+  test("it keys on the storage key and the scan, never the legacy URL", async () => {
+    // Since 17 Oct 2026 the list is lib/sellable's APPROVED_NOT_SELLABLE_WHERE:
+    // no file, or a file that has not passed its check (not only fileKey null).
     state.directoryRows = [];
     await getFounderStats();
     const missing = calls.findMany.find(
       (a) => (a.where as Record<string, unknown>)?.moderationStatus === "APPROVED"
     );
-    assert.ok(missing, "missing-file query not found");
+    assert.ok(missing, "attention query not found");
     const where = missing.where as Record<string, unknown>;
-    assert.ok("fileKey" in where, "must key on fileKey");
-    assert.equal(where.fileKey, null);
-    assert.ok(!("fileUrl" in where), "must not key on the legacy column");
+    const or = where.OR as Record<string, unknown>[];
+    assert.ok(or.some((c) => "fileKey" in c && c.fileKey === null), "must include the fileless case, by fileKey");
+    assert.ok(or.some((c) => "fileScanStatus" in c), "must include a file that has not passed its check");
+    assert.ok(!JSON.stringify(where).includes("fileUrl"), "must not key on the legacy column");
   });
 });
 

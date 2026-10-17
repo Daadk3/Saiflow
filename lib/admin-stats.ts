@@ -16,6 +16,7 @@ import {
 } from "@/lib/moderator-file-status";
 import type { ModerationStatus, Prisma } from "@prisma/client";
 import { fromHalalas, parseMoney } from "@/lib/pricing";
+import { APPROVED_NOT_SELLABLE_WHERE, unsellableReason, type UnsellableReason } from "@/lib/sellable";
 
 /* ------------------------------------------------------------------ */
 /* Review-source rule                                                  */
@@ -51,14 +52,17 @@ export interface FounderStats {
   notYetReviewed: number;
   pending: number;
   /**
-   * Active, approved products with no deliverable a buyer could receive.
+   * Approved, active products of active shops that buyers still cannot see
+   * or buy, because their file is missing or has not passed its check
+   * (lib/sellable APPROVED_NOT_SELLABLE_WHERE), oldest first, at most five,
+   * each with the reason. `notSellableCount` is the full count.
    *
-   * Keyed on `fileKey` for the same reason `DirectoryRow.hasFile` is: the
-   * legacy column `fileUrl` is populated on exactly the pre-Stage-B products
-   * that carry no storage key, so a `fileUrl: null` test skipped the products
-   * this list exists to surface and reported calm.
+   * It used to test `fileKey: null` only, which missed products whose file
+   * exists but is still being checked, failed, or was replaced, and its text
+   * claimed such products were "listed for sale", which no public page does.
    */
-  missingFile: { id: string; name: string; slug: string; shopSlug: string }[];
+  notSellable: { id: string; name: string; slug: string; shopSlug: string; reason: UnsellableReason }[];
+  notSellableCount: number;
   /** Rolling 24h pulse. */
   pulse: { newUsers: number; newProducts: number; newShops: number; newReports: number };
   /** TEST-environment orders: labelled, never revenue. */
@@ -110,7 +114,8 @@ export async function getFounderStats(): Promise<FounderStats> {
     countApproved,
     countRejected,
     notYetReviewed,
-    missingFileRows,
+    notSellableRows,
+    notSellableCount,
     newUsers,
     newProducts,
     newShops,
@@ -129,11 +134,23 @@ export async function getFounderStats(): Promise<FounderStats> {
       where: { moderationStatus: "APPROVED", ...NEVER_ADMIN_DECIDED },
     }),
     prisma.product.findMany({
-      where: { fileKey: null, isActive: true, moderationStatus: "APPROVED" },
-      select: { id: true, name: true, slug: true, shop: { select: { slug: true } } },
+      where: APPROVED_NOT_SELLABLE_WHERE,
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        isActive: true,
+        moderationStatus: true,
+        // The columns the reason is derived from; never sent to the page.
+        fileKey: true,
+        fileScanStatus: true,
+        fileScanKey: true,
+        shop: { select: { slug: true, isActive: true } },
+      },
       take: 5,
       orderBy: { createdAt: "asc" },
     }),
+    prisma.product.count({ where: APPROVED_NOT_SELLABLE_WHERE }),
     prisma.user.count({ where: { createdAt: { gte: since } } }),
     prisma.product.count({ where: { createdAt: { gte: since } } }),
     prisma.shop.count({ where: { createdAt: { gte: since } } }),
@@ -161,12 +178,14 @@ export async function getFounderStats(): Promise<FounderStats> {
     byStatus,
     notYetReviewed,
     pending: byStatus.PENDING,
-    missingFile: missingFileRows.map((p) => ({
+    notSellable: notSellableRows.map((p) => ({
       id: p.id,
       name: p.name,
       slug: p.slug,
       shopSlug: p.shop.slug,
+      reason: unsellableReason(p),
     })),
+    notSellableCount,
     pulse: { newUsers, newProducts, newShops, newReports },
     testOrders,
     revenue: {
@@ -182,6 +201,7 @@ export async function getFounderStats(): Promise<FounderStats> {
 
 export const DIRECTORY_FILTERS = [
   "needs_review",
+  "no_safe_file",
   "pending",
   "approved",
   "rejected",
@@ -252,18 +272,35 @@ export interface DirectoryRow {
    * renders no link that could only fail.
    */
   canInspect: boolean;
+  /**
+   * Why an APPROVED product is still not on sale (lib/sellable), or null
+   * when it is not approved or is on sale. Drives the red badge.
+   */
+  notSellableReason: UnsellableReason | null;
 }
 
 export interface DirectoryPage {
   rows: DirectoryRow[];
   nextCursor: string | null;
   totalForFilter: number;
+  /**
+   * Approved products buyers cannot see or buy, whatever the filter: shown
+   * beside "Needs review" so an empty review list never hides them.
+   */
+  approvedNotSellable: number;
 }
 
 function filterWhere(filter: DirectoryFilter): Prisma.ProductWhereInput {
   switch (filter) {
     case "needs_review":
+      // No human decision yet. Says nothing about the file: a product an
+      // admin approved before approval required a safe file is NOT here,
+      // which is why "no_safe_file" exists beside it.
       return { moderationStatus: "APPROVED", ...NEVER_ADMIN_DECIDED };
+    case "no_safe_file":
+      // Approved, but buyers cannot see or buy it: the same rule as the
+      // Founder Dashboard's attention list (lib/sellable).
+      return APPROVED_NOT_SELLABLE_WHERE;
     case "pending":
       return { moderationStatus: "PENDING" };
     case "approved":
@@ -294,8 +331,9 @@ export async function getProductsDirectory(opts: {
       : {}),
   };
 
-  const [totalForFilter, products] = await prisma.$transaction([
+  const [totalForFilter, approvedNotSellable, products] = await prisma.$transaction([
     prisma.product.count({ where }),
+    prisma.product.count({ where: APPROVED_NOT_SELLABLE_WHERE }),
     prisma.product.findMany({
       where,
       orderBy: [{ [opts.sort]: opts.dir }, { id: "asc" }],
@@ -323,6 +361,7 @@ export async function getProductsDirectory(opts: {
           select: {
             name: true,
             slug: true,
+            isActive: true,
             shopUsers: {
               take: 1,
               orderBy: { joinedAt: "asc" },
@@ -348,6 +387,7 @@ export async function getProductsDirectory(opts: {
 
   return {
     totalForFilter,
+    approvedNotSellable,
     nextCursor: hasMore ? page[page.length - 1].id : null,
     rows: page.map((p) => {
       const latest = p.moderationEvents[0];
@@ -370,6 +410,8 @@ export async function getProductsDirectory(opts: {
         hasFile: p.fileKey != null,
         fileSafety: moderatorFileSafety(p),
         canInspect: p.fileKey != null,
+        notSellableReason:
+          p.moderationStatus === "APPROVED" && unsellableReason(p) !== "sellable" ? unsellableReason(p) : null,
       };
     }),
   };

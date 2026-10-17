@@ -10,15 +10,15 @@ import MissionMascot from "@/components/admin/MissionMascot";
 export const dynamic = "force-dynamic";
 
 /** Rules-based, never AI. Exactly one mission, in strict priority order. */
-type MissionKey = "missingFile" | "review" | "pending" | "payments" | "calm";
+type MissionKey = "notSellable" | "review" | "pending" | "payments" | "calm";
 
 function pickMission(s: {
-  missingFile: unknown[];
+  notSellableCount: number;
   notYetReviewed: number;
   pending: number;
   paymentsEnabled: boolean;
 }): MissionKey {
-  if (s.missingFile.length > 0) return "missingFile";
+  if (s.notSellableCount > 0) return "notSellable";
   if (s.notYetReviewed > 0) return "review";
   if (s.pending > 0) return "pending";
   if (!s.paymentsEnabled) return "payments";
@@ -26,7 +26,8 @@ function pickMission(s: {
 }
 
 const MISSION_HREF: Record<MissionKey, string> = {
-  missingFile: "/dashboard/admin/products?filter=all",
+  // The filtered list of exactly these products, not "All".
+  notSellable: "/dashboard/admin/products?filter=no_safe_file",
   review: "/dashboard/admin/products?filter=needs_review",
   pending: "/dashboard/moderation",
   payments: "/dashboard/admin/products",
@@ -42,7 +43,7 @@ export default async function FounderDashboardPage() {
   const paymentsEnabled = process.env.PRE_LAUNCH_MODE === "false";
 
   const mission = pickMission({
-    missingFile: stats.missingFile,
+    notSellableCount: stats.notSellableCount,
     notYetReviewed: stats.notYetReviewed,
     pending: stats.pending,
     paymentsEnabled,
@@ -93,7 +94,9 @@ export default async function FounderDashboardPage() {
               <div className="flex items-center gap-4">
                 {mission === "calm" && <MissionMascot mood="happy" size={56} />}
                 <h2 className="text-xl font-semibold leading-snug">
-                  {mission === "review"
+                  {mission === "notSellable"
+                    ? t("mission.notSellable", { count: n(stats.notSellableCount) })
+                    : mission === "review"
                     ? t("mission.review", { count: n(stats.notYetReviewed) })
                     : mission === "pending"
                       ? t("mission.pending", { count: n(stats.pending) })
@@ -110,13 +113,13 @@ export default async function FounderDashboardPage() {
           </section>
 
           {/* 2 — ATTENTION (only when something is broken) */}
-          {stats.missingFile.length > 0 && (
+          {stats.notSellable.length > 0 && (
             <section className="rounded-2xl border border-red-500/30 bg-red-500/[0.06] p-6">
               <p className={`${eyebrow} text-red-400`}>
                 {t("attention.eyebrow")}
               </p>
               <ul className="mt-4 space-y-3">
-                {stats.missingFile.map((p) => (
+                {stats.notSellable.map((p) => (
                   <li
                     key={p.id}
                     className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-red-500/15 bg-[#150f10] px-4 py-3"
@@ -126,13 +129,13 @@ export default async function FounderDashboardPage() {
                         <bdi>{p.name}</bdi>
                       </p>
                       <p className="mt-0.5 text-sm text-red-300/80">
-                        {t("attention.missingFile")}
+                        {/* What is actually wrong, and that buyers can't see it. */}
+                        {t(`attention.reason.${p.reason}`)}
                       </p>
                     </div>
                     {/* The admin preview, not the storefront. A product in
-                        this list has no deliverable, so it can never satisfy
-                        the public sellability gate and its buyer-facing URL
-                        would answer 404 every time. */}
+                        this list fails the public sellability rule, so its
+                        buyer-facing URL would answer 404. */}
                     <Link
                       href={`/dashboard/admin/products/${p.id}/preview`}
                       className="shrink-0 rounded-lg border border-red-500/30 px-3 py-1.5 text-sm font-medium text-red-300 transition-colors hover:bg-red-500/10"
@@ -142,6 +145,14 @@ export default async function FounderDashboardPage() {
                   </li>
                 ))}
               </ul>
+              {stats.notSellableCount > stats.notSellable.length && (
+                <Link
+                  href="/dashboard/admin/products?filter=no_safe_file"
+                  className="mt-3 inline-block text-sm font-medium text-red-300 hover:underline"
+                >
+                  {t("notSellable.needsReviewLink", { count: n(stats.notSellableCount) })}
+                </Link>
+              )}
             </section>
           )}
 

@@ -180,7 +180,16 @@ export default async function AdminProductPreviewPage({
                     {t("preview.inactive")}
                   </span>
                 )}
+                {/* Approved is a decision; on sale is a fact (lib/sellable). */}
+                {product.notSellableReason && (
+                  <span className="whitespace-nowrap rounded-md bg-red-500/10 px-2 py-0.5 text-[11px] font-medium text-red-400">
+                    {t("notSellable.badge")} · {t(`notSellable.short.${product.notSellableReason}`)}
+                  </span>
+                )}
               </div>
+              {product.notSellableReason && (
+                <p className="mt-2 text-xs text-red-300/90">{t(`attention.reason.${product.notSellableReason}`)}</p>
+              )}
               {/* Why it was rejected, beside the product rather than only in
                   the seller's email. Older rejections may have none. */}
               {product.moderationStatus === "REJECTED" && (

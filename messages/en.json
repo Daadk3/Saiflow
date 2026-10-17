@@ -899,7 +899,7 @@
     "subtitle": "What needs your attention today.",
     "mission": {
       "eyebrow": "Today's mission",
-      "missingFile": "Fix a product with a missing file.",
+      "notSellable": "Fix {count} approved products that buyers can't see or buy.",
       "review": "Review {count} products.",
       "pending": "Approve {count} products waiting in the queue.",
       "payments": "Enable payments.",
@@ -907,9 +907,31 @@
       "cta": "Start",
       "ctaCalm": "Focus on growing Saiflow"
     },
+    "notSellable": {
+      "badge": "Not on sale",
+      "short": {
+        "missing_file_key": "No product file",
+        "pending_scan": "File still being checked",
+        "scan_key_mismatch": "New file being checked",
+        "scan_error": "File check didn't finish",
+        "unsafe": "File failed its check",
+        "inactive": "Product switched off",
+        "shop_inactive": "Store suspended"
+      },
+      "needsReviewNote": "Products no admin has decided on yet. This list doesn't check files.",
+      "needsReviewLink": "{count} approved products can't be sold. See them"
+    },
     "attention": {
-      "eyebrow": "Needs attention",
-      "missingFile": "Listed for sale with no downloadable file — the buyer receives nothing.",
+      "eyebrow": "Approved, not sellable",
+      "reason": {
+        "missing_file_key": "Approved but not on sale: there is no product file. Buyers can't see or buy it. Ask the seller to upload the file, or reject it.",
+        "pending_scan": "Approved but not on sale yet: its file is still being checked. It goes on sale by itself once the check passes.",
+        "scan_key_mismatch": "Approved but not on sale: the seller replaced the file, and the new one is still being checked.",
+        "scan_error": "Approved but not on sale: the file's safety check didn't finish. Open it and press Retry check.",
+        "unsafe": "Approved but not on sale: its file failed the safety check. Buyers can't see or buy it. Reject it, or ask the seller for a clean file.",
+        "inactive": "Approved but not on sale: the product is switched off.",
+        "shop_inactive": "Approved but not on sale: its store is suspended."
+      },
       "view": "View product"
     },
     "review": {
@@ -1028,6 +1050,7 @@
       "failed": "Could not record the decision.",
       "filters": {
         "needs_review": "Needs review",
+        "no_safe_file": "Approved, not sellable",
         "pending": "Pending",
         "approved": "Approved",
         "rejected": "Rejected",

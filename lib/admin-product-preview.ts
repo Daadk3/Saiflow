@@ -2,6 +2,7 @@ import type { ModerationStatus } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { inspectDecision } from "@/lib/inspect";
 import { isAllowedAssetUrl } from "@/lib/validations";
+import { unsellableReason, type UnsellableReason } from "@/lib/sellable";
 import {
   moderatorFileSafety,
   type ModeratorFileSafety,
@@ -76,6 +77,8 @@ export interface AdminProductPreview {
    * not trust anything computed here.
    */
   canInspect: boolean;
+  /** Why an APPROVED product is still not on sale (lib/sellable), or null. */
+  notSellableReason: UnsellableReason | null;
 }
 
 export async function getAdminProductPreview(
@@ -105,8 +108,9 @@ export async function getAdminProductPreview(
       fileScanKey: true,
       shop: {
         // No logo: the preview does not render one, and a column that is not
-        // selected cannot be rendered by a later edit.
-        select: { name: true, slug: true },
+        // selected cannot be rendered by a later edit. isActive feeds the
+        // sellable reason only.
+        select: { name: true, slug: true, isActive: true },
       },
     },
   });
@@ -132,8 +136,12 @@ export async function getAdminProductPreview(
     moderationStatus: product.moderationStatus,
     isActive: product.isActive,
     createdAt: product.createdAt,
-    shop: product.shop,
+    shop: { name: product.shop.name, slug: product.shop.slug },
     fileSafety,
     canInspect: inspectDecision(fileSafety.reason, "admin").allow,
+    notSellableReason:
+      product.moderationStatus === "APPROVED" && unsellableReason(product) !== "sellable"
+        ? unsellableReason(product)
+        : null,
   };
 }

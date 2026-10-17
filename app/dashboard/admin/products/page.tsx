@@ -43,7 +43,7 @@ export default async function AdminProductsPage({
   const locale = await getLocale();
   const sp = await searchParams;
   const { filter, sort, dir, cursor, q } = parseParams(sp);
-  const { rows, nextCursor, totalForFilter } = await getProductsDirectory({
+  const { rows, nextCursor, totalForFilter, approvedNotSellable } = await getProductsDirectory({
     filter,
     sort,
     dir,
@@ -102,6 +102,20 @@ export default async function AdminProductsPage({
             </button>
           </form>
         </div>
+
+        {/* "Needs review" means no human decision yet; it does not look at
+            files. Say so, and point at the products that are approved but
+            not on sale, so an empty review list never hides them. */}
+        {filter === "needs_review" && (
+          <div className="mb-4 rounded-lg border border-gray-800 bg-[#0f0f0f] p-3 text-sm">
+            <p className="text-gray-400">{t("notSellable.needsReviewNote")}</p>
+            {approvedNotSellable > 0 && (
+              <Link href={qs({ filter: "no_safe_file", cursor: undefined })} className="mt-1 inline-block font-medium text-red-300 hover:underline">
+                {t("notSellable.needsReviewLink", { count: String(approvedNotSellable) })}
+              </Link>
+            )}
+          </div>
+        )}
 
         <p
           className={`mb-3 text-xs text-gray-600 ${
@@ -183,6 +197,7 @@ export default async function AdminProductsPage({
                       <td className="px-3 py-3">
                         <div className="flex flex-col items-start gap-1">
                           <StatusBadge status={p.moderationStatus} t={t} />
+                          <NotSellableBadge reason={p.notSellableReason} t={t} />
                           <FileSafetyBadge safety={p.fileSafety} t={t} />
                         </div>
                       </td>
@@ -240,6 +255,7 @@ export default async function AdminProductsPage({
                       </p>
                       <div className="mt-2 flex flex-wrap items-center gap-1.5">
                         <StatusBadge status={p.moderationStatus} t={t} />
+                        <NotSellableBadge reason={p.notSellableReason} t={t} />
                         <FileSafetyBadge safety={p.fileSafety} t={t} />
                         <ReviewSourceBadge reviewed={p.humanReviewed} t={t} />
                         {!p.hasFile && (
@@ -303,13 +319,26 @@ function StatusBadge({
 }
 
 /**
+ * Red when a product is APPROVED but buyers still cannot see or buy it, with
+ * the reason (lib/sellable). Approved is a decision; on sale is a fact, and
+ * the two can differ, so the row says which.
+ */
+function NotSellableBadge({ reason, t }: { reason: string | null; t: (k: string) => string }) {
+  if (!reason) return null;
+  return (
+    <span className="whitespace-nowrap rounded-md bg-red-500/10 px-2 py-0.5 text-[11px] font-medium text-red-400">
+      {t("notSellable.badge")} · {t(`notSellable.short.${reason}`)}
+    </span>
+  );
+}
+
+/**
  * The moderator-facing scan state, beside the moderation state rather than
  * merged into it.
  *
- * They are separate questions and stay separate controls: nothing here
- * disables approve or reject. What it does is stop a moderator approving a
- * product and expecting it on the storefront when the file has not passed —
- * the detail view spells that out, and this is the at-a-glance version.
+ * They are separate questions. Approval itself now waits for a passed file
+ * (the moderation route refuses otherwise, and the review buttons say why);
+ * this badge is the at-a-glance version of the file's state.
  *
  * `missing_file_key` renders nothing, because the row already carries the
  * "Missing file" badge and `hasFile` is now true under exactly the opposite
