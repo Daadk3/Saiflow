@@ -233,3 +233,14 @@ describe("C20: dashboards show their shape while loading, not a blank screen", (
     assert.ok(skeleton.includes('role="status"') && skeleton.includes('<span className="sr-only">{label}</span>'));
   });
 });
+
+describe("Part 2, item 3: the homepage Sell and Buy buttons line up", () => {
+  test("equal-height cards, growing text, and buttons of the same size", () => {
+    const src = read("components/home/TwoPaths.tsx");
+    assert.ok(src.includes('className="grid items-stretch gap-5 md:grid-cols-2"'));
+    assert.equal((src.match(/<p className="mt-3 flex-1 /g) ?? []).length, 2, "both texts grow, pushing the buttons down");
+    assert.equal((src.match(/mt-7 [^"]*min-h-12/g) ?? []).length, 2, "both buttons share a minimum height");
+    assert.match(src, /btn-primary mt-7 min-h-12 w-fit border border-transparent/);
+    assert.match(src, /px-6 py-3/);
+  });
+});
