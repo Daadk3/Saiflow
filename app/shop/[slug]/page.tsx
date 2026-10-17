@@ -114,6 +114,21 @@ export default async function PublicShopPage({
 
   return (
     <div className="min-h-screen bg-[#0a0a0a]">
+      {/* Cover, 1200×400 (3:1) as the edit page asks for. Decorative: the
+          store's name follows as the heading. */}
+      {shop.coverImage && (
+        <div className="relative w-full aspect-[3/1] max-h-[400px] overflow-hidden bg-gray-900">
+          <Image
+            src={shop.coverImage}
+            alt=""
+            fill
+            priority
+            sizes="100vw"
+            className="object-cover"
+          />
+        </div>
+      )}
+
       {/* Shop header */}
       <header className="bg-[#0a0a0a] border-b border-gray-800 py-12">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
