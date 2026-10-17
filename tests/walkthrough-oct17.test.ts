@@ -199,3 +199,12 @@ describe("C18: seller-written text keeps its punctuation where it was typed", ()
     assert.match(store, /<p dir="auto" className="[^"]*\[unicode-bidi:plaintext\][^"]*">\s*\{product\.description\}/);
   });
 });
+
+describe("C19: no purchase promises while checkout is off", () => {
+  test("in pre-launch the included list says it applies once payments open, and the secure-payment line is hidden", () => {
+    const page = read("app/shop/[slug]/product/[productSlug]/page.tsx");
+    assert.match(page, /\{preLaunchMode && \(\s*<p[^>]*>\{t\("storefront\.productDetail\.includedOncePaymentsOpen"\)\}/);
+    assert.match(page, /\{!preLaunchMode && \([\s\S]{0,700}paymentsProcessedSecurely/);
+    assert.ok(en().storefront.productDetail.includedOncePaymentsOpen && ar().storefront.productDetail.includedOncePaymentsOpen);
+  });
+});

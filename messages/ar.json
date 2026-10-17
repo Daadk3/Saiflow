@@ -778,6 +778,7 @@
       "includesLifetimeAccess": "وصول دائم إلى الملفات",
       "includesFreeUpdates": "تحديثات مجانية من المبدع",
       "secureCheckout": "دفع آمن.",
+      "includedOncePaymentsOpen": "ما ستحصل عليه عند فتح الدفع على SaiFlow.",
       "paymentsProcessedSecurely": "تُعالَج المدفوعات بشكل آمن.",
       "getThisProduct": "احصل على هذا المنتج",
       "processing": "جارٍ المعالجة...",

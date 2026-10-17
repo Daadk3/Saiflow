@@ -255,6 +255,11 @@ export default async function ProductPage({
             {/* What's included */}
             <div className="mt-12 p-6 bg-[#111111] rounded-xl border border-gray-800">
               <h2 className="font-semibold text-white text-lg mb-4">{t("storefront.productDetail.whatsIncluded")}</h2>
+              {/* Nothing can be bought yet, so the list describes what a
+                  purchase WILL include, and says so. */}
+              {preLaunchMode && (
+                <p className="-mt-2 mb-4 text-xs text-gray-500">{t("storefront.productDetail.includedOncePaymentsOpen")}</p>
+              )}
               <ul className="space-y-3 text-sm text-gray-300">
                 <li className="flex items-center gap-2">
                   <span className="text-teal-500">
@@ -310,11 +315,11 @@ export default async function ProductPage({
                 </p>
               )}
 
-              {/* Unconditional: this page only renders for a product whose
+              {/* Shown once payments are open: in pre-launch no payment is
+                  processed at all. This page only renders for a product whose
                   deliverable already passed SAFE_DELIVERABLE_WHERE, so the
-                  legacy fileUrl column is no longer consulted as a stand-in
-                  for "has a purchasable file". */}
-              {(
+                  legacy fileUrl column is not consulted here. */}
+              {!preLaunchMode && (
                 <div className="mt-4 flex items-center gap-2 text-xs text-gray-500 justify-center">
                   <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                     <path
