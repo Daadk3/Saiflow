@@ -3,12 +3,18 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useTranslations, useLocale } from "next-intl";
+import { useSession } from "next-auth/react";
 import BrandLogo from "@/components/BrandLogo";
 import { LEGAL, establishmentName } from "@/lib/legal";
 
 export default function Footer() {
   const t = useTranslations();
   const ar = useLocale().startsWith("ar");
+  // Start selling: a signed-out visitor signs up first, like every other
+  // "start selling" link on the site; a signed-in creator goes to their
+  // dashboard. While the session is still loading, signup is the safe guess.
+  const { status } = useSession();
+  const startSellingHref = status === "authenticated" ? "/dashboard" : "/signup";
   const linkClass =
     "text-gray-400 hover:text-white text-sm font-medium transition-colors";
 
@@ -76,7 +82,7 @@ export default function Footer() {
                 <li><Link href="/browse" className={linkClass}>{t('products.allProducts')}</Link></li>
                 <li><Link href="/features" className={linkClass}>{t('nav.features')}</Link></li>
                 <li><Link href="/pricing" className={linkClass}>{t('nav.pricing')}</Link></li>
-                <li><Link href="/dashboard" className={linkClass}>{t('nav.startSelling')}</Link></li>
+                <li><Link href={startSellingHref} className={linkClass}>{t('nav.startSelling')}</Link></li>
               </ul>
             </div>
 

@@ -96,3 +96,12 @@ describe("B12: \"checkout is being activated\" appears once on a product page", 
     assert.notEqual(ar().storefront.productDetail.secureCheckout, ar().preLaunch.checkoutDisabled);
   });
 });
+
+describe("B13: the footer's Start selling goes where the others do", () => {
+  test("signup when signed out, the dashboard when signed in", () => {
+    const footer = read("components/Footer.tsx");
+    assert.ok(footer.includes('const startSellingHref = status === "authenticated" ? "/dashboard" : "/signup";'));
+    assert.ok(footer.includes("<Link href={startSellingHref} className={linkClass}>{t('nav.startSelling')}</Link>"));
+    assert.ok(!footer.includes(`<Link href="/dashboard" className={linkClass}>{t('nav.startSelling')}`));
+  });
+});
