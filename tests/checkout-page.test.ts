@@ -77,9 +77,10 @@ describe("only what the storefront sells can reach checkout", () => {
       assert.ok(!page.includes(forbidden), `the page must not use ${forbidden}`);
     }
     // Geidea's client module for configuration only: the library URL, derived
-    // locally and tested as such in geidea-dropin-client.
+    // locally and tested as such in geidea-dropin-client, and the configured
+    // mode for the test-mode banner (tests/checkout-test-mode). Neither calls Geidea.
     assert.deepEqual(page.match(/import \{[^}]*\} from "@\/lib\/payments\/geidea\/client";/g), [
-      'import { checkoutScriptUrl, isGeideaConfigured } from "@/lib/payments/geidea/client";',
+      'import { checkoutScriptUrl, geideaMode, isGeideaConfigured } from "@/lib/payments/geidea/client";',
     ]);
     assert.match(
       page,

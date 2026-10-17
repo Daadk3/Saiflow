@@ -699,6 +699,8 @@
     "not_availableBody": "This product can't be bought right now.",
     "payments_offTitle": "Payments aren't available yet",
     "payments_offBody": "Online payment is being activated.",
+    "testModeTitle": "Test mode, no real charge",
+    "testModeBody": "Payments on this site are not live, so no card is charged. To test, use a Geidea test card.",
     "serviceTitle": "The payment couldn't start",
     "serviceBody": "A temporary error occurred. Please try again shortly.",
     "cookiesTitle": "Turn on cookies to pay",
