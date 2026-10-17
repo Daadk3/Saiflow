@@ -218,7 +218,7 @@
       "backLinkShort": "لوحة التحكم",
       "shopNameLabel": "اسم المتجر",
       "shopNamePlaceholder": "مثال: متجري الرائع",
-      "slugPreview": "سيُستخدم لإنشاء رابط متجرك: saiflow.com/shop/{slug}",
+      "slugPreview": "سيُستخدم لإنشاء رابط متجرك: {host}/shop/{slug}",
       "slugFallback": "your-shop",
       "descriptionLabel": "الوصف",
       "descriptionPlaceholder": "عرّف زبائنك بمتجرك...",

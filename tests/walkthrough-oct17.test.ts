@@ -43,3 +43,30 @@ describe("B9: no link goes nowhere", () => {
     assert.match(ar().dashboard.product.add.helpText, /<link>معايير قبول المنتج<\/link>/);
   });
 });
+
+describe("B10: the create-store address preview is right", () => {
+  test("it shows SaiFlow's real domain, from the one shared constant", async () => {
+    const page = read("app/dashboard/create-shop/page.tsx");
+    assert.ok(page.includes('import { SITE_URL } from "@/lib/site-url";'));
+    assert.ok(page.includes("host: SITE_HOST"));
+    for (const messages of [en(), ar()]) {
+      assert.ok(messages.dashboard.createShop.slugPreview.includes("{host}/shop/{slug}"));
+      assert.ok(!messages.dashboard.createShop.slugPreview.includes("saiflow.com"));
+    }
+    const { SITE_URL } = await import("../lib/site-url.ts");
+    assert.equal(new URL(SITE_URL).host, "www.saiflow.io");
+  });
+
+  test("the preview uses the server's slug rule, so mixed names lose their stray hyphens", async () => {
+    const { slugBase } = await import("../lib/slug.ts");
+    assert.equal(slugBase("SaiFlow Test Store (تجريبي)"), "saiflow-test-store");
+    assert.equal(slugBase("  -Hello- "), "hello");
+    assert.ok(read("app/dashboard/create-shop/page.tsx").includes("slugBase(name).length >= 2"));
+  });
+
+  test("no saiflow.com address is left anywhere a user can see", () => {
+    for (const file of ["messages/en.json", "messages/ar.json", "app/docs/[slug]/page.tsx", "app/dashboard/create-shop/page.tsx"]) {
+      assert.ok(!read(file).includes("saiflow.com"), file);
+    }
+  });
+});

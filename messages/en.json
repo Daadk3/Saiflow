@@ -218,7 +218,7 @@
       "backLinkShort": "Dashboard",
       "shopNameLabel": "Shop Name",
       "shopNamePlaceholder": "e.g., My Awesome Shop",
-      "slugPreview": "This will be used to create your shop URL: saiflow.com/shop/{slug}",
+      "slugPreview": "This will be used to create your shop URL: {host}/shop/{slug}",
       "slugFallback": "your-shop",
       "descriptionLabel": "Description",
       "descriptionPlaceholder": "Tell customers what your shop is about...",

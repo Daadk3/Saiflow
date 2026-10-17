@@ -233,7 +233,7 @@ const docs: Record<string, DocContent> = {
     category: "FAQ",
     content: `
       <h2>Having technical issues?</h2>
-      <p>Contact our support team through the support page or email support@saiflow.com</p>
+      <p>Contact our support team through the support page or email support@saiflow.io</p>
       
       <h2>Browser Requirements</h2>
       <p>Saiflow works best on modern browsers like Chrome, Firefox, Safari, and Edge.</p>
