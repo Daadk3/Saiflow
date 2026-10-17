@@ -178,3 +178,14 @@ describe("C16: screen readers can name every remove button and product picture",
     assert.equal((read("app/shop/[slug]/product/[productSlug]/page.tsx").match(/alt=\{product\.name\}/g) ?? []).length, 2);
   });
 });
+
+describe("C17: the language switcher is labelled in the page's own language", () => {
+  test("its spoken label is translated; its visible name is the target language's own", () => {
+    const sw = read("components/LanguageSwitcher.tsx");
+    assert.ok(!sw.includes('aria-label="Switch language"'));
+    assert.ok(sw.includes("aria-label={next === 'en' ? t('switchToEnglish') : t('switchToArabic')}"));
+    assert.ok(sw.includes("<span lang={next}"));
+    assert.match(ar().nav.switchToEnglish, /التبديل إلى الإنجليزية/);
+    assert.match(en().nav.switchToArabic, /Switch to Arabic/);
+  });
+});
