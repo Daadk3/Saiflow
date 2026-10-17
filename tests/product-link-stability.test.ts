@@ -139,7 +139,7 @@ function shopRow(overrides: Record<string, unknown> = {}) {
     description: null,
     logo: null,
     coverImage: null,
-    shopUsers: [{ user: { email: "owner@saiflow.test" } }],
+    shopUsers: [{ userId: "user_owner", user: { email: "owner@saiflow.test" } }],
     ...overrides,
   };
 }
@@ -167,7 +167,7 @@ const renameShop = (name: string) =>
 beforeEach(() => {
   calls.productUpdate = [];
   calls.shopUpdate = [];
-  state.session = { user: { email: "owner@saiflow.test" } };
+  state.session = { user: { id: "user_owner", email: "owner@saiflow.test" } };
   state.user = { id: "user_1", email: "owner@saiflow.test" };
   state.product = productRow();
   state.shop = shopRow();

@@ -7,6 +7,7 @@ import { isAllowedAssetUrl } from "@/lib/validations";
 import { creatorFileStatus } from "@/lib/creator-file-status";
 import { sellerFileState, type SellerAssetView } from "@/lib/seller-file-state";
 import { IMAGE_NOT_ALLOWED, verifyImageProvenance } from "@/lib/image-provenance";
+import { sessionUserId } from "@/lib/session-account";
 
 export async function GET(
   req: Request,
@@ -21,6 +22,7 @@ export async function GET(
         { status: 401 }
       );
     }
+    const userId = sessionUserId(session);
 
     const { slug } = await params;
 
@@ -64,12 +66,11 @@ export async function GET(
             updatedAt: true,
           },
         },
-        // Membership, for the authorisation check only. Emails are compared
-        // here and never returned: the dashboard does not use shopUsers, and
-        // shipping co-members' addresses to the browser is disclosure without
-        // a purpose.
+        // Membership, for the authorisation check only, by account id
+        // (lib/session-account). Never returned: the dashboard does not use
+        // shopUsers.
         shopUsers: {
-          select: { user: { select: { email: true } } },
+          select: { userId: true },
         },
       },
     });
@@ -83,7 +84,7 @@ export async function GET(
 
     // Check if user has access to this shop
     const userHasAccess = shop.shopUsers.some(
-      (su) => su.user.email === session.user?.email
+      (su) => userId !== null && su.userId === userId
     );
 
     if (!userHasAccess) {
@@ -206,6 +207,7 @@ export async function PUT(
         { status: 401 }
       );
     }
+    const userId = sessionUserId(session);
 
     const { slug } = await params;
     const { name, description, logo, coverImage } = await req.json();
@@ -255,7 +257,7 @@ export async function PUT(
 
     // Check if user has access to this shop
     const userHasAccess = shop.shopUsers.some(
-      (su) => su.user.email === session.user?.email
+      (su) => userId !== null && su.userId === userId
     );
 
     if (!userHasAccess) {
