@@ -24,6 +24,8 @@ export function SignOutButton({ className, onStart }: { className?: string; onSt
     onStart?.();
     try {
       await signOut({ redirect: false });
+    } catch {
+      // Nothing to show: the full load below asks the server, which knows.
     } finally {
       // Whatever happened, leave the signed-in page: a full load re-reads the
       // session from the server, which is the only answer that counts.

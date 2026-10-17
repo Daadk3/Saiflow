@@ -198,10 +198,12 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
 
   // Send purchase email
   if (customerEmail && customerEmail !== "unknown@example.com" && product) {
-    // The order exists either way; a receipt that cannot be signed is logged, not retried.
+    // The order exists either way; a receipt that cannot be signed, or has no
+    // site address to link to, is logged, not sent and not retried.
     try {
+      if (!process.env.NEXTAUTH_URL) throw new Error("no_site_url");
       const downloadUrl = receiptDownloadUrl(
-        process.env.NEXTAUTH_URL ?? "",
+        process.env.NEXTAUTH_URL,
         { orderId: order.id, productId: product.id },
         process.env.NEXTAUTH_SECRET
       );

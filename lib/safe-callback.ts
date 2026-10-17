@@ -20,8 +20,35 @@ export function safeCallbackPath(value: string | null | undefined): string {
   return value;
 }
 
+/**
+ * A callback as a safe path, or null: a path is checked as it is, and a full
+ * address only when it is on `origin` (the dashboard's session guard sends
+ * full addresses). Anything else, null.
+ */
+function toSafePath(value: string | null | undefined, origin: string): string | null {
+  if (typeof value !== "string" || value.length === 0) return null;
+  if (value.startsWith("/")) return safeCallbackPath(value);
+  try {
+    const target = new URL(value);
+    return target.origin === origin ? safeCallbackPath(`${target.pathname}${target.search}`) : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * NextAuth's post-sign-in redirect (authOptions `redirect`): back to a page
+ * on this site, never to another origin, and the dashboard rather than the
+ * bare home page.
+ */
+export function postSignInUrl(url: string, baseUrl: string): string {
+  const path = toSafePath(url, baseUrl) ?? FALLBACK;
+  return `${baseUrl}${path === "/" ? FALLBACK : path}`;
+}
+
 /** The callback in this page's own address, or the dashboard. Reads the URL only when called, in the browser. */
 export function callbackFromLocation(): string {
   if (typeof window === "undefined") return FALLBACK;
-  return safeCallbackPath(new URLSearchParams(window.location.search).get("callbackUrl"));
+  const value = new URLSearchParams(window.location.search).get("callbackUrl");
+  return toSafePath(value, window.location.origin) ?? FALLBACK;
 }

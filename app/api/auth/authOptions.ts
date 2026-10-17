@@ -9,6 +9,7 @@ import { isAiAssistantEnabled } from "@/lib/ai/flag";
 import { EMAIL_NOT_VERIFIED } from "@/lib/auth/errors";
 import { credentialFingerprint, unusablePasswordHash } from "@/lib/auth/email-verification";
 import { assertSessionStillValid, SessionRevokedError } from "@/lib/auth/session-guard";
+import { postSignInUrl } from "@/lib/safe-callback";
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -165,26 +166,10 @@ export const authOptions: NextAuthOptions = {
       return session;
     },
     async redirect({ url, baseUrl }) {
-      // Force post-auth redirects to dashboard while allowing absolute external redirects to fall back safely.
-      const dashboardUrl = `${baseUrl}/dashboard`;
-
-      // Relative URLs -> dashboard
-      if (url.startsWith("/")) {
-        return dashboardUrl;
-      }
-
-      // Same-origin URLs
-      try {
-        const target = new URL(url);
-        if (target.origin === baseUrl) {
-          return dashboardUrl;
-        }
-      } catch {
-        // If URL parsing fails, fall back to dashboard
-      }
-
-      // Default fallback
-      return dashboardUrl;
+      // Back to the page that sent the user to sign in, when it is on this
+      // site; otherwise the dashboard. Other origins are never followed
+      // (lib/safe-callback).
+      return postSignInUrl(url, baseUrl);
     },
   },
 };

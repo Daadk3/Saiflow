@@ -24,7 +24,7 @@ import {
   verifyReceiptToken,
   withinReceiptWindow,
 } from "../lib/download-links.ts";
-import { safeCallbackPath } from "../lib/safe-callback.ts";
+import { postSignInUrl, safeCallbackPath } from "../lib/safe-callback.ts";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const read = (p: string) => readFileSync(resolve(ROOT, p), "utf8");
@@ -84,6 +84,16 @@ describe("returning after sign-in", () => {
     for (const bad of [null, undefined, "", "https://evil.example", "//evil.example", "/\\evil.example", "javascript:alert(1)", "dashboard", "/a\u0000b", "/" + "x".repeat(600)]) {
       assert.equal(safeCallbackPath(bad), "/dashboard", JSON.stringify(bad));
     }
+  });
+
+  test("after a Google sign-in too: back to a page on this site, never another origin", () => {
+    const base = "https://www.saiflow.io";
+    assert.equal(postSignInUrl("/dashboard/purchases", base), `${base}/dashboard/purchases`);
+    assert.equal(postSignInUrl(`${base}/dashboard/purchases?x=1`, base), `${base}/dashboard/purchases?x=1`);
+    for (const away of ["https://evil.example/dashboard", "//evil.example", "/\\evil.example", "javascript:alert(1)", "", "/"]) {
+      assert.equal(postSignInUrl(away, base), `${base}/dashboard`, away);
+    }
+    assert.ok(read("app/api/auth/authOptions.ts").includes("return postSignInUrl(url, baseUrl);"));
   });
 
   test("the login page uses it for both sign-in methods", () => {
