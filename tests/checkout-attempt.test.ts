@@ -24,6 +24,10 @@ import {
   newBearer,
   readBearer,
   releaseArgs,
+  SETTLE_AFTER_EXPIRY_MS,
+  checkableAfterExpiry,
+  expiredReleaseArgs,
+  unpaidVerdict,
   type CurrentAttempt,
   type Expected,
 } from "../lib/checkout/attempt";
@@ -293,3 +297,93 @@ describe("the release is one conditional statement, and it matches only a replac
     assert.ok(!matches({ ...row, status: "FAILED", failureReason: SUPERSEDED_BEFORE_SESSION }, where), "already closed");
   });
 });
+
+describe("an expired attempt may be checked with Geidea only when nothing else can say how it ended", () => {
+  const REF = "7c9e6679-7425-40de-944b-e07fc1f90ae7";
+  const longExpired = (over: Partial<CurrentAttempt> = {}) =>
+    attempt({ expiresAt: at(-SETTLE_AFTER_EXPIRY_MS), createdAt: at(-SETTLE_AFTER_EXPIRY_MS - 15 * MIN), ...over });
+
+  test("the settling time is fifteen minutes after Geidea's expiry", () => {
+    assert.equal(SETTLE_AFTER_EXPIRY_MS, 15 * MIN);
+  });
+
+  test("checkable: an unpaid-as-far-as-SaiFlow-knows attempt, in any session state, from the settling time on", () => {
+    for (const status of ["SESSION_CREATED", "FAILED", "CANCELLED", "EXPIRED"]) {
+      const a = longExpired({ status });
+      assert.equal(checkableAfterExpiry(a, expected(), decide(a, expected(), NOW), NOW), true, status);
+    }
+    // Price or presentation changed: still only checkable once long expired.
+    const changed = longExpired();
+    assert.equal(checkableAfterExpiry(changed, expected({ amount: "59.00" }), decide(changed, expected({ amount: "59.00" }), NOW), NOW), true);
+    assert.equal(checkableAfterExpiry(changed, expected({ presentation: "REDIRECT" }), decide(changed, expected({ presentation: "REDIRECT" }), NOW), NOW), true);
+  });
+
+  test("not checkable a moment before the settling time, nor while resumable", () => {
+    const early = attempt({ expiresAt: at(-SETTLE_AFTER_EXPIRY_MS + 1) });
+    assert.equal(checkableAfterExpiry(early, expected(), decide(early, expected(), NOW), NOW), false);
+    const live = attempt();
+    assert.equal(checkableAfterExpiry(live, expected(), decide(live, expected(), NOW), NOW), false);
+    const changedLive = attempt();
+    assert.equal(checkableAfterExpiry(changedLive, expected({ amount: "59.00" }), decide(changedLive, expected({ amount: "59.00" }), NOW), NOW), false);
+  });
+
+  test("never for a paid attempt, PAID awaiting its Order, a foreign row, an unknown state or no session", () => {
+    const cases: Partial<CurrentAttempt>[] = [
+      { order: { id: "order_1" } },
+      { status: "PAID" },
+      { clientTokenHash: bearerHash(newBearer()) },
+      { status: "SOMETHING_NEW" },
+      { status: "CREATED", providerSessionId: null },
+      { expiresAt: null },
+    ];
+    for (const over of cases) {
+      const a = longExpired(over);
+      assert.equal(checkableAfterExpiry(a, expected(), decide(a, expected(), NOW), NOW), false, JSON.stringify(over));
+    }
+    // Another Geidea account, or another provider: this deployment's lookup cannot speak for it.
+    for (const over of [{ environment: "PRODUCTION" }, { provider: "STRIPE" }] as Partial<CurrentAttempt>[]) {
+      const a = longExpired(over);
+      assert.equal(checkableAfterExpiry(a, expected(), decide(a, expected(), NOW), NOW), false, JSON.stringify(over));
+    }
+    // Days later changes none of that.
+    const paid = longExpired({ order: { id: "order_1" }, expiresAt: at(-6 * DAY) });
+    assert.equal(checkableAfterExpiry(paid, expected(), decide(paid, expected(), NOW), NOW), false);
+  });
+
+  test("Geidea's answer is unpaid only when every order is a failed one under this reference that moved no money", () => {
+    const ORDER = "3c0e2b5a-9d4f-4c1b-8e2a-6f7b8c9d0e1f";
+    const failed = { orderId: ORDER, status: "Failed", merchantReferenceId: REF, totalAuthorizedAmount: 0, totalCapturedAmount: 0 };
+    assert.equal(unpaidVerdict([], REF, null), "unpaid");
+    assert.equal(unpaidVerdict([failed], REF, null), "unpaid");
+    assert.equal(unpaidVerdict([failed, { ...failed, totalAuthorizedAmount: null, totalCapturedAmount: null }], REF, null), "unpaid");
+    assert.equal(unpaidVerdict([{ ...failed, merchantReferenceId: REF.toUpperCase() }], REF, null), "unpaid");
+    for (const other of [
+      { ...failed, status: "Success" },
+      { ...failed, status: "Initiated" },
+      { ...failed, status: "failed" },
+      { ...failed, totalAuthorizedAmount: 1 },
+      { ...failed, totalCapturedAmount: 0.01 },
+      { ...failed, merchantReferenceId: null },
+      { ...failed, merchantReferenceId: "11111111-2222-4333-8444-555555555555" },
+    ]) {
+      assert.equal(unpaidVerdict([failed, other], REF, null), "unsettled", JSON.stringify(other));
+    }
+  });
+
+  test("an order SaiFlow was already told about must be in Geidea's list, and failed", () => {
+    const ORDER = "3c0e2b5a-9d4f-4c1b-8e2a-6f7b8c9d0e1f";
+    const failed = { orderId: ORDER, status: "Failed", merchantReferenceId: REF, totalAuthorizedAmount: 0, totalCapturedAmount: 0 };
+    assert.equal(unpaidVerdict([], REF, ORDER), "unsettled", "no orders cannot outweigh a known one");
+    assert.equal(unpaidVerdict([{ ...failed, orderId: "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d" }], REF, ORDER), "unsettled");
+    assert.equal(unpaidVerdict([failed], REF, ORDER.toUpperCase()), "unpaid");
+    assert.equal(unpaidVerdict([{ ...failed, status: "InProgress" }], REF, ORDER), "unsettled");
+  });
+
+  test("the release matches only this current, unchanged attempt without an Order, and only stops it being current", () => {
+    assert.deepEqual(expiredReleaseArgs("ps_1", KEY, { status: "FAILED", providerSessionId: SESSION }), {
+      where: { id: "ps_1", currentAttemptKey: KEY, status: "FAILED", providerSessionId: SESSION, order: { is: null } },
+      data: { currentAttemptKey: null },
+    });
+  });
+});
+

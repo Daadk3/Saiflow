@@ -116,6 +116,10 @@ before(async () => {
       geideaMode: () => "test",
       checkoutScriptUrl: () => "https://checkout.geidea.test/hpp/geideaCheckout.min.js",
       checkoutRedirectUrl: (sessionId: string) => `https://checkout.geidea.test/hpp/checkout/?${sessionId}`,
+      // Never reached here: these requests hold no earlier attempt.
+      findOrdersByReference: async () => {
+        throw new Error("no lookup expected in this suite");
+      },
       createSession: async (args: unknown) => {
         state.sessionCalls.push(args);
         return {

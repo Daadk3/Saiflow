@@ -337,12 +337,17 @@ describe("the checkout copy", () => {
     assert.ok(cancelled.includes('href={state.statusPath}') && cancelled.includes('t("checkStatus")'), "the cancelled state offers the status page");
   });
 
-  test("no copy promises a new payment after expiry, on the checkout page or the status page", () => {
+  test("after expiry, copy promises a new payment only after the settling time and Geidea's check", () => {
     assert.ok(!("startAgain" in en.checkout) && !("startAgain" in ar.checkout));
     const texts = [en.checkout.expiredBody, ar.checkout.expiredBody, en.success.expiredBody, ar.success.expiredBody];
     for (const text of texts) {
       assert.ok(!/new payment can start|start a new checkout|يمكن بدء دفعة جديدة|ابدأ عملية شراء جديدة/i.test(text), text);
-      assert.match(text, /support|الدعم/, "it says how to pay again: through support");
+      // lib/checkout/attempt SETTLE_AFTER_EXPIRY_MS, and the lookup by reference before any release.
+      assert.match(text, /15|١٥/, "says when trying again works");
+      assert.match(text, /payment provider|مزوّد الدفع/, "and that the provider is asked first");
+    }
+    for (const text of [en.success.expiredBody, ar.success.expiredBody]) {
+      assert.match(text, /support|الدعم/, "support, only if checkout still sends the buyer back");
     }
     for (const key of ["failedBody", "cancelledBody"]) {
       for (const loc of [en, ar]) assert.match(loc.success[key], /support|الدعم/, `${key}: a way out if checkout sends the buyer back`);

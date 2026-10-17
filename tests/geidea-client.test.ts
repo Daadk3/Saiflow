@@ -470,6 +470,91 @@ describe("createSession decodes the documented response and nothing more", () =>
 });
 
 /* ------------------------------------------------------------------ */
+/* findOrdersByReference                                               */
+/* ------------------------------------------------------------------ */
+
+describe("findOrdersByReference builds the documented lookup and decodes every order", () => {
+  const listed = (orders: unknown[], extra: Record<string, unknown> = {}) =>
+    json({ responseCode: "000", detailedResponseCode: "000", totalCount: orders.length, orders, ...extra });
+  const one = (over: Record<string, unknown> = {}) => ({
+    orderId: ORDER_ID,
+    status: "Failed",
+    detailedStatus: "OrderFailed",
+    merchantReferenceId: REF,
+    totalAuthorizedAmount: 0,
+    totalCapturedAmount: 0,
+    customerEmail: "x@y.z",
+    ...over,
+  });
+
+  test("GETs the order list by MerchantReferenceId with Basic auth and no body", async () => {
+    canned.response = listed([one()]);
+    const orders = await client.findOrdersByReference(REF);
+    assert.equal(calls.length, 1);
+    const [call] = calls;
+    assert.equal(call.url, `${API}/pgw/api/v1/direct/order?MerchantReferenceId=${REF}`);
+    assert.equal(call.init.method, "GET");
+    assert.equal(headersOf(call).Authorization, BASIC);
+    assert.equal(call.init.body, undefined);
+    assert.equal(call.init.cache, "no-store");
+    assert.deepEqual(orders, [
+      {
+        orderId: ORDER_ID,
+        status: "Failed",
+        detailedStatus: "OrderFailed",
+        merchantReferenceId: REF,
+        totalAuthorizedAmount: 0,
+        totalCapturedAmount: 0,
+      },
+    ]);
+    assert.ok(!JSON.stringify(orders).includes("x@y.z"), "unknown fields are dropped");
+  });
+
+  test("no orders is an empty list", async () => {
+    canned.response = listed([]);
+    assert.deepEqual(await client.findOrdersByReference(REF), []);
+  });
+
+  test("a reference that is not a UUID never reaches the URL", async () => {
+    for (const ref of ["", "abc", `${REF}&MerchantReferenceId=other`, `${REF} `, "../order"]) {
+      await rejectsWith(client.findOrdersByReference(ref), client.GeideaRequestError);
+      assert.equal(calls.length, 0, JSON.stringify(ref));
+    }
+  });
+
+  test("a reply without an orders array, or with any order that does not decode, is refused", async () => {
+    const cases: [string, () => Response, string][] = [
+      ["no orders", json({ responseCode: "000" }), "$.orders"],
+      ["orders not a list", json({ responseCode: "000", orders: {} }), "$.orders"],
+      ["an order that is not an object", listed(["x"]), "$.orders[0]"],
+      ["orderId not a UUID", listed([one(), one({ orderId: "42" })]), "$.orders[1].orderId"],
+      ["status missing", listed([one({ status: undefined })]), "$.orders[0].status"],
+      ["amount as string", listed([one({ totalCapturedAmount: "0" })]), "$.orders[0].totalCapturedAmount"],
+    ];
+    for (const [name, response, path] of cases) {
+      canned.response = response;
+      const error = await rejectsWith(client.findOrdersByReference(REF), client.GeideaResponseError);
+      assert.equal(error.kind, "malformed", name);
+      assert.equal(error.path, path, name);
+      assertNoSecrets(error);
+    }
+  });
+
+  test("a non-000 responseCode, an HTTP failure or no response is refused without leaking", async () => {
+    canned.response = json({ responseCode: "100", detailedResponseCode: "010", orders: [] });
+    const rejected = await rejectsWith(client.findOrdersByReference(REF), client.GeideaResponseError);
+    assert.equal(rejected.kind, "rejected");
+    canned.response = text("not found", 404);
+    const http = await rejectsWith(client.findOrdersByReference(REF), client.GeideaHttpError);
+    assert.equal(http.status, 404);
+    assertNoSecrets(http);
+    canned.response = null;
+    canned.failure = new Error(`timeout ${PW}`);
+    assertNoSecrets(await rejectsWith(client.findOrdersByReference(REF), client.GeideaHttpError));
+  });
+});
+
+/* ------------------------------------------------------------------ */
 /* getOrder                                                            */
 /* ------------------------------------------------------------------ */
 

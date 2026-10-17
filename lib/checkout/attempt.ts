@@ -30,6 +30,10 @@ import { canonicalAmount } from "@/lib/payments/geidea/callback";
  *   replace   no session id from it ever reached a browser, so nothing can
  *             pay it, and a new attempt may start.
  *
+ * An "open" attempt whose session expired long enough ago is then checked
+ * with Geidea itself (see EXPIRED, BUT NEVER PAID below): if Geidea confirms
+ * no payment, it stops blocking and a new attempt starts.
+ *
  * NOTHING HERE TRUSTS THE BROWSER for money or for an outcome. The bearer
  * only identifies; a resume re-checks the attempt's product, provider,
  * environment, currency and amount against the trusted values the route
@@ -42,16 +46,28 @@ import { canonicalAmount } from "@/lib/payments/geidea/callback";
  * when it created it. Whether a drop-in session may be opened on the hosted
  * page instead is not documented, so it never is.
  *
- * NO CLOCK REPLACES A SESSION. Geidea's expiry is a deadline for starting
- * its checkout, not a record of how a started payment ended: a payment can
- * succeed while its callback, or fulfilment, is still on the way. So once a
- * session id may have reached a browser, nothing SaiFlow holds proves that
- * session unpaid, and its attempt is never replaced: not at expiry, not 30
- * minutes later, not ever. It is resumed while Geidea's deadline allows,
- * shown on its status page after that, and paid once the verified callback
- * makes its Order. A failure or cancel reported by Geidea's callback is not
- * treated as the session's end either: the callback still fulfils a later
- * success on the same attempt.
+ * NO CLOCK ALONE REPLACES A SESSION. Geidea's expiry is a deadline for
+ * starting its checkout, not a record of how a started payment ended: a
+ * payment can succeed while its callback, or fulfilment, is still on the
+ * way. So once a session id may have reached a browser, nothing SaiFlow
+ * holds by itself proves that session unpaid. It is resumed while Geidea's
+ * deadline allows, and paid once the verified callback makes its Order. A
+ * failure or cancel reported by Geidea's callback is not treated as the
+ * session's end either: the callback still fulfils a later success on the
+ * same attempt.
+ *
+ * EXPIRED, BUT NEVER PAID. Found on the Preview (2026-10-17): a buyer who
+ * opened the card form and left was sent, for the next seven days (the
+ * cookie's life), to the old attempt's "expired, contact support" page
+ * whenever they tried to buy that product again. So an attempt that is
+ * otherwise shown, never resumed, may be released once SETTLE_AFTER_EXPIRY_MS
+ * have passed since its session's expiry, and only if Geidea, asked by
+ * SaiFlow's own reference, reports no order that is or could be paid
+ * (`unpaidVerdict`). Any other answer, an unreadable one, or no answer at all
+ * keeps it exactly as before. The release (`expiredReleaseArgs`) matches only
+ * while the attempt is still current, unchanged and without an Order, so a
+ * callback that claims it first wins. A late success for the old reference is
+ * still fulfilled by the callback on its own attempt.
  *
  * WHAT CAN BE REPLACED, AND HOW. Only an attempt whose session id provably
  * never left the server: Geidea's session request failed, or the request
@@ -80,6 +96,13 @@ export const CHECKOUT_COOKIE_MAX_AGE_SECONDS = 7 * 24 * 60 * 60;
  * would find its store refused and deliver nothing.
  */
 export const PENDING_WINDOW_MS = 2 * 60 * 1000;
+
+/**
+ * How long after its session's expiry an attempt waits before Geidea is asked
+ * whether it was paid. A payment started just before the deadline (3-D
+ * Secure included) has finished well within this.
+ */
+export const SETTLE_AFTER_EXPIRY_MS = 15 * 60 * 1000;
 
 /** Recorded when Geidea's session request fails; no session id reached any browser. */
 export const SESSION_CREATE_FAILED = "session_create_failed";
@@ -258,4 +281,96 @@ export function decide(attempt: CurrentAttempt, expected: Expected, now: Date): 
   if (attempt.presentation !== expected.presentation) return { kind: "open", reason: "presentation" };
 
   return { kind: "resume", sessionId: attempt.providerSessionId, expiresAt: attempt.expiresAt };
+}
+
+/** The "open" reasons that only say the session can no longer be resumed as itself. */
+const SETTLEABLE_REASONS: readonly OpenReason[] = ["expired", "provider_expired", "terms_changed", "presentation"];
+
+/**
+ * Whether an attempt `decide` shows may be checked with Geidea for release:
+ * its session id may have reached a browser, it has no Order, its status is
+ * one `decide` reads as a session's, and its session expired at least
+ * SETTLE_AFTER_EXPIRY_MS ago. Never for a bearer or product mismatch, a PAID
+ * row awaiting its Order, or an unknown state.
+ *
+ * Only an attempt made against the same Geidea account this deployment is
+ * configured for: the lookup asks that account, and another account (a
+ * production attempt seen by a test deployment, say) would answer "no
+ * orders" about a reference it never saw, however it was paid.
+ */
+export function checkableAfterExpiry(attempt: CurrentAttempt, expected: Expected, decision: Decision, now: Date): boolean {
+  if (decision.kind !== "open" || !SETTLEABLE_REASONS.includes(decision.reason)) return false;
+  if (attempt.provider !== "GEIDEA" || attempt.environment !== expected.environment) return false;
+  if (attempt.order !== null || !hasSession(attempt)) return false;
+  if (!["SESSION_CREATED", "FAILED", "CANCELLED", "EXPIRED"].includes(attempt.status)) return false;
+  if (attempt.expiresAt === null) return false;
+  return now.getTime() >= attempt.expiresAt.getTime() + SETTLE_AFTER_EXPIRY_MS;
+}
+
+/** An order as Geidea's lookup by reference reports it (lib/payments/geidea/client). */
+export interface ReferenceOrder {
+  orderId: string;
+  status: string;
+  merchantReferenceId: string | null;
+  totalAuthorizedAmount: number | null;
+  totalCapturedAmount: number | null;
+}
+
+/**
+ * Geidea's answer about one reference, read strictly. "unpaid" only when
+ * every order it lists is under exactly this reference, has the documented
+ * failed status "Failed", and moved no money (nothing authorised or
+ * captured); no orders at all is unpaid too, since a session nobody paid
+ * makes none. Everything else, including a status this code does not know,
+ * is "unsettled".
+ *
+ * SaiFlow's own evidence comes first: when a callback already named a Geidea
+ * order for this attempt (`knownOrderId`), that order must be in the list,
+ * so "no orders" can never outweigh an order SaiFlow was told about.
+ */
+export function unpaidVerdict(
+  orders: readonly ReferenceOrder[],
+  merchantReferenceId: string,
+  knownOrderId: string | null
+): "unpaid" | "unsettled" {
+  if (knownOrderId !== null && !orders.some((order) => order.orderId.toLowerCase() === knownOrderId.toLowerCase())) {
+    return "unsettled";
+  }
+  for (const order of orders) {
+    if (order.merchantReferenceId === null || order.merchantReferenceId.toLowerCase() !== merchantReferenceId.toLowerCase()) {
+      return "unsettled";
+    }
+    if (order.status !== "Failed") return "unsettled";
+    if ((order.totalAuthorizedAmount ?? 0) !== 0 || (order.totalCapturedAmount ?? 0) !== 0) return "unsettled";
+  }
+  return "unpaid";
+}
+
+/**
+ * The one statement that releases an expired attempt Geidea confirmed unpaid:
+ * it matches only this attempt, only while it is still this browser's current
+ * one, in the status and with the session id `decide` saw, and still without
+ * an Order. It only stops the attempt being current; its own record and any
+ * later callback for it are untouched.
+ *
+ * The scalar `status` is what carries the race: fulfilment sets PAID and
+ * creates the Order in one transaction, and Postgres re-checks an UPDATE's
+ * WHERE against a row committed while it waited. `order: { is: null }` is
+ * defence in depth only.
+ */
+export function expiredReleaseArgs(
+  attemptId: string,
+  key: string,
+  attempt: Pick<CurrentAttempt, "status" | "providerSessionId">
+) {
+  return {
+    where: {
+      id: attemptId,
+      currentAttemptKey: key,
+      status: attempt.status as "SESSION_CREATED" | "FAILED" | "CANCELLED" | "EXPIRED",
+      providerSessionId: attempt.providerSessionId,
+      order: { is: null },
+    },
+    data: { currentAttemptKey: null },
+  };
 }

@@ -54,7 +54,7 @@ if (typeof window !== "undefined") {
 /* Errors                                                              */
 /* ------------------------------------------------------------------ */
 
-export type GeideaOperation = "createSession" | "getOrder";
+export type GeideaOperation = "createSession" | "getOrder" | "findOrdersByReference";
 
 /** One of the five GEIDEA_* variables is unset. Names the variable, never a value. */
 export class GeideaConfigError extends Error {
@@ -851,4 +851,58 @@ export async function getOrder(
   }
 
   return order;
+}
+
+/** The fields of an order found by reference that SaiFlow reads. Nothing else survives decoding. */
+export interface GeideaReferenceOrder {
+  orderId: string;
+  status: string;
+  detailedStatus: string | null;
+  merchantReferenceId: string | null;
+  totalAuthorizedAmount: number | null;
+  totalCapturedAmount: number | null;
+}
+
+/**
+ * Every Geidea order made under one of SaiFlow's merchant references, for
+ * deciding whether an expired checkout attempt was ever paid
+ * (lib/checkout/attempt, `unpaidVerdict`). Read-only.
+ *
+ * Documented as "Fetch Transaction or Order Details by Merchant Reference":
+ * GET /pgw/api/v1/direct/order?MerchantReferenceId=..., answering an
+ * `orders` array. The reference is validated as a UUID before it is placed
+ * in the URL. A reply without an `orders` array, or with any order that does
+ * not decode, is refused: the caller then treats the attempt as unsettled.
+ */
+export async function findOrdersByReference(
+  merchantReferenceId: string,
+  deps: GeideaClientDeps = {}
+): Promise<GeideaReferenceOrder[]> {
+  const config = readConfig();
+  if (typeof merchantReferenceId !== "string" || !UUID.test(merchantReferenceId)) {
+    throw new GeideaRequestError("merchantReferenceId must be a UUID");
+  }
+
+  const json = await send(
+    config,
+    deps,
+    "findOrdersByReference",
+    "GET",
+    `${ORDER_PATH}?MerchantReferenceId=${merchantReferenceId}`
+  );
+  const envelope = decodeEnvelope(json, "findOrdersByReference");
+  const list = envelope.orders;
+  if (!Array.isArray(list)) throw malformed("findOrdersByReference", "$.orders");
+  return list.map((raw, i) => {
+    const path = `$.orders[${i}]`;
+    if (!isObject(raw)) throw malformed("findOrdersByReference", path);
+    return {
+      orderId: uuidField(raw, "orderId", path, "findOrdersByReference"),
+      status: stringField(raw, "status", path, "findOrdersByReference"),
+      detailedStatus: optionalStringField(raw, "detailedStatus", path, "findOrdersByReference"),
+      merchantReferenceId: optionalStringField(raw, "merchantReferenceId", path, "findOrdersByReference"),
+      totalAuthorizedAmount: optionalNumberField(raw, "totalAuthorizedAmount", path, "findOrdersByReference"),
+      totalCapturedAmount: optionalNumberField(raw, "totalCapturedAmount", path, "findOrdersByReference"),
+    };
+  });
 }
