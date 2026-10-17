@@ -29,6 +29,7 @@ import {
   type Presentation as AttemptPresentation,
 } from "@/lib/checkout/attempt";
 import { normalizeBuyerEmail } from "@/lib/checkout/buyer-email";
+import { unsellableReason } from "@/lib/sellable";
 
 /**
  * Checkout: the one place a purchase attempt begins.
@@ -378,8 +379,12 @@ export async function POST(req: Request) {
     }
 
     // Unpublished/unapproved products and deactivated shops must not be
-    // purchasable, even by direct API call with a known product id.
-    if (!product.isActive || product.moderationStatus !== "APPROVED" || !product.shop.isActive) {
+    // purchasable, even by direct API call with a known product id. Read from
+    // the one storefront rule (lib/sellable), whose first three conditions
+    // these are; the file's own condition is refused separately below, with
+    // its own code, by the single safety authority.
+    const availability = unsellableReason(product);
+    if (availability === "inactive" || availability === "not_approved" || availability === "shop_inactive") {
       return NextResponse.json(
         { error: "This product is not available for purchase." },
         { status: 400 }

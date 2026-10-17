@@ -615,7 +615,9 @@ describe("the pre-existing gates and the safety authority are unchanged", () => 
       "rateLimiters.checkout(",
       "await req.json()",
       "prisma.product.findUnique",
-      'moderationStatus !== "APPROVED"',
+      // Active, approved and shop active, read from the shared storefront rule (lib/sellable).
+      "const availability = unsellableReason(product);",
+      'availability === "not_approved"',
       "!product.fileUrl",
       "if (!isDeliverableSafe(product))",
       "isGeideaConfigured()",
