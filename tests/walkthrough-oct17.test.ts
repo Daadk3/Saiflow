@@ -26,3 +26,20 @@ describe("B7: the store's cover shows on its public page", () => {
     assert.ok(page.includes("aspect-[3/1]"));
   });
 });
+
+describe("B9: no link goes nowhere", () => {
+  test("no href=\"#\" anywhere in pages or components", () => {
+    for (const file of ["app/signup/page.tsx", "app/dashboard/shop/[slug]/add-product/page.tsx"]) {
+      assert.ok(!read(file).includes('href="#"'), file);
+    }
+  });
+
+  test("signup's Terms and Privacy open the real pages; the add-product help opens the listing standards", () => {
+    const signup = read("app/signup/page.tsx");
+    assert.ok(signup.includes('<Link href="/terms"') && signup.includes('<Link href="/privacy"'));
+    assert.ok(read("app/dashboard/shop/[slug]/add-product/page.tsx").includes('<Link href="/content-policy#listing-standards"'));
+    assert.ok(read("app/content-policy/page.tsx").includes('<section id="listing-standards"'));
+    assert.match(en().dashboard.product.add.helpText, /<link>listing standards<\/link>/);
+    assert.match(ar().dashboard.product.add.helpText, /<link>معايير قبول المنتج<\/link>/);
+  });
+});

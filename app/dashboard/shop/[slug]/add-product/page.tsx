@@ -489,9 +489,9 @@ export default function AddProductPage() {
           <p className="mt-6 text-center text-gray-600 text-sm">
             {t.rich("dashboard.product.add.helpText", {
               link: (chunks) => (
-                <a href="#" className="text-teal-400 hover:text-teal-300 transition-colors">
+                <Link href="/content-policy#listing-standards" target="_blank" className="text-teal-400 hover:text-teal-300 transition-colors">
                   {chunks}
-                </a>
+                </Link>
               ),
             })}
           </p>

@@ -169,10 +169,10 @@ const docs: Record<string, DocContent> = {
     category: "For Buyers",
     content: `
       <h2>Accessing Downloads</h2>
-      <p>After purchase, you'll receive an email with download links. You can also access your purchases from your account dashboard.</p>
+      <p>After purchase, you'll receive an email with a download link. For your security it works for 7 days.</p>
       
-      <h2>Download Limits</h2>
-      <p>Most products allow multiple downloads. Check the product page for specific download policies.</p>
+      <h2>Downloading Again</h2>
+      <p>Sign in to Saiflow with the email address you used to buy (or create an account with it), then open "My purchases" from your dashboard. You can download from there as often as you need.</p>
     `,
   },
   "refunds": {

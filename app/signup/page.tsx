@@ -236,14 +236,14 @@ export default function SignupPage() {
           <p className="mt-6 text-center text-gray-600 text-sm">
             {t.rich('auth.signup.termsAgreement', {
               terms: (chunks) => (
-                <a href="#" className="text-gray-500 hover:text-teal-400 transition-colors">
+                <Link href="/terms" target="_blank" className="text-gray-500 underline-offset-2 hover:text-teal-400 hover:underline transition-colors">
                   {chunks}
-                </a>
+                </Link>
               ),
               privacy: (chunks) => (
-                <a href="#" className="text-gray-500 hover:text-teal-400 transition-colors">
+                <Link href="/privacy" target="_blank" className="text-gray-500 underline-offset-2 hover:text-teal-400 hover:underline transition-colors">
                   {chunks}
-                </a>
+                </Link>
               )
             })}
           </p>
