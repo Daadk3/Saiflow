@@ -341,6 +341,7 @@ export default function EditProductPage() {
                     <button
                       type="button"
                       onClick={() => setThumbnailUrl("")}
+                      aria-label={t("upload.removeImage")}
                       className="absolute -top-2 -end-2 w-6 h-6 bg-red-500 hover:bg-red-400 rounded-full flex items-center justify-center transition-colors"
                     >
                       <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -557,6 +558,7 @@ export default function EditProductPage() {
                       <button
                         type="button"
                         onClick={() => { setFileUrl(""); setFileName(""); }}
+                        aria-label={t("upload.removeFile")}
                         className="flex-shrink-0 text-gray-400 hover:text-red-400 transition-colors"
                         title={t("dashboard.product.edit.removeFileTitle")}
                       >

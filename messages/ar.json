@@ -1146,6 +1146,8 @@
     "allowed": "{types}: حتى {size}",
     "separator": "، ",
     "audio": "صوت",
-    "video": "فيديو"
+    "video": "فيديو",
+    "removeImage": "إزالة الصورة",
+    "removeFile": "إزالة الملف"
   }
 }

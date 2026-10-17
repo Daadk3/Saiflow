@@ -34,6 +34,7 @@ export default function EditShopPage() {
   const slug = params.slug as string;
   const { status } = useSession();
   const t = useTranslations("dashboard");
+  const tUpload = useTranslations("upload");
   const coverUploadContent = useUploadContent("shopCover");
   const logoUploadContent = useUploadContent("shopLogo");
 
@@ -236,6 +237,7 @@ export default function EditShopPage() {
                     <button
                       type="button"
                       onClick={() => setCoverImage("")}
+                      aria-label={tUpload("removeImage")}
                       className="absolute top-2 end-2 w-8 h-8 bg-red-500 hover:bg-red-400 rounded-full flex items-center justify-center transition-colors"
                     >
                       <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -298,6 +300,7 @@ export default function EditShopPage() {
                       <button
                         type="button"
                         onClick={() => setLogo("")}
+                        aria-label={tUpload("removeImage")}
                         className="absolute -top-2 -end-2 w-6 h-6 bg-red-500 hover:bg-red-400 rounded-full flex items-center justify-center transition-colors"
                       >
                         <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">

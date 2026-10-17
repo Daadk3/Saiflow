@@ -195,8 +195,7 @@ export default async function PublicShopPage({
                   <div className="relative w-full h-80 bg-gray-900 rounded-t-xl overflow-hidden flex items-center justify-center p-4">
                     <img
                       src={product.thumbnailUrl || (product.images && product.images.length > 0 ? product.images[0] : '/placeholder.png')}
-                      alt=""
-                      aria-hidden="true"
+                      alt={product.name}
                       className="max-w-full max-h-full object-contain"
                       style={{ width: 'auto', height: 'auto', maxWidth: '100%', maxHeight: '100%' }}
                     />

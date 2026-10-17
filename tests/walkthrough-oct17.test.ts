@@ -157,3 +157,24 @@ describe("C15: upload buttons speak the page's language and list types cleanly",
     assert.equal(ar().upload.choose, "اختر ملفًا");
   });
 });
+
+describe("C16: screen readers can name every remove button and product picture", () => {
+  test("each remove-image and remove-file button has a label, in both languages", () => {
+    const pages: Array<[string, string[]]> = [
+      ["app/dashboard/shop/[slug]/add-product/page.tsx", ['aria-label={t("upload.removeImage")}', 'aria-label={t("upload.removeFile")}']],
+      ["app/dashboard/shop/[slug]/product/[productSlug]/edit/page.tsx", ['aria-label={t("upload.removeImage")}', 'aria-label={t("upload.removeFile")}']],
+      ["app/dashboard/shop/[slug]/edit/page.tsx", ['aria-label={tUpload("removeImage")}']],
+    ];
+    for (const [file, labels] of pages) {
+      const src = read(file);
+      for (const label of labels) assert.ok(src.includes(label), `${file}: ${label}`);
+    }
+    assert.equal((read("app/dashboard/shop/[slug]/edit/page.tsx").match(/aria-label=\{tUpload\("removeImage"\)\}/g) ?? []).length, 2, "cover and logo");
+    for (const messages of [en(), ar()]) assert.ok(messages.upload.removeImage && messages.upload.removeFile);
+  });
+
+  test("product pictures on store cards and the product page are described by the product's name", () => {
+    assert.ok(read("app/shop/[slug]/page.tsx").includes("alt={product.name}"));
+    assert.equal((read("app/shop/[slug]/product/[productSlug]/page.tsx").match(/alt=\{product\.name\}/g) ?? []).length, 2);
+  });
+});

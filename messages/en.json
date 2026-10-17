@@ -1146,6 +1146,8 @@
     "allowed": "{types}: up to {size}",
     "separator": ", ",
     "audio": "audio",
-    "video": "video"
+    "video": "video",
+    "removeImage": "Remove image",
+    "removeFile": "Remove file"
   }
 }
