@@ -200,6 +200,7 @@ export default async function AdminProductsPage({
                             productName={p.name}
                             previewHref={`/dashboard/admin/products/${p.id}/preview`}
                             fileHref={p.canInspect ? `/api/admin/inspect/${p.id}` : null}
+                            approveBlocked={p.fileSafety.publishable ? null : p.fileSafety.reason}
                           />
                         )}
                       </td>
@@ -256,6 +257,7 @@ export default async function AdminProductsPage({
                         productName={p.name}
                         previewHref={`/dashboard/admin/products/${p.id}/preview`}
                         fileHref={p.canInspect ? `/api/admin/inspect/${p.id}` : null}
+                        approveBlocked={p.fileSafety.publishable ? null : p.fileSafety.reason}
                       />
                     </div>
                   )}

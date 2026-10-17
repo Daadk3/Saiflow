@@ -6,6 +6,10 @@ import { isAdminEmail } from "@/lib/admin";
 import { rateLimiters, getClientIp } from "@/lib/rate-limit";
 import { runAfterResponse } from "@/lib/after-response";
 import { notifyProductModerated } from "@/lib/notify";
+import { SAFE_DELIVERABLE_WHERE, deliverableGateReason, isDeliverableSafe } from "@/lib/file-safety";
+
+/** Approval refused inside the transaction: the file changed after the check. */
+class NotApprovable extends Error {}
 
 // POST - Record a moderation decision for a product (admins only).
 // Body: { action: "APPROVED" | "REJECTED", reason?: string }
@@ -50,17 +54,41 @@ export async function POST(
 
     const product = await prisma.product.findUnique({
       where: { id: productId },
-      select: { id: true, moderationStatus: true },
+      select: { id: true, moderationStatus: true, fileKey: true, fileScanStatus: true, fileScanKey: true },
     });
     if (!product) {
       return NextResponse.json({ error: "Product not found" }, { status: 404 });
     }
 
+    // Approval means "fit to sell", and nothing is fit to sell without a
+    // deliverable that passed its safety check. Approving a product with no
+    // file, or one still scanning, failed or flagged, is refused with the
+    // reason, so the review page can say why. Rejection needs no file.
+    if (action === "APPROVED" && !isDeliverableSafe(product)) {
+      return NextResponse.json(
+        { error: "not_approvable", reason: deliverableGateReason(product) },
+        { status: 409 }
+      );
+    }
+
     const updated = await prisma.$transaction(async (tx) => {
-      const p = await tx.product.update({
-        where: { id: productId },
-        data: { moderationStatus: action },
-      });
+      let p: { id: string; moderationStatus: string };
+      if (action === "APPROVED") {
+        // The same gate again, as the write's own condition: a file replaced
+        // or re-flagged after the check above makes this match nothing, and
+        // the whole decision rolls back.
+        const approved = await tx.product.updateMany({
+          where: { id: productId, ...SAFE_DELIVERABLE_WHERE },
+          data: { moderationStatus: "APPROVED" },
+        });
+        if (approved.count !== 1) throw new NotApprovable();
+        p = { id: productId, moderationStatus: "APPROVED" };
+      } else {
+        p = await tx.product.update({
+          where: { id: productId },
+          data: { moderationStatus: action },
+        });
+      }
       await tx.moderationEvent.create({
         data: {
           productId,
@@ -86,6 +114,9 @@ export async function POST(
       moderationStatus: updated.moderationStatus,
     });
   } catch (error) {
+    if (error instanceof NotApprovable) {
+      return NextResponse.json({ error: "not_approvable", reason: "file_changed" }, { status: 409 });
+    }
     console.error("Error recording moderation decision:", error);
     return NextResponse.json({ error: "Something went wrong" }, { status: 500 });
   }

@@ -24,7 +24,7 @@ const route = strip(read("app/api/admin/moderation/[productId]/route.ts"));
 
 test("the page renders the controls for every status, not only for undecided products", () => {
   assert.match(page, /import DecisionButtons from "@\/components\/admin\/DecisionButtons";/);
-  const use = /<DecisionButtons productId=\{product\.id\} status=\{product\.moderationStatus\} \/>/.exec(page);
+  const use = /<DecisionButtons\s+productId=\{product\.id\}\s+status=\{product\.moderationStatus\}/.exec(page);
   assert.ok(use, "rendered with the product's current status");
   const before = page.slice(Math.max(0, use!.index - 300), use!.index);
   assert.ok(!/(humanReviewed|moderationStatus === "PENDING") && \(\s*$/.test(before), "not gated on being undecided");

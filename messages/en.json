@@ -961,6 +961,14 @@
       "dismiss": "Got it"
     },
     "directory": {
+      "approveBlocked": {
+        "missing_file_key": "Can't approve: there is no product file. Ask the seller to upload one.",
+        "pending_scan": "Can't approve yet: the file's safety check is still running (usually a few minutes).",
+        "scan_error": "Can't approve: the file's safety check didn't finish. Press Retry check, then try again.",
+        "unsafe": "Can't approve: the file failed its safety check.",
+        "scan_key_mismatch": "Can't approve yet: the seller replaced the file and the new one is still being checked.",
+        "file_changed": "The file changed while you were deciding. Reload the page and check it again."
+      },
       "title": "Products",
       "searchPlaceholder": "Search by title",
       "search": "Search",

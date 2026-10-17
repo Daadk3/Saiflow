@@ -18,7 +18,20 @@ type Status = "PENDING" | "APPROVED" | "REJECTED";
  * a rejection, and emails the seller. Only the decisions that would change
  * something are offered.
  */
-export default function DecisionButtons({ productId, status }: { productId: string; status: Status }) {
+export default function DecisionButtons({
+  productId,
+  status,
+  approveBlocked = null,
+}: {
+  productId: string;
+  status: Status;
+  /**
+   * Why Approve is unavailable (a DeliverableGateReason), or null. The server
+   * refuses approval without a deliverable that passed its check; this only
+   * says so before the click.
+   */
+  approveBlocked?: string | null;
+}) {
   const t = useTranslations("admin.directory");
   const router = useRouter();
   const [busy, setBusy] = useState(false);
@@ -40,7 +53,11 @@ export default function DecisionButtons({ productId, status }: { productId: stri
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        setError(data.error || t("failed"));
+        setError(
+          data.error === "not_approvable" && typeof data.reason === "string"
+            ? t(`approveBlocked.${data.reason}`)
+            : data.error || t("failed")
+        );
         return;
       }
       router.refresh();
@@ -58,8 +75,9 @@ export default function DecisionButtons({ productId, status }: { productId: stri
           <button
             type="button"
             onClick={() => decide("APPROVED")}
-            disabled={busy}
-            className="rounded-lg bg-teal-500 px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-50"
+            disabled={busy || approveBlocked !== null}
+            aria-describedby={approveBlocked ? `approve-blocked-${productId}` : undefined}
+            className="rounded-lg bg-teal-500 px-3 py-1.5 text-xs font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
           >
             {t("approve")}
           </button>
@@ -75,6 +93,11 @@ export default function DecisionButtons({ productId, status }: { productId: stri
           </button>
         )}
       </div>
+      {status !== "APPROVED" && approveBlocked && (
+        <p id={`approve-blocked-${productId}`} className="text-xs text-amber-300">
+          {t(`approveBlocked.${approveBlocked}`)}
+        </p>
+      )}
       {error && (
         <p role="alert" className="text-xs text-red-400">
           {error}

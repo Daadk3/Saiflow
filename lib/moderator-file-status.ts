@@ -67,9 +67,10 @@ export function moderatorFileSafety(
       return { reason, publishable: true, tone: "ok" };
 
     case "pending_scan":
-      // The worker has not settled these bytes yet. Approving now is correct
-      // and normal: the product goes live by itself the moment the scan
-      // passes. This is the common path, not an error.
+      // The worker has not settled these bytes yet, usually within minutes.
+      // Since 17 Oct 2026 approval waits for the verdict (the moderation
+      // route refuses anything not SAFE), so the founder never approves a
+      // file nobody has checked. Waiting, not an error.
       return { reason, publishable: false, tone: "waiting" };
 
     case "scan_key_mismatch":

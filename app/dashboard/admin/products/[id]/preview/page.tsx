@@ -179,7 +179,11 @@ export default async function AdminProductPreviewPage({
                 )}
               </div>
               {/* The decision can always be changed: reject an approved product, approve a rejected one. */}
-              <DecisionButtons productId={product.id} status={product.moderationStatus} />
+              <DecisionButtons
+                productId={product.id}
+                status={product.moderationStatus}
+                approveBlocked={product.fileSafety.publishable ? null : product.fileSafety.reason}
+              />
             </div>
 
             <ListingStandards ar={locale.startsWith("ar")} variant="admin" />

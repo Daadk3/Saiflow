@@ -216,7 +216,8 @@ beforeEach(() => {
   state.afterThrows = false;
   state.afterTasks = [];
   state.notifyThrows = false;
-  state.product = { id: "prod_1", moderationStatus: "PENDING" };
+  // A deliverable that passed its check: approval requires one.
+  state.product = { id: "prod_1", moderationStatus: "PENDING", fileKey: "key_1", fileScanStatus: "SAFE", fileScanKey: "key_1" };
   state.shopBySlug = null;
   state.created = [];
   state.userLookups = 0;

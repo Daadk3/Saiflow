@@ -333,16 +333,17 @@ describe("Stage E2 storefront gate survives E3 untouched", () => {
 /* 4. Moderation stays independent of file safety                      */
 /* ================================================================== */
 
-describe("approve and reject remain available in every state", () => {
+describe("reject is available in every state; approve waits for a safe file", () => {
   const src = strip(read("components/admin/ReviewButton.tsx"));
 
-  test("neither button is disabled by a safety value", () => {
-    // `busy` is the in-flight guard and the ONLY disable condition.
+  test("only Approve can be held back, and only by the server's reason", () => {
+    // Changed 17 Oct 2026 (founder's part-3 list): approval now requires a
+    // deliverable that passed its check, enforced by the moderation route.
+    // The button is told why as a plain string; it decides nothing itself.
     const disables = src.match(/disabled=\{[^}]*\}/g) ?? [];
-    assert.ok(disables.length > 0);
-    for (const d of disables) {
-      assert.equal(d, "disabled={busy}", `unexpected disable condition: ${d}`);
-    }
+    assert.deepEqual(disables.sort(), ["disabled={busy || approveBlocked !== null}", "disabled={busy}", "disabled={busy}"].sort());
+    assert.match(src, /onClick=\{\(\) => decide\("APPROVED"\)\}\s*disabled=\{busy \|\| approveBlocked !== null\}/);
+    assert.match(src, /onClick=\{\(\) => decide\("REJECTED"\)\}\s*disabled=\{busy\}/);
   });
 
   test("the control knows nothing about file safety at all", () => {

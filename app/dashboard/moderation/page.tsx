@@ -80,7 +80,13 @@ export default function ModerationQueuePage() {
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        setError(data.error || (ar ? "فشل تسجيل القرار" : "Failed to record the decision"));
+        setError(
+          data.error === "not_approvable"
+            ? ar
+              ? "لا يمكن اعتماد منتج قبل أن يجتاز ملفه فحص الأمان. افتح المنتج لمعرفة السبب."
+              : "A product can't be approved until its file passes the safety check. Open the product to see why."
+            : data.error || (ar ? "فشل تسجيل القرار" : "Failed to record the decision")
+        );
         return;
       }
       setItems((prev) => prev.filter((p) => p.id !== id));
