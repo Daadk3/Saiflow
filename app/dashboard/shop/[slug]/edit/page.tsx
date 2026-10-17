@@ -8,6 +8,7 @@ import Image from "next/image";
 import { useTranslations } from "next-intl";
 import { UploadButton } from "@/lib/uploadthing";
 import { useUploadContent } from "@/components/upload/useUploadContent";
+import { DashboardSkeleton } from "@/components/ui/DashboardSkeleton";
 
 interface Shop {
   id: string;
@@ -119,14 +120,7 @@ export default function EditShopPage() {
   }
 
   if (status === "loading" || loading) {
-    return (
-      <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center">
-        <div className="flex flex-col items-center gap-4">
-          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-teal-500"></div>
-          <p className="text-gray-400">{t("shop.loadingShop")}</p>
-        </div>
-      </div>
-    );
+    return <DashboardSkeleton label={t("shop.loadingShop")} variant="form" />;
   }
 
   if (error && !shop) {

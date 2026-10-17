@@ -208,3 +208,28 @@ describe("C19: no purchase promises while checkout is off", () => {
     assert.ok(en().storefront.productDetail.includedOncePaymentsOpen && ar().storefront.productDetail.includedOncePaymentsOpen);
   });
 });
+
+describe("C20: dashboards show their shape while loading, not a blank screen", () => {
+  const pages = [
+    "app/dashboard/page.tsx",
+    "app/dashboard/sales/page.tsx",
+    "app/dashboard/shop/[slug]/page.tsx",
+    "app/dashboard/shop/[slug]/edit/page.tsx",
+    "app/dashboard/shop/[slug]/product/[productSlug]/edit/page.tsx",
+    "app/dashboard/shop/[slug]/payouts/page.tsx",
+  ];
+
+  test("every client-fetched dashboard page renders a skeleton while it waits", () => {
+    for (const file of pages) {
+      const src = read(file);
+      assert.ok(src.includes("<DashboardSkeleton label="), file);
+      assert.ok(!src.includes("animate-spin rounded-full h-10 w-10"), `${file}: the full-screen spinner is gone`);
+    }
+  });
+
+  test("server-rendered dashboard pages have a route-level skeleton too, and it announces itself", () => {
+    assert.ok(read("app/dashboard/loading.tsx").includes("<DashboardSkeleton"));
+    const skeleton = read("components/ui/DashboardSkeleton.tsx");
+    assert.ok(skeleton.includes('role="status"') && skeleton.includes('<span className="sr-only">{label}</span>'));
+  });
+});

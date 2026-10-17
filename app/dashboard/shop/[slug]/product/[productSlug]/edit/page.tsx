@@ -23,6 +23,7 @@ import { FileScanState, type FileScanStateView } from "@/components/FileScanStat
 // Live refresh of the file check only; see lib/scan-status-polling.
 import { isScanInProgress } from "@/lib/scan-status-polling";
 import { useScanStatusPolling } from "@/lib/use-scan-status-polling";
+import { DashboardSkeleton } from "@/components/ui/DashboardSkeleton";
 
 interface Product {
   id: string;
@@ -220,14 +221,7 @@ export default function EditProductPage() {
   }
 
   if (status === "loading" || loading) {
-    return (
-      <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center">
-        <div className="flex flex-col items-center gap-4">
-          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-teal-500"></div>
-          <p className="text-gray-400">{t("dashboard.product.edit.loading")}</p>
-        </div>
-      </div>
-    );
+    return <DashboardSkeleton label={t("dashboard.product.edit.loading")} variant="form" />;
   }
 
   if (error && !product) {

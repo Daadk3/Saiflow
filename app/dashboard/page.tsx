@@ -7,6 +7,7 @@ import Link from "next/link";
 import { useLocale, useTranslations } from "next-intl";
 import { formatPrice } from "@/lib/formatPrice";
 import { formatNumber } from "@/lib/formatNumber";
+import { DashboardSkeleton } from "@/components/ui/DashboardSkeleton";
 
 interface Shop {
   id: string;
@@ -89,14 +90,7 @@ export default function Dashboard() {
   const totalShops = shops.length;
 
   if (status === "loading" || loading) {
-    return (
-      <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center">
-        <div className="flex flex-col items-center gap-4">
-          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-teal-500"></div>
-          <p className="text-gray-500">{t('dashboard.home.loadingDashboard')}</p>
-        </div>
-      </div>
-    );
+    return <DashboardSkeleton label={t('dashboard.home.loadingDashboard')} variant="overview" />;
   }
 
   if (error) {

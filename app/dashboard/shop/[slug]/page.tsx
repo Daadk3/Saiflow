@@ -27,6 +27,7 @@ import { sellerProductBadges } from "@/lib/seller-product-badges";
 import { productUrl } from "@/lib/site-url";
 import { productLinkStatus, productLinkStatusKey } from "@/lib/product-link-status";
 import CopyLinkButton from "@/components/CopyLinkButton";
+import { DashboardSkeleton } from "@/components/ui/DashboardSkeleton";
 
 interface Product {
   id: string;
@@ -171,14 +172,7 @@ export default function ShopDashboard() {
   const totalProducts = shop?.products?.length || 0;
 
   if (status === "loading" || loading) {
-    return (
-      <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center">
-        <div className="flex flex-col items-center gap-4">
-          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-teal-500"></div>
-          <p className="text-gray-500">{t("loadingShop")}</p>
-        </div>
-      </div>
-    );
+    return <DashboardSkeleton label={t("loadingShop")} variant="overview" />;
   }
 
   if (error) {

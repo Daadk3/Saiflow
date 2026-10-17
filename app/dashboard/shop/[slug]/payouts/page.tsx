@@ -7,6 +7,7 @@ import Link from "next/link";
 import { useLocale, useTranslations } from "next-intl";
 import { formatPrice } from "@/lib/formatPrice";
 import { formatDate } from "@/lib/formatDate";
+import { DashboardSkeleton } from "@/components/ui/DashboardSkeleton";
 
 /**
  * A shop owner's payouts: where SaiFlow sends their earnings, what they are
@@ -139,11 +140,7 @@ export default function ShopPayoutsPage() {
   }
 
   if (!data) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-[#0a0a0a]">
-        <div className="h-10 w-10 animate-spin rounded-full border-b-2 border-teal-500" aria-label={t("loading")} />
-      </div>
-    );
+    return <DashboardSkeleton label={t("loading")} variant="list" />;
   }
 
   const money = (amount: string, currency: string) => <bdi>{formatPrice(Number(amount), currency, locale)}</bdi>;
