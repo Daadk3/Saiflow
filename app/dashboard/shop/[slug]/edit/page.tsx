@@ -7,6 +7,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useTranslations } from "next-intl";
 import { UploadButton } from "@/lib/uploadthing";
+import { useUploadContent } from "@/components/upload/useUploadContent";
 
 interface Shop {
   id: string;
@@ -33,6 +34,8 @@ export default function EditShopPage() {
   const slug = params.slug as string;
   const { status } = useSession();
   const t = useTranslations("dashboard");
+  const coverUploadContent = useUploadContent("shopCover");
+  const logoUploadContent = useUploadContent("shopLogo");
 
   useEffect(() => {
     if (status === "unauthenticated") {
@@ -253,6 +256,7 @@ export default function EditShopPage() {
                     {shop?.id && (
                       <UploadButton
                         endpoint="shopCover"
+                        content={coverUploadContent}
                         input={{ shopId: shop.id }}
                         onClientUploadComplete={(res) => {
                           if (res?.[0]) {
@@ -312,6 +316,7 @@ export default function EditShopPage() {
                       {shop?.id && (
                         <UploadButton
                           endpoint="shopLogo"
+                          content={logoUploadContent}
                           input={{ shopId: shop.id }}
                           onClientUploadComplete={(res) => {
                             if (res?.[0]) {

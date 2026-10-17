@@ -1138,5 +1138,14 @@
     "signIn": "سجّل الدخول للتحميل",
     "signUp": "إنشاء حساب",
     "support": "تحتاج مساعدة؟ راسلنا على"
+  },
+  "upload": {
+    "choose": "اختر ملفًا",
+    "loading": "جارٍ التجهيز…",
+    "uploading": "جارٍ الرفع {progress}٪",
+    "allowed": "{types}: حتى {size}",
+    "separator": "، ",
+    "audio": "صوت",
+    "video": "فيديو"
   }
 }

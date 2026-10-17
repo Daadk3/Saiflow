@@ -1138,5 +1138,14 @@
     "signIn": "Sign in to download",
     "signUp": "Create an account",
     "support": "Need help? Write to"
+  },
+  "upload": {
+    "choose": "Choose file",
+    "loading": "Loading…",
+    "uploading": "Uploading {progress}%",
+    "allowed": "{types}: up to {size}",
+    "separator": ", ",
+    "audio": "audio",
+    "video": "video"
   }
 }

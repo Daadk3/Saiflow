@@ -126,3 +126,34 @@ describe("C14: after signing up, a clear check-your-inbox screen", () => {
     assert.match(ar().auth.signup.inbox.step3, /اكتب كلمة المرور التي اخترتها/);
   });
 });
+
+describe("C15: upload buttons speak the page's language and list types cleanly", () => {
+  test("the list comes from the enforced configs, grouped by size", async () => {
+    const { allowedGroups } = await import("../lib/upload-labels.ts");
+    assert.deepEqual(allowedGroups("productThumbnail"), [{ labels: ["JPG", "PNG", "WEBP", "GIF", "HEIC", "HEIF", "AVIF"], maxSize: "16 MB" }]);
+    assert.deepEqual(allowedGroups("shopLogo"), [{ labels: ["JPG", "PNG", "WEBP", "GIF", "HEIC", "HEIF", "AVIF"], maxSize: "4 MB" }]);
+    assert.deepEqual(allowedGroups("shopCover")[0].maxSize, "8 MB");
+    const file = allowedGroups("productFile");
+    assert.deepEqual(file.find((g) => g.maxSize === "32 MB")!.labels.slice(0, 2), ["PDF", "EPUB"]);
+    assert.deepEqual(file.find((g) => g.maxSize === "128 MB")!.labels, ["ZIP", "audio", "video"]);
+    for (const group of [...file, ...allowedGroups("productThumbnail")]) {
+      for (const label of group.labels) assert.ok(!label.includes("/"), `no MIME type shown: ${label}`);
+    }
+  });
+
+  test("all six upload buttons use the translated words", () => {
+    for (const [file, count] of [
+      ["app/dashboard/shop/[slug]/add-product/page.tsx", 2],
+      ["app/dashboard/shop/[slug]/product/[productSlug]/edit/page.tsx", 2],
+      ["app/dashboard/shop/[slug]/edit/page.tsx", 2],
+    ] as const) {
+      const src = read(file);
+      assert.equal((src.match(/<UploadButton/g) ?? []).length, count, file);
+      assert.equal((src.match(/content=\{\w+UploadContent\}/g) ?? []).length, count, file);
+    }
+    for (const messages of [en(), ar()]) {
+      for (const key of ["choose", "loading", "uploading", "allowed", "separator", "audio", "video"]) assert.ok(messages.upload[key], key);
+    }
+    assert.equal(ar().upload.choose, "اختر ملفًا");
+  });
+});

@@ -8,6 +8,7 @@ import Image from "next/image";
 import { useLocale, useTranslations } from "next-intl";
 import { ListingStandards } from "@/components/ListingStandards";
 import { UploadButton } from "@/lib/uploadthing";
+import { useUploadContent } from "@/components/upload/useUploadContent";
 import { PRODUCT_CATEGORIES, CATEGORY_LABEL_KEYS } from "@/lib/categories";
 // Pinned origin, never window.location — this page renders identically on a
 // Vercel Preview, whose host dies with the deployment. See lib/site-url.
@@ -50,6 +51,8 @@ interface Product {
 
 export default function EditProductPage() {
   const t = useTranslations();
+  const thumbnailUploadContent = useUploadContent("productThumbnail");
+  const fileUploadContent = useUploadContent("productFile");
   const locale = useLocale();
   const tLink = useTranslations("productLink");
   const [product, setProduct] = useState<Product | null>(null);
@@ -358,6 +361,7 @@ export default function EditProductPage() {
                     {product?.shop.id && (
                       <UploadButton
                         endpoint="productThumbnail"
+                        content={thumbnailUploadContent}
                         input={{ shopId: product.shop.id }}
                         onClientUploadComplete={(res) => {
                           if (res?.[0]) {
@@ -605,6 +609,7 @@ export default function EditProductPage() {
                       {product?.shop.id && (
                         <UploadButton
                           endpoint="productFile"
+                          content={fileUploadContent}
                           input={{ shopId: product.shop.id }}
                           onClientUploadComplete={(res) => {
                             if (res?.[0]) {

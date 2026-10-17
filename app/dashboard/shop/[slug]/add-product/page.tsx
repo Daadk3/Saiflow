@@ -8,12 +8,15 @@ import Image from "next/image";
 import { useLocale, useTranslations } from "next-intl";
 import { ListingStandards } from "@/components/ListingStandards";
 import { UploadButton } from "@/lib/uploadthing";
+import { useUploadContent } from "@/components/upload/useUploadContent";
 import { PRODUCT_CATEGORIES, CATEGORY_LABEL_KEYS, type ProductCategory } from "@/lib/categories";
 import ListingAssistant from "@/components/ai/ListingAssistant";
 import { PriceBreakdown } from "@/components/PriceBreakdown";
 
 export default function AddProductPage() {
   const t = useTranslations();
+  const thumbnailUploadContent = useUploadContent("productThumbnail");
+  const fileUploadContent = useUploadContent("productFile");
   const locale = useLocale();
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -215,6 +218,7 @@ export default function AddProductPage() {
                     {shopId && (
                       <UploadButton
                         endpoint="productThumbnail"
+                        content={thumbnailUploadContent}
                         input={{ shopId }}
                         onClientUploadComplete={(res) => {
                           if (res?.[0]) {
@@ -380,6 +384,7 @@ export default function AddProductPage() {
                       {shopId && (
                         <UploadButton
                           endpoint="productFile"
+                          content={fileUploadContent}
                           input={{ shopId }}
                           onClientUploadComplete={(res) => {
                             if (res?.[0]) {
