@@ -257,7 +257,7 @@
       "noFile": "No file",
       "readyToSell": "Ready to sell",
       "awaitingApproval": "Awaiting product approval",
-      "uploadFileWarning": "Upload a file to enable sales",
+      "uploadFileWarning": "Missing file: open Edit and upload your product file to resubmit it for review.",
       "viewProductTitle": "View Product",
       "editProductTitle": "Edit Product",
       "deleteProductTitle": "Delete Product",
@@ -324,6 +324,7 @@
       "emptyState": "No sales yet. When you make your first sale, the details will appear here."
     },
     "product": {
+      "fileRequired": "Upload your product file before submitting. The cover picture is not the product file.",
       "productNameLabel": "Product Name",
       "productNamePlaceholder": "e.g., My Awesome Ebook",
       "descriptionLabel": "Description",

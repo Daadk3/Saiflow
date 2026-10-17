@@ -203,7 +203,7 @@ export default function EditProductPage() {
       const data = await res.json();
 
       if (!res.ok) {
-        setError(data.error || t("dashboard.shop.somethingWrong"));
+        setError(data.code === "file_required" ? t("dashboard.product.fileRequired") : data.error || t("dashboard.shop.somethingWrong"));
         return;
       }
 
@@ -644,6 +644,12 @@ export default function EditProductPage() {
               <ListingStandards ar={locale.startsWith("ar")} variant="seller" />
 
               {/* Action Buttons */}
+              {/* A product cannot be saved without its file (the API refuses too). */}
+              {!fileUrl && (
+                <p id="file-required" role="status" className="text-sm text-amber-300">
+                  {t("dashboard.product.fileRequired")}
+                </p>
+              )}
               <div className="flex gap-4">
                 <Link
                   href={`/dashboard/shop/${slug}`}
@@ -653,7 +659,8 @@ export default function EditProductPage() {
                 </Link>
                 <button
                   type="submit"
-                  disabled={saving}
+                  disabled={saving || !fileUrl}
+                  aria-describedby={!fileUrl ? "file-required" : undefined}
                   className="flex-1 py-3 px-4 bg-teal-500 hover:bg-teal-400 disabled:bg-teal-500/50 disabled:cursor-not-allowed text-white font-semibold rounded-xl transition-colors duration-200 flex items-center justify-center gap-2"
                 >
                   {saving ? (

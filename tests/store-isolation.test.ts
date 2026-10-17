@@ -683,7 +683,12 @@ function seed() {
       { id: "su_b", userId: "user_b", shopId: "shop_b", role: "OWNER" },
     ],
     product: [product("product_a", "shop_a", "key_a", "APPROVED"), product("product_b", "shop_b", "key_b", "PENDING")],
-    fileAsset: [asset("key_a", "shop_a", "user_a"), asset("key_b", "shop_b", "user_b")],
+    fileAsset: [
+      asset("key_a", "shop_a", "user_a"),
+      asset("key_b", "shop_b", "user_b"),
+      // Uploaded by A, not yet attached: what a new product of A's would carry.
+      asset("key_new_a", "shop_a", "user_a"),
+    ],
     order: [order("order_a1", "product_a", "buyer-of-a@example.test"), order("order_b1", "product_b", "buyer-of-b@example.test")],
     sellerPayoutAccount: [
       { id: "acct_b", shopId: "shop_b", holderName: "Seller B", iban: IBAN_B, bankName: "Bank B", updatedById: "user_b", updatedAt: T0 },
@@ -972,13 +977,33 @@ describe("products: seller A cannot reach product_b", () => {
   });
 
   test("POST /api/products into shop_b -> 403; into shop_a -> 201", async () => {
-    const body = { name: "Planted product", price: "10.00", category: "templates", certified: true };
+    // Every product needs its deliverable; this one is A's own fresh upload.
+    const body = {
+      name: "Planted product",
+      price: "10.00",
+      category: "templates",
+      certified: true,
+      fileUrl: "https://app1.ufs.sh/f/key_new_a",
+    };
     await refusedWithoutSideEffects(403, () => H.productsPOST(req("POST", "/api/products", { ...body, shopId: "shop_b" })));
     assert.equal(db.product.filter((p) => p.shopId === "shop_b").length, 1);
 
     const own = await H.productsPOST(req("POST", "/api/products", { ...body, shopId: "shop_a" }));
     assert.equal(own.status, 201);
     assert.equal((await own.json()).shopId, "shop_a");
+    wroteOnlyA();
+  });
+
+  test("POST /api/products into A's own shop: no file, or B's file -> 400 with nothing written; A's own upload -> 201", async () => {
+    // 17 Oct 2026, part 3 item 10: a product needs its own store's deliverable.
+    const base = { name: "My planner", price: "10.00", category: "templates", certified: true, shopId: "shop_a" };
+    const noFile = await refusedWithoutSideEffects(400, () => H.productsPOST(req("POST", "/api/products", base)));
+    assert.equal((await noFile.json()).code, "file_required");
+    await refusedWithoutSideEffects(400, () =>
+      H.productsPOST(req("POST", "/api/products", { ...base, fileUrl: "https://app1.ufs.sh/f/key_b" }))
+    );
+    const own = await H.productsPOST(req("POST", "/api/products", { ...base, fileUrl: "https://app1.ufs.sh/f/key_new_a" }));
+    assert.equal(own.status, 201);
     wroteOnlyA();
   });
 

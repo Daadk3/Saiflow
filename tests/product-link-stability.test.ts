@@ -118,8 +118,9 @@ function productRow(overrides: Record<string, unknown> = {}) {
     price: 25,
     currency: "SAR",
     category: null,
-    fileUrl: null,
-    fileKey: null,
+    // A product always has its deliverable now (lib/product-file-required).
+    fileUrl: "https://testapp.ufs.sh/f/abc123XY_key-one",
+    fileKey: "abc123XY_key-one",
     thumbnailUrl: null,
     shop: {
       id: "shop_1",

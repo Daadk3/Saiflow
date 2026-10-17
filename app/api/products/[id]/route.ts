@@ -16,6 +16,7 @@ import {
 } from "@/lib/file-safety";
 import { scheduleScan } from "@/lib/scan/schedule";
 import { IMAGE_NOT_ALLOWED, verifyImageProvenance } from "@/lib/image-provenance";
+import { FILE_REQUIRED } from "@/lib/product-file-required";
 import { announceReadyAtAttach } from "@/lib/scan/announce";
 import { redactId } from "@/lib/redact-id";
 import { priceProblemMessage, validatePrice } from "@/lib/pricing";
@@ -238,6 +239,15 @@ export async function PUT(
      * rather than being assumed: normally PENDING_SCAN, but already SAFE if the
      * worker settled it between upload and save.
      */
+    // A product cannot be saved without its deliverable: removing the file, or
+    // editing a product that never had one, is refused until a file is
+    // uploaded (lib/product-file-required). An older product with no file
+    // is resubmitted by uploading one.
+    const resultingFileKey = nextFileKey !== undefined ? nextFileKey : product.fileKey;
+    if (!resultingFileKey) {
+      return NextResponse.json(FILE_REQUIRED, { status: 400 });
+    }
+
     // A NEW thumbnail must be this shop's own upload (lib/image-provenance).
     // An unchanged one passes: it may predate upload records.
     if (thumbnailUrl && thumbnailUrl !== product.thumbnailUrl) {

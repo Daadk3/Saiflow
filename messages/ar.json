@@ -257,7 +257,7 @@
       "noFile": "لا يوجد ملف",
       "readyToSell": "جاهز للبيع",
       "awaitingApproval": "بانتظار اعتماد المنتج",
-      "uploadFileWarning": "ارفع ملفاً لتفعيل البيع",
+      "uploadFileWarning": "الملف مفقود: افتح «تعديل» وارفع ملف المنتج لإعادة إرساله للمراجعة.",
       "viewProductTitle": "عرض المنتج",
       "editProductTitle": "تعديل المنتج",
       "deleteProductTitle": "حذف المنتج",
@@ -324,6 +324,7 @@
       "emptyState": "لا توجد مبيعات بعد. سيظهر هنا أول طلب فور إتمام عملية الشراء."
     },
     "product": {
+      "fileRequired": "ارفع ملف المنتج قبل الإرسال. صورة الغلاف ليست ملف المنتج.",
       "productNameLabel": "اسم المنتج",
       "productNamePlaceholder": "مثال: قالب التخطيط الرائع",
       "descriptionLabel": "الوصف",
