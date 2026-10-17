@@ -240,7 +240,16 @@ export default async function AdminProductPreviewPage({
               )}
             </div>
 
-            <ListingStandards ar={locale.startsWith("ar")} variant="admin" />
+            {/* Real results: ✓ only where the server verified it (lib/admin-product-preview). */}
+            <ListingStandards
+              ar={locale.startsWith("ar")}
+              variant="admin"
+              checks={product.checks.map((check) =>
+                check.key === "file_safe" && check.state === "fail"
+                  ? { ...check, detail: t(`notSellable.short.${product.fileSafety.reason}`) }
+                  : check
+              )}
+            />
 
             <FileSafetyPanel
               safety={product.fileSafety}
