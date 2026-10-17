@@ -153,8 +153,8 @@ export default async function PublicShopPage({
 
             {/* Description */}
             {shop.description && (
-              <p className="text-gray-400 mt-2 max-w-2xl">
-                <bdi>{shop.description}</bdi>
+              <p dir="auto" className="text-gray-400 mt-2 max-w-2xl whitespace-pre-line [unicode-bidi:plaintext]">
+                {shop.description}
               </p>
             )}
 
@@ -211,8 +211,8 @@ export default async function PublicShopPage({
                     </h3>
 
                     {product.description && (
-                      <p className="mt-2 text-gray-400 text-sm line-clamp-2 leading-relaxed">
-                        <bdi>{product.description}</bdi>
+                      <p dir="auto" className="mt-2 text-gray-400 text-sm line-clamp-2 leading-relaxed text-start [unicode-bidi:plaintext]">
+                        {product.description}
                       </p>
                     )}
 

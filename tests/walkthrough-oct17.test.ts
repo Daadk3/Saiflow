@@ -189,3 +189,13 @@ describe("C17: the language switcher is labelled in the page's own language", ()
     assert.match(en().nav.switchToArabic, /Switch to Arabic/);
   });
 });
+
+describe("C18: seller-written text keeps its punctuation where it was typed", () => {
+  test("store and product descriptions set their direction per line", () => {
+    const product = read("app/shop/[slug]/product/[productSlug]/page.tsx");
+    const store = read("app/shop/[slug]/page.tsx");
+    assert.match(product, /<p dir="auto" className="[^"]*\[unicode-bidi:plaintext\][^"]*">\s*\{product\.description/);
+    assert.match(store, /<p dir="auto" className="[^"]*\[unicode-bidi:plaintext\][^"]*">\s*\{shop\.description\}/);
+    assert.match(store, /<p dir="auto" className="[^"]*\[unicode-bidi:plaintext\][^"]*">\s*\{product\.description\}/);
+  });
+});

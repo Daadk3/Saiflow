@@ -244,10 +244,11 @@ export default async function ProductPage({
 
             {/* Description */}
             <div className="prose prose-invert mt-8 max-w-none text-gray-300 leading-relaxed">
-              <p className="whitespace-pre-wrap">
-                <bdi>
-                  {product.description || t("storefront.productDetail.descriptionEmptyState")}
-                </bdi>
+              {/* Written by the seller, often Arabic and English mixed: each
+                  line takes the direction of its own first letter, so
+                  punctuation stays where it was typed. */}
+              <p dir="auto" className="whitespace-pre-wrap text-start [unicode-bidi:plaintext]">
+                {product.description || t("storefront.productDetail.descriptionEmptyState")}
               </p>
             </div>
 
