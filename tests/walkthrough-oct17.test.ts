@@ -86,3 +86,13 @@ describe("B11: signing out takes one click", () => {
     assert.ok(en().nav.signingOut && ar().nav.signingOut);
   });
 });
+
+describe("B12: \"checkout is being activated\" appears once on a product page", () => {
+  test("the button says it in pre-launch; the page's own line shows only once payments are open, and says something else", () => {
+    const page = read("app/shop/[slug]/product/[productSlug]/page.tsx");
+    assert.match(page, /\{!preLaunchMode && \(\s*<p className="text-center text-sm text-gray-500 mt-4">\s*\{t\("storefront\.productDetail\.secureCheckout"\)\}/);
+    assert.ok(read("app/shop/[slug]/product/[productSlug]/BuyButton.tsx").includes('t("preLaunch.checkoutDisabled")'));
+    assert.equal(en().storefront.productDetail.secureCheckout, "Secure checkout.");
+    assert.notEqual(ar().storefront.productDetail.secureCheckout, ar().preLaunch.checkoutDisabled);
+  });
+});

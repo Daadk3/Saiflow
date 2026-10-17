@@ -302,9 +302,14 @@ export default async function ProductPage({
                 <ShareButton title={product.name} />
               </div>
 
-              <p className="text-center text-sm text-gray-500 mt-4">
-                {t("storefront.productDetail.secureCheckout")}
-              </p>
+              {/* In pre-launch the button already says checkout is being
+                  activated; saying it again here was the duplicate. Once
+                  payments open, this is the reassurance line. */}
+              {!preLaunchMode && (
+                <p className="text-center text-sm text-gray-500 mt-4">
+                  {t("storefront.productDetail.secureCheckout")}
+                </p>
+              )}
 
               {/* Unconditional: this page only renders for a product whose
                   deliverable already passed SAFE_DELIVERABLE_WHERE, so the
