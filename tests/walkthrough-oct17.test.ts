@@ -105,3 +105,24 @@ describe("B13: the footer's Start selling goes where the others do", () => {
     assert.ok(!footer.includes(`<Link href="/dashboard" className={linkClass}>{t('nav.startSelling')}`));
   });
 });
+
+describe("C14: after signing up, a clear check-your-inbox screen", () => {
+  test("the form gives way to the address, three plain steps, resend and start-again", () => {
+    const page = read("app/signup/page.tsx");
+    assert.ok(page.includes("{createdEmail ? ("), "the screen replaces the form");
+    assert.ok(page.includes('<p className="mt-1 font-medium text-white break-all" dir="ltr">{createdEmail}</p>'));
+    for (const key of ["inbox.title", "inbox.sentTo", "inbox.step1", "inbox.step2", "inbox.step3", "inbox.differentEmail", "resendButton", "successEmailFailed"]) {
+      assert.ok(page.includes(`t('auth.signup.${key}')`), key);
+    }
+    assert.ok(page.includes("<ResendVerification email={createdEmail}"));
+  });
+
+  test("the password step is explained in plain words, in both languages", () => {
+    for (const messages of [en(), ar()]) {
+      const inbox = messages.auth.signup.inbox;
+      for (const key of ["title", "sentTo", "step1", "step2", "step3", "differentEmail"]) assert.ok(inbox[key], key);
+    }
+    assert.match(en().auth.signup.inbox.step3, /type the password you just chose/);
+    assert.match(ar().auth.signup.inbox.step3, /اكتب كلمة المرور التي اخترتها/);
+  });
+});

@@ -398,6 +398,14 @@
       "alreadyHaveAccount": "Already have an account? <link>Log in</link>",
       "termsAgreement": "By creating an account, you agree to our <terms>Terms of Service</terms> and <privacy>Privacy Policy</privacy>",
       "successMessage": "Account created. We've emailed you a confirmation link: open it and enter your password to activate your account.",
+      "inbox": {
+        "title": "Check your inbox",
+        "sentTo": "Your account is created. We sent a confirmation link to:",
+        "step1": "Open the email from SaiFlow. If you don't see it within a few minutes, check your spam or junk folder.",
+        "step2": "Click the confirmation link in the email.",
+        "step3": "On the page that opens, type the password you just chose. That confirms the email is yours, and your account is ready.",
+        "differentEmail": "Used the wrong email? Start again"
+      },
       "successEmailFailed": "Account created, but we couldn't send the confirmation email just now. Use the button below to send it again.",
       "resendButton": "Didn't get it? Send it again",
       "errorFallback": "Signup failed",
