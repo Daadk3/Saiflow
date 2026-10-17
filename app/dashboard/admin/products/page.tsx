@@ -199,6 +199,7 @@ export default async function AdminProductsPage({
                           <StatusBadge status={p.moderationStatus} t={t} />
                           <NotSellableBadge reason={p.notSellableReason} t={t} />
                           <FileSafetyBadge safety={p.fileSafety} t={t} />
+                          <RejectionReason reason={p.rejectionReason} t={t} />
                         </div>
                       </td>
                       <td className="px-3 py-3">
@@ -264,6 +265,7 @@ export default async function AdminProductsPage({
                           </span>
                         )}
                       </div>
+                      <RejectionReason reason={p.rejectionReason} t={t} />
                     </div>
                   </div>
                   {!p.humanReviewed && (
@@ -323,6 +325,17 @@ function StatusBadge({
  * the reason (lib/sellable). Approved is a decision; on sale is a fact, and
  * the two can differ, so the row says which.
  */
+/** Why a rejected product was rejected, shortened; the full text is on its page. */
+function RejectionReason({ reason, t }: { reason: string | null; t: (k: string) => string }) {
+  if (!reason) return null;
+  return (
+    <p className="mt-1 max-w-[18rem] break-words text-xs text-red-300/80">
+      <span className="text-gray-500">{t("directory.rejectionReasonLabel")}</span>{" "}
+      <bdi dir="auto">{reason}</bdi>
+    </p>
+  );
+}
+
 function NotSellableBadge({ reason, t }: { reason: string | null; t: (k: string) => string }) {
   if (!reason) return null;
   return (

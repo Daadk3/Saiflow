@@ -1071,7 +1071,13 @@
         "reports": "Reports",
         "created": "Created"
       },
-      "inspectFile": "Inspect file"
+      "inspectFile": "Inspect file",
+      "updating": "Updating the page…",
+      "decided": {
+        "APPROVED": "Approved. The seller will be emailed.",
+        "REJECTED": "Rejected. The seller will be emailed the reason."
+      },
+      "rejectionReasonLabel": "Reason:"
     }
   },
   "ai": {

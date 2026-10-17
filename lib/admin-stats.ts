@@ -17,6 +17,7 @@ import {
 import type { ModerationStatus, Prisma } from "@prisma/client";
 import { fromHalalas, parseMoney } from "@/lib/pricing";
 import { APPROVED_NOT_SELLABLE_WHERE, unsellableReason, type UnsellableReason } from "@/lib/sellable";
+import { shortReason } from "@/lib/rejection-reasons";
 
 /* ------------------------------------------------------------------ */
 /* Review-source rule                                                  */
@@ -277,6 +278,12 @@ export interface DirectoryRow {
    * when it is not approved or is on sale. Drives the red badge.
    */
   notSellableReason: UnsellableReason | null;
+  /**
+   * For a rejected product, the reason given with the rejection that put it
+   * there, shortened for the row (lib/rejection-reasons shortReason). Null
+   * otherwise, or when that rejection carried no reason.
+   */
+  rejectionReason: string | null;
 }
 
 export interface DirectoryPage {
@@ -378,7 +385,7 @@ export async function getProductsDirectory(opts: {
           where: ADMIN_DECISION,
           orderBy: { createdAt: "desc" },
           take: 1,
-          select: { newStatus: true },
+          select: { newStatus: true, reason: true },
         },
       },
     }),
@@ -414,6 +421,8 @@ export async function getProductsDirectory(opts: {
         canInspect: p.fileKey != null,
         notSellableReason:
           p.moderationStatus === "APPROVED" && unsellableReason(p) !== "sellable" ? unsellableReason(p) : null,
+        rejectionReason:
+          p.moderationStatus === "REJECTED" && latest?.newStatus === "REJECTED" ? shortReason(latest.reason) : null,
       };
     }),
   };

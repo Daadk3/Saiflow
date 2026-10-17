@@ -167,10 +167,15 @@ describe("the review buttons say why Approve is unavailable", () => {
   test("both buttons disable Approve and show the reason; both pages pass it", () => {
     for (const file of ["components/admin/DecisionButtons.tsx", "components/admin/ReviewButton.tsx"]) {
       const src = read(file);
-      assert.ok(src.includes("disabled={busy || approveBlocked !== null}"), file);
+      // DecisionButtons also waits for its refresh (tests/decision-feedback).
+      assert.match(src, /disabled=\{busy (\|\| refreshing )?\|\| approveBlocked !== null\}/, file);
       assert.ok(src.includes("t(`approveBlocked.${approveBlocked}`)"), file);
-      assert.ok(src.includes('data.error === "not_approvable"'), file);
     }
+    // The server's refusal reason reaches the founder: inline in ReviewButton,
+    // through lib/decision-feedback in DecisionButtons.
+    assert.ok(read("components/admin/ReviewButton.tsx").includes('data.error === "not_approvable"'));
+    assert.ok(read("lib/decision-feedback.ts").includes('data.error === "not_approvable"'));
+    assert.ok(read("components/admin/DecisionButtons.tsx").includes("readDecisionResponse(res.ok"));
     assert.equal((read("app/dashboard/admin/products/page.tsx").match(/approveBlocked=\{p\.fileSafety\.publishable \? null : p\.fileSafety\.reason\}/g) ?? []).length, 2);
     assert.ok(read("app/dashboard/admin/products/[id]/preview/page.tsx").includes("approveBlocked={product.fileSafety.publishable ? null : product.fileSafety.reason}"));
     for (const locale of ["en", "ar"]) {

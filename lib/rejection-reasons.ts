@@ -55,3 +55,16 @@ export const QUICK_REJECTION_REASONS: readonly QuickReason[] = [
 export function quickReasonText(reason: QuickReason): string {
   return `${reason.ar}\n${reason.en}`;
 }
+
+/**
+ * A rejection reason cut to fit a row of the products list: whitespace
+ * collapsed to single spaces, at most `max` characters counted as whole code
+ * points (so an Arabic letter or emoji is never split), and "…" when cut.
+ * Null for a missing or blank reason. The full text stays on the product page.
+ */
+export function shortReason(reason: string | null | undefined, max = 120): string | null {
+  const text = (reason ?? "").replace(/\s+/g, " ").trim();
+  if (!text) return null;
+  const chars = Array.from(text);
+  return chars.length <= max ? text : `${chars.slice(0, max - 1).join("").trimEnd()}…`;
+}
