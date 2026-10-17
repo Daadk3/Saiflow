@@ -10,13 +10,23 @@
  *
  * The rule under test: a request with `?ref=` is authorised only by an Order
  * whose merchantReferenceId is that reference, whose provider is GEIDEA, and
- * whose productId is the product in the path. The existing Stripe channels
- * are exercised too, to prove the three channels never bleed into each other.
+ * whose productId is the product in the path. The other channels (Stripe,
+ * the signed receipt link, and the signed-in buyer's account) are exercised
+ * too, to prove they never bleed into each other. Every bearer link expires
+ * after RECEIPT_LINK_TTL_DAYS; the retired `?orderId=` link always has.
  */
 
 import { test, describe, mock, before, beforeEach } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
+import { pathToFileURL } from "node:url";
+import { resolve } from "node:path";
+import { signReceiptToken } from "../lib/download-links.ts";
+
+const SECRET = "test-only-secret-not-real";
+const DAY = 24 * 60 * 60 * 1000;
+const token = (orderId: string, productId: string, expiresInMs = DAY) =>
+  signReceiptToken({ orderId, productId, expiresAt: new Date(Date.now() + expiresInMs) }, SECRET);
 
 const KEY_A = "abc123XY_key-one";
 const KEY_B = "zzz999QQ_key-two";
@@ -32,6 +42,8 @@ interface OrderRow {
   paymentProvider: string;
   merchantReferenceId: string | null;
   stripeSessionId: string | null;
+  customerEmail: string;
+  createdAt: Date;
 }
 interface ProductRow {
   id: string;
@@ -46,6 +58,7 @@ const lookups: Record<string, unknown>[] = [];
 const signCalls: { key: string }[] = [];
 const logs: string[] = [];
 const hits = new Map<string, number>();
+const auth = { session: null as null | { user: { email: string } } };
 
 const fakePrisma = {
   order: {
@@ -77,6 +90,11 @@ let GET: (req: Request, ctx: { params: Promise<{ productId: string }> }) => Prom
 
 before(async () => {
   mock.module("@/lib/prisma", { namedExports: { prisma: fakePrisma } });
+  mock.module("@/lib/env", { namedExports: { env: { NEXTAUTH_SECRET: SECRET } } });
+  mock.module("next-auth", { namedExports: { getServerSession: async () => auth.session } });
+  mock.module(pathToFileURL(resolve(import.meta.dirname, "../app/api/auth/authOptions.ts")).href, {
+    namedExports: { authOptions: {} },
+  });
   mock.module("@/lib/rate-limit", {
     namedExports: {
       getClientIp: (req: Request) => req.headers.get("x-forwarded-for") ?? "unknown",
@@ -132,11 +150,13 @@ const product = (id: string, name: string, key: string | null, over: Partial<Pro
 });
 
 function reset() {
+  const createdAt = new Date(Date.now() - DAY);
   db.orders = [
-    { id: "order_a", productId: "prod_a", paymentProvider: "GEIDEA", merchantReferenceId: REF_A, stripeSessionId: null },
-    { id: "order_b", productId: "prod_b", paymentProvider: "GEIDEA", merchantReferenceId: REF_B, stripeSessionId: null },
-    { id: "order_s", productId: "prod_a", paymentProvider: "STRIPE", merchantReferenceId: null, stripeSessionId: "cs_test_abc" },
+    { id: "order_a", productId: "prod_a", paymentProvider: "GEIDEA", merchantReferenceId: REF_A, stripeSessionId: null, customerEmail: "Buyer@Example.test", createdAt },
+    { id: "order_b", productId: "prod_b", paymentProvider: "GEIDEA", merchantReferenceId: REF_B, stripeSessionId: null, customerEmail: "other@example.test", createdAt },
+    { id: "order_s", productId: "prod_a", paymentProvider: "STRIPE", merchantReferenceId: null, stripeSessionId: "cs_test_abc", customerEmail: "buyer@example.test", createdAt },
   ];
+  auth.session = null;
   db.products = new Map([
     ["prod_a", product("prod_a", "Pack A", KEY_A)],
     ["prod_b", product("prod_b", "Pack B", KEY_B)],
@@ -155,6 +175,13 @@ async function refused(res: Response, status: number, code?: string) {
   assert.ok(!body.includes("SECRET"));
   assert.ok(!body.includes("order_"), "refusal leaked an order id");
   if (code) assert.equal(JSON.parse(body).error, code);
+}
+
+/** An expired SaiFlow link: sent to the page that explains how to download again, never signed. */
+function expiredPage(res: Response) {
+  assert.equal(res.status, 303, `expected 303, got ${res.status}`);
+  assert.equal(new URL(res.headers.get("location")!).pathname, "/download/expired");
+  assert.equal(signCalls.length, 0, "an expired link must never sign anything");
 }
 
 /* ------------------------------------------------------------------ */
@@ -187,7 +214,15 @@ describe("a confirmed Geidea Order downloads exactly its product", () => {
   });
 
   test("the Order's provider must be GEIDEA even when a reference somehow matches", async () => {
-    db.orders.push({ id: "order_x", productId: "prod_a", paymentProvider: "STRIPE", merchantReferenceId: REF_STRIPEISH, stripeSessionId: "cs_test_x" });
+    db.orders.push({
+      id: "order_x",
+      productId: "prod_a",
+      paymentProvider: "STRIPE",
+      merchantReferenceId: REF_STRIPEISH,
+      stripeSessionId: "cs_test_x",
+      customerEmail: "x@example.test",
+      createdAt: new Date(),
+    });
     await refused(await get("prod_a", `?ref=${REF_STRIPEISH}`), 403);
   });
 });
@@ -267,7 +302,7 @@ describe("a reference for one product never opens another", () => {
 /* The channels never bleed                                            */
 /* ------------------------------------------------------------------ */
 
-describe("the three channels are explicit and never fall through", () => {
+describe("the channels are explicit and never fall through", () => {
   test("a Stripe session id cannot enter the Geidea channel", async () => {
     await refused(await get("prod_a", "?ref=cs_test_abc"), 403);
     assert.equal(lookups.length, 0);
@@ -282,13 +317,18 @@ describe("the three channels are explicit and never fall through", () => {
     assert.deepEqual(lookups, [{ stripeSessionId: `cs_${REF_A}` }], "looked up as a Stripe session, found nothing");
   });
 
-  test("a Geidea reference cannot enter the email channel", async () => {
-    await refused(await get("prod_a", `?orderId=${REF_A}`), 403);
-    assert.deepEqual(lookups, [{ id: REF_A }], "looked up as an Order id, found nothing");
+  test("the retired ?orderId= receipt link always answers expired, without a lookup", async () => {
+    for (const query of ["?orderId=order_a", "?orderId=order_s", `?orderId=${REF_A}`, "?orderId=nope"]) {
+      reset();
+      expiredPage(await get("prod_a", query));
+      assert.equal(lookups.length, 0, `no lookup for ${query}: it tells a guesser nothing`);
+    }
   });
 
   test("two credentials at once are refused without a lookup", async () => {
     await refused(await get("prod_a", `?ref=${REF_A}&orderId=order_a`), 403);
+    await refused(await get("prod_a", `?ref=${REF_A}&t=${token("order_a", "prod_a")}`), 403);
+    await refused(await get("prod_a", `?t=${token("order_a", "prod_a")}&purchase=order_a`), 403);
     assert.equal(lookups.length, 0);
   });
 
@@ -299,14 +339,102 @@ describe("the three channels are explicit and never fall through", () => {
     assert.deepEqual(signCalls, [{ key: KEY_A }]);
   });
 
-  test("the email channel still works for both providers' receipts", async () => {
-    let res = await get("prod_a", "?orderId=order_s");
+  test("the signed receipt link works for both providers' receipts, for its own product only", async () => {
+    let res = await get("prod_a", `?t=${token("order_s", "prod_a")}`);
     assert.equal(res.status, 302);
     reset();
-    res = await get("prod_a", "?orderId=order_a");
+    res = await get("prod_a", `?t=${token("order_a", "prod_a")}`);
     assert.equal(res.status, 302);
+    assert.deepEqual(lookups, [{ id: "order_a" }]);
     reset();
-    await refused(await get("prod_b", "?orderId=order_a"), 403);
+    await refused(await get("prod_b", `?t=${token("order_a", "prod_a")}`), 403, undefined);
+    assert.equal(lookups.length, 0, "a link signed for another product fails its signature before any lookup");
+    reset();
+    await refused(await get("prod_b", `?t=${token("order_a", "prod_b")}`), 403);
+    assert.deepEqual(lookups, [{ id: "order_a" }], "a genuine link still needs the Order to be for this product");
+  });
+
+  test("the receipt link's JSON channel hands back the same signed path", async () => {
+    const t = token("order_a", "prod_a");
+    const body = (await (await get("prod_a", `?t=${t}&format=json`)).json()) as Record<string, unknown>;
+    assert.deepEqual(body, { productName: "Pack A", downloadUrl: `/api/download/prod_a?t=${encodeURIComponent(t)}` });
+  });
+});
+
+/* ------------------------------------------------------------------ */
+/* Links expire; a signed-in buyer can always download again          */
+/* ------------------------------------------------------------------ */
+
+describe("bearer links expire", () => {
+  test("an expired receipt link goes to the explanation page, never to the file", async () => {
+    expiredPage(await get("prod_a", `?t=${token("order_a", "prod_a", -1000)}`));
+    assert.equal(lookups.length, 0, "an expired link is answered without a lookup");
+    const json = await get("prod_a", `?t=${token("order_a", "prod_a", -1000)}&format=json`);
+    assert.equal(json.status, 410);
+    assert.deepEqual(await json.json(), { error: "link_expired" });
+  });
+
+  test("a forged, altered or foreign-key link is refused, not called expired", async () => {
+    const genuine = token("order_a", "prod_a");
+    const [id, exp, sig] = genuine.split(".");
+    const flip = (c: string) => (c === "A" ? "B" : "A");
+    for (const forged of [
+      `${id}.${exp}.${flip(sig[0])}${sig.slice(1)}`,
+      `order_b.${exp}.${sig}`,
+      `${id}.${Number(exp) + 86400}.${sig}`,
+      signReceiptToken({ orderId: "order_a", productId: "prod_a", expiresAt: new Date(Date.now() + DAY) }, "another-secret"),
+      signReceiptToken({ orderId: "order_a", productId: "prod_a", expiresAt: new Date(Date.now() - DAY) }, "another-secret"),
+      "garbage",
+      "",
+    ]) {
+      reset();
+      await refused(await get("prod_a", `?t=${encodeURIComponent(forged)}`), 403);
+      assert.equal(lookups.length, 0, `no lookup for ${JSON.stringify(forged)}`);
+    }
+  });
+
+  test("the success-page reference expires with the order's receipt window", async () => {
+    db.orders[0].createdAt = new Date(Date.now() - 8 * DAY);
+    expiredPage(await get("prod_a", `?ref=${REF_A}`));
+    reset();
+    db.orders[0].createdAt = new Date(Date.now() - 6 * DAY);
+    assert.equal((await get("prod_a", `?ref=${REF_A}`)).status, 302);
+  });
+
+  test("an expired reference for the wrong product is still just refused", async () => {
+    db.orders[0].createdAt = new Date(Date.now() - 8 * DAY);
+    await refused(await get("prod_b", `?ref=${REF_A}`), 403);
+  });
+
+  test("the legacy Stripe success link expires the same way", async () => {
+    db.orders[2].createdAt = new Date(Date.now() - 8 * DAY);
+    expiredPage(await get("cs_test_abc"));
+  });
+});
+
+describe("a signed-in buyer downloads from My purchases", () => {
+  test("the order's own address, signed in, downloads whatever its age", async () => {
+    db.orders[0].createdAt = new Date(Date.now() - 400 * DAY);
+    auth.session = { user: { email: "buyer@example.test" } };
+    const res = await get("prod_a", "?purchase=order_a");
+    assert.equal(res.status, 302, "case-insensitive, and the account channel never expires");
+    assert.deepEqual(signCalls, [{ key: KEY_A }]);
+  });
+
+  test("signed out, or signed in as anyone else, nothing", async () => {
+    await refused(await get("prod_a", "?purchase=order_a"), 403);
+    assert.equal(lookups.length, 0, "no session, no lookup");
+    auth.session = { user: { email: "other@example.test" } };
+    await refused(await get("prod_a", "?purchase=order_a"), 403);
+    auth.session = { user: { email: "buyer@example.test" } };
+    await refused(await get("prod_b", "?purchase=order_a"), 403, undefined);
+    await refused(await get("prod_a", "?purchase=order_missing"), 403);
+  });
+
+  test("the safety gate still applies to a signed-in buyer", async () => {
+    auth.session = { user: { email: "buyer@example.test" } };
+    db.products.set("prod_a", product("prod_a", "Pack A", KEY_A, { fileScanStatus: "UNSAFE" }));
+    await refused(await get("prod_a", "?purchase=order_a"), 409, "file_not_available");
   });
 });
 
@@ -373,7 +501,7 @@ describe("logs and structure", () => {
     const code = src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
     assert.ok(!/paymentSession/i.test(code), "no attempt table in executable code");
     assert.ok(!code.includes("payments/geidea"), "no Geidea client");
-    assert.equal((code.match(/prisma\.order\.findUnique\(/g) ?? []).length, 3, "three explicit channels");
+    assert.equal((code.match(/prisma\.order\.findUnique\(/g) ?? []).length, 4, "four explicit channels");
     assert.ok(code.includes('paymentProvider === "GEIDEA"'));
     assert.ok(code.includes("found.productId === productId"));
     const auth = code.indexOf("if (!order)");

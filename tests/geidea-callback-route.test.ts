@@ -26,6 +26,9 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { signCallback } from "../lib/payments/geidea/signature.ts";
 import { COMMISSION_VERSION, fromHalalas, saleBreakdown } from "../lib/pricing.ts";
+import { verifyReceiptToken } from "../lib/download-links.ts";
+
+const RECEIPT_SECRET = "test-only-receipt-secret";
 
 /* ------------------------------------------------------------------ */
 /* Fixtures — none of these is a real credential                       */
@@ -205,6 +208,7 @@ before(async () => {
         get NEXTAUTH_URL() {
           return state.siteUrl;
         },
+        NEXTAUTH_SECRET: RECEIPT_SECRET,
       },
     },
   });
@@ -551,14 +555,21 @@ describe("the captured paid callback fulfils exactly once", () => {
     seed({ buyerEmail: BUYER_EMAIL });
     await post(callback());
     assert.equal(db.orders[0].customerEmail, BUYER_EMAIL);
-    assert.deepEqual(emails, [
-      {
-        customerEmail: BUYER_EMAIL,
-        productName: "Arabic Templates Pack",
-        downloadUrl: `https://saiflow.test/api/download/${PRODUCT_ID}?orderId=order_1`,
-        amountPaid: { amount: db.sessions[0].amount, currency: "SAR" },
-      },
-    ]);
+    assert.equal(emails.length, 1);
+    const { downloadUrl, ...rest } = emails[0] as { downloadUrl: string } & Record<string, unknown>;
+    assert.deepEqual(rest, {
+      customerEmail: BUYER_EMAIL,
+      productName: "Arabic Templates Pack",
+      amountPaid: { amount: db.sessions[0].amount, currency: "SAR" },
+    });
+    // A signed, dated link for this order and product, never the bare order id.
+    const link = new URL(downloadUrl);
+    assert.equal(`${link.origin}${link.pathname}`, `https://saiflow.test/api/download/${PRODUCT_ID}`);
+    assert.deepEqual([...link.searchParams.keys()], ["t"]);
+    const check = verifyReceiptToken(link.searchParams.get("t")!, PRODUCT_ID, RECEIPT_SECRET);
+    assert.deepEqual(check, { ok: true, orderId: "order_1" });
+    const days = (Number(link.searchParams.get("t")!.split(".")[1]) * 1000 - Date.now()) / 86_400_000;
+    assert.ok(days > 6.9 && days <= 7, `in date for 7 days, got ${days}`);
   });
 
   test("the callback's own customer fields are never used", async () => {
@@ -1087,7 +1098,7 @@ describe("a PaymentSession alone still cannot authorise a download", () => {
     const download = strip(read("app/api/download/[productId]/route.ts"));
     assert.ok(!/paymentSession/i.test(download));
     assert.ok(!download.includes("payments/geidea"));
-    assert.equal((download.match(/prisma\.order\.findUnique\(/g) ?? []).length, 3, "three explicit Order channels, none through attempts");
+    assert.equal((download.match(/prisma\.order\.findUnique\(/g) ?? []).length, 4, "four explicit Order channels, none through attempts");
     assert.match(download, /if \(!order\) \{[\s\S]*?status: 403/);
   });
 

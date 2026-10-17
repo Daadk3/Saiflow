@@ -1,5 +1,9 @@
 import { NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
 import { prisma } from "@/lib/prisma";
+import { env } from "@/lib/env";
+import { authOptions } from "../../auth/authOptions";
+import { verifyReceiptToken, withinReceiptWindow } from "@/lib/download-links";
 import { rateLimiters, getClientIp } from "@/lib/rate-limit";
 import { isDeliverableSafe } from "@/lib/file-safety";
 import { isMerchantReference } from "@/lib/payments/payment-status";
@@ -55,8 +59,8 @@ export async function GET(
   { params }: { params: Promise<{ productId: string }> }
 ) {
   try {
-    // This endpoint is unauthenticated by design — proof of purchase is a
-    // (productId, orderId) pair — so a guess is cheap. It now hands back
+    // Most channels here are bearer links rather than sign-ins — proof of
+    // purchase is a (productId, credential) pair — so a guess is cheap. It now hands back
     // signed bytes rather than a URL that might 404, which is worth a limit.
     if (!rateLimiters.api(getClientIp(req)).success) {
       return NextResponse.json({ error: "Too many requests" }, { status: 429 });
@@ -66,6 +70,9 @@ export async function GET(
     const { searchParams } = new URL(req.url);
     const orderId = searchParams.get("orderId");
     const ref = searchParams.get("ref");
+    const token = searchParams.get("t");
+    const purchase = searchParams.get("purchase");
+    const format = searchParams.get("format");
 
     if (!productId) {
       return NextResponse.json(
@@ -81,19 +88,29 @@ export async function GET(
     // that checkout writes is never consulted here: an attempt records an
     // intention, and nothing about it, not even a PAID status, is proof.
     //
-    // Three channels, explicit and mutually exclusive. A request presenting
+    // Four channels, explicit and mutually exclusive. A request presenting
     // more than one credential is refused rather than resolved, so nothing
     // ever falls through from one channel into another.
     //
-    //   geidea  bare productId + ?ref=<merchantReferenceId>   (success page)
-    //   stripe  path is a Stripe session id `cs_…`, no query   (legacy success page)
-    //   email   bare productId + ?orderId=<Order id>           (receipt email)
+    //   geidea   bare productId + ?ref=<merchantReferenceId>  (success page)
+    //   stripe   path is a Stripe session id `cs_…`, no query  (legacy success page)
+    //   receipt  bare productId + ?t=<signed token>            (receipt email)
+    //   account  bare productId + ?purchase=<Order id>         (My purchases, signed in)
+    //
+    // The first three are bearer links, so they EXPIRE: RECEIPT_LINK_TTL_DAYS
+    // after the receipt was issued, or after the order for the success-page
+    // links (lib/download-links). The account channel is a sign-in, not a
+    // link: it works for as long as the buyer can sign in with the address
+    // they bought with. The old receipt channel, `?orderId=`, was a bearer
+    // that never expired; it is retired and always answers "expired".
     //
     // The safety gate is added AFTER this, never in place of it.
     let order: { id: string; productId: string } | null = null;
-    let channel: "geidea" | "stripe" | "email" | null = null;
+    let channel: "geidea" | "stripe" | "receipt" | "account" | null = null;
+    let expired = false;
 
-    if (ref !== null && orderId !== null) {
+    const credentials = [ref, orderId, token, purchase].filter((value) => value !== null).length;
+    if (credentials > 1) {
       // Two credentials at once is ambiguous by construction. Refused below.
     } else if (ref !== null) {
       // Geidea success-page channel. The reference is the buyer's bearer for
@@ -104,36 +121,78 @@ export async function GET(
       if (isMerchantReference(ref) && !productId.startsWith("cs_")) {
         const found = await prisma.order.findUnique({
           where: { merchantReferenceId: ref },
-          select: { id: true, productId: true, paymentProvider: true },
+          select: { id: true, productId: true, paymentProvider: true, createdAt: true },
         });
         if (
           found &&
           found.paymentProvider === "GEIDEA" &&
           found.productId === productId
         ) {
-          order = { id: found.id, productId: found.productId };
+          if (withinReceiptWindow(found.createdAt)) order = { id: found.id, productId: found.productId };
+          else expired = true;
         }
       }
     } else if (productId.startsWith("cs_")) {
       // Stripe success-page channel: the path param is a Stripe checkout
       // session id. Kept for the dormant integration's historical orders.
       channel = "stripe";
-      order = await prisma.order.findUnique({
-        where: { stripeSessionId: productId },
-        select: { id: true, productId: true },
-      });
-    } else if (orderId) {
-      // Email channel: bare productId + ?orderId=. The order must exist AND
-      // belong to the requested product. Provider-agnostic: both receipts
-      // link here.
-      channel = "email";
       const found = await prisma.order.findUnique({
-        where: { id: orderId },
-        select: { id: true, productId: true },
+        where: { stripeSessionId: productId },
+        select: { id: true, productId: true, createdAt: true },
       });
-      if (found && found.productId === productId) {
-        order = found;
+      if (found) {
+        if (withinReceiptWindow(found.createdAt)) order = { id: found.id, productId: found.productId };
+        else expired = true;
       }
+    } else if (orderId !== null) {
+      // The retired receipt channel. Answered without a query, so it tells a
+      // guesser nothing about which orders exist.
+      expired = true;
+    } else if (token !== null) {
+      // Receipt channel: a signed, dated link for one order and one product
+      // (lib/download-links). The signature is checked before the expiry, and
+      // the Order must still exist and still be for this product.
+      channel = "receipt";
+      const check = verifyReceiptToken(token, productId, env.NEXTAUTH_SECRET);
+      if (check.ok) {
+        const found = await prisma.order.findUnique({
+          where: { id: check.orderId },
+          select: { id: true, productId: true },
+        });
+        if (found && found.productId === productId) order = found;
+      } else if (check.reason === "expired") {
+        expired = true;
+      }
+    } else if (purchase !== null) {
+      // Account channel: the signed-in buyer, by the address they bought
+      // with. A session exists only for a verified address (authOptions), and
+      // its email is the stored one, so this is proof the caller owns the
+      // inbox the order was placed under. Compared case-insensitively, like
+      // every other address in SaiFlow.
+      channel = "account";
+      const session = await getServerSession(authOptions);
+      const email = session?.user?.email?.trim().toLowerCase();
+      if (email) {
+        const found = await prisma.order.findUnique({
+          where: { id: purchase },
+          select: { id: true, productId: true, customerEmail: true },
+        });
+        if (found && found.productId === productId && found.customerEmail.trim().toLowerCase() === email) {
+          order = { id: found.id, productId: found.productId };
+        }
+      }
+    }
+
+    // An expired link from SaiFlow: not an error the buyer caused, so they
+    // are sent to a page that explains how to download again. JSON callers
+    // get a code instead of a redirect.
+    if (expired) {
+      if (format === "json") {
+        return NextResponse.json({ error: "link_expired" }, { status: 410 });
+      }
+      const res = NextResponse.redirect(new URL("/download/expired", req.url), 303);
+      res.headers.set("Cache-Control", "no-store");
+      return res;
     }
 
     // No valid proof of purchase => refuse. Closes the unauthenticated
@@ -211,7 +270,6 @@ export async function GET(
      * rather than trusted from whenever the page was rendered. It also means
      * nothing durable is embedded in the page.
      */
-    const format = searchParams.get("format");
     if (format === "json") {
       return NextResponse.json({
         productName: product.name,
@@ -222,7 +280,9 @@ export async function GET(
             ? `/api/download/${encodeURIComponent(productId)}?ref=${encodeURIComponent(ref ?? "")}`
             : channel === "stripe"
               ? `/api/download/${encodeURIComponent(productId)}`
-              : `/api/download/${encodeURIComponent(productId)}?orderId=${encodeURIComponent(actualOrderId)}`,
+              : channel === "receipt"
+                ? `/api/download/${encodeURIComponent(productId)}?t=${encodeURIComponent(token ?? "")}`
+                : `/api/download/${encodeURIComponent(productId)}?purchase=${encodeURIComponent(actualOrderId)}`,
       });
     }
 

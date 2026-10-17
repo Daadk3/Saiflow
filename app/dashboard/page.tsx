@@ -230,6 +230,12 @@ export default function Dashboard() {
             </svg>
             {t('dashboard.viewSales')}
           </Link>
+          <Link
+            href="/dashboard/purchases"
+            className="bg-[#111111] border border-gray-800 hover:border-gray-700 text-gray-200 px-5 py-2.5 rounded-lg font-medium transition-colors flex items-center gap-2"
+          >
+            {t('dashboard.viewPurchases')}
+          </Link>
         </div>
 
         {/* Shops list */}

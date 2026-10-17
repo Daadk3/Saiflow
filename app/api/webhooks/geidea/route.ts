@@ -71,6 +71,7 @@ import {
 import type { GeideaOrder } from "@/lib/payments/geidea/client";
 import { verifyCallbackSignature } from "@/lib/payments/geidea/signature";
 import { redactId } from "@/lib/redact-id";
+import { receiptDownloadUrl } from "@/lib/download-links";
 import {
   MAX_CALLBACK_BYTES,
   canonicalAmount,
@@ -522,7 +523,8 @@ async function fulfil(
 /**
  * The receipt, after the purchase is committed and only when the buyer's
  * email was already known to the attempt. The link is the download route's
- * email channel, the same one the Stripe receipt uses. A failure here is
+ * receipt channel: signed, and in date for RECEIPT_LINK_TTL_DAYS
+ * (lib/download-links), the same one the Stripe receipt uses. A failure here is
  * logged and does not change the response: the purchase exists either way.
  */
 async function sendReceipt(session: Session, orderId: string, productName: string): Promise<void> {
@@ -536,7 +538,7 @@ async function sendReceipt(session: Session, orderId: string, productName: strin
     await sendPurchaseEmail({
       customerEmail: session.buyerEmail,
       productName,
-      downloadUrl: `${base}/api/download/${encodeURIComponent(session.productId)}?orderId=${encodeURIComponent(orderId)}`,
+      downloadUrl: receiptDownloadUrl(base, { orderId, productId: session.productId }, env.NEXTAUTH_SECRET),
       amountPaid: { amount: session.amount, currency: session.currency },
     });
   } catch (error) {

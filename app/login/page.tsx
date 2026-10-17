@@ -8,6 +8,7 @@ import { useTranslations } from "next-intl";
 import { EMAIL_NOT_VERIFIED } from "@/lib/auth/errors";
 import { ResendVerification } from "@/components/auth/ResendVerification";
 import { PasswordInput } from "@/components/auth/PasswordInput";
+import { callbackFromLocation } from "@/lib/safe-callback";
 
 export default function LoginPage() {
   const t = useTranslations();
@@ -38,7 +39,7 @@ export default function LoginPage() {
       } else if (result?.error) {
         setError(t('auth.login.errorInvalid'));
       } else if (result?.ok) {
-        router.push("/dashboard");
+        router.push(callbackFromLocation());
       }
     } catch {
       setError(t('auth.login.errorGeneric'));
@@ -81,7 +82,7 @@ export default function LoginPage() {
             {/* Google Sign In Button */}
             <button
               type="button"
-              onClick={() => signIn("google", { callbackUrl: "/dashboard" })}
+              onClick={() => signIn("google", { callbackUrl: callbackFromLocation() })}
               className="w-full py-3 px-4 bg-white hover:bg-gray-50 text-black font-medium rounded-lg border border-gray-300 transition-colors duration-200 flex items-center justify-center gap-3 mb-5"
             >
               <svg className="w-5 h-5" viewBox="0 0 24 24">

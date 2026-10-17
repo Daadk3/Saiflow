@@ -20,6 +20,15 @@
 import { test, describe, mock, before } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
+import { pathToFileURL } from "node:url";
+import { resolve } from "node:path";
+import { signReceiptToken } from "../lib/download-links.ts";
+
+const SECRET = "test-only-secret-not-real";
+/** A receipt link for order_1 / prod_1, in date. */
+const receiptToken = (orderId = "order_1", productId = "prod_1") =>
+  signReceiptToken({ orderId, productId, expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000) }, SECRET);
+const T = encodeURIComponent(receiptToken());
 
 const read = (p: string) => readFileSync(new URL(p, import.meta.url), "utf8");
 const routeSrc = () => read("../app/api/download/[productId]/route.ts");
@@ -76,7 +85,9 @@ before(async () => {
   mock.module("@/lib/prisma", {
     namedExports: {
       prisma: {
-        order: { findUnique: async () => state.order },
+        // Orders are recent unless a test says otherwise, so every bearer
+        // channel is inside its receipt window.
+        order: { findUnique: async () => (state.order ? { createdAt: new Date(), ...state.order } : null) },
         product: {
           findUnique: async (args: { select?: Record<string, boolean> }) => {
             state.productSelect = args?.select ?? null;
@@ -86,6 +97,12 @@ before(async () => {
         },
       },
     },
+  });
+
+  mock.module("@/lib/env", { namedExports: { env: { NEXTAUTH_SECRET: SECRET } } });
+  mock.module("next-auth", { namedExports: { getServerSession: async () => null } });
+  mock.module(pathToFileURL(resolve(import.meta.dirname, "../app/api/auth/authOptions.ts")).href, {
+    namedExports: { authOptions: {} },
   });
 
   mock.module("@/lib/rate-limit", {
@@ -135,9 +152,9 @@ const product = (
   fileScanKey: string | null = KEY
 ): ProductRow => ({ id: "prod_1", name: "Arabic Templates Pack", fileKey, fileScanStatus, fileScanKey });
 
-/** Email channel: bare productId + ?orderId= */
+/** Receipt channel: bare productId + ?t=<a signed link for this order and product>. */
 const byOrder = (productId = "prod_1", orderId = "order_1") =>
-  GET(request(`https://saiflow.test/api/download/${productId}?orderId=${orderId}`), {
+  GET(request(`https://saiflow.test/api/download/${productId}?t=${encodeURIComponent(receiptToken(orderId, productId))}`), {
     params: Promise.resolve({ productId }),
   });
 
@@ -411,11 +428,11 @@ describe("delivery: the success-page channel serialises no URL", () => {
     state.order = { id: "order_1", productId: "prod_1" };
     state.product = product();
     const res = await GET(
-      request("https://saiflow.test/api/download/prod_1?orderId=order_1&format=json"),
+      request(`https://saiflow.test/api/download/prod_1?t=${T}&format=json`),
       { params: Promise.resolve({ productId: "prod_1" }) }
     );
     const body = await res.json();
-    assert.equal(body.downloadUrl, "/api/download/prod_1?orderId=order_1");
+    assert.equal(body.downloadUrl, `/api/download/prod_1?t=${T}`);
   });
 
   test("the JSON channel still enforces both gates", async () => {
@@ -442,12 +459,12 @@ describe("delivery: the success-page channel serialises no URL", () => {
     state.product = product();
     const res = await GET(
       request(
-        "https://saiflow.test/api/download/prod_1?orderId=order_1&format=json&evil=%3Cscript%3E&redirect=https://evil.test"
+        `https://saiflow.test/api/download/prod_1?t=${T}&format=json&evil=%3Cscript%3E&redirect=https://evil.test`
       ),
       { params: Promise.resolve({ productId: "prod_1" }) }
     );
     const body = await res.json();
-    assert.equal(body.downloadUrl, "/api/download/prod_1?orderId=order_1");
+    assert.equal(body.downloadUrl, `/api/download/prod_1?t=${T}`);
     assert.ok(!body.downloadUrl.includes("evil"), "no client parameter rides along");
     assert.ok(!body.downloadUrl.includes("format=json"), "no recursion into JSON");
   });
@@ -468,7 +485,7 @@ describe("delivery: the buyer controls nothing but the identifiers", () => {
     authorizedSafe();
     const res = await GET(
       request(
-        "https://saiflow.test/api/download/prod_1?orderId=order_1&key=EVIL_KEY&fileKey=EVIL_KEY"
+        `https://saiflow.test/api/download/prod_1?t=${T}&key=EVIL_KEY&fileKey=EVIL_KEY`
       ),
       { params: Promise.resolve({ productId: "prod_1" }) }
     );
@@ -482,7 +499,7 @@ describe("delivery: the buyer controls nothing but the identifiers", () => {
     authorizedSafe();
     const res = await GET(
       request(
-        "https://saiflow.test/api/download/prod_1?orderId=order_1&fileUrl=https://evil.test/x&url=https://evil.test/y"
+        `https://saiflow.test/api/download/prod_1?t=${T}&fileUrl=https://evil.test/x&url=https://evil.test/y`
       ),
       { params: Promise.resolve({ productId: "prod_1" }) }
     );
@@ -495,7 +512,7 @@ describe("delivery: the buyer controls nothing but the identifiers", () => {
     state.product = product("UNSAFE", KEY, KEY);
     const res = await GET(
       request(
-        "https://saiflow.test/api/download/prod_1?orderId=order_1&fileScanStatus=SAFE&fileScanKey=" +
+        `https://saiflow.test/api/download/prod_1?t=${T}&fileScanStatus=SAFE&fileScanKey=` +
           KEY +
           "&isDeliverableSafe=true&force=1"
       ),
@@ -504,14 +521,14 @@ describe("delivery: the buyer controls nothing but the identifiers", () => {
     await assertRefusedWithoutSigning(res, 409, "file_not_available");
   });
 
-  test("the only query parameters read are orderId, ref and format", () => {
+  test("the only query parameters read are the four credentials and format", () => {
     const s = routeSrc();
     const reads = s.match(/searchParams\.get\("([^"]+)"\)/g) ?? [];
     assert.deepEqual(
       reads.sort(),
       ['searchParams.get("format")', 'searchParams.get("orderId")',
       // The Geidea success-page channel, added with delivery after payment.
-      'searchParams.get("ref")'],
+      'searchParams.get("purchase")', 'searchParams.get("ref")', 'searchParams.get("t")'],
       "no other request parameter may be read"
     );
   });

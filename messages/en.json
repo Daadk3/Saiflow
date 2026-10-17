@@ -231,6 +231,7 @@
     },
     "viewShop": "View shop",
     "viewSales": "View sales",
+    "viewPurchases": "My purchases",
     "comingSoon": "Coming soon",
     "mixedCurrency": "Multiple currencies — see breakdown",
     "shop": {
@@ -1110,5 +1111,23 @@
       "date": "Enter the date the transfer was sent.",
       "generic": "The payout couldn't be recorded. Please try again."
     }
+  },
+  "purchases": {
+    "title": "My purchases",
+    "subtitle": "Everything bought with {email}. Download any of them as often as you need.",
+    "back": "Back to your dashboard",
+    "empty": "No purchases with this email address yet. If you bought with a different address, sign in with that one.",
+    "download": "Download",
+    "test": "Test purchase",
+    "help": "Purchases are linked to the email address used at checkout. Can't find one? Contact support@saiflow.io."
+  },
+  "downloadExpired": {
+    "title": "This download link has expired",
+    "body": "For your security, download links in receipts work for {days} days. Your purchase is safe, and you can still download it.",
+    "step1": "Sign in to SaiFlow with the email address you used to buy. New here? Create an account with that same address.",
+    "step2": "Open \"My purchases\" and press Download.",
+    "signIn": "Sign in to download",
+    "signUp": "Create an account",
+    "support": "Need help? Write to"
   }
 }
