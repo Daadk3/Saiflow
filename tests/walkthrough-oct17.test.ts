@@ -70,3 +70,19 @@ describe("B10: the create-store address preview is right", () => {
     }
   });
 });
+
+describe("B11: signing out takes one click", () => {
+  test("the button waits for the session to end, then reloads the home page, and cannot be clicked twice", () => {
+    const button = read("components/auth/SignOutButton.tsx");
+    assert.ok(button.includes("await signOut({ redirect: false })"));
+    assert.ok(button.includes('window.location.assign("/")'));
+    assert.ok(button.includes("disabled={busy}"));
+  });
+
+  test("both navbar menus use it; nothing calls signOut with an immediate redirect any more", () => {
+    const nav = read("components/Navbar.tsx");
+    assert.equal((nav.match(/<SignOutButton/g) ?? []).length, 2);
+    assert.ok(!nav.includes("signOut({ callbackUrl"));
+    assert.ok(en().nav.signingOut && ar().nav.signingOut);
+  });
+});

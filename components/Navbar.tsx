@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { useSession, signOut } from "next-auth/react";
+import { useSession } from "next-auth/react";
+import { SignOutButton } from "@/components/auth/SignOutButton";
 import { usePathname } from "next/navigation";
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 import BrandLogo from "@/components/BrandLogo";
@@ -69,12 +70,7 @@ export default function Navbar() {
                 <Link href="/dashboard" className={navLinkClass}>
                   {t('dashboard')}
                 </Link>
-                <button
-                  onClick={() => signOut({ callbackUrl: '/' })}
-                  className={navLinkClass}
-                >
-                  {t('signOut')}
-                </button>
+                <SignOutButton className={`${navLinkClass} disabled:opacity-60`} />
               </div>
             ) : (
               // Logged out - show these
@@ -165,15 +161,10 @@ export default function Navbar() {
                 <Link href="/dashboard" className={navLinkClass} onClick={() => setMenuOpen(false)}>
                   {t('dashboard')}
                 </Link>
-                <button
-                  onClick={() => {
-                    setMenuOpen(false);
-                    signOut({ callbackUrl: '/' });
-                  }}
-                  className={`${navLinkClass} text-left rtl:text-right`}
-                >
-                  {t('signOut')}
-                </button>
+                <SignOutButton
+                  onStart={() => setMenuOpen(false)}
+                  className={`${navLinkClass} text-left rtl:text-right disabled:opacity-60`}
+                />
               </>
             ) : (
               // Logged out mobile menu
