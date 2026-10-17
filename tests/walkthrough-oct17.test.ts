@@ -244,3 +244,40 @@ describe("Part 2, item 3: the homepage Sell and Buy buttons line up", () => {
     assert.match(src, /px-6 py-3/);
   });
 });
+
+describe("Fixes from the test-site checks on PR #58", () => {
+  test("1. upload buttons are ready on load: the dashboard hands them their settings", () => {
+    const layout = read("app/dashboard/layout.tsx");
+    assert.ok(layout.includes('import { NextSSRPlugin } from "@uploadthing/react/next-ssr-plugin";'));
+    assert.ok(layout.includes("<NextSSRPlugin routerConfig={extractRouterConfig(ourFileRouter)} />"));
+  });
+
+  test("2. the preview-image help names no type or size of its own; the button's list is the one source", () => {
+    for (const messages of [en(), ar()]) {
+      for (const help of [messages.dashboard.product.thumbnailHelp, messages.dashboard.product.edit.thumbnailHelp]) {
+        assert.ok(!/MB|PNG|JPG/.test(help), help);
+      }
+    }
+  });
+
+  test("3. a just-uploaded cover, logo or thumbnail is previewed straight from storage", () => {
+    const shopEdit = read("app/dashboard/shop/[slug]/edit/page.tsx");
+    assert.equal((shopEdit.match(/src=\{(coverImage|logo)\}\n[^\n]*\/\/[^\n]*\n[^\n]*\n[^\n]*\n\s*unoptimized/g) ?? []).length, 2);
+    for (const file of ["app/dashboard/shop/[slug]/add-product/page.tsx", "app/dashboard/shop/[slug]/product/[productSlug]/edit/page.tsx"]) {
+      assert.match(read(file), /src=\{thumbnailUrl\}\n[\s\S]{0,400}?unoptimized/, file);
+    }
+  });
+
+  test("4. the closing section's two buttons are the same height", () => {
+    assert.ok(read("components/home/FinalCta.tsx").includes('className="btn-primary mt-7 border border-transparent text-base"'));
+    assert.match(read("app/globals.css"), /\.btn-secondary \{[\s\S]*?border: 1px solid/);
+  });
+
+  test("5. the newsletter field has its own name and label; Terms and Privacy name themselves", () => {
+    const footer = read("components/Footer.tsx");
+    assert.ok(footer.includes('name="newsletter-email"') && !footer.includes('name="email"'));
+    assert.ok(footer.includes("aria-label={t('footer.newsletterEmailAria')}"));
+    assert.ok(read("app/terms/page.tsx").includes('title: "Terms of Service | SaiFlow"'));
+    assert.ok(read("app/privacy/page.tsx").includes('title: "Privacy Policy | SaiFlow"'));
+  });
+});

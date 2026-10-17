@@ -51,7 +51,7 @@ export default function Footer() {
                 </label>
                 <input
                   id="newsletter-email"
-                  name="email"
+                  name="newsletter-email"
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}

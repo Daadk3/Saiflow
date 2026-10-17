@@ -1,4 +1,8 @@
+import type { Metadata } from "next";
 import { LEGAL } from "@/lib/legal";
+
+/** The tab and search-result title names the page (it inherited the site title before). */
+export const metadata: Metadata = { title: "Terms of Service | SaiFlow" };
 
 export default function TermsPage() {
   return (

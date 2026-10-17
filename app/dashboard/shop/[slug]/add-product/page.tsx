@@ -190,6 +190,10 @@ export default function AddProductPage() {
                   <div className="relative inline-block">
                     <Image
                       src={thumbnailUrl}
+                      // The seller's just-uploaded picture, loaded straight from storage:
+                      // the optimizer can fetch a brand-new upload before it is available
+                      // and show nothing, which looked like a failed upload.
+                      unoptimized
                       alt={t("dashboard.product.thumbnailAlt")}
                       width={200}
                       height={200}

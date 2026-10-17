@@ -223,6 +223,10 @@ export default function EditShopPage() {
                   <div className="relative">
                     <Image
                       src={coverImage}
+                      // The seller's just-uploaded picture, loaded straight from storage:
+                      // the optimizer can fetch a brand-new upload before it is available
+                      // and show nothing, which looked like a failed upload.
+                      unoptimized
                       alt={t("shop.edit.coverImageAlt")}
                       width={600}
                       height={200}
@@ -286,6 +290,10 @@ export default function EditShopPage() {
                     <div className="relative">
                       <Image
                         src={logo}
+                        // The seller's just-uploaded picture, loaded straight from storage:
+                        // the optimizer can fetch a brand-new upload before it is available
+                        // and show nothing, which looked like a failed upload.
+                        unoptimized
                         alt={t("shop.edit.logoAlt")}
                         width={100}
                         height={100}
