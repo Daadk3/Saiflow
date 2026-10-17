@@ -7,6 +7,7 @@ import { slugify } from "@/lib/slug";
 import { accountKey, rateLimiters, retryAfterSeconds } from "@/lib/rate-limit";
 import { runAfterResponse } from "@/lib/after-response";
 import { notifyAdminsStoreCreated } from "@/lib/notify";
+import { sessionUserId } from "@/lib/session-account";
 
 // POST - Create a new shop
 export async function POST(req: Request) {
@@ -123,8 +124,13 @@ export async function GET() {
       );
     }
 
+    // By account id (lib/session-account): exactly the signed-in account.
+    const userId = sessionUserId(session);
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
     const user = await prisma.user.findUnique({
-      where: { email: session.user.email },
+      where: { id: userId },
       include: {
         shopUsers: {
           include: {

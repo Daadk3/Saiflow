@@ -7,6 +7,8 @@ import Link from "next/link";
 import Image from "next/image";
 import { useTranslations } from "next-intl";
 import { UploadButton } from "@/lib/uploadthing";
+import { useUploadContent } from "@/components/upload/useUploadContent";
+import { DashboardSkeleton } from "@/components/ui/DashboardSkeleton";
 
 interface Shop {
   id: string;
@@ -33,6 +35,9 @@ export default function EditShopPage() {
   const slug = params.slug as string;
   const { status } = useSession();
   const t = useTranslations("dashboard");
+  const tUpload = useTranslations("upload");
+  const coverUploadContent = useUploadContent("shopCover");
+  const logoUploadContent = useUploadContent("shopLogo");
 
   useEffect(() => {
     if (status === "unauthenticated") {
@@ -115,14 +120,7 @@ export default function EditShopPage() {
   }
 
   if (status === "loading" || loading) {
-    return (
-      <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center">
-        <div className="flex flex-col items-center gap-4">
-          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-teal-500"></div>
-          <p className="text-gray-400">{t("shop.loadingShop")}</p>
-        </div>
-      </div>
-    );
+    return <DashboardSkeleton label={t("shop.loadingShop")} variant="form" />;
   }
 
   if (error && !shop) {
@@ -225,6 +223,10 @@ export default function EditShopPage() {
                   <div className="relative">
                     <Image
                       src={coverImage}
+                      // The seller's just-uploaded picture, loaded straight from storage:
+                      // the optimizer can fetch a brand-new upload before it is available
+                      // and show nothing, which looked like a failed upload.
+                      unoptimized
                       alt={t("shop.edit.coverImageAlt")}
                       width={600}
                       height={200}
@@ -233,6 +235,7 @@ export default function EditShopPage() {
                     <button
                       type="button"
                       onClick={() => setCoverImage("")}
+                      aria-label={tUpload("removeImage")}
                       className="absolute top-2 end-2 w-8 h-8 bg-red-500 hover:bg-red-400 rounded-full flex items-center justify-center transition-colors"
                     >
                       <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -253,6 +256,7 @@ export default function EditShopPage() {
                     {shop?.id && (
                       <UploadButton
                         endpoint="shopCover"
+                        content={coverUploadContent}
                         input={{ shopId: shop.id }}
                         onClientUploadComplete={(res) => {
                           if (res?.[0]) {
@@ -286,6 +290,10 @@ export default function EditShopPage() {
                     <div className="relative">
                       <Image
                         src={logo}
+                        // The seller's just-uploaded picture, loaded straight from storage:
+                        // the optimizer can fetch a brand-new upload before it is available
+                        // and show nothing, which looked like a failed upload.
+                        unoptimized
                         alt={t("shop.edit.logoAlt")}
                         width={100}
                         height={100}
@@ -294,6 +302,7 @@ export default function EditShopPage() {
                       <button
                         type="button"
                         onClick={() => setLogo("")}
+                        aria-label={tUpload("removeImage")}
                         className="absolute -top-2 -end-2 w-6 h-6 bg-red-500 hover:bg-red-400 rounded-full flex items-center justify-center transition-colors"
                       >
                         <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -312,6 +321,7 @@ export default function EditShopPage() {
                       {shop?.id && (
                         <UploadButton
                           endpoint="shopLogo"
+                          content={logoUploadContent}
                           input={{ shopId: shop.id }}
                           onClientUploadComplete={(res) => {
                             if (res?.[0]) {

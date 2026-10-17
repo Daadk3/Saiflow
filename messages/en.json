@@ -7,6 +7,9 @@
     "startSelling": "Start Selling",
     "dashboard": "Dashboard",
     "signOut": "Sign Out",
+    "signingOut": "Signing out…",
+    "switchToEnglish": "Switch to English",
+    "switchToArabic": "Switch to Arabic (العربية)",
     "search": "Search",
     "blog": "Blog",
     "docs": "Docs",
@@ -218,7 +221,7 @@
       "backLinkShort": "Dashboard",
       "shopNameLabel": "Shop Name",
       "shopNamePlaceholder": "e.g., My Awesome Shop",
-      "slugPreview": "This will be used to create your shop URL: saiflow.com/shop/{slug}",
+      "slugPreview": "This will be used to create your shop URL: {host}/shop/{slug}",
       "slugFallback": "your-shop",
       "descriptionLabel": "Description",
       "descriptionPlaceholder": "Tell customers what your shop is about...",
@@ -231,6 +234,7 @@
     },
     "viewShop": "View shop",
     "viewSales": "View sales",
+    "viewPurchases": "My purchases",
     "comingSoon": "Coming soon",
     "mixedCurrency": "Multiple currencies — see breakdown",
     "shop": {
@@ -253,7 +257,7 @@
       "noFile": "No file",
       "readyToSell": "Ready to sell",
       "awaitingApproval": "Awaiting product approval",
-      "uploadFileWarning": "Upload a file to enable sales",
+      "uploadFileWarning": "Missing file: open Edit and upload your product file to resubmit it for review.",
       "viewProductTitle": "View Product",
       "editProductTitle": "Edit Product",
       "deleteProductTitle": "Delete Product",
@@ -320,6 +324,8 @@
       "emptyState": "No sales yet. When you make your first sale, the details will appear here."
     },
     "product": {
+      "replaceFileReview": "This product is approved. Replacing its file sends it back for review, and it is hidden from buyers until it's approved again.",
+      "fileRequired": "Upload your product file before submitting. The cover picture is not the product file.",
       "productNameLabel": "Product Name",
       "productNamePlaceholder": "e.g., My Awesome Ebook",
       "descriptionLabel": "Description",
@@ -329,7 +335,7 @@
       "categorySelectOption": "Select a category (optional)",
       "categoryHelp": "Help buyers find your product by selecting a category",
       "thumbnailLabel": "Product Thumbnail",
-      "thumbnailHelp": "Add a preview image to attract buyers (PNG, JPG, max 4MB)",
+      "thumbnailHelp": "Add a preview image to attract buyers. The accepted types and size are listed under the button.",
       "thumbnailAlt": "Product thumbnail",
       "thumbnailUploadCta": "Upload a thumbnail image",
       "thumbnailUploadFailed": "Thumbnail upload failed: {message}",
@@ -347,7 +353,7 @@
         "subtitle": "Create a new digital product to sell",
         "submit": "Create Product",
         "submitting": "Creating Product...",
-        "helpText": "Need help? Check out our <link>product creation guide</link>"
+        "helpText": "Need help? Read what every product needs to be approved: <link>listing standards</link>"
       },
       "edit": {
         "heading": "Edit Product",
@@ -357,7 +363,7 @@
         "failedToLoad": "Failed to load product",
         "successMessage": "Product updated successfully!",
         "currentFileName": "Current file",
-        "thumbnailHelp": "Update the preview image (PNG, JPG, max 4MB)",
+        "thumbnailHelp": "Update the preview image. The accepted types and size are listed under the button.",
         "productFileHelp": "Upload a new file to replace the existing one, or leave as is",
         "removeFileTitle": "Remove file",
         "testDownloadLink": "Test download link",
@@ -396,6 +402,14 @@
       "alreadyHaveAccount": "Already have an account? <link>Log in</link>",
       "termsAgreement": "By creating an account, you agree to our <terms>Terms of Service</terms> and <privacy>Privacy Policy</privacy>",
       "successMessage": "Account created. We've emailed you a confirmation link: open it and enter your password to activate your account.",
+      "inbox": {
+        "title": "Check your inbox",
+        "sentTo": "Your account is created. We sent a confirmation link to:",
+        "step1": "Open the email from SaiFlow. If you don't see it within a few minutes, check your spam or junk folder.",
+        "step2": "Click the confirmation link in the email.",
+        "step3": "On the page that opens, type the password you just chose. That confirms the email is yours, and your account is ready.",
+        "differentEmail": "Used the wrong email? Start again"
+      },
       "successEmailFailed": "Account created, but we couldn't send the confirmation email just now. Use the button below to send it again.",
       "resendButton": "Didn't get it? Send it again",
       "errorFallback": "Signup failed",
@@ -678,13 +692,15 @@
     "stuckTitle": "The payment form didn't load",
     "stuckBody": "No new payment was started. Reload the form to continue with this payment, or check its status.",
     "expiredTitle": "The payment session has timed out",
-    "expiredBody": "Check this payment's status. If you didn't complete it, contact support with the reference shown there to pay again.",
+    "expiredBody": "Check this payment's status. If you didn't complete it, you can try again from the product page about 15 minutes after the payment window closed: checkout first confirms with the payment provider that nothing was paid.",
     "rate_limitedTitle": "Too many attempts",
     "rate_limitedBody": "Please wait a few minutes, then try again.",
     "not_availableTitle": "This product isn't available for purchase",
     "not_availableBody": "This product can't be bought right now.",
     "payments_offTitle": "Payments aren't available yet",
     "payments_offBody": "Online payment is being activated.",
+    "testModeTitle": "Test mode, no real charge",
+    "testModeBody": "Payments on this site are not live, so no card is charged. To test, use a Geidea test card.",
     "serviceTitle": "The payment couldn't start",
     "serviceBody": "A temporary error occurred. Please try again shortly.",
     "cookiesTitle": "Turn on cookies to pay",
@@ -706,7 +722,7 @@
     "cancelledTitle": "Payment was cancelled.",
     "cancelledBody": "The payment for <product>{name}</product> was cancelled before it completed. You can try again from the product page. If checkout brings you back here, contact support with your reference.",
     "expiredTitle": "Payment session expired.",
-    "expiredBody": "The payment window for <product>{name}</product> closed before the payment was confirmed. To pay again, contact support with your reference so this payment can be checked first.",
+    "expiredBody": "The payment window for <product>{name}</product> closed before a payment was confirmed. You can try again from the product page about 15 minutes after it closed: checkout first confirms with the payment provider that nothing was paid. If checkout still brings you back here, contact support with your reference.",
     "timeoutTitle": "Still confirming your payment",
     "timeoutBody": "Confirmation is taking longer than usual. Refresh this page in a minute, or contact support with your reference.",
     "unknownTitle": "We couldn't find this payment.",
@@ -765,8 +781,9 @@
       "includesInstantDownload": "Instant digital download",
       "includesLifetimeAccess": "Lifetime access to files",
       "includesFreeUpdates": "Free updates from the creator",
-      "secureCheckout": "Checkout is being activated.",
+      "secureCheckout": "Secure checkout.",
       "paymentsProcessedSecurely": "Payments are processed securely.",
+      "includedOncePaymentsOpen": "What you'll get once payments open on SaiFlow.",
       "getThisProduct": "Get this product",
       "processing": "Processing...",
       "notAvailable": "Not Available",
@@ -789,6 +806,9 @@
     "pendingBadge": "Under review",
     "approvedBadge": "Approved",
     "rejectedBadge": "Rejected",
+    "rejectionReasonLabel": "Why it was rejected",
+    "noReasonRecorded": "No reason recorded. Check your email, or contact support.",
+    "fixAndResubmit": "Fix this, then save the product: it goes back for review automatically.",
     "pendingNotice": "New products are reviewed before they appear publicly."
   },
   "fileSafety": {
@@ -855,6 +875,20 @@
       "notPublic": "This is the listing as submitted, shown for moderation. It is not the public product page and nothing here can be purchased.",
       "listing": "Listing",
       "moderation": "Moderation status",
+      "rejectionReason": "Why it was rejected",
+      "noReasonRecorded": "No reason recorded",
+      "decidedBy": "{who}, {date}",
+      "history": "Decision history",
+      "historyEmpty": "No decisions yet.",
+      "historyAction": {
+        "SUBMITTED": "Submitted",
+        "RESUBMITTED": "Resubmitted after changes",
+        "APPROVED": "Approved",
+        "REJECTED": "Rejected"
+      },
+      "bySeller": "the seller",
+      "bySystem": "SaiFlow",
+      "byAdmin": "an admin",
       "inactive": "Not published by the seller",
       "shop": "Shop",
       "price": "Price",
@@ -867,7 +901,7 @@
     "subtitle": "What needs your attention today.",
     "mission": {
       "eyebrow": "Today's mission",
-      "missingFile": "Fix a product with a missing file.",
+      "notSellable": "Fix {count} approved products that buyers can't see or buy.",
       "review": "Review {count} products.",
       "pending": "Approve {count} products waiting in the queue.",
       "payments": "Enable payments.",
@@ -875,9 +909,31 @@
       "cta": "Start",
       "ctaCalm": "Focus on growing Saiflow"
     },
+    "notSellable": {
+      "badge": "Not on sale",
+      "short": {
+        "missing_file_key": "No product file",
+        "pending_scan": "File still being checked",
+        "scan_key_mismatch": "New file being checked",
+        "scan_error": "File check didn't finish",
+        "unsafe": "File failed its check",
+        "inactive": "Product switched off",
+        "shop_inactive": "Store suspended"
+      },
+      "needsReviewNote": "Products no admin has decided on yet. This list doesn't check files.",
+      "needsReviewLink": "{count} approved products can't be sold. See them"
+    },
     "attention": {
-      "eyebrow": "Needs attention",
-      "missingFile": "Listed for sale with no downloadable file — the buyer receives nothing.",
+      "eyebrow": "Approved, not sellable",
+      "reason": {
+        "missing_file_key": "Approved but not on sale: there is no product file. Buyers can't see or buy it. Ask the seller to upload the file, or reject it.",
+        "pending_scan": "Approved but not on sale yet: its file is still being checked. It goes on sale by itself once the check passes.",
+        "scan_key_mismatch": "Approved but not on sale: the seller replaced the file, and the new one is still being checked.",
+        "scan_error": "Approved but not on sale: the file's safety check didn't finish. Open it and press Retry check.",
+        "unsafe": "Approved but not on sale: its file failed the safety check. Buyers can't see or buy it. Reject it, or ask the seller for a clean file.",
+        "inactive": "Approved but not on sale: the product is switched off.",
+        "shop_inactive": "Approved but not on sale: its store is suspended."
+      },
       "view": "View product"
     },
     "review": {
@@ -947,7 +1003,37 @@
       "body": "When moderation was introduced, existing products were approved automatically so they wouldn't disappear from the marketplace. No one has reviewed them by hand yet. Reviewing a product records a permanent audit entry.",
       "dismiss": "Got it"
     },
+    "rejectDialog": {
+      "title": "Reject this product",
+      "quickPicks": "Start from a listing standard (you can edit the text):",
+      "quick": {
+        "file_mismatch": "File doesn't match",
+        "no_real_preview": "No real preview",
+        "placeholder_file": "Test or empty file",
+        "missing_whats_included": "What's included missing",
+        "dishonest_listing": "Listing isn't honest",
+        "pdf_javascript": "PDF has JavaScript"
+      },
+      "label": "Reason the seller will read",
+      "placeholder": "Say what to fix, in plain words.",
+      "previewHeading": "The seller's email will say:",
+      "previewTitle": "Your product needs changes",
+      "previewProduct": "Product:",
+      "previewReason": "Reason:",
+      "previewNext": "Read the reason above and edit the product from your store dashboard. Saving your changes sends it back for review.",
+      "cancel": "Cancel",
+      "confirm": "Reject and email the seller",
+      "sending": "Rejecting…"
+    },
     "directory": {
+      "approveBlocked": {
+        "missing_file_key": "Can't approve: there is no product file. Ask the seller to upload one.",
+        "pending_scan": "Can't approve yet: the file's safety check is still running (usually a few minutes).",
+        "scan_error": "Can't approve: the file's safety check didn't finish. Press Retry check, then try again.",
+        "unsafe": "Can't approve: the file failed its safety check.",
+        "scan_key_mismatch": "Can't approve yet: the seller replaced the file and the new one is still being checked.",
+        "file_changed": "The file changed while you were deciding. Reload the page and check it again."
+      },
       "title": "Products",
       "searchPlaceholder": "Search by title",
       "search": "Search",
@@ -966,6 +1052,7 @@
       "failed": "Could not record the decision.",
       "filters": {
         "needs_review": "Needs review",
+        "no_safe_file": "Approved, not sellable",
         "pending": "Pending",
         "approved": "Approved",
         "rejected": "Rejected",
@@ -986,7 +1073,13 @@
         "reports": "Reports",
         "created": "Created"
       },
-      "inspectFile": "Inspect file"
+      "inspectFile": "Inspect file",
+      "updating": "Updating the page…",
+      "decided": {
+        "APPROVED": "Approved. The seller will be emailed.",
+        "REJECTED": "Rejected. The seller will be emailed the reason."
+      },
+      "rejectionReasonLabel": "Reason:"
     }
   },
   "ai": {
@@ -1110,5 +1203,34 @@
       "date": "Enter the date the transfer was sent.",
       "generic": "The payout couldn't be recorded. Please try again."
     }
+  },
+  "purchases": {
+    "title": "My purchases",
+    "subtitle": "Everything bought with {email}. Download any of them as often as you need.",
+    "back": "Back to your dashboard",
+    "empty": "No purchases with this email address yet. If you bought with a different address, sign in with that one.",
+    "download": "Download",
+    "test": "Test purchase",
+    "help": "Purchases are linked to the email address used at checkout. Can't find one? Contact support@saiflow.io."
+  },
+  "downloadExpired": {
+    "title": "This download link has expired",
+    "body": "For your security, download links in receipts work for {days} days. Your purchase is safe, and you can still download it.",
+    "step1": "Sign in to SaiFlow with the email address you used to buy. New here? Create an account with that same address.",
+    "step2": "Open \"My purchases\" and press Download.",
+    "signIn": "Sign in to download",
+    "signUp": "Create an account",
+    "support": "Need help? Write to"
+  },
+  "upload": {
+    "choose": "Choose file",
+    "loading": "Loading…",
+    "uploading": "Uploading {progress}%",
+    "allowed": "{types}: up to {size}",
+    "separator": ", ",
+    "audio": "audio",
+    "video": "video",
+    "removeImage": "Remove image",
+    "removeFile": "Remove file"
   }
 }

@@ -49,18 +49,15 @@ const STATUSES = ["PENDING_SCAN", "SAFE", "UNSAFE", "SCAN_ERROR"] as const;
 /* ------------------------------------------------------------------ */
 
 describe("the canonical clause is reused, not restated", () => {
-  test("every surface spreads SAFE_DELIVERABLE_WHERE", () => {
+  test("every surface uses the one storefront rule, which spreads SAFE_DELIVERABLE_WHERE", () => {
     for (const [label, file] of SURFACES) {
       const code = strip(read(file));
-      assert.ok(
-        code.includes("...SAFE_DELIVERABLE_WHERE"),
-        `${label} must spread the canonical clause`
-      );
-      assert.ok(
-        /from "@\/lib\/file-safety"/.test(code),
-        `${label} must import it from the canonical module`
-      );
+      assert.ok(code.includes("SELLABLE_PRODUCT_WHERE"), `${label} must use the shared storefront rule`);
+      assert.ok(/from "@\/lib\/sellable"/.test(code), `${label} must import it from lib/sellable`);
     }
+    const rule = strip(read("lib/sellable.ts"));
+    assert.ok(rule.includes("...SAFE_DELIVERABLE_WHERE,"), "the shared rule spreads the canonical clause");
+    assert.ok(/from "@\/lib\/file-safety"/.test(rule));
   });
 
   test("no surface hand-rolls its own safety condition", () => {
@@ -127,11 +124,14 @@ describe("the canonical clause is reused, not restated", () => {
     );
   });
 
-  test("publication and safety stay separate conditions", () => {
+  test("publication and safety stay separate conditions, in the shared rule", () => {
+    const rule = strip(read("lib/sellable.ts"));
+    const block = rule.slice(rule.indexOf("export const SELLABLE_PRODUCT_WHERE"), rule.indexOf("satisfies Prisma.ProductWhereInput;", rule.indexOf("export const SELLABLE_PRODUCT_WHERE")));
+    assert.ok(/moderationStatus: "APPROVED"/.test(block), "the rule lost moderation");
+    assert.ok(/isActive: true/.test(block), "the rule lost isActive");
+    assert.ok(/shop: SELLABLE_SHOP_WHERE/.test(block), "the rule lost the shop condition");
     for (const [label, file] of SURFACES) {
-      const code = strip(read(file));
-      assert.ok(/moderationStatus: "APPROVED"/.test(code), `${label} lost moderation`);
-      assert.ok(/isActive: true/.test(code), `${label} lost isActive`);
+      assert.ok(strip(read(file)).includes("SELLABLE_PRODUCT_WHERE"), `${label} lost the rule`);
     }
   });
 });
@@ -232,7 +232,7 @@ describe("a non-sellable product page is not rendered at all", () => {
 
   test("the query is gated and a miss becomes notFound()", () => {
     const code = strip(pageSrc);
-    assert.ok(code.includes("...SAFE_DELIVERABLE_WHERE"));
+    assert.ok(code.includes("...SELLABLE_PRODUCT_WHERE,"));
     assert.ok(/notFound\(\)/.test(code), "a filtered-out product must 404");
   });
 
@@ -300,11 +300,14 @@ describe("the enforced gates and the flag are untouched", () => {
   });
 
   test("moderation is not inferred from safety, nor safety from moderation", () => {
+    // Both conditions present in the shared rule, neither expressed in terms of the other.
+    const rule = strip(read("lib/sellable.ts"));
+    const block = rule.slice(rule.indexOf("export const SELLABLE_PRODUCT_WHERE"), rule.indexOf("satisfies Prisma.ProductWhereInput;", rule.indexOf("export const SELLABLE_PRODUCT_WHERE")));
+    assert.ok(/moderationStatus: "APPROVED"/.test(block));
+    assert.ok(block.includes("...SAFE_DELIVERABLE_WHERE,"));
     for (const [label, file] of SURFACES) {
       const code = strip(read(file));
-      // Both conditions present, neither expressed in terms of the other.
-      assert.ok(/moderationStatus: "APPROVED"/.test(code), label);
-      assert.ok(code.includes("...SAFE_DELIVERABLE_WHERE"), label);
+      assert.ok(code.includes("SELLABLE_PRODUCT_WHERE"), label);
       assert.ok(!/moderationStatus:\s*\{/.test(code), `${label} conditionalises moderation`);
     }
   });

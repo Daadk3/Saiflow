@@ -62,10 +62,10 @@ describe("only what the storefront sells can reach checkout", () => {
 
   test("the page's product rule is the public product page's rule, clause for clause", () => {
     assert.equal(whereClause(read(PAGE)), whereClause(read(PRODUCT_PAGE)));
-    assert.ok(page.includes("...SAFE_DELIVERABLE_WHERE"));
-    assert.match(page, /from "@\/lib\/file-safety"/);
-    assert.match(page, /moderationStatus: "APPROVED"/);
-    assert.match(page, /isActive: true/);
+    // The one storefront rule (lib/sellable), with this page's shop slug.
+    assert.ok(page.includes("...SELLABLE_PRODUCT_WHERE,"));
+    assert.match(page, /shop: \{ \.\.\.SELLABLE_SHOP_WHERE, slug: shopSlug \}/);
+    assert.match(page, /from "@\/lib\/sellable"/);
   });
 
   test("a product outside that rule is a 404, like on the product page", () => {
@@ -77,9 +77,10 @@ describe("only what the storefront sells can reach checkout", () => {
       assert.ok(!page.includes(forbidden), `the page must not use ${forbidden}`);
     }
     // Geidea's client module for configuration only: the library URL, derived
-    // locally and tested as such in geidea-dropin-client.
+    // locally and tested as such in geidea-dropin-client, and the configured
+    // mode for the test-mode banner (tests/checkout-test-mode). Neither calls Geidea.
     assert.deepEqual(page.match(/import \{[^}]*\} from "@\/lib\/payments\/geidea\/client";/g), [
-      'import { checkoutScriptUrl, isGeideaConfigured } from "@/lib/payments/geidea/client";',
+      'import { checkoutScriptUrl, geideaMode, isGeideaConfigured } from "@/lib/payments/geidea/client";',
     ]);
     assert.match(
       page,
@@ -336,12 +337,17 @@ describe("the checkout copy", () => {
     assert.ok(cancelled.includes('href={state.statusPath}') && cancelled.includes('t("checkStatus")'), "the cancelled state offers the status page");
   });
 
-  test("no copy promises a new payment after expiry, on the checkout page or the status page", () => {
+  test("after expiry, copy promises a new payment only after the settling time and Geidea's check", () => {
     assert.ok(!("startAgain" in en.checkout) && !("startAgain" in ar.checkout));
     const texts = [en.checkout.expiredBody, ar.checkout.expiredBody, en.success.expiredBody, ar.success.expiredBody];
     for (const text of texts) {
       assert.ok(!/new payment can start|start a new checkout|يمكن بدء دفعة جديدة|ابدأ عملية شراء جديدة/i.test(text), text);
-      assert.match(text, /support|الدعم/, "it says how to pay again: through support");
+      // lib/checkout/attempt SETTLE_AFTER_EXPIRY_MS, and the lookup by reference before any release.
+      assert.match(text, /15|١٥/, "says when trying again works");
+      assert.match(text, /payment provider|مزوّد الدفع/, "and that the provider is asked first");
+    }
+    for (const text of [en.success.expiredBody, ar.success.expiredBody]) {
+      assert.match(text, /support|الدعم/, "support, only if checkout still sends the buyer back");
     }
     for (const key of ["failedBody", "cancelledBody"]) {
       for (const loc of [en, ar]) assert.match(loc.success[key], /support|الدعم/, `${key}: a way out if checkout sends the buyer back`);

@@ -20,7 +20,8 @@ export async function FinalCta() {
               <IconStore className="h-6 w-6" />
             </span>
             <h3 className="text-2xl font-bold text-white sm:text-3xl">{t("creatorTitle")}</h3>
-            <Link href="/signup" className="btn-primary mt-7 text-base">
+            {/* The transparent border matches btn-secondary's, so both buttons are the same height. */}
+            <Link href="/signup" className="btn-primary mt-7 border border-transparent text-base">
               {t("creatorCta")}
             </Link>
           </div>

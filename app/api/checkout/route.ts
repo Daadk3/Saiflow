@@ -9,6 +9,7 @@ import {
   checkoutRedirectUrl,
   checkoutScriptUrl,
   createSession,
+  findOrdersByReference,
   geideaMode,
   isGeideaConfigured,
 } from "@/lib/payments/geidea/client";
@@ -19,16 +20,20 @@ import {
   attemptKey,
   bearerCookie,
   bearerHash,
+  checkableAfterExpiry,
   decide,
+  expiredReleaseArgs,
   newBearer,
   readBearer,
   releaseArgs,
+  unpaidVerdict,
   type CurrentAttempt,
   type Decision,
   type Expected,
   type Presentation as AttemptPresentation,
 } from "@/lib/checkout/attempt";
 import { normalizeBuyerEmail } from "@/lib/checkout/buyer-email";
+import { unsellableReason } from "@/lib/sellable";
 
 /**
  * Checkout: the one place a purchase attempt begins.
@@ -157,9 +162,12 @@ function log(level: "log" | "warn" | "error", event: string, fields: LogFields =
 /** What a Geidea client error may contribute to a log line: its class, status and short codes. */
 function errorFields(error: unknown): LogFields {
   if (!(error instanceof Error)) return { error: "Error" };
-  const e = error as { status?: unknown; responseCode?: unknown; detailedResponseCode?: unknown };
+  const e = error as { status?: unknown; responseCode?: unknown; detailedResponseCode?: unknown; kind?: unknown; path?: unknown };
   return {
     error: error.name,
+    // A GeideaResponseError's category and JSON path ("malformed", "$.orders"): never a value.
+    kind: typeof e.kind === "string" ? e.kind.slice(0, 16) : undefined,
+    path: typeof e.path === "string" ? e.path.slice(0, 48) : undefined,
     status: typeof e.status === "number" ? e.status : undefined,
     responseCode: typeof e.responseCode === "string" ? e.responseCode : undefined,
     detailedResponseCode: typeof e.detailedResponseCode === "string" ? e.detailedResponseCode : undefined,
@@ -218,7 +226,7 @@ function isForeignKeyViolation(error: unknown): boolean {
   return errorCode(error) === "P2003";
 }
 
-type HeldAttempt = CurrentAttempt & { id: string; buyerEmail: string | null };
+type HeldAttempt = CurrentAttempt & { id: string; buyerEmail: string | null; providerOrderId: string | null };
 
 /** This browser's current attempt for this product, if it has one. */
 async function currentAttempt(key: string): Promise<HeldAttempt | null> {
@@ -236,6 +244,7 @@ async function currentAttempt(key: string): Promise<HeldAttempt | null> {
       status: true,
       presentation: true,
       providerSessionId: true,
+      providerOrderId: true,
       failureReason: true,
       expiresAt: true,
       createdAt: true,
@@ -315,6 +324,42 @@ async function answerCurrent(
   );
 }
 
+/**
+ * An attempt whose session expired long ago: ask Geidea, by SaiFlow's own
+ * reference, whether it was ever paid, and release it only if Geidea says
+ * no (lib/checkout/attempt, EXPIRED, BUT NEVER PAID). "kept" whenever the
+ * answer is anything else or never comes; "raced" when the attempt changed
+ * before the release could match.
+ */
+async function releaseIfNeverPaid(held: HeldAttempt, key: string): Promise<"released" | "kept" | "raced"> {
+  const fields = { attempt: held.id, ref: redactId(held.merchantReferenceId) };
+  const knownOrderId = held.providerOrderId ?? null;
+  let orders;
+  try {
+    orders = await findOrdersByReference(held.merchantReferenceId);
+  } catch (error) {
+    log("warn", "expired_check_failed", { ...fields, ...errorFields(error) });
+    return "kept";
+  }
+  // Geidea's own words, bounded: how many orders and in which statuses.
+  const seen = {
+    orders: orders.length,
+    statuses: orders.slice(0, 5).map((o) => o.status.replace(/[^A-Za-z_-]/g, "").slice(0, 24)).join(",") || undefined,
+    knownOrder: knownOrderId !== null ? "yes" : "no",
+  };
+  if (unpaidVerdict(orders, held.merchantReferenceId, knownOrderId) !== "unpaid") {
+    log("log", "expired_check_unsettled", { ...fields, ...seen });
+    return "kept";
+  }
+  const released = await prisma.paymentSession.updateMany(expiredReleaseArgs(held.id, key, held));
+  if (released.count !== 1) {
+    log("log", "expired_release_refused", fields);
+    return "raced";
+  }
+  log("log", "attempt_released_unpaid", { ...fields, ...seen });
+  return "released";
+}
+
 export async function POST(req: Request) {
   // Pre-launch gate: defense in depth alongside the disabled BuyButton.
   // Returns 503 with a machine-readable error code so the client can show
@@ -378,8 +423,12 @@ export async function POST(req: Request) {
     }
 
     // Unpublished/unapproved products and deactivated shops must not be
-    // purchasable, even by direct API call with a known product id.
-    if (!product.isActive || product.moderationStatus !== "APPROVED" || !product.shop.isActive) {
+    // purchasable, even by direct API call with a known product id. Read from
+    // the one storefront rule (lib/sellable), whose first three conditions
+    // these are; the file's own condition is refused separately below, with
+    // its own code, by the single safety authority.
+    const availability = unsellableReason(product);
+    if (availability === "inactive" || availability === "not_approved" || availability === "shop_inactive") {
       return NextResponse.json(
         { error: "This product is not available for purchase." },
         { status: 400 }
@@ -534,8 +583,18 @@ export async function POST(req: Request) {
 
     const held = await currentAttempt(key);
     if (held !== null) {
-      const decision = decide(held, expected, new Date());
-      if (decision.kind !== "replace") {
+      const now = new Date();
+      const decision = decide(held, expected, now);
+      // Shown, never resumed, and long expired: Geidea may confirm it unpaid,
+      // and then it no longer blocks a new purchase.
+      const settled =
+        decision.kind !== "replace" && checkableAfterExpiry(held, expected, decision, now)
+          ? await releaseIfNeverPaid(held, key)
+          : "kept";
+      if (settled === "raced") {
+        return answerCurrent(key, expected, presentation, scriptUrl, cookie);
+      }
+      if (decision.kind !== "replace" && settled === "kept") {
         if (decision.kind === "resume" && held.buyerEmail !== buyerEmail) {
           // The buyer corrected their address before paying. Receipt only:
           // conditional on the attempt still being this browser's current
@@ -547,22 +606,24 @@ export async function POST(req: Request) {
         }
         return answerExisting(held, decision, presentation, scriptUrl, cookie);
       }
-      // No session id from it ever reached a browser. Released in one
-      // conditional statement that matches only while it is still current and
-      // still in exactly that state: a callback that claimed it, or another
-      // request that got here first, leaves nothing to match, and then the
-      // attempt as it is now is the answer. Nothing is started on a release
-      // that did not happen.
-      const released = await prisma.paymentSession.updateMany(releaseArgs(held.id, key, decision.when));
-      if (released.count !== 1) {
-        log("log", "attempt_release_refused", { attempt: held.id, product: product.id });
-        return answerCurrent(key, expected, presentation, scriptUrl, cookie);
+      if (decision.kind === "replace") {
+        // No session id from it ever reached a browser. Released in one
+        // conditional statement that matches only while it is still current and
+        // still in exactly that state: a callback that claimed it, or another
+        // request that got here first, leaves nothing to match, and then the
+        // attempt as it is now is the answer. Nothing is started on a release
+        // that did not happen.
+        const released = await prisma.paymentSession.updateMany(releaseArgs(held.id, key, decision.when));
+        if (released.count !== 1) {
+          log("log", "attempt_release_refused", { attempt: held.id, product: product.id });
+          return answerCurrent(key, expected, presentation, scriptUrl, cookie);
+        }
+        log("log", "attempt_superseded", {
+          attempt: held.id,
+          ref: redactId(held.merchantReferenceId),
+          product: product.id,
+        });
       }
-      log("log", "attempt_superseded", {
-        attempt: held.id,
-        ref: redactId(held.merchantReferenceId),
-        product: product.id,
-      });
     }
 
     const merchantReferenceId = randomUUID();

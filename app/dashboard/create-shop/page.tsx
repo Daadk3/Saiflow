@@ -6,6 +6,11 @@ import { useSession } from "next-auth/react";
 import Link from "next/link";
 import Image from "next/image";
 import { useTranslations } from "next-intl";
+import { slugBase } from "@/lib/slug";
+import { SITE_URL } from "@/lib/site-url";
+
+/** The shop address shown before the shop exists: the real host, no protocol. */
+const SITE_HOST = new URL(SITE_URL).host;
 
 export default function CreateShopPage() {
   const t = useTranslations("dashboard");
@@ -140,7 +145,18 @@ export default function CreateShopPage() {
                   className="w-full p-3 bg-gray-800 text-white border border-gray-700 rounded-lg focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500 transition-colors"
                 />
                 <p className="mt-1 text-xs text-gray-400 break-all">
-                  {t('createShop.slugPreview', { slug: name.toLowerCase().replace(/[^a-z0-9]+/g, "-") || t('createShop.slugFallback') })}
+                  {t('createShop.slugPreview', {
+                    host: SITE_HOST,
+                    // The same base the server's slugify uses, so no stray
+                    // hyphens. A name with no Latin letters gets a short
+                    // random handle on the server, shown here as its shape.
+                    slug:
+                      slugBase(name).length >= 2
+                        ? slugBase(name)
+                        : name.trim()
+                          ? "shop-xxxxxx"
+                          : t('createShop.slugFallback'),
+                  })}
                 </p>
               </div>
 

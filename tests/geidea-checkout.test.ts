@@ -71,6 +71,8 @@ let beforeUpdate: ((where: Record<string, unknown>) => void) | null = null;
 const ops: string[] = [];
 const writes: { op: string; data: Record<string, unknown>; where?: Record<string, unknown> }[] = [];
 const sessionCalls: Record<string, unknown>[] = [];
+/** References Geidea was asked about through its lookup by merchant reference. */
+const lookupCalls: string[] = [];
 const logs: string[] = [];
 const responses: Record<string, unknown>[] = [];
 
@@ -84,6 +86,11 @@ const state = {
     | ((input: Record<string, unknown>) => Record<string, unknown> | Promise<Record<string, unknown>>),
   createError: null as Error | null,
   scriptError: null as Error | null,
+  /**
+   * Geidea's answer to a lookup by reference. By default it fails, as an
+   * unreachable Geidea would: an attempt then stays exactly as it was.
+   */
+  lookup: null as null | ((ref: string) => unknown[] | Promise<unknown[]>),
 };
 
 const canned = (input: Record<string, unknown>) => ({
@@ -103,6 +110,8 @@ const canned = (input: Record<string, unknown>) => ({
 function matches(row: Record<string, unknown>, where: Record<string, unknown>): boolean {
   return Object.entries(where).every(([k, v]) => {
     if (v !== null && typeof v === "object" && "not" in (v as object)) return (row[k] ?? null) !== (v as { not: unknown }).not;
+    // A to-one relation filter: `order: { is: null }` matches a row with no Order.
+    if (v !== null && typeof v === "object" && "is" in (v as object)) return (row[k] ?? null) === (v as { is: unknown }).is;
     return (row[k] ?? null) === v;
   });
 }
@@ -190,6 +199,12 @@ before(async () => {
         if (!state.createResult) throw new Error("test provided no result");
         return state.createResult(input);
       },
+      findOrdersByReference: async (ref: string) => {
+        ops.push("findOrdersByReference");
+        lookupCalls.push(ref);
+        if (!state.lookup) throw new Error("Geidea unreachable in this test");
+        return state.lookup(ref);
+      },
     },
   });
   globalThis.fetch = (async () => {
@@ -229,6 +244,8 @@ function reset() {
   ops.length = 0;
   writes.length = 0;
   sessionCalls.length = 0;
+  lookupCalls.length = 0;
+  state.lookup = null;
   state.preLaunch = false;
   state.configured = true;
   state.mode = "test";
@@ -615,7 +632,9 @@ describe("the pre-existing gates and the safety authority are unchanged", () => 
       "rateLimiters.checkout(",
       "await req.json()",
       "prisma.product.findUnique",
-      'moderationStatus !== "APPROVED"',
+      // Active, approved and shop active, read from the shared storefront rule (lib/sellable).
+      "const availability = unsellableReason(product);",
+      'availability === "not_approved"',
       "!product.fileUrl",
       "if (!isDeliverableSafe(product))",
       "isGeideaConfigured()",
@@ -1272,8 +1291,8 @@ describe("the hosted fallback never starts a second payable session", () => {
 /* B. No clock replaces a session that may have reached a browser      */
 /* ------------------------------------------------------------------ */
 
-describe("B. an attempt whose outcome is unknown stays blocked, on its status page, however long it waits", () => {
-  test("31 minutes past Geidea's expiry, unpaid as far as SaiFlow knows: the status page, no new attempt, no Geidea call", async () => {
+describe("B. an attempt whose outcome is unknown stays blocked, on its status page, unless Geidea confirms it unpaid", () => {
+  test("31 minutes past Geidea's expiry and Geidea cannot be asked: the status page, no new attempt, no new session", async () => {
     const { first, cookie } = await startedBrowser();
     const row = db.attempts[0];
     row.expiresAt = new Date(Date.now() - 31 * MINUTE);
@@ -1286,6 +1305,7 @@ describe("B. an attempt whose outcome is unknown stays blocked, on its status pa
     assertNoSecondSession();
     assert.equal(row.currentAttemptKey, keyFor(bearerOf(cookie)), "still this browser's attempt");
     assert.deepEqual(writes, [], "nothing released, nothing written");
+    assert.deepEqual(lookupCalls, [row.merchantReferenceId, row.merchantReferenceId], "Geidea was asked, and its silence kept the block");
   });
 
   test("days later, in every state a callback can leave it in, still the status page", async () => {
@@ -1378,6 +1398,204 @@ describe("B. an attempt whose outcome is unknown stays blocked, on its status pa
     assert.deepEqual(release.where, { id: old.id, currentAttemptKey: keyFor(bearer), status: "CREATED", providerSessionId: null });
     assert.deepEqual(release.data, { currentAttemptKey: null, status: "FAILED", failureReason: "superseded_before_session" });
     assert.equal(db.attempts[1].currentAttemptKey, keyFor(bearer));
+  });
+});
+
+/* ------------------------------------------------------------------ */
+/* D. An abandoned attempt Geidea confirms unpaid never blocks          */
+/* ------------------------------------------------------------------ */
+
+/*
+ * Found on the Preview (2026-10-17, ref eb525e22…): the buyer opened the
+ * card form at 14:25Z and left; at 19:24Z the same browser's next checkout
+ * was answered `attempt_open reason=expired` and sent to the old attempt's
+ * "expired, contact support" page instead of a new Geidea session.
+ */
+describe("D. an abandoned attempt that Geidea confirms unpaid never blocks a new purchase", () => {
+  /** The browser from the report: an embedded attempt opened, then abandoned for five hours. */
+  async function abandonedFiveHoursAgo() {
+    const { first, cookie } = await startedBrowser();
+    const old = db.attempts[0];
+    old.createdAt = new Date(Date.now() - 5 * 60 * MINUTE);
+    old.expiresAt = new Date(Date.now() - (5 * 60 - 15) * MINUTE);
+    writes.length = 0;
+    return { first, cookie, old };
+  }
+
+  test("the reported case: Geidea lists no order for the old reference, so a fresh session opens", async () => {
+    const { first, cookie, old } = await abandonedFiveHoursAgo();
+    state.lookup = () => [];
+    state.createResult = liveSessionWithId("0b9d3c2e-1f4a-4c55-9a77-2d6e8f1b3c4d");
+    const res = await send(DROPIN, cookie);
+    assert.equal(res.status, 200);
+    assert.equal(res.body.sessionId, "0b9d3c2e-1f4a-4c55-9a77-2d6e8f1b3c4d", "a new Geidea session");
+    assert.notEqual(res.body.successPath, first.body.successPath, "under a new reference");
+    assert.deepEqual(lookupCalls, [old.merchantReferenceId], "Geidea was asked about the old reference only");
+    assert.equal(db.attempts.length, 2);
+    assert.equal(old.currentAttemptKey, null, "the old attempt no longer blocks");
+    assert.equal(old.status, "SESSION_CREATED", "its own record is untouched");
+    assert.equal(db.attempts[1].currentAttemptKey, keyFor(bearerOf(cookie)), "the new attempt is current");
+    const release = writes.find((w) => w.op === "paymentSession.updateMany" && w.where?.id === old.id);
+    assert.ok(release, "released in one conditional statement");
+    assert.deepEqual(release.where, {
+      id: old.id,
+      currentAttemptKey: keyFor(bearerOf(cookie)),
+      status: "SESSION_CREATED",
+      providerSessionId: old.providerSessionId,
+      order: { is: null },
+    });
+    assert.deepEqual(release.data, { currentAttemptKey: null });
+    assert.ok(logs.some((l) => l.includes("attempt_released_unpaid")));
+    assert.ok(!ops.includes("order.create"));
+  });
+
+  test("on the hosted page too, and after a failed or cancelled callback", async () => {
+    for (const status of ["FAILED", "CANCELLED", "EXPIRED"]) {
+      reset();
+      const { cookie, old } = await abandonedFiveHoursAgo();
+      old.status = status;
+      state.lookup = () => [
+        { orderId: "3c0e2b5a-9d4f-4c1b-8e2a-6f7b8c9d0e1f", status: "Failed", merchantReferenceId: old.merchantReferenceId, totalAuthorizedAmount: 0, totalCapturedAmount: 0 },
+      ];
+      const res = await send(HOSTED, cookie);
+      assert.equal(res.status, 200, status);
+      assert.equal(typeof res.body.url, "string", status);
+      assert.equal(db.attempts.length, 2, status);
+    }
+  });
+
+  test("not before the settling time after expiry: Geidea is not asked and the status page stands", async () => {
+    const { first, cookie } = await startedBrowser();
+    db.attempts[0].expiresAt = new Date(Date.now() - 5 * MINUTE);
+    state.lookup = () => [];
+    const res = await send(DROPIN, cookie);
+    assert.equal(res.status, 409);
+    assert.deepEqual(res.body, { error: "attempt_open", statusPath: first.body.successPath });
+    assert.deepEqual(lookupCalls, []);
+    assertNoSecondSession();
+  });
+
+  test("Geidea reports a paid, unknown or money-moving order: the block stands, nothing is written", async () => {
+    const answers: Record<string, unknown>[][] = [
+      [{ status: "Success", detailedStatus: "Paid", totalAuthorizedAmount: 49, totalCapturedAmount: 49 }],
+      [{ status: "Initiated", totalAuthorizedAmount: null, totalCapturedAmount: null }],
+      [{ status: "Failed", totalAuthorizedAmount: 49, totalCapturedAmount: 0 }],
+      [{ status: "Failed", totalAuthorizedAmount: 0, totalCapturedAmount: 0 }, { status: "Success" }],
+    ];
+    for (const answer of answers) {
+      reset();
+      const { first, cookie, old } = await abandonedFiveHoursAgo();
+      state.lookup = () =>
+        answer.map((o) => ({ orderId: "3c0e2b5a-9d4f-4c1b-8e2a-6f7b8c9d0e1f", merchantReferenceId: old.merchantReferenceId, totalAuthorizedAmount: null, totalCapturedAmount: null, ...o }));
+      const res = await send(DROPIN, cookie);
+      assert.equal(res.status, 409, JSON.stringify(answer));
+      assert.deepEqual(res.body, { error: "attempt_open", statusPath: first.body.successPath });
+      assert.deepEqual(writes, [], "nothing released");
+      assertNoSecondSession();
+      assert.ok(logs.some((l) => l.includes("expired_check_unsettled")));
+    }
+  });
+
+  test("an order Geidea already named in a callback must appear in the lookup: no orders is not enough", async () => {
+    const { cookie, old } = await abandonedFiveHoursAgo();
+    // An InProgress callback recorded Geidea's order id without changing the status.
+    old.providerOrderId = "3c0e2b5a-9d4f-4c1b-8e2a-6f7b8c9d0e1f";
+    old.providerStatus = "InProgress";
+    state.lookup = () => [];
+    const res = await send(DROPIN, cookie);
+    assert.equal(res.status, 409);
+    assert.deepEqual(writes, []);
+    assertNoSecondSession();
+    assert.ok(logs.some((l) => l.includes("expired_check_unsettled") && l.includes("knownOrder=yes")));
+  });
+
+  test("an attempt made against another Geidea account is never looked up here", async () => {
+    const { cookie, old } = await abandonedFiveHoursAgo();
+    old.environment = "PRODUCTION";
+    state.lookup = () => [];
+    const res = await send(DROPIN, cookie);
+    assert.equal(res.status, 409);
+    assert.deepEqual(lookupCalls, []);
+    assertNoSecondSession();
+  });
+
+  test("the logs say what Geidea answered, in counts and statuses only", async () => {
+    const { cookie, old } = await abandonedFiveHoursAgo();
+    state.lookup = () => [{ orderId: "3c0e2b5a-9d4f-4c1b-8e2a-6f7b8c9d0e1f", status: "Success", merchantReferenceId: old.merchantReferenceId, totalAuthorizedAmount: 49, totalCapturedAmount: 49 }];
+    await send(DROPIN, cookie);
+    const line = logs.find((l) => l.includes("expired_check_unsettled"));
+    assert.ok(line);
+    assert.match(line, /orders=1/);
+    assert.match(line, /statuses=Success/);
+    assert.ok(!line.includes(old.merchantReferenceId as string), "the reference stays redacted");
+  });
+
+  test("an order under another reference is not trusted either", async () => {
+    const { cookie } = await abandonedFiveHoursAgo();
+    state.lookup = () => [
+      { orderId: "3c0e2b5a-9d4f-4c1b-8e2a-6f7b8c9d0e1f", status: "Failed", merchantReferenceId: "11111111-2222-4333-8444-555555555555", totalAuthorizedAmount: 0, totalCapturedAmount: 0 },
+    ];
+    const res = await send(DROPIN, cookie);
+    assert.equal(res.status, 409);
+    assertNoSecondSession();
+  });
+
+  test("a paid attempt is never looked up and never released, however old", async () => {
+    const { cookie } = await abandonedFiveHoursAgo();
+    fulfil(db.attempts[0]);
+    state.lookup = () => [];
+    const res = await send(DROPIN, cookie);
+    assert.equal(res.status, 409);
+    assert.equal(res.body.error, "already_paid");
+    assert.deepEqual(lookupCalls, []);
+    assertNoSecondSession();
+  });
+
+  test("PAID awaiting its Order is never looked up either", async () => {
+    const { cookie } = await abandonedFiveHoursAgo();
+    db.attempts[0].status = "PAID";
+    state.lookup = () => [];
+    const res = await send(DROPIN, cookie);
+    assert.equal(res.status, 409);
+    assert.deepEqual(lookupCalls, []);
+    assertNoSecondSession();
+  });
+
+  test("a callback that claims the attempt while Geidea is asked wins: no release, no second session", async () => {
+    const { first, cookie, old } = await abandonedFiveHoursAgo();
+    state.lookup = () => [];
+    // The verified callback commits its claim and Order just before the release is evaluated.
+    beforeUpdate = (where) => {
+      if (where.id === old.id) fulfil(old);
+    };
+    const res = await send(DROPIN, cookie);
+    assert.equal(res.status, 409);
+    assert.deepEqual(res.body, { error: "already_paid", statusPath: first.body.successPath });
+    assert.equal(old.currentAttemptKey, keyFor(bearerOf(cookie)), "still current: the release matched nothing");
+    assertNoSecondSession();
+    assert.ok(logs.some((l) => l.includes("expired_release_refused")));
+  });
+
+  test("the new attempt is an ordinary one: test account only, trusted amount, fresh reference", async () => {
+    const { cookie, old } = await abandonedFiveHoursAgo();
+    state.lookup = () => [];
+    await send(DROPIN, cookie);
+    const fresh = db.attempts[1];
+    assert.equal(fresh.environment, "TEST");
+    assert.notEqual(fresh.merchantReferenceId, old.merchantReferenceId);
+    assert.equal(sessionCalls.length, 2);
+    assert.equal(sessionCalls[1].amount, "49.00");
+    assert.equal(sessionCalls[1].merchantReferenceId, fresh.merchantReferenceId);
+  });
+
+  test("with a production account during the test phase, nothing is looked up or released", async () => {
+    const { cookie } = await abandonedFiveHoursAgo();
+    state.lookup = () => [];
+    state.mode = "production";
+    const res = await send(DROPIN, cookie);
+    assert.equal(res.status, 503);
+    assert.deepEqual(lookupCalls, []);
+    assertNoSecondSession();
   });
 });
 

@@ -344,9 +344,25 @@ describe("a newly attached file is scanned without waiting for Cron", () => {
     assert.deepEqual([...keysTouched], [KEY], "only the attached key is scanned");
   });
 
-  test("creating a product without a file schedules nothing", async () => {
+  test("creating a product without a file is refused, and schedules nothing", async () => {
     const res = await CREATE(createReq({}));
-    assert.equal(res.status, 201, await res.text());
+    assert.equal(res.status, 400);
+    assert.equal(((await res.json()) as { code: string }).code, "file_required");
+    assert.equal(state.afterTasks.length, 0);
+  });
+
+  test("a picture alone is not a product: thumbnail-only and cover-only submits are refused", async () => {
+    // The preview picture and any cover the client sends are separate from
+    // the deliverable and never count as it (lib/product-file-required).
+    for (const body of [
+      { thumbnailUrl: "https://testapp.ufs.sh/f/thumbOnly0001" },
+      { images: ["https://testapp.ufs.sh/f/coverOnly0001"] },
+      { thumbnailUrl: "https://testapp.ufs.sh/f/thumbOnly0001", images: ["https://testapp.ufs.sh/f/coverOnly0001"] },
+    ]) {
+      const res = await CREATE(createReq(body));
+      assert.equal(res.status, 400, JSON.stringify(body));
+      assert.equal(((await res.json()) as { code: string }).code, "file_required");
+    }
     assert.equal(state.afterTasks.length, 0);
   });
 
@@ -403,9 +419,10 @@ describe("a replacement file is scanned without waiting for Cron", () => {
     assert.deepEqual(state.reconciled, []);
   });
 
-  test("removing the file schedules nothing", async () => {
+  test("removing the file is refused, and schedules nothing", async () => {
     const res = await REPLACE(replaceReq({ fileUrl: "" }), ctx);
-    assert.equal(res.status, 200, await res.text());
+    assert.equal(res.status, 400);
+    assert.equal(((await res.json()) as { code: string }).code, "file_required");
     assert.equal(state.afterTasks.length, 0);
   });
 });
@@ -724,7 +741,7 @@ describe("gates, verdict finality and the worker are unchanged", () => {
       assert.ok(/if \(!isDeliverableSafe\(product\)\)/.test(strip(read(f))), f);
     }
     for (const f of ["app/page.tsx", "app/browse/page.tsx", "app/shop/[slug]/page.tsx", "app/shop/[slug]/product/[productSlug]/page.tsx", "app/sitemap.ts"]) {
-      assert.ok(strip(read(f)).includes("...SAFE_DELIVERABLE_WHERE"), f);
+      assert.ok(strip(read(f)).includes("SELLABLE_PRODUCT_WHERE"), f);
     }
   });
 
@@ -820,7 +837,7 @@ describe("create and edit validate the price identically", () => {
 
   test("the same input gets the same verdict and the same words on both routes", async () => {
     for (const [price, expected, detail] of cases) {
-      const created = await CREATE(createReq({ price }));
+      const created = await CREATE(createReq({ price, fileUrl: fileUrl(KEY) }));
       const edited = await REPLACE(replaceReq({ price }), ctx);
       const createdBody = (await created.json()) as Record<string, unknown>;
       const editedBody = (await edited.json()) as Record<string, unknown>;

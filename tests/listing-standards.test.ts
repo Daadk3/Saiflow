@@ -33,8 +33,11 @@ test("the policy, both seller forms and the review page all render the same list
   ] as const) {
     const src = read(file);
     assert.match(src, /import \{ ListingStandards \} from "@\/components\/ListingStandards";/, file);
-    assert.match(src, new RegExp(`<ListingStandards ar=\\{locale\\.startsWith\\("ar"\\)\\} variant="${variant}" \\/>`), file);
+    assert.match(src, new RegExp(`<ListingStandards\\s+ar=\\{locale\\.startsWith\\("ar"\\)\\}\\s+variant="${variant}"`), file);
   }
+  // The review page passes the server's checks; the standards themselves are among them.
+  assert.ok(read("app/dashboard/admin/products/[id]/preview/page.tsx").includes("checks={product.checks.map("));
+  assert.match(read("lib/admin-product-preview.ts"), /\.\.\.LISTING_STANDARDS\.map\(/);
   assert.match(read("components/ListingStandards.tsx"), /LISTING_STANDARDS\.map/);
 });
 

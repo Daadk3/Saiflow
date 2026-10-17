@@ -336,7 +336,8 @@ describe("a moderation decision", () => {
     assert.deepEqual(sent[0].to, ["seller@example.test", "partner@example.test"]);
     assert.equal(sent[0].subject, "تمت الموافقة على منتجك: قالب تخطيط");
     assert.ok(sent[0].html.includes(`href="${ORIGIN}/dashboard/shop/daad-s-store"`));
-    assert.ok(sent[0].html.includes("يظهر للعامة عندما يكون ملفه قد اجتاز الفحص"), "approval does not promise a live listing");
+    // Approval now requires a file that passed its check, so it can say the product is visible.
+    assert.ok(sent[0].html.includes("أصبح ظاهرًا في متجرك"), "approval says where the product now is");
   });
 
   test("rejected: the stored reason is included, escaped, with a link to edit the product", async () => {

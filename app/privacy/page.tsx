@@ -1,3 +1,8 @@
+import type { Metadata } from "next";
+
+/** The tab and search-result title names the page (it inherited the site title before). */
+export const metadata: Metadata = { title: "Privacy Policy | SaiFlow" };
+
 export default function PrivacyPage() {
   return (
     <div className="pt-16">

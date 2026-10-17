@@ -27,6 +27,7 @@ import { sellerProductBadges } from "@/lib/seller-product-badges";
 import { productUrl } from "@/lib/site-url";
 import { productLinkStatus, productLinkStatusKey } from "@/lib/product-link-status";
 import CopyLinkButton from "@/components/CopyLinkButton";
+import { DashboardSkeleton } from "@/components/ui/DashboardSkeleton";
 
 interface Product {
   id: string;
@@ -37,6 +38,8 @@ interface Product {
   currency: string;
   thumbnailUrl: string | null;
   moderationStatus?: "PENDING" | "APPROVED" | "REJECTED";
+  /** Why it was rejected, while it is; null when no reason was recorded. */
+  rejectionReason?: string | null;
   /** Whether a deliverable is attached. The URL itself is not sent here. */
   hasFile: boolean;
   /**
@@ -171,14 +174,7 @@ export default function ShopDashboard() {
   const totalProducts = shop?.products?.length || 0;
 
   if (status === "loading" || loading) {
-    return (
-      <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center">
-        <div className="flex flex-col items-center gap-4">
-          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-teal-500"></div>
-          <p className="text-gray-500">{t("loadingShop")}</p>
-        </div>
-      </div>
-    );
+    return <DashboardSkeleton label={t("loadingShop")} variant="overview" />;
   }
 
   if (error) {
@@ -428,6 +424,16 @@ export default function ShopDashboard() {
                     <p className="text-gray-500 text-sm mt-1 line-clamp-1">
                       {product.description || t("noDescription")}
                     </p>
+                    {/* What to fix, here and not only in the seller's email. */}
+                    {badges.includes("rejected") && (
+                      <div className="mt-2 rounded-lg border border-red-500/20 bg-red-500/[0.05] p-3">
+                        <p className="text-xs font-medium text-red-300">{tModeration("rejectionReasonLabel")}</p>
+                        <p dir="auto" className="mt-1 whitespace-pre-line text-sm text-gray-200 [unicode-bidi:plaintext]">
+                          {product.rejectionReason ?? tModeration("noReasonRecorded")}
+                        </p>
+                        <p className="mt-1 text-xs text-gray-500">{tModeration("fixAndResubmit")}</p>
+                      </div>
+                    )}
                     {/* No longer an either/or. The URL is reserved from
                         creation, so a creator may copy it before a file
                         exists; making it the alternative to this warning hid

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { SAFE_DELIVERABLE_WHERE } from "@/lib/file-safety";
+import { SELLABLE_PRODUCT_WHERE } from "@/lib/sellable";
 import { getLocale, getTranslations } from "next-intl/server";
 import { CATEGORY_LABEL_KEYS, isProductCategory } from "@/lib/categories";
 import type { ProductCategory } from "@/lib/categories";
@@ -17,14 +17,9 @@ type Product = ProductCardProduct;
 
 async function getProducts(filters: Filters): Promise<Product[]> {
   const { category, sort, minPrice, maxPrice, q } = filters;
-  const where: Prisma.ProductWhereInput = {
-    isActive: true,
-    // Trust & Safety: only approved products are publicly listed
-    moderationStatus: "APPROVED",
-    // Stage E2: and only those whose attached deliverable would actually pass
-    // checkout. Separate requirement from moderation, ANDed with it.
-    ...SAFE_DELIVERABLE_WHERE,
-  };
+  // The one storefront rule (lib/sellable). It also requires an active
+  // shop, which this page's own copy of the rule had left out.
+  const where: Prisma.ProductWhereInput = { ...SELLABLE_PRODUCT_WHERE };
 
   if (isProductCategory(category)) {
     where.category = category;

@@ -1,7 +1,7 @@
 import { cache } from "react";
 import type { Metadata } from "next";
 import { prisma } from "@/lib/prisma";
-import { SAFE_DELIVERABLE_WHERE } from "@/lib/file-safety";
+import { SELLABLE_PRODUCT_WHERE, SELLABLE_SHOP_WHERE } from "@/lib/sellable";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
@@ -36,21 +36,11 @@ const getProduct = cache(async function getProduct(shopSlug: string, productSlug
   const product = await prisma.product.findFirst({
     where: {
       slug: productSlug,
-      // Unpublished / unapproved products and deactivated shops are not publicly viewable
-      isActive: true,
-      moderationStatus: "APPROVED",
-      shop: {
-        slug: shopSlug,
-        isActive: true,
-      },
-      // Stage E2. A product whose deliverable would be refused at checkout is
-      // not shown at all: the caller below turns a null result into notFound(),
-      // which is already what an unapproved product does. One rule for "not
-      // publicly available" rather than a second, softer state to design.
-      //
-      // ANDed with moderation, never merged into it — the two answer different
-      // questions and a product can fail either independently.
-      ...SAFE_DELIVERABLE_WHERE,
+      // The one storefront rule (lib/sellable): a product a buyer could not
+      // buy is not shown at all; the caller turns null into notFound(). The
+      // shop part keeps the rule's own condition and adds this page's slug.
+      ...SELLABLE_PRODUCT_WHERE,
+      shop: { ...SELLABLE_SHOP_WHERE, slug: shopSlug },
     },
     select: {
       id: true,
@@ -188,8 +178,7 @@ export default async function ProductPage({
               {product.thumbnailUrl ? (
                 <Image
                   src={product.thumbnailUrl}
-                  alt=""
-                  aria-hidden="true"
+                  alt={product.name}
                   width={1200}
                   height={800}
                   className="max-h-full w-auto object-contain"
@@ -198,8 +187,7 @@ export default async function ProductPage({
               ) : product.images && product.images.length > 0 ? (
                 <Image
                   src={product.images[0]}
-                  alt=""
-                  aria-hidden="true"
+                  alt={product.name}
                   width={1200}
                   height={800}
                   className="max-h-full w-auto object-contain"
@@ -246,16 +234,22 @@ export default async function ProductPage({
 
             {/* Description */}
             <div className="prose prose-invert mt-8 max-w-none text-gray-300 leading-relaxed">
-              <p className="whitespace-pre-wrap">
-                <bdi>
-                  {product.description || t("storefront.productDetail.descriptionEmptyState")}
-                </bdi>
+              {/* Written by the seller, often Arabic and English mixed: each
+                  line takes the direction of its own first letter, so
+                  punctuation stays where it was typed. */}
+              <p dir="auto" className="whitespace-pre-wrap text-start [unicode-bidi:plaintext]">
+                {product.description || t("storefront.productDetail.descriptionEmptyState")}
               </p>
             </div>
 
             {/* What's included */}
             <div className="mt-12 p-6 bg-[#111111] rounded-xl border border-gray-800">
               <h2 className="font-semibold text-white text-lg mb-4">{t("storefront.productDetail.whatsIncluded")}</h2>
+              {/* Nothing can be bought yet, so the list describes what a
+                  purchase WILL include, and says so. */}
+              {preLaunchMode && (
+                <p className="-mt-2 mb-4 text-xs text-gray-500">{t("storefront.productDetail.includedOncePaymentsOpen")}</p>
+              )}
               <ul className="space-y-3 text-sm text-gray-300">
                 <li className="flex items-center gap-2">
                   <span className="text-teal-500">
@@ -302,15 +296,20 @@ export default async function ProductPage({
                 <ShareButton title={product.name} />
               </div>
 
-              <p className="text-center text-sm text-gray-500 mt-4">
-                {t("storefront.productDetail.secureCheckout")}
-              </p>
+              {/* In pre-launch the button already says checkout is being
+                  activated; saying it again here was the duplicate. Once
+                  payments open, this is the reassurance line. */}
+              {!preLaunchMode && (
+                <p className="text-center text-sm text-gray-500 mt-4">
+                  {t("storefront.productDetail.secureCheckout")}
+                </p>
+              )}
 
-              {/* Unconditional: this page only renders for a product whose
-                  deliverable already passed SAFE_DELIVERABLE_WHERE, so the
-                  legacy fileUrl column is no longer consulted as a stand-in
-                  for "has a purchasable file". */}
-              {(
+              {/* Shown once payments are open: in pre-launch no payment is
+                  processed at all. This page only renders for a product whose
+                  deliverable already passed the sellable rule, so the
+                  legacy fileUrl column is not consulted here. */}
+              {!preLaunchMode && (
                 <div className="mt-4 flex items-center gap-2 text-xs text-gray-500 justify-center">
                   <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                     <path

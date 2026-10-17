@@ -15,6 +15,8 @@ import {
   reconcileProductScanState,
 } from "@/lib/file-safety";
 import { scheduleScan } from "@/lib/scan/schedule";
+import { IMAGE_NOT_ALLOWED, verifyImageProvenance } from "@/lib/image-provenance";
+import { FILE_REQUIRED } from "@/lib/product-file-required";
 import { announceReadyAtAttach } from "@/lib/scan/announce";
 import { redactId } from "@/lib/redact-id";
 import { priceProblemMessage, validatePrice } from "@/lib/pricing";
@@ -89,7 +91,16 @@ export async function GET(
 
     // Don't leak the member list in the response
     const shop = { id: product.shop.id, name: product.shop.name, slug: product.shop.slug };
-    return NextResponse.json({ ...product, shop });
+    // Why it was rejected, for the edit page: the seller's own product.
+    const rejection =
+      product.moderationStatus === "REJECTED"
+        ? await prisma.moderationEvent.findFirst({
+            where: { productId: product.id, action: "REJECTED" },
+            orderBy: { createdAt: "desc" },
+            select: { reason: true },
+          })
+        : null;
+    return NextResponse.json({ ...product, shop, rejectionReason: rejection?.reason?.trim() || null });
   } catch (error) {
     console.error("Error fetching product:", error);
     return NextResponse.json(
@@ -237,6 +248,22 @@ export async function PUT(
      * rather than being assumed: normally PENDING_SCAN, but already SAFE if the
      * worker settled it between upload and save.
      */
+    // A product cannot be saved without its deliverable: removing the file, or
+    // editing a product that never had one, is refused until a file is
+    // uploaded (lib/product-file-required). An older product with no file
+    // is resubmitted by uploading one.
+    const resultingFileKey = nextFileKey !== undefined ? nextFileKey : product.fileKey;
+    if (!resultingFileKey) {
+      return NextResponse.json(FILE_REQUIRED, { status: 400 });
+    }
+
+    // A NEW thumbnail must be this shop's own upload (lib/image-provenance).
+    // An unchanged one passes: it may predate upload records.
+    if (thumbnailUrl && thumbnailUrl !== product.thumbnailUrl) {
+      const image = await verifyImageProvenance(thumbnailUrl, product.shopId, "PRODUCT_THUMBNAIL");
+      if (!image.ok) return NextResponse.json(IMAGE_NOT_ALLOWED, { status: 400 });
+    }
+
     let replacementScanFields: Record<string, unknown> | null = null;
     if (fileUrlChanged) {
       if (nextFileKey) {
@@ -338,13 +365,21 @@ export async function PUT(
      * here can approve or publish anything.
      */
     let resubmitted = false;
+    // An APPROVED product whose file is replaced goes back to review too: an
+    // approval was a decision about the file that was looked at, and a
+    // seller must not be able to swap in a different one after it. (The new
+    // file is scanned either way; this is about what it contains.)
+    const reopenFrom =
+      product.moderationStatus === "REJECTED" || (product.moderationStatus === "APPROVED" && fileChanged)
+        ? product.moderationStatus
+        : null;
     // A suspended shop (isActive false, the runbook's suspension) cannot reopen
     // anything: its rejections stand until an admin restores the shop.
-    if (product.moderationStatus === "REJECTED" && product.shop.isActive) {
+    if (reopenFrom && product.shop.isActive) {
       try {
         resubmitted = await prisma.$transaction(async (tx) => {
           const reopened = await tx.product.updateMany({
-            where: { id, moderationStatus: "REJECTED" },
+            where: { id, moderationStatus: reopenFrom },
             data: { moderationStatus: "PENDING" },
           });
           if (reopened.count !== 1) return false;
@@ -353,8 +388,8 @@ export async function PUT(
               productId: id,
               action: "RESUBMITTED",
               actor: `seller:${user.id}`,
-              reason: null,
-              previousStatus: "REJECTED",
+              reason: reopenFrom === "APPROVED" ? "File replaced after approval" : null,
+              previousStatus: reopenFrom,
               newStatus: "PENDING",
             },
           });

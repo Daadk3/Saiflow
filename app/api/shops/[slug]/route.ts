@@ -6,6 +6,8 @@ import { authOptions } from "../../auth/authOptions";
 import { isAllowedAssetUrl } from "@/lib/validations";
 import { creatorFileStatus } from "@/lib/creator-file-status";
 import { sellerFileState, type SellerAssetView } from "@/lib/seller-file-state";
+import { IMAGE_NOT_ALLOWED, verifyImageProvenance } from "@/lib/image-provenance";
+import { sessionUserId } from "@/lib/session-account";
 
 export async function GET(
   req: Request,
@@ -20,6 +22,7 @@ export async function GET(
         { status: 401 }
       );
     }
+    const userId = sessionUserId(session);
 
     const { slug } = await params;
 
@@ -52,6 +55,14 @@ export async function GET(
             currency: true,
             thumbnailUrl: true,
             moderationStatus: true,
+            // The latest rejection's reason, so a seller sees what to fix
+            // here and not only in their email. Their own product's.
+            moderationEvents: {
+              where: { action: "REJECTED" },
+              orderBy: { createdAt: "desc" },
+              take: 1,
+              select: { reason: true },
+            },
             createdAt: true,
             // Server-side only — see the map below. fileUrl is deliberately
             // NOT selected: nothing reads it now that hasFile keys on fileKey,
@@ -63,12 +74,11 @@ export async function GET(
             updatedAt: true,
           },
         },
-        // Membership, for the authorisation check only. Emails are compared
-        // here and never returned: the dashboard does not use shopUsers, and
-        // shipping co-members' addresses to the browser is disclosure without
-        // a purpose.
+        // Membership, for the authorisation check only, by account id
+        // (lib/session-account). Never returned: the dashboard does not use
+        // shopUsers.
         shopUsers: {
-          select: { user: { select: { email: true } } },
+          select: { userId: true },
         },
       },
     });
@@ -82,7 +92,7 @@ export async function GET(
 
     // Check if user has access to this shop
     const userHasAccess = shop.shopUsers.some(
-      (su) => su.user.email === session.user?.email
+      (su) => userId !== null && su.userId === userId
     );
 
     if (!userHasAccess) {
@@ -159,6 +169,9 @@ export async function GET(
         currency: p.currency,
         thumbnailUrl: p.thumbnailUrl,
         moderationStatus: p.moderationStatus,
+        // Only while rejected; null when the rejection recorded no reason.
+        rejectionReason:
+          p.moderationStatus === "REJECTED" ? p.moderationEvents[0]?.reason?.trim() || null : null,
         createdAt: p.createdAt,
         // A boolean, not the URL — the deliverable URL is not the browser's
         // business, and the dashboard only ever asked "is there a file?".
@@ -205,6 +218,7 @@ export async function PUT(
         { status: 401 }
       );
     }
+    const userId = sessionUserId(session);
 
     const { slug } = await params;
     const { name, description, logo, coverImage } = await req.json();
@@ -254,7 +268,7 @@ export async function PUT(
 
     // Check if user has access to this shop
     const userHasAccess = shop.shopUsers.some(
-      (su) => su.user.email === session.user?.email
+      (su) => userId !== null && su.userId === userId
     );
 
     if (!userHasAccess) {
@@ -262,6 +276,19 @@ export async function PUT(
         { error: "You don't have permission to edit this shop" },
         { status: 403 }
       );
+    }
+
+    // A NEW logo or cover must be this shop's own upload, through its own
+    // route (lib/image-provenance). An unchanged one passes: it may predate
+    // upload records. Checked after membership, so an outsider learns nothing.
+    for (const [value, current, route] of [
+      [logo, shop.logo, "SHOP_LOGO"],
+      [coverImage, shop.coverImage, "SHOP_COVER"],
+    ] as const) {
+      if (value && value !== current) {
+        const image = await verifyImageProvenance(value, shop.id, route);
+        if (!image.ok) return NextResponse.json(IMAGE_NOT_ALLOWED, { status: 400 });
+      }
     }
 
     /**

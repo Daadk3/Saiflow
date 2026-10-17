@@ -8,6 +8,7 @@ import Image from "next/image";
 import { useLocale, useTranslations } from "next-intl";
 import { ListingStandards } from "@/components/ListingStandards";
 import { UploadButton } from "@/lib/uploadthing";
+import { useUploadContent } from "@/components/upload/useUploadContent";
 import { PRODUCT_CATEGORIES, CATEGORY_LABEL_KEYS } from "@/lib/categories";
 // Pinned origin, never window.location — this page renders identically on a
 // Vercel Preview, whose host dies with the deployment. See lib/site-url.
@@ -22,6 +23,7 @@ import { FileScanState, type FileScanStateView } from "@/components/FileScanStat
 // Live refresh of the file check only; see lib/scan-status-polling.
 import { isScanInProgress } from "@/lib/scan-status-polling";
 import { useScanStatusPolling } from "@/lib/use-scan-status-polling";
+import { DashboardSkeleton } from "@/components/ui/DashboardSkeleton";
 
 interface Product {
   id: string;
@@ -33,6 +35,8 @@ interface Product {
   fileUrl: string | null;
   /** From GET /api/products/[id], which returns the whole row. */
   moderationStatus?: "PENDING" | "APPROVED" | "REJECTED";
+  /** Why it was rejected, while it is; null when no reason was recorded. */
+  rejectionReason?: string | null;
   /**
    * Server-derived, and supplied ONLY by GET /api/shops/[slug] — the product
    * endpoint returns raw columns, not this verdict. Held in state from the
@@ -50,6 +54,9 @@ interface Product {
 
 export default function EditProductPage() {
   const t = useTranslations();
+  const tModeration = useTranslations("moderation");
+  const thumbnailUploadContent = useUploadContent("productThumbnail");
+  const fileUploadContent = useUploadContent("productFile");
   const locale = useLocale();
   const tLink = useTranslations("productLink");
   const [product, setProduct] = useState<Product | null>(null);
@@ -199,7 +206,7 @@ export default function EditProductPage() {
       const data = await res.json();
 
       if (!res.ok) {
-        setError(data.error || t("dashboard.shop.somethingWrong"));
+        setError(data.code === "file_required" ? t("dashboard.product.fileRequired") : data.error || t("dashboard.shop.somethingWrong"));
         return;
       }
 
@@ -217,14 +224,7 @@ export default function EditProductPage() {
   }
 
   if (status === "loading" || loading) {
-    return (
-      <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center">
-        <div className="flex flex-col items-center gap-4">
-          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-teal-500"></div>
-          <p className="text-gray-400">{t("dashboard.product.edit.loading")}</p>
-        </div>
-      </div>
-    );
+    return <DashboardSkeleton label={t("dashboard.product.edit.loading")} variant="form" />;
   }
 
   if (error && !product) {
@@ -315,6 +315,19 @@ export default function EditProductPage() {
               <p className="mt-2 text-gray-500">{t("dashboard.product.edit.subtitle")}</p>
             </div>
 
+            {/* Why it was rejected, before the seller starts editing. */}
+            {product?.moderationStatus === "REJECTED" && (
+              <div className="mb-6">
+                <div className="mt-2 rounded-lg border border-red-500/20 bg-red-500/[0.05] p-3">
+                  <p className="text-xs font-medium text-red-300">{tModeration("rejectionReasonLabel")}</p>
+                  <p dir="auto" className="mt-1 whitespace-pre-line text-sm text-gray-200 [unicode-bidi:plaintext]">
+                    {product.rejectionReason ?? tModeration("noReasonRecorded")}
+                  </p>
+                  <p className="mt-1 text-xs text-gray-500">{tModeration("fixAndResubmit")}</p>
+                </div>
+              </div>
+            )}
+
             {/* Form */}
             <form onSubmit={handleSubmit} className="space-y-6">
               {/* Thumbnail Upload */}
@@ -330,6 +343,10 @@ export default function EditProductPage() {
                   <div className="relative inline-block">
                     <Image
                       src={thumbnailUrl}
+                      // The seller's just-uploaded picture, loaded straight from storage:
+                      // the optimizer can fetch a brand-new upload before it is available
+                      // and show nothing, which looked like a failed upload.
+                      unoptimized
                       alt={t("dashboard.product.thumbnailAlt")}
                       width={200}
                       height={200}
@@ -338,6 +355,7 @@ export default function EditProductPage() {
                     <button
                       type="button"
                       onClick={() => setThumbnailUrl("")}
+                      aria-label={t("upload.removeImage")}
                       className="absolute -top-2 -end-2 w-6 h-6 bg-red-500 hover:bg-red-400 rounded-full flex items-center justify-center transition-colors"
                     >
                       <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -358,6 +376,7 @@ export default function EditProductPage() {
                     {product?.shop.id && (
                       <UploadButton
                         endpoint="productThumbnail"
+                        content={thumbnailUploadContent}
                         input={{ shopId: product.shop.id }}
                         onClientUploadComplete={(res) => {
                           if (res?.[0]) {
@@ -553,6 +572,7 @@ export default function EditProductPage() {
                       <button
                         type="button"
                         onClick={() => { setFileUrl(""); setFileName(""); }}
+                        aria-label={t("upload.removeFile")}
                         className="flex-shrink-0 text-gray-400 hover:text-red-400 transition-colors"
                         title={t("dashboard.product.edit.removeFileTitle")}
                       >
@@ -592,6 +612,11 @@ export default function EditProductPage() {
                         {t("dashboard.product.edit.downloadTroubleshoot")}
                       </span>
                     </div>
+                    {/* The server sends an approved product back to review
+                        when its file changes; say so before the seller does it. */}
+                    {product?.moderationStatus === "APPROVED" && (
+                      <p className="mt-2 text-xs text-amber-300">{t("dashboard.product.replaceFileReview")}</p>
+                    )}
                   </div>
                 ) : (
                   <div className="relative">
@@ -605,6 +630,7 @@ export default function EditProductPage() {
                       {product?.shop.id && (
                         <UploadButton
                           endpoint="productFile"
+                          content={fileUploadContent}
                           input={{ shopId: product.shop.id }}
                           onClientUploadComplete={(res) => {
                             if (res?.[0]) {
@@ -643,6 +669,12 @@ export default function EditProductPage() {
               <ListingStandards ar={locale.startsWith("ar")} variant="seller" />
 
               {/* Action Buttons */}
+              {/* A product cannot be saved without its file (the API refuses too). */}
+              {!fileUrl && (
+                <p id="file-required" role="status" className="text-sm text-amber-300">
+                  {t("dashboard.product.fileRequired")}
+                </p>
+              )}
               <div className="flex gap-4">
                 <Link
                   href={`/dashboard/shop/${slug}`}
@@ -652,7 +684,8 @@ export default function EditProductPage() {
                 </Link>
                 <button
                   type="submit"
-                  disabled={saving}
+                  disabled={saving || !fileUrl}
+                  aria-describedby={!fileUrl ? "file-required" : undefined}
                   className="flex-1 py-3 px-4 bg-teal-500 hover:bg-teal-400 disabled:bg-teal-500/50 disabled:cursor-not-allowed text-white font-semibold rounded-xl transition-colors duration-200 flex items-center justify-center gap-2"
                 >
                   {saving ? (

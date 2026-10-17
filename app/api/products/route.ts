@@ -5,6 +5,8 @@ import { prisma } from "@/lib/prisma";
 import { authOptions } from "../auth/authOptions";
 import { slugify } from "@/lib/slug";
 import { isAllowedAssetUrl, extractOwnAssetKey } from "@/lib/validations";
+import { IMAGE_NOT_ALLOWED, verifyImageProvenance } from "@/lib/image-provenance";
+import { FILE_REQUIRED } from "@/lib/product-file-required";
 import {
   verifyDeliverableProvenance,
   attachedScanFields,
@@ -158,16 +160,26 @@ export async function POST(req: Request) {
      * Checked after shop membership, so an outsider is refused before any
      * lookup reveals whether a key exists.
      */
-    let scanFields = {};
-    if (fileKey) {
-      const provenance = await verifyDeliverableProvenance(fileKey, shopId);
-      if (!provenance.ok) {
-        return NextResponse.json(
-          { error: "This file cannot be attached to a product." },
-          { status: 400 }
-        );
-      }
-      scanFields = attachedScanFields(provenance.asset);
+    // A product without its deliverable is not a product: refused here, not
+    // just disabled in the form (lib/product-file-required). After the
+    // membership check, so an outsider is always refused as an outsider.
+    if (!fileKey) {
+      return NextResponse.json(FILE_REQUIRED, { status: 400 });
+    }
+    const provenance = await verifyDeliverableProvenance(fileKey, shopId);
+    if (!provenance.ok) {
+      return NextResponse.json(
+        { error: "This file cannot be attached to a product." },
+        { status: 400 }
+      );
+    }
+    const scanFields = attachedScanFields(provenance.asset);
+
+    // The thumbnail, likewise: uploaded through the thumbnail route, for
+    // this shop (lib/image-provenance).
+    if (thumbnailUrl) {
+      const image = await verifyImageProvenance(thumbnailUrl, shopId, "PRODUCT_THUMBNAIL");
+      if (!image.ok) return NextResponse.json(IMAGE_NOT_ALLOWED, { status: 400 });
     }
 
     // Create slug from name (falls back to a random handle for non-Latin names)

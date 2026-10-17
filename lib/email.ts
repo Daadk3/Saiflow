@@ -1,4 +1,5 @@
 import { Resend } from 'resend';
+import { RECEIPT_LINK_TTL_DAYS } from '@/lib/download-links';
 
 // Lazy instantiation only — a module-level `new Resend(...)` crashes builds
 // and cold starts when the env var is absent.
@@ -84,8 +85,11 @@ function formatPaid(paid: { amount: unknown; currency: string } | undefined): st
 /**
  * The buyer's receipt, in Arabic and English, with the download link.
  *
- * The link is the download route's email channel; the route itself decides,
- * every time, whether the file may be delivered. Never logs the address.
+ * The link is the download route's receipt channel: signed, and in date for
+ * RECEIPT_LINK_TTL_DAYS (lib/download-links). After that the buyer downloads
+ * from "My purchases" by signing in with this address. The route itself
+ * decides, every time, whether the file may be delivered. Never logs the
+ * address.
  */
 export async function sendPurchaseEmail({
   customerEmail,
@@ -124,7 +128,7 @@ export async function sendPurchaseEmail({
             </p>
             ${paidAr}
             <p style="color: #9ca3af; font-size: 14px;">
-              احتفظ بهذه الرسالة: يمكنك تحميل ملفك منها في أي وقت.
+              رابط التحميل صالح لمدة ${RECEIPT_LINK_TTL_DAYS} أيام. بعدها، سجّل الدخول إلى SaiFlow بهذا البريد الإلكتروني وافتح «مشترياتي» لتحميل ملفك مرة أخرى.
             </p>
           </div>
           <div style="text-align: center; margin: 30px 0;">
@@ -139,7 +143,7 @@ export async function sendPurchaseEmail({
             </p>
             ${paidEn}
             <p style="color: #9ca3af; font-size: 14px;">
-              Keep this email: you can download your file from it at any time.
+              This download link works for ${RECEIPT_LINK_TTL_DAYS} days. After that, sign in to SaiFlow with this email address and open "My purchases" to download your file again.
             </p>
           </div>
           <p style="color: #6b7280; font-size: 12px; text-align: center;">

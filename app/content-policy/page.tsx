@@ -87,7 +87,7 @@ export default async function ContentPolicyPage() {
             </ul>
           </section>
 
-          <section>
+          <section id="listing-standards" className="scroll-mt-24">
             <h2 className="text-2xl font-bold text-white mb-4">
               {ar ? "معايير قبول المنتج" : "Listing Standards"}
             </h2>

@@ -387,12 +387,16 @@ describe("H1: a product written already SAFE is announced exactly once", () => {
 /* ------------------------------------------------------------------ */
 
 describe("no announcement for approved products or non-SAFE verdicts", () => {
-  test("already-SAFE replacement on an APPROVED product", async () => {
+  test("already-SAFE replacement on an APPROVED product: back to review, and the founder is told once", async () => {
+    // Since 17 Oct 2026 a new file on an approved product sends it back to
+    // review (app/api/products/[id]), so it is announced like any product
+    // awaiting a decision.
     const id = await seedSafeProduct("keyAAAA0001", "APPROVED");
     seedAsset("keyBBBB0002", "SAFE");
     assert.equal((await replace(id, { fileUrl: fileUrl("keyBBBB0002") })).status, 200);
     await drain();
-    assert.equal(sent.length, 0);
+    assert.equal(product(id).moderationStatus, "PENDING");
+    assert.equal(sent.length, 1);
   });
 
   test("UNSAFE and SCAN_ERROR files, on create and on replace", async () => {

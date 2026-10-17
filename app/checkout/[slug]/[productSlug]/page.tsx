@@ -3,9 +3,10 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { prisma } from "@/lib/prisma";
-import { SAFE_DELIVERABLE_WHERE } from "@/lib/file-safety";
+import { SELLABLE_PRODUCT_WHERE, SELLABLE_SHOP_WHERE } from "@/lib/sellable";
 import { env } from "@/lib/env";
-import { checkoutScriptUrl, isGeideaConfigured } from "@/lib/payments/geidea/client";
+import { checkoutScriptUrl, geideaMode, isGeideaConfigured } from "@/lib/payments/geidea/client";
+import { isLiveCheckout } from "@/lib/payments/checkout-mode";
 import { CheckoutSummary } from "@/components/checkout/CheckoutSummary";
 import { DropInCheckout } from "@/components/checkout/DropInCheckout";
 import { PaymentAssurance } from "@/components/checkout/PaymentAssurance";
@@ -43,13 +44,9 @@ async function getCheckoutProduct(shopSlug: string, productSlug: string) {
   return prisma.product.findFirst({
     where: {
       slug: productSlug,
-      isActive: true,
-      moderationStatus: "APPROVED",
-      shop: {
-        slug: shopSlug,
-        isActive: true,
-      },
-      ...SAFE_DELIVERABLE_WHERE,
+      // The one storefront rule (lib/sellable), plus this page's shop slug.
+      ...SELLABLE_PRODUCT_WHERE,
+      shop: { ...SELLABLE_SHOP_WHERE, slug: shopSlug },
     },
     select: {
       id: true,
@@ -88,6 +85,11 @@ export default async function CheckoutPage({
     }
   }
 
+  // Unless Geidea is live, nothing entered here is really charged: say so
+  // above everything. Not shown while payments are off (PRE_LAUNCH_MODE),
+  // where the card form is replaced by the "not available yet" notice.
+  const testMode = !env.PRE_LAUNCH_MODE && !isLiveCheckout(isGeideaConfigured(), geideaMode());
+
   return (
     <div className="min-h-screen bg-[#0a0a0a]">
       <main className="mx-auto w-full max-w-5xl px-4 py-8 sm:px-6 sm:py-12 lg:px-8">
@@ -101,6 +103,13 @@ export default async function CheckoutPage({
           {t("backToProduct")}
         </Link>
         <h1 className="mt-4 text-2xl font-bold text-white sm:text-3xl">{t("title")}</h1>
+
+        {testMode && (
+          <div role="note" className="mt-4 rounded-xl border border-amber-400/40 bg-amber-400/10 px-4 py-3">
+            <p className="text-sm font-semibold text-amber-200">{t("testModeTitle")}</p>
+            <p className="mt-0.5 text-sm text-amber-100/80">{t("testModeBody")}</p>
+          </div>
+        )}
 
         <div className="mt-6 grid grid-cols-1 gap-8 lg:mt-8 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:gap-10">
           <CheckoutSummary

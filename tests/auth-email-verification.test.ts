@@ -533,7 +533,9 @@ describe("signup", () => {
     assert.equal(db.users.size, 1, "the account still exists, unverified");
 
     const page = read("app/signup/page.tsx");
-    assert.match(page, /data\.verificationEmailSent === false\s*\?\s*t\('auth\.signup\.successEmailFailed'\)/);
+    // The check-your-inbox screen swaps its steps for the failure message.
+    assert.match(page, /setEmailFailed\(data\.verificationEmailSent === false\)/);
+    assert.match(page, /\{emailFailed \? \([\s\S]*?t\('auth\.signup\.successEmailFailed'\)/);
     assert.match(page, /<ResendVerification email=\{createdEmail\}/);
     for (const locale of ["en", "ar"]) {
       const signup = JSON.parse(read(`messages/${locale}.json`)).auth.signup;

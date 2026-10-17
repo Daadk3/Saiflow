@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import Stripe from "stripe";
 import { prisma } from "@/lib/prisma";
 import { sendPurchaseEmail } from "@/lib/email";
+import { receiptDownloadUrl } from "@/lib/download-links";
 import { fromHalalas, saleBreakdown } from "@/lib/pricing";
 
 // Lazy init: Stripe env vars are optional in pre-launch, so a module-level
@@ -197,12 +198,23 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
 
   // Send purchase email
   if (customerEmail && customerEmail !== "unknown@example.com" && product) {
-    const downloadUrl = `${process.env.NEXTAUTH_URL}/api/download/${product.id}?orderId=${order.id}`;
-    await sendPurchaseEmail({
-      customerEmail,
-      productName: product.name,
-      downloadUrl,
-    });
+    // The order exists either way; a receipt that cannot be signed, or has no
+    // site address to link to, is logged, not sent and not retried.
+    try {
+      if (!process.env.NEXTAUTH_URL) throw new Error("no_site_url");
+      const downloadUrl = receiptDownloadUrl(
+        process.env.NEXTAUTH_URL,
+        { orderId: order.id, productId: product.id },
+        process.env.NEXTAUTH_SECRET
+      );
+      await sendPurchaseEmail({
+        customerEmail,
+        productName: product.name,
+        downloadUrl,
+      });
+    } catch (error) {
+      console.error("[Stripe Webhook] Receipt not sent:", (error as Error)?.name);
+    }
   }
 }
 

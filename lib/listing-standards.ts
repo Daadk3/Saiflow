@@ -34,3 +34,35 @@ export const LISTING_STANDARDS: ReadonlyArray<{ ar: string; en: string }> = [
     en: "The price is the seller's to set, but the listing must be honest about what the buyer receives.",
   },
 ];
+
+/**
+ * The shortest description the review checklist counts as describing the
+ * product (trimmed characters). Below it, "describes what's included" can't
+ * be true; above it, a person still has to read it.
+ */
+export const MIN_DESCRIPTION_LENGTH = 80;
+
+/**
+ * One line of the founder's "Before approving" checklist.
+ *
+ * `pass` and `fail` are facts the server checked (lib/admin-product-preview);
+ * `manual` is a standard only a person can judge, shown with a neutral mark
+ * and never a tick. Nothing renders a ✓ the server did not verify.
+ */
+export interface ListingCheck {
+  key: string;
+  label: { ar: string; en: string };
+  state: "pass" | "fail" | "manual";
+  /** Why a check failed, already in the reader's language; set by the page. */
+  detail?: string;
+}
+
+/** The checks the server can verify, by key, with their labels. */
+export const AUTOMATIC_CHECK_LABELS = {
+  file_safe: { ar: "ملف المنتج اجتاز فحص الأمان.", en: "The product file passed its safety check." },
+  preview_image: { ar: "توجد صورة عرض للمنتج.", en: "There is a preview image." },
+  description_length: {
+    ar: `الوصف ${MIN_DESCRIPTION_LENGTH} حرفًا على الأقل.`,
+    en: `The description is at least ${MIN_DESCRIPTION_LENGTH} characters.`,
+  },
+} as const;

@@ -24,7 +24,7 @@ const route = strip(read("app/api/admin/moderation/[productId]/route.ts"));
 
 test("the page renders the controls for every status, not only for undecided products", () => {
   assert.match(page, /import DecisionButtons from "@\/components\/admin\/DecisionButtons";/);
-  const use = /<DecisionButtons productId=\{product\.id\} status=\{product\.moderationStatus\} \/>/.exec(page);
+  const use = /<DecisionButtons\s+productId=\{product\.id\}\s+productName=\{product\.name\}\s+status=\{product\.moderationStatus\}/.exec(page);
   assert.ok(use, "rendered with the product's current status");
   const before = page.slice(Math.max(0, use!.index - 300), use!.index);
   assert.ok(!/(humanReviewed|moderationStatus === "PENDING") && \(\s*$/.test(before), "not gated on being undecided");
@@ -37,7 +37,7 @@ test("only decisions that change something are offered", () => {
 
 test("it goes through the one audited route, and a rejection needs a reason", () => {
   assert.match(buttons, /fetch\(`\/api\/admin\/moderation\/\$\{productId\}`/);
-  assert.match(buttons, /if \(!reason\?\.trim\(\)\) return;/);
+  assert.match(buttons, /if \(action === "REJECTED" && !reason\?\.trim\(\)\) return;/);
   // The route records the change against the status it replaced, needs a reason to reject, and tells the seller.
   assert.match(route, /previousStatus: product\.moderationStatus/);
   assert.match(route, /action === "REJECTED" && \(!reason/);

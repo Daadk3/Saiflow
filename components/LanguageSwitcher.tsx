@@ -1,11 +1,12 @@
 'use client';
-import { useLocale } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 
 const LOCALE_COOKIE = 'NEXT_LOCALE';
 const ONE_YEAR = 60 * 60 * 24 * 365;
 
 export function LanguageSwitcher() {
   const locale = useLocale();
+  const t = useTranslations('nav');
   const next = locale.startsWith('ar') ? 'en' : 'ar';
 
   const switchTo = (lang: string) => {
@@ -18,10 +19,14 @@ export function LanguageSwitcher() {
     <button
       onClick={() => switchTo(next)}
       className="px-3 py-1.5 text-sm text-gray-300 hover:text-white border border-gray-600 rounded-full hover:border-gray-400 transition-colors flex items-center gap-1.5"
-      aria-label="Switch language"
+      // Said in the page's language ("التبديل إلى الإنجليزية" on the Arabic
+      // page); the visible name is the target language's own, tagged with
+      // its language so a screen reader pronounces it correctly.
+      aria-label={next === 'en' ? t('switchToEnglish') : t('switchToArabic')}
+      lang={locale.startsWith('ar') ? 'ar' : 'en'}
     >
-      <span>{locale.startsWith('ar') ? '🇺🇸' : '🇸🇦'}</span>
-      <span>{locale.startsWith('ar') ? 'English' : 'العربية'}</span>
+      <span aria-hidden="true">{locale.startsWith('ar') ? '🇺🇸' : '🇸🇦'}</span>
+      <span lang={next} dir={next === 'ar' ? 'rtl' : 'ltr'}>{next === 'en' ? 'English' : 'العربية'}</span>
     </button>
   );
 }

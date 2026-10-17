@@ -388,8 +388,8 @@ export async function notifyProductModerated(input: {
       lines: [
         { ar: `المنتج: ${product.name}`, en: `Product: ${product.name}` },
         {
-          ar: "اعتمدنا منتجك. يظهر للعامة عندما يكون ملفه قد اجتاز الفحص.",
-          en: "We approved your product. It goes public once its file has passed the check.",
+          ar: "اعتمدنا منتجك بعد أن اجتاز ملفه الفحص، وأصبح ظاهرًا في متجرك.",
+          en: "We approved your product after its file passed the check. It's now visible on your store.",
         },
       ],
       link: { url: sellerShopUrl(product.shop.slug), label: { ar: "لوحة متجرك", en: "Your store dashboard" } },

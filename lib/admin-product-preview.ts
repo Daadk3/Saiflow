@@ -2,6 +2,14 @@ import type { ModerationStatus } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { inspectDecision } from "@/lib/inspect";
 import { isAllowedAssetUrl } from "@/lib/validations";
+import { unsellableReason, type UnsellableReason } from "@/lib/sellable";
+import { isDeliverableSafe } from "@/lib/file-safety";
+import {
+  AUTOMATIC_CHECK_LABELS,
+  LISTING_STANDARDS,
+  MIN_DESCRIPTION_LENGTH,
+  type ListingCheck,
+} from "@/lib/listing-standards";
 import {
   moderatorFileSafety,
   type ModeratorFileSafety,
@@ -76,6 +84,39 @@ export interface AdminProductPreview {
    * not trust anything computed here.
    */
   canInspect: boolean;
+  /** Why an APPROVED product is still not on sale (lib/sellable), or null. */
+  notSellableReason: UnsellableReason | null;
+  /**
+   * The "Before approving" checklist: three facts checked here, then every
+   * listing standard as a manual check. See listingChecks.
+   */
+  checks: ListingCheck[];
+}
+
+/**
+ * The review checklist for one product. Pass or fail only where the server
+ * can tell (the file's safety check, a preview image, a description long
+ * enough to say what's included); every listing standard follows as a manual
+ * check, because only a person can judge whether the file matches or the
+ * listing is honest.
+ */
+export function listingChecks(product: {
+  fileKey: string | null;
+  fileScanStatus: string;
+  fileScanKey: string | null;
+  thumbnailUrl: string | null;
+  images: string[];
+  description: string | null;
+}): ListingCheck[] {
+  const safe = isDeliverableSafe(product as Parameters<typeof isDeliverableSafe>[0]);
+  const hasPreview = Boolean(product.thumbnailUrl || product.images[0]);
+  const longEnough = (product.description ?? "").trim().length >= MIN_DESCRIPTION_LENGTH;
+  return [
+    { key: "file_safe", label: AUTOMATIC_CHECK_LABELS.file_safe, state: safe ? "pass" : "fail" },
+    { key: "preview_image", label: AUTOMATIC_CHECK_LABELS.preview_image, state: hasPreview ? "pass" : "fail" },
+    { key: "description_length", label: AUTOMATIC_CHECK_LABELS.description_length, state: longEnough ? "pass" : "fail" },
+    ...LISTING_STANDARDS.map((standard, i) => ({ key: `standard_${i + 1}`, label: standard, state: "manual" as const })),
+  ];
 }
 
 export async function getAdminProductPreview(
@@ -105,8 +146,9 @@ export async function getAdminProductPreview(
       fileScanKey: true,
       shop: {
         // No logo: the preview does not render one, and a column that is not
-        // selected cannot be rendered by a later edit.
-        select: { name: true, slug: true },
+        // selected cannot be rendered by a later edit. isActive feeds the
+        // sellable reason only.
+        select: { name: true, slug: true, isActive: true },
       },
     },
   });
@@ -132,8 +174,19 @@ export async function getAdminProductPreview(
     moderationStatus: product.moderationStatus,
     isActive: product.isActive,
     createdAt: product.createdAt,
-    shop: product.shop,
+    shop: { name: product.shop.name, slug: product.shop.slug },
     fileSafety,
     canInspect: inspectDecision(fileSafety.reason, "admin").allow,
+    notSellableReason:
+      product.moderationStatus === "APPROVED" && unsellableReason(product) !== "sellable"
+        ? unsellableReason(product)
+        : null,
+    // From the same allowlisted images the page shows, so "there is a
+    // preview" means one the founder can actually see.
+    checks: listingChecks({
+      ...product,
+      thumbnailUrl: isAllowedAssetUrl(product.thumbnailUrl) ? product.thumbnailUrl : null,
+      images: product.images.filter(isAllowedAssetUrl),
+    }),
   };
 }

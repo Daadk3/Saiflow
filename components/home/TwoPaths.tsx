@@ -88,7 +88,10 @@ export async function TwoPaths() {
     <section className="py-8 sm:py-12">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <h2 className="mb-8 text-center text-3xl font-bold leading-tight text-white sm:mb-10 sm:text-4xl">{t("title")}</h2>
-        <div className="grid gap-5 md:grid-cols-2">
+        {/* Equal-height cards (grid rows stretch), each a column whose text
+            grows, so both buttons sit on the same line whatever the text
+            length or language. Stacked on mobile. */}
+        <div className="grid items-stretch gap-5 md:grid-cols-2">
           {/* Seller path */}
           <Link
             href="/signup"
@@ -100,8 +103,9 @@ export async function TwoPaths() {
             />
             <SellerIllustration />
             <h3 className="mt-6 text-2xl font-bold text-white sm:text-3xl">{t("sell.title")}</h3>
-            <p className="mt-3 text-base leading-relaxed text-gray-400 sm:text-lg">{t("sell.body")}</p>
-            <span className="btn-primary mt-7 w-fit text-base">
+            <p className="mt-3 flex-1 text-base leading-relaxed text-gray-400 sm:text-lg">{t("sell.body")}</p>
+            {/* Same size as the buy button: the transparent border matches its 1px border. */}
+            <span className="btn-primary mt-7 min-h-12 w-fit border border-transparent text-base">
               {t("sell.cta")}
               <IconArrow className="h-4 w-4 rtl:-scale-x-100" />
             </span>
@@ -118,8 +122,8 @@ export async function TwoPaths() {
             />
             <BuyerIllustration />
             <h3 className="mt-6 text-2xl font-bold text-white sm:text-3xl">{t("buy.title")}</h3>
-            <p className="mt-3 text-base leading-relaxed text-gray-400 sm:text-lg">{t("buy.body")}</p>
-            <span className="mt-7 inline-flex w-fit items-center gap-2 rounded-full border border-purple-400/40 bg-purple-500/15 px-6 py-3 text-base font-semibold text-purple-100 transition group-hover:bg-purple-500/25">
+            <p className="mt-3 flex-1 text-base leading-relaxed text-gray-400 sm:text-lg">{t("buy.body")}</p>
+            <span className="mt-7 inline-flex min-h-12 w-fit items-center justify-center gap-2 rounded-full border border-purple-400/40 bg-purple-500/15 px-6 py-3 text-base font-semibold text-purple-100 transition group-hover:bg-purple-500/25">
               {t("buy.cta")}
               <IconArrow className="h-4 w-4 rtl:-scale-x-100" />
             </span>

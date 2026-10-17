@@ -118,8 +118,9 @@ function productRow(overrides: Record<string, unknown> = {}) {
     price: 25,
     currency: "SAR",
     category: null,
-    fileUrl: null,
-    fileKey: null,
+    // A product always has its deliverable now (lib/product-file-required).
+    fileUrl: "https://testapp.ufs.sh/f/abc123XY_key-one",
+    fileKey: "abc123XY_key-one",
     thumbnailUrl: null,
     shop: {
       id: "shop_1",
@@ -139,7 +140,7 @@ function shopRow(overrides: Record<string, unknown> = {}) {
     description: null,
     logo: null,
     coverImage: null,
-    shopUsers: [{ user: { email: "owner@saiflow.test" } }],
+    shopUsers: [{ userId: "user_owner", user: { email: "owner@saiflow.test" } }],
     ...overrides,
   };
 }
@@ -167,7 +168,7 @@ const renameShop = (name: string) =>
 beforeEach(() => {
   calls.productUpdate = [];
   calls.shopUpdate = [];
-  state.session = { user: { email: "owner@saiflow.test" } };
+  state.session = { user: { id: "user_owner", email: "owner@saiflow.test" } };
   state.user = { id: "user_1", email: "owner@saiflow.test" };
   state.product = productRow();
   state.shop = shopRow();

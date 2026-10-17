@@ -18,7 +18,7 @@ const faqs = [
   },
   {
     question: "How do customers receive their files?",
-    answer: "After a successful purchase, customers receive an email with a secure download link. They can download the file immediately and have lifetime access to re-download it. The link is unique to their purchase and cannot be shared.",
+    answer: "After a successful purchase, customers receive an email with a secure download link. The link works for 7 days. After that, they sign in to Saiflow with the same email address and download again from &apos;My purchases&apos;, as often as they need.",
   },
   {
     question: "Can I edit my product after publishing?",

@@ -16,7 +16,7 @@ import { saleBreakdown, fromHalalas } from "../lib/pricing";
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 
 type Row = Record<string, unknown>;
-const state = { session: null as unknown, orders: [] as Row[], where: null as Row | null };
+const state = { session: null as unknown, orders: [] as Row[], where: null as Row | null, args: null as unknown };
 let GET: () => Promise<Response>;
 
 const decimal = (s: string) => ({ toString: () => s });
@@ -62,8 +62,9 @@ before(async () => {
           }),
         },
         order: {
-          findMany: async ({ where }: { where: Row }) => {
-            state.where = where;
+          findMany: async (args: { where: Row; select?: Row; include?: Row }) => {
+            state.where = args.where;
+            state.args = args;
             return state.orders;
           },
         },
@@ -78,6 +79,23 @@ beforeEach(() => {
   state.session = { user: { email: "seller@example.test" } };
   state.orders = [];
   state.where = null;
+});
+
+describe("the seller sees only what the dashboard shows", () => {
+  test("orders are selected field by field: no file URL, storage key, scan column or buyer bearer", async () => {
+    await GET();
+    const args = state.args as { select?: Row; include?: Row };
+    assert.equal(args.include, undefined, "an include sends whole rows");
+    const select = args.select as Row;
+    const product = (select.product as { select: Row }).select;
+    for (const leaked of ["fileUrl", "fileKey", "fileScanStatus", "fileScanKey", "fileScanSha256", "fileScanAttempts"]) {
+      assert.equal(product[leaked], undefined, `product.${leaked}`);
+    }
+    assert.deepEqual(Object.keys(product).sort(), ["currency", "shop"]);
+    for (const bearer of ["merchantReferenceId", "stripeSessionId", "providerOrderId"]) {
+      assert.equal(select[bearer], undefined, bearer);
+    }
+  });
 });
 
 describe("real revenue, split, with test orders flagged and excluded", () => {

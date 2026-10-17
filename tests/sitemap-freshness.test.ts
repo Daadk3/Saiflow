@@ -43,30 +43,27 @@ describe("the sitemap is rendered per request", () => {
 });
 
 describe("the fix changed freshness only, not eligibility", () => {
-  test("the three-part rule is intact", () => {
-    assert.ok(/isActive: true/.test(code));
-    assert.ok(/moderationStatus: "APPROVED"/.test(code));
-    assert.ok(code.includes("...SAFE_DELIVERABLE_WHERE"));
+  test("the storefront rule is intact: the shared one", () => {
+    assert.ok(/where: SELLABLE_PRODUCT_WHERE,/.test(code));
   });
 
-  test("the canonical clause is still imported, not restated", () => {
-    assert.ok(/import \{ SAFE_DELIVERABLE_WHERE \} from "@\/lib\/file-safety"/.test(code));
+  test("the canonical rule is imported, not restated", () => {
+    assert.ok(/import \{ SELLABLE_PRODUCT_WHERE \} from "@\/lib\/sellable"/.test(code));
     assert.ok(!/fileScanStatus:\s*"SAFE"/.test(code), "must not restate the status");
     assert.ok(!/fileScanKey:\s*\{/.test(code), "must not restate the key binding");
     assert.ok(!/fileKey:\s*\{\s*not:/.test(code), "must not restate the key check");
   });
 
   test("no extra condition was slipped into the product query", () => {
-    // The product where-clause should contain exactly the two literal
-    // conditions plus the spread. Anything else is scope creep into a fix
-    // that was supposed to touch rendering only.
+    // The product where-clause is exactly the shared storefront rule.
+    // Anything else is scope creep.
     const start = code.indexOf("products: {");
     assert.notEqual(start, -1);
     const block = code.slice(start, code.indexOf("select: { slug: true }", start));
     const conditions = block.match(/^\s*\w+:/gm) ?? [];
     assert.deepEqual(
       conditions.map((c) => c.trim().replace(":", "")).sort(),
-      ["isActive", "moderationStatus", "products", "where"].sort()
+      ["products", "where"].sort()
     );
   });
 

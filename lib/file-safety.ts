@@ -136,7 +136,8 @@ export const SAFE_DELIVERABLE_WHERE = {
 export type ProvenanceFailure =
   | "missing"
   | "wrong_shop"
-  | "wrong_route";
+  | "wrong_route"
+  | "empty";
 
 export type ProvenanceResult =
   | {
@@ -179,6 +180,7 @@ export async function verifyDeliverableProvenance(
       key: true,
       shopId: true,
       route: true,
+      size: true,
       scanStatus: true,
       scanSha256: true,
       scanAt: true,
@@ -197,6 +199,8 @@ export function provenanceVerdict(
     key: string;
     shopId: string;
     route: UploadRoute;
+    /** Bytes, as UploadThing reported them. Optional only for older callers' fixtures. */
+    size?: number;
     scanStatus: FileScanStatus;
     scanSha256: string | null;
     scanAt: Date | null;
@@ -206,6 +210,8 @@ export function provenanceVerdict(
   if (!asset) return { ok: false, reason: "missing" };
   if (asset.shopId !== shopId) return { ok: false, reason: "wrong_shop" };
   if (asset.route !== "PRODUCT_FILE") return { ok: false, reason: "wrong_route" };
+  // An empty upload is not a product, whatever its name says.
+  if (asset.size !== undefined && asset.size <= 0) return { ok: false, reason: "empty" };
 
   return {
     ok: true,

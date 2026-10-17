@@ -294,17 +294,19 @@ describe("Stage E2 storefront gate survives E3 untouched", () => {
   ];
 
   for (const surface of SURFACES) {
-    test(`${surface} still applies SAFE_DELIVERABLE_WHERE`, () => {
+    test(`${surface} still applies the safety clause, through the shared storefront rule`, () => {
       const src = strip(read(surface));
-      assert.ok(src.includes("SAFE_DELIVERABLE_WHERE"), surface);
-      assert.ok(src.includes("...SAFE_DELIVERABLE_WHERE"), surface);
+      assert.ok(src.includes("SELLABLE_PRODUCT_WHERE"), surface);
+      assert.ok(strip(read("lib/sellable.ts")).includes("...SAFE_DELIVERABLE_WHERE,"), "lib/sellable");
     });
   }
 
-  test("the buyer product page still requires APPROVED moderation", () => {
+  test("the buyer product page still requires APPROVED moderation, through the shared rule", () => {
     const src = strip(read("app/shop/[slug]/product/[productSlug]/page.tsx"));
-    assert.ok(src.includes('moderationStatus: "APPROVED"'));
-    assert.ok(src.includes("isActive: true"));
+    assert.ok(src.includes("...SELLABLE_PRODUCT_WHERE,"));
+    const rule = strip(read("lib/sellable.ts"));
+    assert.ok(rule.includes('moderationStatus: "APPROVED"'));
+    assert.ok(rule.includes("isActive: true"));
   });
 
   test("the safety authority itself is byte-for-byte unmodified", () => {
@@ -333,16 +335,17 @@ describe("Stage E2 storefront gate survives E3 untouched", () => {
 /* 4. Moderation stays independent of file safety                      */
 /* ================================================================== */
 
-describe("approve and reject remain available in every state", () => {
+describe("reject is available in every state; approve waits for a safe file", () => {
   const src = strip(read("components/admin/ReviewButton.tsx"));
 
-  test("neither button is disabled by a safety value", () => {
-    // `busy` is the in-flight guard and the ONLY disable condition.
+  test("only Approve can be held back, and only by the server's reason", () => {
+    // Changed 17 Oct 2026 (founder's part-3 list): approval now requires a
+    // deliverable that passed its check, enforced by the moderation route.
+    // The button is told why as a plain string; it decides nothing itself.
     const disables = src.match(/disabled=\{[^}]*\}/g) ?? [];
-    assert.ok(disables.length > 0);
-    for (const d of disables) {
-      assert.equal(d, "disabled={busy}", `unexpected disable condition: ${d}`);
-    }
+    assert.deepEqual(disables.sort(), ["disabled={busy || approveBlocked !== null}", "disabled={busy}", "disabled={busy}"].sort());
+    assert.match(src, /onClick=\{\(\) => decide\("APPROVED"\)\}\s*disabled=\{busy \|\| approveBlocked !== null\}/);
+    assert.match(src, /onClick=\{\(\) => decide\("REJECTED"\)\}\s*disabled=\{busy\}/);
   });
 
   test("the control knows nothing about file safety at all", () => {
@@ -428,7 +431,10 @@ describe("moderator copy is complete in Arabic and English", () => {
     )) {
       assert.ok(/[؀-ۿ]/.test(v), `not translated: ${v}`);
     }
-    for (const v of Object.values(ar.admin.preview as Record<string, string>)) {
+    // Nested groups (e.g. historyAction) are checked label by label.
+    const labels = (node: unknown): string[] =>
+      typeof node === "string" ? [node] : Object.values(node as Record<string, unknown>).flatMap(labels);
+    for (const v of labels(ar.admin.preview)) {
       assert.ok(/[؀-ۿ]/.test(v), `not translated: ${v}`);
     }
   });
@@ -577,6 +583,7 @@ describe("the preview payload carries no internals", () => {
     assert.deepEqual(Object.keys(preview!).sort(), [
       "canInspect",
       "category",
+      "checks",
       "createdAt",
       "currency",
       "description",
@@ -586,6 +593,7 @@ describe("the preview payload carries no internals", () => {
       "isActive",
       "moderationStatus",
       "name",
+      "notSellableReason",
       "price",
       "shop",
       "slug",
@@ -755,18 +763,21 @@ describe("legacy rows never look like they have a scannable deliverable", () => 
   });
 });
 
-describe("the overview's missing-file list keys on the storage key", () => {
-  test("its query asks for fileKey null, not fileUrl null", async () => {
+describe("the overview's attention list is the shared approved-not-sellable rule", () => {
+  test("it keys on the storage key and the scan, never the legacy URL", async () => {
+    // Since 17 Oct 2026 the list is lib/sellable's APPROVED_NOT_SELLABLE_WHERE:
+    // no file, or a file that has not passed its check (not only fileKey null).
     state.directoryRows = [];
     await getFounderStats();
     const missing = calls.findMany.find(
       (a) => (a.where as Record<string, unknown>)?.moderationStatus === "APPROVED"
     );
-    assert.ok(missing, "missing-file query not found");
+    assert.ok(missing, "attention query not found");
     const where = missing.where as Record<string, unknown>;
-    assert.ok("fileKey" in where, "must key on fileKey");
-    assert.equal(where.fileKey, null);
-    assert.ok(!("fileUrl" in where), "must not key on the legacy column");
+    const or = where.OR as Record<string, unknown>[];
+    assert.ok(or.some((c) => "fileKey" in c && c.fileKey === null), "must include the fileless case, by fileKey");
+    assert.ok(or.some((c) => "fileScanStatus" in c), "must include a file that has not passed its check");
+    assert.ok(!JSON.stringify(where).includes("fileUrl"), "must not key on the legacy column");
   });
 });
 

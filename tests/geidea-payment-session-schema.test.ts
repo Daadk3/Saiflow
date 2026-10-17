@@ -283,7 +283,7 @@ describe("PaymentSession cannot grant a download", () => {
   });
 
   test("proof of purchase is still an Order row, on both channels, or 403", () => {
-    assert.equal((download.match(/prisma\.order\.findUnique\(/g) ?? []).length, 3, "three explicit Order channels, none through attempts");
+    assert.equal((download.match(/prisma\.order\.findUnique\(/g) ?? []).length, 4, "four explicit Order channels, none through attempts");
     assert.ok(!/prisma\.\w+\.(create|update|upsert|delete)/.test(download), "the download route writes nothing");
     assert.match(download, /if \(!order\) \{[\s\S]*?status: 403/);
   });

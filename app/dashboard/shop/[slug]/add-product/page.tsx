@@ -8,12 +8,15 @@ import Image from "next/image";
 import { useLocale, useTranslations } from "next-intl";
 import { ListingStandards } from "@/components/ListingStandards";
 import { UploadButton } from "@/lib/uploadthing";
+import { useUploadContent } from "@/components/upload/useUploadContent";
 import { PRODUCT_CATEGORIES, CATEGORY_LABEL_KEYS, type ProductCategory } from "@/lib/categories";
 import ListingAssistant from "@/components/ai/ListingAssistant";
 import { PriceBreakdown } from "@/components/PriceBreakdown";
 
 export default function AddProductPage() {
   const t = useTranslations();
+  const thumbnailUploadContent = useUploadContent("productThumbnail");
+  const fileUploadContent = useUploadContent("productFile");
   const locale = useLocale();
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -97,7 +100,7 @@ export default function AddProductPage() {
       const data = await res.json();
 
       if (!res.ok) {
-        setError(data.error || t("dashboard.shop.somethingWrong"));
+        setError(data.code === "file_required" ? t("dashboard.product.fileRequired") : data.error || t("dashboard.shop.somethingWrong"));
         return;
       }
 
@@ -187,6 +190,10 @@ export default function AddProductPage() {
                   <div className="relative inline-block">
                     <Image
                       src={thumbnailUrl}
+                      // The seller's just-uploaded picture, loaded straight from storage:
+                      // the optimizer can fetch a brand-new upload before it is available
+                      // and show nothing, which looked like a failed upload.
+                      unoptimized
                       alt={t("dashboard.product.thumbnailAlt")}
                       width={200}
                       height={200}
@@ -195,6 +202,7 @@ export default function AddProductPage() {
                     <button
                       type="button"
                       onClick={() => setThumbnailUrl("")}
+                      aria-label={t("upload.removeImage")}
                       className="absolute -top-2 -end-2 w-6 h-6 bg-red-500 hover:bg-red-400 rounded-full flex items-center justify-center transition-colors"
                     >
                       <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -215,6 +223,7 @@ export default function AddProductPage() {
                     {shopId && (
                       <UploadButton
                         endpoint="productThumbnail"
+                        content={thumbnailUploadContent}
                         input={{ shopId }}
                         onClientUploadComplete={(res) => {
                           if (res?.[0]) {
@@ -361,6 +370,7 @@ export default function AddProductPage() {
                     <button
                       type="button"
                       onClick={() => { setFileUrl(""); setFileName(""); }}
+                      aria-label={t("upload.removeFile")}
                       className="flex-shrink-0 text-gray-400 hover:text-red-400 transition-colors"
                     >
                       <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -380,6 +390,7 @@ export default function AddProductPage() {
                       {shopId && (
                         <UploadButton
                           endpoint="productFile"
+                          content={fileUploadContent}
                           input={{ shopId }}
                           onClientUploadComplete={(res) => {
                             if (res?.[0]) {
@@ -459,10 +470,20 @@ export default function AddProductPage() {
                 </div>
               )}
 
+              {/* Nothing to review without the file to sell: the button waits
+                  until the upload has FINISHED (fileUrl is set only by
+                  onClientUploadComplete). The API refuses too. */}
+              {!fileUrl && (
+                <p id="file-required" role="status" className="text-sm text-amber-300">
+                  {t("dashboard.product.fileRequired")}
+                </p>
+              )}
+
               {/* Submit Button */}
               <button
                 type="submit"
-                disabled={loading || !shopId || !certified}
+                disabled={loading || !shopId || !certified || !fileUrl}
+                aria-describedby={!fileUrl ? "file-required" : undefined}
                 className="w-full py-3 px-4 bg-teal-500 hover:bg-teal-400 disabled:bg-teal-500/50 disabled:cursor-not-allowed text-white font-semibold rounded-xl transition-colors duration-200 flex items-center justify-center gap-2"
               >
                 {loading ? (
@@ -489,9 +510,9 @@ export default function AddProductPage() {
           <p className="mt-6 text-center text-gray-600 text-sm">
             {t.rich("dashboard.product.add.helpText", {
               link: (chunks) => (
-                <a href="#" className="text-teal-400 hover:text-teal-300 transition-colors">
+                <Link href="/content-policy#listing-standards" target="_blank" className="text-teal-400 hover:text-teal-300 transition-colors">
                   {chunks}
-                </a>
+                </Link>
               ),
             })}
           </p>

@@ -199,7 +199,7 @@ function shopRow(overrides: Record<string, unknown> = {}) {
         fileScanSha256: SECRET_SHA,
       },
     ],
-    shopUsers: [{ user: { email: "owner@saiflow.test" } }],
+    shopUsers: [{ userId: "user_owner", user: { email: "owner@saiflow.test" } }],
     ...overrides,
   };
 }
@@ -210,7 +210,7 @@ const call = () =>
   });
 
 beforeEach(() => {
-  state.session = { user: { email: "owner@saiflow.test" } };
+  state.session = { user: { id: "user_owner", email: "owner@saiflow.test" } };
   state.shop = shopRow();
 });
 
@@ -231,7 +231,7 @@ describe("the response carries a status, not the scan columns", () => {
     assert.deepEqual(
       Object.keys(body.products[0]).sort(),
       ["createdAt","currency","description","fileSafety","fileState","hasFile","id",
-       "moderationStatus","name","price","slug","thumbnailUrl"]
+       "moderationStatus","name","price","rejectionReason","slug","thumbnailUrl"]
     );
   });
 
@@ -382,29 +382,33 @@ describe("only a member of the shop may read its creator status", () => {
   });
 
   test("a signed-in NON-member is refused with 403", async () => {
-    state.session = { user: { email: "someone-else@example.test" } };
+    state.session = { user: { id: "user_other", email: "someone-else@example.test" } };
     const res = await call();
     assert.equal(res.status, 403);
   });
 
   test("a non-member learns nothing about the shop's products", async () => {
-    state.session = { user: { email: "someone-else@example.test" } };
+    state.session = { user: { id: "user_other", email: "someone-else@example.test" } };
     const body = await (await call()).text();
     for (const leak of [SECRET_KEY, SECRET_URL, "Dodo", "fileSafety", "ready"]) {
       assert.ok(!body.includes(leak), `leaked to non-member: ${leak}`);
     }
   });
 
-  test("membership comparison is unchanged from main (exact match)", async () => {
-    // Deliberately NOT relaxed. Elsewhere the codebase matches emails
-    // case-insensitively, so exact matching here is arguably inconsistent —
-    // but widening an authorisation check is not something to slip into a UX
-    // change, and a differing-case pair would be two distinct User rows.
-    // Recorded as an observation, not fixed here.
+  test("membership is by account id, so letter case can neither lock out nor let in", async () => {
+    // An email comparison had to choose: exact matching wrongly refuses an
+    // owner whose stored address differs in case, and case-insensitive
+    // matching would let two accounts that differ only in case reach each
+    // other's shops. The id identifies exactly one account (lib/session-account).
     const src = readFileSync(resolve(ROOT, "app/api/shops/[slug]/route.ts"), "utf8");
-    assert.ok(/su\.user\.email === session\.user\?\.email/.test(src));
-    state.session = { user: { email: "OWNER@SAIFLOW.TEST" } };
-    assert.equal((await call()).status, 403, "case-mismatch is refused, as before");
+    assert.ok(src.includes("(su) => userId !== null && su.userId === userId"));
+    assert.ok(!/su\.user\.email ===/.test(src));
+    state.session = { user: { id: "user_owner", email: "OWNER@SAIFLOW.TEST" } };
+    assert.equal((await call()).status, 200, "the owner, whatever the case of the address");
+    state.session = { user: { id: "user_twin", email: "owner@saiflow.test" } };
+    assert.equal((await call()).status, 403, "another account with the same address is still another account");
+    state.session = { user: { email: "owner@saiflow.test" } };
+    assert.equal((await call()).status, 403, "a session without an account id is refused");
   });
 
   test("a missing shop is 404 and reveals nothing", async () => {
@@ -560,7 +564,7 @@ describe("no gate was touched", () => {
   test("the E2 storefront gate is intact on all five surfaces", () => {
     for (const f of ["app/page.tsx","app/browse/page.tsx","app/shop/[slug]/page.tsx",
                      "app/shop/[slug]/product/[productSlug]/page.tsx","app/sitemap.ts"]) {
-      assert.ok(strip(read(f)).includes("...SAFE_DELIVERABLE_WHERE"), f);
+      assert.ok(strip(read(f)).includes("SELLABLE_PRODUCT_WHERE"), f);
     }
   });
 

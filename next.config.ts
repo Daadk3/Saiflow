@@ -15,7 +15,13 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   async headers() {
-    return [{ source: "/(.*)", headers: securityHeaders }];
+    return [
+      { source: "/(.*)", headers: securityHeaders },
+      // API answers carry signed-in users' data: never cached by a browser or
+      // a shared proxy. vercel.json says the same on Vercel; this keeps it
+      // true wherever the app runs.
+      { source: "/api/(.*)", headers: [{ key: "Cache-Control", value: "no-store, must-revalidate" }] },
+    ];
   },
   images: {
     remotePatterns: [
