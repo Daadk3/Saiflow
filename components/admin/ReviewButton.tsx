@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
+import RejectDialog from "@/components/admin/RejectDialog";
 
 /**
  * The products directory must not be a dead end.
@@ -57,12 +58,21 @@ export default function ReviewButton({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  async function decide(action: "APPROVED" | "REJECTED") {
-    let reason: string | undefined;
+  // A rejection needs a reason, written in the reject dialog (the API
+  // refuses one without); approval sends straight away.
+  const [rejecting, setRejecting] = useState(false);
+
+  function decide(action: "APPROVED" | "REJECTED") {
     if (action === "REJECTED") {
-      reason = window.prompt(t("rejectReason")) ?? undefined;
-      if (!reason?.trim()) return; // the API requires a reason for rejections
+      setError(null);
+      setRejecting(true);
+      return;
     }
+    void send("APPROVED");
+  }
+
+  async function send(action: "APPROVED" | "REJECTED", reason?: string) {
+    if (action === "REJECTED" && !reason?.trim()) return; // the API requires a reason for rejections
     setBusy(true);
     setError(null);
     try {
@@ -80,6 +90,7 @@ export default function ReviewButton({
         );
         return;
       }
+      setRejecting(false);
       setOpen(false);
       router.refresh();
     } catch {
@@ -146,7 +157,15 @@ export default function ReviewButton({
         </button>
       </div>
       {approveBlocked && <p className="max-w-xs text-end text-xs text-amber-300">{t(`approveBlocked.${approveBlocked}`)}</p>}
-      {error && <p className="text-xs text-red-400">{error}</p>}
+      {error && !rejecting && <p className="text-xs text-red-400">{error}</p>}
+      <RejectDialog
+        open={rejecting}
+        productName={productName}
+        busy={busy}
+        error={rejecting ? error : null}
+        onCancel={() => setRejecting(false)}
+        onConfirm={(reason) => void send("REJECTED", reason)}
+      />
     </div>
   );
 }

@@ -324,6 +324,7 @@
       "emptyState": "No sales yet. When you make your first sale, the details will appear here."
     },
     "product": {
+      "replaceFileReview": "This product is approved. Replacing its file sends it back for review, and it is hidden from buyers until it's approved again.",
       "fileRequired": "Upload your product file before submitting. The cover picture is not the product file.",
       "productNameLabel": "Product Name",
       "productNamePlaceholder": "e.g., My Awesome Ebook",
@@ -803,6 +804,9 @@
     "pendingBadge": "Under review",
     "approvedBadge": "Approved",
     "rejectedBadge": "Rejected",
+    "rejectionReasonLabel": "Why it was rejected",
+    "noReasonRecorded": "No reason recorded. Check your email, or contact support.",
+    "fixAndResubmit": "Fix this, then save the product: it goes back for review automatically.",
     "pendingNotice": "New products are reviewed before they appear publicly."
   },
   "fileSafety": {
@@ -869,6 +873,20 @@
       "notPublic": "This is the listing as submitted, shown for moderation. It is not the public product page and nothing here can be purchased.",
       "listing": "Listing",
       "moderation": "Moderation status",
+      "rejectionReason": "Why it was rejected",
+      "noReasonRecorded": "No reason recorded",
+      "decidedBy": "{who}, {date}",
+      "history": "Decision history",
+      "historyEmpty": "No decisions yet.",
+      "historyAction": {
+        "SUBMITTED": "Submitted",
+        "RESUBMITTED": "Resubmitted after changes",
+        "APPROVED": "Approved",
+        "REJECTED": "Rejected"
+      },
+      "bySeller": "the seller",
+      "bySystem": "SaiFlow",
+      "byAdmin": "an admin",
       "inactive": "Not published by the seller",
       "shop": "Shop",
       "price": "Price",
@@ -960,6 +978,28 @@
       "title": "Why do products say “Not yet reviewed”?",
       "body": "When moderation was introduced, existing products were approved automatically so they wouldn't disappear from the marketplace. No one has reviewed them by hand yet. Reviewing a product records a permanent audit entry.",
       "dismiss": "Got it"
+    },
+    "rejectDialog": {
+      "title": "Reject this product",
+      "quickPicks": "Start from a listing standard (you can edit the text):",
+      "quick": {
+        "file_mismatch": "File doesn't match",
+        "no_real_preview": "No real preview",
+        "placeholder_file": "Test or empty file",
+        "missing_whats_included": "What's included missing",
+        "dishonest_listing": "Listing isn't honest",
+        "pdf_javascript": "PDF has JavaScript"
+      },
+      "label": "Reason the seller will read",
+      "placeholder": "Say what to fix, in plain words.",
+      "previewHeading": "The seller's email will say:",
+      "previewTitle": "Your product needs changes",
+      "previewProduct": "Product:",
+      "previewReason": "Reason:",
+      "previewNext": "Read the reason above and edit the product from your store dashboard. Saving your changes sends it back for review.",
+      "cancel": "Cancel",
+      "confirm": "Reject and email the seller",
+      "sending": "Rejecting…"
     },
     "directory": {
       "approveBlocked": {

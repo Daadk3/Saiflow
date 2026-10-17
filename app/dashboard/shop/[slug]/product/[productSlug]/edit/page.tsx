@@ -35,6 +35,8 @@ interface Product {
   fileUrl: string | null;
   /** From GET /api/products/[id], which returns the whole row. */
   moderationStatus?: "PENDING" | "APPROVED" | "REJECTED";
+  /** Why it was rejected, while it is; null when no reason was recorded. */
+  rejectionReason?: string | null;
   /**
    * Server-derived, and supplied ONLY by GET /api/shops/[slug] — the product
    * endpoint returns raw columns, not this verdict. Held in state from the
@@ -52,6 +54,7 @@ interface Product {
 
 export default function EditProductPage() {
   const t = useTranslations();
+  const tModeration = useTranslations("moderation");
   const thumbnailUploadContent = useUploadContent("productThumbnail");
   const fileUploadContent = useUploadContent("productFile");
   const locale = useLocale();
@@ -311,6 +314,19 @@ export default function EditProductPage() {
               <h1 className="text-2xl font-bold text-white">{t("dashboard.product.edit.heading")}</h1>
               <p className="mt-2 text-gray-500">{t("dashboard.product.edit.subtitle")}</p>
             </div>
+
+            {/* Why it was rejected, before the seller starts editing. */}
+            {product?.moderationStatus === "REJECTED" && (
+              <div className="mb-6">
+                <div className="mt-2 rounded-lg border border-red-500/20 bg-red-500/[0.05] p-3">
+                  <p className="text-xs font-medium text-red-300">{tModeration("rejectionReasonLabel")}</p>
+                  <p dir="auto" className="mt-1 whitespace-pre-line text-sm text-gray-200 [unicode-bidi:plaintext]">
+                    {product.rejectionReason ?? tModeration("noReasonRecorded")}
+                  </p>
+                  <p className="mt-1 text-xs text-gray-500">{tModeration("fixAndResubmit")}</p>
+                </div>
+              </div>
+            )}
 
             {/* Form */}
             <form onSubmit={handleSubmit} className="space-y-6">
@@ -592,6 +608,11 @@ export default function EditProductPage() {
                         {t("dashboard.product.edit.downloadTroubleshoot")}
                       </span>
                     </div>
+                    {/* The server sends an approved product back to review
+                        when its file changes; say so before the seller does it. */}
+                    {product?.moderationStatus === "APPROVED" && (
+                      <p className="mt-2 text-xs text-amber-300">{t("dashboard.product.replaceFileReview")}</p>
+                    )}
                   </div>
                 ) : (
                   <div className="relative">

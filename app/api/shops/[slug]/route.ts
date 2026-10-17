@@ -55,6 +55,14 @@ export async function GET(
             currency: true,
             thumbnailUrl: true,
             moderationStatus: true,
+            // The latest rejection's reason, so a seller sees what to fix
+            // here and not only in their email. Their own product's.
+            moderationEvents: {
+              where: { action: "REJECTED" },
+              orderBy: { createdAt: "desc" },
+              take: 1,
+              select: { reason: true },
+            },
             createdAt: true,
             // Server-side only — see the map below. fileUrl is deliberately
             // NOT selected: nothing reads it now that hasFile keys on fileKey,
@@ -161,6 +169,9 @@ export async function GET(
         currency: p.currency,
         thumbnailUrl: p.thumbnailUrl,
         moderationStatus: p.moderationStatus,
+        // Only while rejected; null when the rejection recorded no reason.
+        rejectionReason:
+          p.moderationStatus === "REJECTED" ? p.moderationEvents[0]?.reason?.trim() || null : null,
         createdAt: p.createdAt,
         // A boolean, not the URL — the deliverable URL is not the browser's
         // business, and the dashboard only ever asked "is there a file?".

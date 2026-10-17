@@ -436,6 +436,7 @@ const RELATIONS: Partial<Record<Table, Record<string, Relation>>> = {
   product: {
     shop: { table: "shop", many: false, on: (p, s) => s.id === p.shopId },
     orders: { table: "order", many: true, on: (p, o) => o.productId === p.id },
+    moderationEvents: { table: "moderationEvent", many: true, on: (p, e) => e.productId === p.id },
   },
   order: { product: { table: "product", many: false, on: (o, p) => p.id === o.productId } },
   sellerPayoutAccount: { shop: { table: "shop", many: false, on: (a, s) => s.id === a.shopId } },

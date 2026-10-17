@@ -91,7 +91,16 @@ export async function GET(
 
     // Don't leak the member list in the response
     const shop = { id: product.shop.id, name: product.shop.name, slug: product.shop.slug };
-    return NextResponse.json({ ...product, shop });
+    // Why it was rejected, for the edit page: the seller's own product.
+    const rejection =
+      product.moderationStatus === "REJECTED"
+        ? await prisma.moderationEvent.findFirst({
+            where: { productId: product.id, action: "REJECTED" },
+            orderBy: { createdAt: "desc" },
+            select: { reason: true },
+          })
+        : null;
+    return NextResponse.json({ ...product, shop, rejectionReason: rejection?.reason?.trim() || null });
   } catch (error) {
     console.error("Error fetching product:", error);
     return NextResponse.json(
@@ -356,13 +365,21 @@ export async function PUT(
      * here can approve or publish anything.
      */
     let resubmitted = false;
+    // An APPROVED product whose file is replaced goes back to review too: an
+    // approval was a decision about the file that was looked at, and a
+    // seller must not be able to swap in a different one after it. (The new
+    // file is scanned either way; this is about what it contains.)
+    const reopenFrom =
+      product.moderationStatus === "REJECTED" || (product.moderationStatus === "APPROVED" && fileChanged)
+        ? product.moderationStatus
+        : null;
     // A suspended shop (isActive false, the runbook's suspension) cannot reopen
     // anything: its rejections stand until an admin restores the shop.
-    if (product.moderationStatus === "REJECTED" && product.shop.isActive) {
+    if (reopenFrom && product.shop.isActive) {
       try {
         resubmitted = await prisma.$transaction(async (tx) => {
           const reopened = await tx.product.updateMany({
-            where: { id, moderationStatus: "REJECTED" },
+            where: { id, moderationStatus: reopenFrom },
             data: { moderationStatus: "PENDING" },
           });
           if (reopened.count !== 1) return false;
@@ -371,8 +388,8 @@ export async function PUT(
               productId: id,
               action: "RESUBMITTED",
               actor: `seller:${user.id}`,
-              reason: null,
-              previousStatus: "REJECTED",
+              reason: reopenFrom === "APPROVED" ? "File replaced after approval" : null,
+              previousStatus: reopenFrom,
               newStatus: "PENDING",
             },
           });

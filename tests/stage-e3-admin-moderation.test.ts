@@ -429,7 +429,10 @@ describe("moderator copy is complete in Arabic and English", () => {
     )) {
       assert.ok(/[؀-ۿ]/.test(v), `not translated: ${v}`);
     }
-    for (const v of Object.values(ar.admin.preview as Record<string, string>)) {
+    // Nested groups (e.g. historyAction) are checked label by label.
+    const labels = (node: unknown): string[] =>
+      typeof node === "string" ? [node] : Object.values(node as Record<string, unknown>).flatMap(labels);
+    for (const v of labels(ar.admin.preview)) {
       assert.ok(/[؀-ۿ]/.test(v), `not translated: ${v}`);
     }
   });

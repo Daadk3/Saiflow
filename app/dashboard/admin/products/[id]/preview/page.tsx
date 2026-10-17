@@ -10,6 +10,7 @@ import { getLocale, getTranslations } from "next-intl/server";
 import { authOptions } from "@/app/api/auth/authOptions";
 import { isAdminEmail } from "@/lib/admin";
 import { getAdminProductPreview } from "@/lib/admin-product-preview";
+import { getDecisionHistory, latestRejection, type DecisionEntry } from "@/lib/moderation-history";
 import type { ModeratorFileSafety } from "@/lib/moderator-file-status";
 import { formatPrice } from "@/lib/formatPrice";
 import { formatDate } from "@/lib/formatDate";
@@ -74,6 +75,8 @@ export default async function AdminProductPreviewPage({
   const { id } = await params;
   const product = await getAdminProductPreview(id);
   if (!product) notFound();
+  const history = await getDecisionHistory(product.id);
+  const rejection = product.moderationStatus === "REJECTED" ? latestRejection(history) : null;
 
   const t = await getTranslations("admin");
   const locale = await getLocale();
@@ -178,12 +181,54 @@ export default async function AdminProductPreviewPage({
                   </span>
                 )}
               </div>
+              {/* Why it was rejected, beside the product rather than only in
+                  the seller's email. Older rejections may have none. */}
+              {product.moderationStatus === "REJECTED" && (
+                <div className="mt-3 rounded-lg border border-red-500/20 bg-red-500/[0.05] p-3">
+                  <p className="text-xs font-medium text-red-300">{t("preview.rejectionReason")}</p>
+                  <p dir="auto" className="mt-1 whitespace-pre-line text-sm text-gray-200 [unicode-bidi:plaintext]">
+                    {rejection?.reason ?? t("preview.noReasonRecorded")}
+                  </p>
+                  {rejection && (
+                    <p className="mt-1 text-xs text-gray-500">
+                      {t("preview.decidedBy", { who: whoDecided(rejection, t), date: formatDate(rejection.at.toISOString(), locale) })}
+                    </p>
+                  )}
+                </div>
+              )}
               {/* The decision can always be changed: reject an approved product, approve a rejected one. */}
               <DecisionButtons
                 productId={product.id}
+                productName={product.name}
                 status={product.moderationStatus}
                 approveBlocked={product.fileSafety.publishable ? null : product.fileSafety.reason}
               />
+            </div>
+
+            <div className="rounded-xl border border-gray-800 bg-[#0f0f0f] p-5">
+              <h2 className="mb-3 text-sm font-semibold text-gray-300">{t("preview.history")}</h2>
+              {history.length === 0 ? (
+                <p className="text-sm text-gray-500">{t("preview.historyEmpty")}</p>
+              ) : (
+                <ol className="space-y-3">
+                  {history.map((entry, i) => (
+                    <li key={i} className="text-sm">
+                      <p className="text-gray-200">
+                        {t(`preview.historyAction.${entry.action}`)}
+                        <span className="text-xs text-gray-500">
+                          {" · "}
+                          {t("preview.decidedBy", { who: whoDecided(entry, t), date: formatDate(entry.at.toISOString(), locale) })}
+                        </span>
+                      </p>
+                      {entry.action === "REJECTED" && (
+                        <p dir="auto" className="mt-0.5 whitespace-pre-line text-xs text-gray-400 [unicode-bidi:plaintext]">
+                          {entry.reason ?? t("preview.noReasonRecorded")}
+                        </p>
+                      )}
+                    </li>
+                  ))}
+                </ol>
+              )}
             </div>
 
             <ListingStandards ar={locale.startsWith("ar")} variant="admin" />
@@ -216,6 +261,12 @@ export default async function AdminProductPreviewPage({
       </main>
     </div>
   );
+}
+
+/** Who made a decision, in the reader's language. */
+function whoDecided(entry: DecisionEntry, t: (key: string) => string): string {
+  if (entry.by === "admin") return entry.byName ?? t("preview.byAdmin");
+  return entry.by === "seller" ? t("preview.bySeller") : t("preview.bySystem");
 }
 
 function Row({
