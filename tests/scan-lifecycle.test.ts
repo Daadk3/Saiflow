@@ -351,6 +351,21 @@ describe("a newly attached file is scanned without waiting for Cron", () => {
     assert.equal(state.afterTasks.length, 0);
   });
 
+  test("a picture alone is not a product: thumbnail-only and cover-only submits are refused", async () => {
+    // The preview picture and any cover the client sends are separate from
+    // the deliverable and never count as it (lib/product-file-required).
+    for (const body of [
+      { thumbnailUrl: "https://testapp.ufs.sh/f/thumbOnly0001" },
+      { images: ["https://testapp.ufs.sh/f/coverOnly0001"] },
+      { thumbnailUrl: "https://testapp.ufs.sh/f/thumbOnly0001", images: ["https://testapp.ufs.sh/f/coverOnly0001"] },
+    ]) {
+      const res = await CREATE(createReq(body));
+      assert.equal(res.status, 400, JSON.stringify(body));
+      assert.equal(((await res.json()) as { code: string }).code, "file_required");
+    }
+    assert.equal(state.afterTasks.length, 0);
+  });
+
   test("the scheduling call sits after reconciliation, on the attached key", () => {
     const code = strip(read("app/api/products/route.ts"));
     const reconcile = code.indexOf("await reconcileProductScanState(product.id, fileKey)");
