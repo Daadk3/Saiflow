@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { authOptions } from "../auth/authOptions";
 import { slugify } from "@/lib/slug";
 import { isAllowedAssetUrl, extractOwnAssetKey } from "@/lib/validations";
+import { IMAGE_NOT_ALLOWED, verifyImageProvenance } from "@/lib/image-provenance";
 import {
   verifyDeliverableProvenance,
   attachedScanFields,
@@ -168,6 +169,13 @@ export async function POST(req: Request) {
         );
       }
       scanFields = attachedScanFields(provenance.asset);
+    }
+
+    // The thumbnail, likewise: uploaded through the thumbnail route, for
+    // this shop (lib/image-provenance).
+    if (thumbnailUrl) {
+      const image = await verifyImageProvenance(thumbnailUrl, shopId, "PRODUCT_THUMBNAIL");
+      if (!image.ok) return NextResponse.json(IMAGE_NOT_ALLOWED, { status: 400 });
     }
 
     // Create slug from name (falls back to a random handle for non-Latin names)

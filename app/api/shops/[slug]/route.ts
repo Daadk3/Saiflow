@@ -6,6 +6,7 @@ import { authOptions } from "../../auth/authOptions";
 import { isAllowedAssetUrl } from "@/lib/validations";
 import { creatorFileStatus } from "@/lib/creator-file-status";
 import { sellerFileState, type SellerAssetView } from "@/lib/seller-file-state";
+import { IMAGE_NOT_ALLOWED, verifyImageProvenance } from "@/lib/image-provenance";
 
 export async function GET(
   req: Request,
@@ -262,6 +263,19 @@ export async function PUT(
         { error: "You don't have permission to edit this shop" },
         { status: 403 }
       );
+    }
+
+    // A NEW logo or cover must be this shop's own upload, through its own
+    // route (lib/image-provenance). An unchanged one passes: it may predate
+    // upload records. Checked after membership, so an outsider learns nothing.
+    for (const [value, current, route] of [
+      [logo, shop.logo, "SHOP_LOGO"],
+      [coverImage, shop.coverImage, "SHOP_COVER"],
+    ] as const) {
+      if (value && value !== current) {
+        const image = await verifyImageProvenance(value, shop.id, route);
+        if (!image.ok) return NextResponse.json(IMAGE_NOT_ALLOWED, { status: 400 });
+      }
     }
 
     /**

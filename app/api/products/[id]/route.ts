@@ -15,6 +15,7 @@ import {
   reconcileProductScanState,
 } from "@/lib/file-safety";
 import { scheduleScan } from "@/lib/scan/schedule";
+import { IMAGE_NOT_ALLOWED, verifyImageProvenance } from "@/lib/image-provenance";
 import { announceReadyAtAttach } from "@/lib/scan/announce";
 import { redactId } from "@/lib/redact-id";
 import { priceProblemMessage, validatePrice } from "@/lib/pricing";
@@ -237,6 +238,13 @@ export async function PUT(
      * rather than being assumed: normally PENDING_SCAN, but already SAFE if the
      * worker settled it between upload and save.
      */
+    // A NEW thumbnail must be this shop's own upload (lib/image-provenance).
+    // An unchanged one passes: it may predate upload records.
+    if (thumbnailUrl && thumbnailUrl !== product.thumbnailUrl) {
+      const image = await verifyImageProvenance(thumbnailUrl, product.shopId, "PRODUCT_THUMBNAIL");
+      if (!image.ok) return NextResponse.json(IMAGE_NOT_ALLOWED, { status: 400 });
+    }
+
     let replacementScanFields: Record<string, unknown> | null = null;
     if (fileUrlChanged) {
       if (nextFileKey) {
