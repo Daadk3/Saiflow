@@ -46,14 +46,31 @@ export async function GET() {
       su.shop.products.map((p) => p.id)
     );
 
-    // Get orders for these products
+    // Get orders for these products.
+    //
+    // Selected, never included: only what the seller's dashboard shows. An
+    // `include` sent the whole product row (its private file URL, storage
+    // key and scan columns) and the order's own bearers (the merchant
+    // reference and Stripe session id that open the buyer's download) to the
+    // browser, where none of it was used.
     const orders = await prisma.order.findMany({
       where: {
         productId: { in: productIds },
       },
-      include: {
+      select: {
+        id: true,
+        productId: true,
+        productName: true,
+        price: true,
+        customerEmail: true,
+        createdAt: true,
+        paymentEnvironment: true,
+        grossAmount: true,
+        platformFeeAmount: true,
+        sellerNetAmount: true,
         product: {
-          include: {
+          select: {
+            currency: true,
             shop: {
               select: {
                 name: true,

@@ -15,7 +15,6 @@ interface Order {
   productName: string;
   price: number;
   customerEmail: string;
-  stripeSessionId: string;
   createdAt: string;
   /** TEST orders are shown, labelled, and never counted. */
   isTest: boolean;
