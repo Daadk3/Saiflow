@@ -39,7 +39,10 @@ test("live only when configured and in production mode", () => {
 const page = strip(read("app/checkout/[slug]/[productSlug]/page.tsx"));
 
 test("the page decides from the deployment's own Geidea configuration", () => {
-  assert.match(page, /const testMode = !env\.PRE_LAUNCH_MODE && !isLiveCheckout\(isGeideaConfigured\(\), geideaMode\(\)\);/);
+  // The banner shows whenever the card form is offered (to the public with
+  // pre-launch off, or to a founder test) and Geidea is not live.
+  assert.match(page, /const live = isLiveCheckout\(isGeideaConfigured\(\), geideaMode\(\)\);/);
+  assert.match(page, /const testMode = formOffered && !live;/);
 });
 
 test("the banner sits right under the title, before the product and the card form", () => {
@@ -60,15 +63,16 @@ test("reading the mode only reads configuration: no request, no database", () =>
 });
 
 test("every mode the route can charge in gets the banner", () => {
-  // While LIVE_GEIDEA_ALLOWED is false (pinned below) the route charges only
-  // in "test" mode, and a configured "test" mode is never live.
+  // For the public the route charges only in "test" mode while
+  // LIVE_PUBLIC_ALLOWED is false (pinned below), and a configured "test" mode
+  // is never live. A founder test on the live account gets its own banner.
   assert.equal(isLiveCheckout(true, "test"), false);
 });
 
 test("the checkout route's gates are unchanged", () => {
   const route = strip(read("app/api/checkout/route.ts"));
-  assert.match(route, /const LIVE_GEIDEA_ALLOWED = false;/);
-  assert.match(route, /if \(!LIVE_GEIDEA_ALLOWED && configuredMode !== "test"\)/);
+  assert.match(read("lib/payments/live-mode.ts"), /export const LIVE_PUBLIC_ALLOWED = false;/);
+  assert.match(route, /!accountAllowed\(access, livePaymentsMode, configuredMode\) \|\|\s*\(configuredMode === "production" && !productionAccountHere\(process\.env\.VERCEL_ENV\)\)/);
   assert.ok(!route.includes("checkout-mode"), "the route does not take its rule from the banner");
 });
 

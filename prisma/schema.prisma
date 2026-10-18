@@ -397,6 +397,9 @@ model Order {
   merchantReferenceId String?            @unique
   /// Which provider account took the money. TEST rows are never revenue.
   paymentEnvironment  PaymentEnvironment @default(TEST)
+  /// A founder's own real-money check (lib/payments/live-mode), copied from
+  /// its PaymentSession at fulfilment. Never revenue and never paid out.
+  founderTest         Boolean            @default(false)
   currency            String             @default("SAR")
 
   // ---------------------------------------------------------------------
@@ -557,6 +560,9 @@ model PaymentSession {
   /// How the provider session was created to be shown. A resume reuses the
   /// session only in this presentation and never switches it.
   presentation        CheckoutPresentation?
+  /// Made as a founder test (LIVE_PAYMENTS_MODE=founder_only, an allowlisted
+  /// signed-in founder). Its Order inherits it. Never revenue, never paid out.
+  founderTest         Boolean              @default(false)
 
   createdAt           DateTime             @default(now())
   updatedAt           DateTime             @updatedAt

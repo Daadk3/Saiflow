@@ -428,6 +428,8 @@ export async function notifySaleFulfilled(input: {
   amount: unknown;
   currency: string;
   environment: string;
+  /** A founder test (lib/payments/live-mode): real money, but never a sale to pay out. */
+  founderTest?: boolean;
   at?: Date;
 }): Promise<{ seller: NotifyOutcome; admins: NotifyOutcome }> {
   let shop: ShopWithMembers | null = null;
@@ -441,7 +443,8 @@ export async function notifySaleFulfilled(input: {
     console.warn(`[notify] event=sale outcome=lookup_failed ref=${redactId(input.orderId)} detail=${(error as Error)?.name ?? "Error"}`);
   }
 
-  const test = isTest(input.environment);
+  // A founder test is announced as a test too: it is refunded, never paid out.
+  const test = isTest(input.environment) || input.founderTest === true;
   const mark = test ? TEST_MARK : "";
   const amount = `${formatAmount(input.amount)} ${input.currency}`;
   const when = formatWhen(input.at ?? new Date());

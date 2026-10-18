@@ -56,6 +56,16 @@ export const env = createEnv({
     // nothing is not configured, so checkout refuses. The environment is
     // never inferred from the credentials.
     GEIDEA_ENV: z.enum(["test", "production"]).optional(),
+    // Who may pay on a production Geidea account (lib/payments/live-mode).
+    // Read leniently on purpose: missing, empty or any unrecognised value
+    // means "off", and never fails a build or a request.
+    //   off          nobody (the default)
+    //   founder_only only signed-in FOUNDER_TEST_EMAILS, at most
+    //                FOUNDER_TEST_MAX_SAR, marked as founder tests
+    //   public       reserved; still refused in this release
+    LIVE_PAYMENTS_MODE: z.string().optional(),
+    // Comma-separated emails allowed to make founder test payments.
+    FOUNDER_TEST_EMAILS: z.string().optional(),
   },
 
   /**
@@ -94,6 +104,8 @@ export const env = createEnv({
     GEIDEA_API_BASE_URL: process.env.GEIDEA_API_BASE_URL,
     GEIDEA_HPP_BASE_URL: process.env.GEIDEA_HPP_BASE_URL,
     GEIDEA_ENV: process.env.GEIDEA_ENV,
+    LIVE_PAYMENTS_MODE: process.env.LIVE_PAYMENTS_MODE,
+    FOUNDER_TEST_EMAILS: process.env.FOUNDER_TEST_EMAILS,
     NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY:
       process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY,
   },

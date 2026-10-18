@@ -112,7 +112,7 @@ function laterPaymentSessionColumns(): Map<string, string> {
     const sql = readFileSync(new URL(`../prisma/migrations/${later}/migration.sql`, import.meta.url), "utf8");
     for (const stmt of sql.replace(/--[^\n]*/g, "").split(";").map((s) => s.replace(/\s+/g, " ").trim())) {
       if (!stmt.startsWith('ALTER TABLE "PaymentSession" ADD COLUMN')) continue;
-      for (const m of stmt.matchAll(/ADD COLUMN "(\w+)" ([^,]+)/g)) added.set(m[1], m[2].trim());
+      for (const m of stmt.matchAll(/ADD COLUMN (?:IF NOT EXISTS )?"(\w+)" ([^,]+)/g)) added.set(m[1], m[2].trim());
     }
   }
   return added;
@@ -419,8 +419,12 @@ describe("the migration is additive and matches the schema", () => {
       for (const s of stmts) {
         assert.ok(!/^(UPDATE|DELETE|TRUNCATE|INSERT)\b/i.test(s), `${later} rewrites rows: ${s}`);
         assert.ok(!/\bRENAME\b/i.test(s), `${later} is not additive: ${s}`);
-        // NOT NULL only inside a brand-new table: it constrains rows yet to be written.
-        if (!/^CREATE TABLE\b/i.test(s)) assert.ok(!/\bNOT NULL\b/i.test(s), `${later} is not additive: ${s}`);
+        // NOT NULL only inside a brand-new table: it constrains rows yet to be
+        // written. The one exception is a boolean flag with a constant
+        // default (founderTest): Postgres gives every existing row that
+        // default without rewriting it, so no row's meaning changes.
+        const flagWithDefault = /^ALTER TABLE "(PaymentSession|Order)" ADD COLUMN IF NOT EXISTS "founderTest" BOOLEAN NOT NULL DEFAULT false$/.test(s);
+        if (!/^CREATE TABLE\b/i.test(s) && !flagWithDefault) assert.ok(!/\bNOT NULL\b/i.test(s), `${later} is not additive: ${s}`);
         const dropped = /^ALTER TABLE "(\w+)" DROP CONSTRAINT "(\w+_productId_fkey)"$/.exec(s);
         if (dropped === null) {
           assert.ok(!/\bDROP\b/i.test(s), `${later} is not additive: ${s}`);
@@ -467,7 +471,9 @@ describe("the migration is additive and matches the schema", () => {
       clientTokenHash: "TEXT",
       currentAttemptKey: "TEXT",
       presentation: `"CheckoutPresentation"`,
-    }, "the attempt columns are nullable, with no default");
+      // lib/payments/live-mode: every existing attempt reads as an ordinary payment.
+      founderTest: "BOOLEAN NOT NULL DEFAULT false",
+    }, "the attempt columns are nullable with no default; the founder-test flag defaults to false");
 
     assert.equal(columns.get("id"), "TEXT NOT NULL");
     assert.equal(columns.get("merchantReferenceId"), "TEXT NOT NULL");

@@ -82,10 +82,12 @@ describe("lib/payouts rules", () => {
     assert.deepEqual(payableOrdersWhere("shop_1"), {
       product: { shopId: "shop_1" },
       paymentEnvironment: "PRODUCTION",
+      // A founder test (lib/payments/live-mode) is the founder's own money: never paid out.
+      founderTest: false,
       sellerNetAmount: { not: null },
       payoutId: null,
     });
-    assert.deepEqual(PAYABLE_ORDERS_WHERE, { paymentEnvironment: "PRODUCTION", sellerNetAmount: { not: null }, payoutId: null });
+    assert.deepEqual(PAYABLE_ORDERS_WHERE, { paymentEnvironment: "PRODUCTION", founderTest: false, sellerNetAmount: { not: null }, payoutId: null });
     const owed = owedFor([{ sellerNetAmount: "46.50" }, { sellerNetAmount: "0.10" }, { sellerNetAmount: "0.20" }, { sellerNetAmount: "x" }]);
     assert.deepEqual(owed, { amount: "46.80", halalas: 4680, orderCount: 3, unreadable: 1 });
   });

@@ -468,6 +468,8 @@ function seed(over: Partial<SessionRow> = {}): SessionRow {
     providerSessionId: SESSION_ID,
     providerOrderId: null,
     buyerEmail: null,
+    // As the database stores every ordinary attempt (DEFAULT false).
+    founderTest: false,
     providerStatus: null,
     failureReason: null,
     callbackReceivedAt: null,
@@ -1191,6 +1193,7 @@ describe("a fulfilled purchase notifies the seller and the founder", () => {
         amount: "1.00",
         currency: "SAR",
         environment: "TEST",
+        founderTest: false,
       },
     ]);
     assert.ok(!JSON.stringify(notifications).includes(BUYER_EMAIL), "the buyer is not handed to the notifier");

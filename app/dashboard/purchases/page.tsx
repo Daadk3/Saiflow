@@ -42,6 +42,7 @@ export default async function PurchasesPage() {
       productName: true,
       createdAt: true,
       paymentEnvironment: true,
+      founderTest: true,
       product: { select: { slug: true, shop: { select: { name: true, slug: true } } } },
     },
   });
@@ -67,7 +68,7 @@ export default async function PurchasesPage() {
                   </p>
                   <p className="mt-0.5 text-xs text-gray-500">
                     <bdi>{order.product.shop.name}</bdi> · {formatDate(order.createdAt.toISOString(), locale)}
-                    {order.paymentEnvironment !== "PRODUCTION" && <span className="ms-2 text-amber-400">{t("test")}</span>}
+                    {(order.paymentEnvironment !== "PRODUCTION" || order.founderTest) && <span className="ms-2 text-amber-400">{t("test")}</span>}
                   </p>
                 </div>
                 <a
