@@ -49,6 +49,9 @@ export async function Hero() {
               width={320}
               height={320}
               priority
+              // The page's largest image (its LCP). `priority` preloads it;
+              // this also tells the browser to fetch it first.
+              fetchPriority="high"
               className="relative h-auto w-full"
             />
           </div>
