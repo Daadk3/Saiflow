@@ -2,36 +2,18 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 
-const faqs = [
-  {
-    question: "How do I create a product?",
-    answer: "To create a product, first create a shop from your dashboard. Then, click &apos;Add Product&apos; in your shop. Fill in the product details (name, description, price), upload your digital file, and click &apos;Create Product&apos;. Your product will be live immediately with a unique link you can share.",
-  },
-  {
-    question: "How do I upload files?",
-    answer: "When creating or editing a product, you&apos;ll see an &apos;Upload File&apos; button. Click it to select your file from your computer. Supported formats include PDFs, videos, audio files, ZIP archives, images, and more. Files are securely hosted and delivered to customers after purchase.",
-  },
-  {
-    question: "When do I get paid?",
-    answer: "Saiflow is currently in pre-launch. Payment and payout systems are in development. We will announce details before launch.",
-  },
-  {
-    question: "How do customers receive their files?",
-    answer: "After a successful purchase, customers receive an email with a secure download link. The link works for 7 days. After that, they sign in to Saiflow with the same email address and download again from &apos;My purchases&apos;, as often as they need.",
-  },
-  {
-    question: "Can I edit my product after publishing?",
-    answer: "Yes! You can edit your product at any time from your dashboard. Go to your shop, find the product, and click &apos;Edit&apos;. You can update the name, description, price, and even replace the file. Changes take effect immediately.",
-  },
-  {
-    question: "How do I delete my account?",
-    answer: "To delete your account, please contact us at support@saiflow.io with your account email. We&apos;ll process your request and permanently delete your account and all associated data within 30 days, in accordance with our Privacy Policy.",
-  },
-];
+// Order of the questions; the text lives in messages under support.faq.items.
+const FAQ_KEYS = ["createProduct", "uploadFiles", "payouts", "delivery", "editProduct", "deleteAccount"] as const;
 
 export default function SupportPage() {
   const router = useRouter();
+  const t = useTranslations("support.faq");
+  const faqs = FAQ_KEYS.map((key) => ({
+    question: t(`items.${key}.question`),
+    answer: t(`items.${key}.answer`),
+  }));
   const [openFaq, setOpenFaq] = useState<number | null>(null);
   const [formData, setFormData] = useState({
     name: "",
@@ -159,10 +141,10 @@ export default function SupportPage() {
         <div className="max-w-3xl mx-auto">
           <div className="text-center mb-12">
             <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">
-              Frequently asked questions
+              {t("heading")}
             </h2>
             <p className="text-gray-400">
-              Quick answers to common questions
+              {t("subheading")}
             </p>
           </div>
 
@@ -175,9 +157,9 @@ export default function SupportPage() {
               >
                 <button
                   onClick={() => setOpenFaq(openFaq === index ? null : index)}
-                  className="w-full flex items-center justify-between p-6 text-left hover:bg-white/5 transition-colors"
+                  className="w-full flex items-center justify-between p-6 text-start hover:bg-white/5 transition-colors"
                 >
-                  <span className="text-white font-medium pr-4">{faq.question}</span>
+                  <span className="text-white font-medium pe-4">{faq.question}</span>
                   <svg
                     className={`w-5 h-5 text-gray-400 flex-shrink-0 transition-transform duration-200 ${
                       openFaq === index ? "rotate-180" : ""
