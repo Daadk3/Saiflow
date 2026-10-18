@@ -4,9 +4,11 @@ import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { prisma } from "@/lib/prisma";
 import { SELLABLE_PRODUCT_WHERE, SELLABLE_SHOP_WHERE } from "@/lib/sellable";
-import { env } from "@/lib/env";
 import { checkoutScriptUrl, geideaMode, isGeideaConfigured } from "@/lib/payments/geidea/client";
 import { isLiveCheckout } from "@/lib/payments/checkout-mode";
+import { FOUNDER_TEST_MAX_SAR, withinFounderCap } from "@/lib/payments/live-mode";
+import { currentCheckoutAccess } from "@/lib/payments/request-access";
+import { canonicalAmount } from "@/lib/payments/geidea/callback";
 import { CheckoutSummary } from "@/components/checkout/CheckoutSummary";
 import { DropInCheckout } from "@/components/checkout/DropInCheckout";
 import { PaymentAssurance } from "@/components/checkout/PaymentAssurance";
@@ -85,10 +87,21 @@ export default async function CheckoutPage({
     }
   }
 
+  // The same decision the checkout route makes (lib/payments/request-access):
+  // the form is offered to the public when pre-launch is off, and otherwise
+  // only to a signed-in founder on FOUNDER_TEST_EMAILS. The route re-decides
+  // on every request; this page only declines to offer what it would refuse.
+  const { access } = await currentCheckoutAccess();
+  const founderTest = access.kind === "founder_test";
+  const formOffered = access.kind !== "closed";
+  const live = isLiveCheckout(isGeideaConfigured(), geideaMode());
+  // A founder test charges a real card, so only small prices (the route refuses the rest).
+  const overFounderCap = founderTest && !withinFounderCap(canonicalAmount(product.price) ?? "");
+
   // Unless Geidea is live, nothing entered here is really charged: say so
-  // above everything. Not shown while payments are off (PRE_LAUNCH_MODE),
-  // where the card form is replaced by the "not available yet" notice.
-  const testMode = !env.PRE_LAUNCH_MODE && !isLiveCheckout(isGeideaConfigured(), geideaMode());
+  // above everything. Not shown while the form is not offered, where the card
+  // form is replaced by the "not available yet" notice.
+  const testMode = formOffered && !live;
 
   return (
     <div className="min-h-screen bg-[#0a0a0a]">
@@ -103,6 +116,15 @@ export default async function CheckoutPage({
           {t("backToProduct")}
         </Link>
         <h1 className="mt-4 text-2xl font-bold text-white sm:text-3xl">{t("title")}</h1>
+
+        {founderTest && (
+          <div role="note" className="mt-4 rounded-xl border border-fuchsia-400/40 bg-fuchsia-400/10 px-4 py-3">
+            <p className="text-sm font-semibold text-fuchsia-200">{t("founderTestTitle")}</p>
+            <p className="mt-0.5 text-sm text-fuchsia-100/80">
+              {live ? t("founderTestBodyLive", { max: FOUNDER_TEST_MAX_SAR }) : t("founderTestBodyTest")}
+            </p>
+          </div>
+        )}
 
         {testMode && (
           <div role="note" className="mt-4 rounded-xl border border-amber-400/40 bg-amber-400/10 px-4 py-3">
@@ -129,10 +151,15 @@ export default async function CheckoutPage({
               <span className="h-px flex-1 bg-gray-800" aria-hidden="true" />
             </div>
 
-            {env.PRE_LAUNCH_MODE ? (
+            {!formOffered ? (
               <div role="status" className="rounded-2xl border border-gray-800 bg-[#111111] p-6 text-center">
                 <h3 className="text-base font-semibold text-white">{t("payments_offTitle")}</h3>
                 <p className="mt-1.5 text-sm text-gray-400">{t("payments_offBody")}</p>
+              </div>
+            ) : overFounderCap ? (
+              <div role="status" className="rounded-2xl border border-fuchsia-400/30 bg-[#111111] p-6 text-center">
+                <h3 className="text-base font-semibold text-white">{t("founderTestAmountTitle")}</h3>
+                <p className="mt-1.5 text-sm text-gray-400">{t("founderTestAmountBody", { max: FOUNDER_TEST_MAX_SAR })}</p>
               </div>
             ) : (
               <DropInCheckout productId={product.id} productHref={productHref} scriptUrl={scriptUrl} />

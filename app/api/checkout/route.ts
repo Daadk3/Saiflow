@@ -34,6 +34,8 @@ import {
 } from "@/lib/checkout/attempt";
 import { normalizeBuyerEmail } from "@/lib/checkout/buyer-email";
 import { unsellableReason } from "@/lib/sellable";
+import { accountAllowed, productionAccountHere, withinFounderCap } from "@/lib/payments/live-mode";
+import { currentCheckoutAccess } from "@/lib/payments/request-access";
 
 /**
  * Checkout: the one place a purchase attempt begins.
@@ -57,9 +59,17 @@ import { unsellableReason } from "@/lib/sellable";
  * nothing, and the success page will read SaiFlow's own Order state by the
  * reference carried in the return URL.
  *
- * TEST PHASE: while `LIVE_GEIDEA_ALLOWED` is false, a deployment configured
- * for a production Geidea account is refused here, whatever its credentials.
- * PRE_LAUNCH_MODE gates independently, first, and stays on.
+ * WHO MAY PAY, AND ON WHICH ACCOUNT (lib/payments/live-mode). While
+ * PRE_LAUNCH_MODE is on, checkout is closed to everyone except a founder
+ * test: LIVE_PAYMENTS_MODE=founder_only and a signed-in session whose email
+ * is on FOUNDER_TEST_EMAILS, read here from the server-side session. A
+ * founder test may use the deployment's production Geidea account, only for
+ * a product priced at most FOUNDER_TEST_MAX_SAR, and its attempt is marked
+ * `founderTest` (never revenue, never paid out). With PRE_LAUNCH_MODE off,
+ * checkout is what it always was: a test account for everyone, and a
+ * production account refused while LIVE_PUBLIC_ALLOWED is false, whatever
+ * LIVE_PAYMENTS_MODE says. So a credentials swap alone still cannot start
+ * taking the public's money.
  *
  * TWO PRESENTATIONS, ONE PURCHASE. By default Geidea's form opens on its own
  * hosted page and the reply is `{ url }`, exactly as before. SaiFlow's own
@@ -85,9 +95,6 @@ import { unsellableReason } from "@/lib/sellable";
  * release and every stored session id is a conditional write whose count is
  * checked. The bearer chooses nothing about money.
  */
-
-/** Flip only through the release process, with PRE_LAUNCH_MODE's own switch. */
-const LIVE_GEIDEA_ALLOWED = false;
 
 /** Every SaiFlow price is in riyals; the Geidea KSA rail settles in SAR. */
 const CURRENCY = "SAR";
@@ -364,7 +371,11 @@ export async function POST(req: Request) {
   // Pre-launch gate: defense in depth alongside the disabled BuyButton.
   // Returns 503 with a machine-readable error code so the client can show
   // a localized message rather than display the English fallback below.
-  if (env.PRE_LAUNCH_MODE) {
+  // Only a founder test passes it while pre-launch is on. PRE_LAUNCH_MODE is
+  // read here directly as well as inside currentCheckoutAccess, so the
+  // public stays refused even if that decision were ever wrong.
+  const { access, mode: livePaymentsMode } = await currentCheckoutAccess();
+  if ((env.PRE_LAUNCH_MODE && access.kind !== "founder_test") || access.kind === "closed") {
     return NextResponse.json(
       {
         error: "pre_launch",
@@ -497,9 +508,13 @@ export async function POST(req: Request) {
       );
     }
 
-    // TEST PHASE. A production Geidea account is refused outright, so a
-    // credentials swap alone can never start taking real money.
-    if (!LIVE_GEIDEA_ALLOWED && configuredMode !== "test") {
+    // A production Geidea account only for a founder test (and, later, a
+    // reviewed public release): a credentials swap alone can never start
+    // taking the public's money.
+    if (
+      !accountAllowed(access, livePaymentsMode, configuredMode) ||
+      (configuredMode === "production" && !productionAccountHere(process.env.VERCEL_ENV))
+    ) {
       log("error", "refused", { reason: "live_geidea_not_allowed", product: product.id });
       return NextResponse.json(
         { error: "pre_launch", message: "Payments are not yet available." },
@@ -514,6 +529,11 @@ export async function POST(req: Request) {
     // more than two decimals) is a product that cannot be sold, not a
     // rounding to attempt.
     const amount = canonicalAmount(product.price);
+    // A founder test charges a real card: small amounts only.
+    if (access.kind === "founder_test" && amount !== null && !withinFounderCap(amount)) {
+      log("warn", "refused", { reason: "founder_test_amount", product: product.id });
+      return NextResponse.json({ error: "founder_test_amount" }, { status: 400 });
+    }
     if (amount === null || product.currency !== CURRENCY) {
       log("warn", "refused", { reason: "price_or_currency", product: product.id });
       return NextResponse.json(
@@ -657,6 +677,8 @@ export async function POST(req: Request) {
           clientTokenHash: tokenHash,
           currentAttemptKey: key,
           presentation: presented,
+          // Never revenue, never paid out; copied onto the Order by the callback.
+          founderTest: access.kind === "founder_test",
         },
         select: { id: true },
       });
@@ -736,6 +758,7 @@ export async function POST(req: Request) {
       product: product.id,
       environment,
       presentation,
+      founderTest: access.kind === "founder_test" ? "yes" : undefined,
     });
 
     // The bearer goes back with the session, so this browser's next request

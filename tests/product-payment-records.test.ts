@@ -270,7 +270,11 @@ describe("the migration only adds, and replaces the two delete rules", () => {
       .sort();
     const at = dirs.indexOf(MIGRATION_DIR);
     assert.equal(dirs[at - 1], "20260924130000_add_order_commission_snapshot");
-    assert.deepEqual(dirs.slice(at + 1), ["20261009120000_seller_payouts", "20261009180000_schema_objects_missing_from_migrations"]);
+    assert.deepEqual(dirs.slice(at + 1), [
+      "20261009120000_seller_payouts",
+      "20261009180000_schema_objects_missing_from_migrations",
+      "20261018120000_founder_test_payments",
+    ]);
   });
 });
 

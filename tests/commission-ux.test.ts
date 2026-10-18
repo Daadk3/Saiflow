@@ -182,11 +182,17 @@ describe("the revenue views", () => {
       assert.ok(page.includes(`t("${key}")`), `admin page uses ${key}`);
     }
     assert.match(page, /stats\.revenue\.real\.net/);
-    // The status line says what is true: off, test mode, or live; never a fixed "not enabled".
+    // The status line says what is true, as checkout sees it (lib/payments/live-mode):
+    // test mode, live only once the public release is allowed, founder tests
+    // only while pre-launch is on, or not enabled.
+    assert.match(page, /if \(paymentsEnabled && configured && account === "test"\) return t\("payments\.enabledTest"\);/);
     assert.match(
       page,
-      /paymentsEnabled && isGeideaConfigured\(\) && geideaMode\(\) === "production"\s*\?\s*t\("payments\.enabledLive"\)\s*:\s*paymentsEnabled && isGeideaConfigured\(\) && geideaMode\(\) === "test"\s*\?\s*t\("payments\.enabledTest"\)\s*:\s*t\("payments\.disabled"\)/
+      /if \(paymentsEnabled && configured && account === "production" && LIVE_PUBLIC_ALLOWED && liveMode === "public"\) \{\s*return t\("payments\.enabledLive"\);/
     );
+    assert.match(page, /if \(!paymentsEnabled && configured && account !== null && liveMode === "founder_only"\)/);
+    assert.match(page, /"payments\.founderOnlyLive" : "payments\.founderOnlyTest"/);
+    assert.match(page, /return t\("payments\.disabled"\);/);
     assert.match(page, /stats\.revenue\.test\.gross/);
   });
 });

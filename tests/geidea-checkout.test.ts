@@ -663,8 +663,13 @@ describe("the pre-existing gates and the safety authority are unchanged", () => 
   });
 
   test("the live-money guard is present and off, and the mode is read once, explicitly", () => {
-    assert.ok(src.includes("const LIVE_GEIDEA_ALLOWED = false;"));
-    assert.ok(src.includes('configuredMode !== "test"'));
+    // The public's live-money guard lives in lib/payments/live-mode and is off;
+    // a production account is allowed only through accountAllowed (a founder
+    // test, or a later reviewed public release). tests/founder-live-test.
+    assert.ok(readFileSync(new URL("../lib/payments/live-mode.ts", import.meta.url), "utf8").includes("export const LIVE_PUBLIC_ALLOWED = false;"));
+    assert.ok(src.includes("!accountAllowed(access, livePaymentsMode, configuredMode) ||"));
+    // A production account is used only by the production deployment.
+    assert.ok(src.includes('(configuredMode === "production" && !productionAccountHere(process.env.VERCEL_ENV))'));
     assert.ok(src.includes("configuredMode === null"), "a missing GEIDEA_ENV is refused as unconfigured");
   });
 });

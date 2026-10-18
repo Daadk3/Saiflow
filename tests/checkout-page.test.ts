@@ -91,8 +91,13 @@ describe("only what the storefront sells can reach checkout", () => {
     assert.match(page, /robots: \{ index: false, follow: false \}/, "checkout is never indexed");
   });
 
-  test("in pre-launch the page explains, and never mounts the payment form", () => {
-    assert.match(page, /env\.PRE_LAUNCH_MODE \? \([\s\S]*payments_offTitle[\s\S]*\) : \([\s\S]*<DropInCheckout/);
+  test("in pre-launch the page explains, and never mounts the payment form (except for a founder test)", () => {
+    // The form is offered exactly when the checkout route would accept the
+    // request (lib/payments/request-access): the public when pre-launch is
+    // off, otherwise only an allowlisted founder (tests/founder-live-test).
+    assert.match(page, /const \{ access \} = await currentCheckoutAccess\(\);/);
+    assert.match(page, /const formOffered = access\.kind !== "closed";/);
+    assert.match(page, /\{!formOffered \? \([\s\S]*payments_offTitle[\s\S]*\) : overFounderCap \? \([\s\S]*founderTestAmountTitle[\s\S]*\) : \([\s\S]*<DropInCheckout/);
   });
 });
 

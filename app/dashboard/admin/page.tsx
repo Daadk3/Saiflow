@@ -4,6 +4,12 @@ import { getFounderStats } from "@/lib/admin-stats";
 import { formatNumber } from "@/lib/formatNumber";
 import { formatPrice } from "@/lib/formatPrice";
 import { geideaMode, isGeideaConfigured } from "@/lib/payments/geidea/client";
+import {
+  FOUNDER_TEST_MAX_SAR,
+  LIVE_PUBLIC_ALLOWED,
+  parseFounderEmails,
+  parseLivePaymentsMode,
+} from "@/lib/payments/live-mode";
 import FirstVisitNote from "@/components/admin/FirstVisitNote";
 import MissionMascot from "@/components/admin/MissionMascot";
 
@@ -247,13 +253,27 @@ export default async function FounderDashboardPage() {
               {t("payments.eyebrow")}
             </p>
             <p className="mt-2 text-sm text-gray-300">
-              {/* Enabled only as checkout itself sees it: pre-launch off and Geidea
-                  fully configured, in a stated mode. Anything else is "not enabled". */}
-              {paymentsEnabled && isGeideaConfigured() && geideaMode() === "production"
-                ? t("payments.enabledLive")
-                : paymentsEnabled && isGeideaConfigured() && geideaMode() === "test"
-                  ? t("payments.enabledTest")
-                  : t("payments.disabled")}
+              {/* As checkout itself sees it (lib/payments/live-mode): pre-launch off
+                  and Geidea fully configured, in a stated mode; real cards for the
+                  public only once that release is allowed; while pre-launch is on,
+                  founder tests only, when switched on. Anything else is "not enabled". */}
+              {(() => {
+                const configured = isGeideaConfigured();
+                const account = geideaMode();
+                const liveMode = parseLivePaymentsMode(process.env.LIVE_PAYMENTS_MODE);
+                if (paymentsEnabled && configured && account === "test") return t("payments.enabledTest");
+                if (paymentsEnabled && configured && account === "production" && LIVE_PUBLIC_ALLOWED && liveMode === "public") {
+                  return t("payments.enabledLive");
+                }
+                if (!paymentsEnabled && configured && account !== null && liveMode === "founder_only") {
+                  const count = parseFounderEmails(process.env.FOUNDER_TEST_EMAILS).size;
+                  return t(account === "production" ? "payments.founderOnlyLive" : "payments.founderOnlyTest", {
+                    max: FOUNDER_TEST_MAX_SAR,
+                    count,
+                  });
+                }
+                return t("payments.disabled");
+              })()}
             </p>
             <dl className="mt-3 grid grid-cols-2 gap-x-6 gap-y-1.5 text-sm sm:grid-cols-4">
               {([

@@ -108,7 +108,11 @@ const ROUTE_POLICY: Record<string, RouteDecision> = {
   "POST /api/auth/verify-email": { policy: "public", reason: "auth flow: emailed token plus password", mustContain: ["verifyEmailWithToken("] },
   "POST /api/auth/verify-email/resend": { policy: "public", reason: "auth flow: same answer for every address", mustContain: ["GENERIC"] },
   "POST /api/signup": { policy: "public", reason: "account creation", mustContain: ["rateLimiters.signup("] },
-  "POST /api/checkout": { policy: "public", reason: "guest checkout, behind PRE_LAUNCH_MODE", mustContain: ["env.PRE_LAUNCH_MODE"] },
+  "POST /api/checkout": {
+    policy: "public",
+    reason: "guest checkout, behind PRE_LAUNCH_MODE; while it is on, only a founder test (server-side session on FOUNDER_TEST_EMAILS)",
+    mustContain: ["env.PRE_LAUNCH_MODE", "currentCheckoutAccess()"],
+  },
   "GET /api/download/[productId]": {
     policy: "public",
     reason: "buyer download: bearer reference, signed receipt token, or signed-in buyer's own order",
@@ -657,6 +661,8 @@ function order(id: string, productId: string, buyer: string): Row {
     customerEmail: buyer,
     createdAt: T0,
     paymentEnvironment: "PRODUCTION",
+    // As the database stores every ordinary order (DEFAULT false).
+    founderTest: false,
     paymentProvider: "GEIDEA",
     grossAmount: "25.00",
     platformFeeAmount: "2.50",

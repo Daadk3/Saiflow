@@ -66,7 +66,7 @@ export interface FounderStats {
   notSellableCount: number;
   /** Rolling 24h pulse. */
   pulse: { newUsers: number; newProducts: number; newShops: number; newReports: number };
-  /** TEST-environment orders: labelled, never revenue. */
+  /** TEST-environment orders and founder tests: labelled, never revenue. */
   testOrders: number;
   /**
    * Money, by environment, from the Order snapshots lib/pricing wrote.
@@ -156,9 +156,11 @@ export async function getFounderStats(): Promise<FounderStats> {
     prisma.product.count({ where: { createdAt: { gte: since } } }),
     prisma.shop.count({ where: { createdAt: { gte: since } } }),
     prisma.moderationEvent.count({ where: { action: "REPORTED", createdAt: { gte: since } } }),
-    prisma.order.count({ where: { paymentEnvironment: "TEST" } }),
+    prisma.order.count({ where: { OR: [{ paymentEnvironment: "TEST" }, { founderTest: true }] } }),
     prisma.order.groupBy({
       by: ["paymentEnvironment"],
+      // A founder test is the founder's own money, refunded: never revenue.
+      where: { founderTest: false },
       orderBy: { paymentEnvironment: "asc" },
       _count: { _all: true },
       _sum: { price: true, platformFeeAmount: true, sellerNetAmount: true },

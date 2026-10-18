@@ -65,6 +65,7 @@ export async function GET() {
         customerEmail: true,
         createdAt: true,
         paymentEnvironment: true,
+        founderTest: true,
         grossAmount: true,
         platformFeeAmount: true,
         sellerNetAmount: true,
@@ -86,13 +87,15 @@ export async function GET() {
     /**
      * Totals, in halalas, through lib/pricing: no float ever touches money.
      *
-     * REAL means PRODUCTION-environment orders only. TEST orders stay in the
+     * REAL means PRODUCTION-environment orders that are not founder tests
+     * (lib/payments/live-mode) only. TEST orders and founder tests stay in the
      * list, flagged, so the seller can see a test purchase happen, but they
      * never count as revenue. An order fulfilled before the commission
      * existed has no split: its gross still counts, its commission and net
      * are reported as absent rather than reinterpreted.
      */
-    const isReal = (order: { paymentEnvironment: string }) => order.paymentEnvironment === "PRODUCTION";
+    const isReal = (order: { paymentEnvironment: string; founderTest: boolean }) =>
+      order.paymentEnvironment === "PRODUCTION" && !order.founderTest;
     const grossOf = (order: { grossAmount: unknown; price: unknown }) => order.grossAmount ?? order.price;
     const money = (value: unknown) => {
       const halalas = parseMoney(value);

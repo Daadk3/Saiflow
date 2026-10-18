@@ -134,6 +134,7 @@ const SESSION_SELECT = {
   providerSessionId: true,
   providerOrderId: true,
   buyerEmail: true,
+  founderTest: true,
 } as const;
 
 async function loadSession(merchantReferenceId: string) {
@@ -391,6 +392,7 @@ async function fulfilPaid(
       amount: session.amount,
       currency: session.currency,
       environment: mode,
+      founderTest: session.founderTest,
     })
   );
   return reply(200, { received: true, result: "fulfilled" });
@@ -507,6 +509,8 @@ async function fulfil(
           sellerNetAmount: fromHalalas(split.sellerNetHalalas),
           commissionRateBps: split.rateBps,
           commissionVersion: split.version,
+          // A founder's own check (lib/payments/live-mode): never revenue, never paid out.
+          founderTest: session.founderTest,
         },
         select: { id: true },
       });

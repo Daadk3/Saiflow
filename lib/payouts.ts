@@ -5,6 +5,8 @@
  * WHAT A SHOP IS OWED. The seller's share (`Order.sellerNetAmount`, the split
  * snapshotted at fulfilment by lib/pricing) of every order that:
  *   - was paid on Geidea's PRODUCTION account (TEST orders are never revenue),
+ *   - is not a founder test (`founderTest`, lib/payments/live-mode), which is
+ *     the founder's own money and is refunded, never paid out,
  *   - carries a split (orders fulfilled before the commission have none, and
  *     are never reinterpreted), and
  *   - has not been paid out yet (`payoutId` is null).
@@ -89,6 +91,7 @@ export function payableOrdersWhere(shopId: string) {
   return {
     product: { shopId },
     paymentEnvironment: "PRODUCTION" as const,
+    founderTest: false,
     sellerNetAmount: { not: null },
     payoutId: null,
   };
@@ -97,6 +100,7 @@ export function payableOrdersWhere(shopId: string) {
 /** All payable orders, across shops; the admin's overview. */
 export const PAYABLE_ORDERS_WHERE = {
   paymentEnvironment: "PRODUCTION" as const,
+  founderTest: false,
   sellerNetAmount: { not: null },
   payoutId: null,
 };
