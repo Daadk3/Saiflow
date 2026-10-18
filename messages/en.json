@@ -737,11 +737,82 @@
     "paidNoLink": "Your download is not available yet. Refresh this page in a moment, or contact support with your reference."
   },
   "support": {
+    "hero": {
+      "title": "How can we help?",
+      "subtitle": "We're here to help you succeed"
+    },
+    "contact": {
+      "email": {
+        "title": "Email us",
+        "body": "Get a response within 24 hours",
+        "cta": "Send email"
+      },
+      "faq": {
+        "title": "FAQs",
+        "body": "Find quick answers to common questions",
+        "cta": "View FAQs"
+      },
+      "social": {
+        "title": "X (Twitter)",
+        "body": "Follow us for updates",
+        "cta": "Follow us"
+      }
+    },
+    "form": {
+      "heading": "Send us a message",
+      "subheading": "Can't find what you're looking for? We're here to help.",
+      "nameLabel": "Name",
+      "namePlaceholder": "Your name",
+      "emailLabel": "Email",
+      "emailPlaceholder": "you@example.com",
+      "subjectLabel": "Subject",
+      "subjects": {
+        "general": "General",
+        "technical": "Technical",
+        "billing": "Billing",
+        "other": "Other"
+      },
+      "messageLabel": "Message",
+      "messagePlaceholder": "Tell us how we can help…",
+      "submit": "Send message",
+      "note": "This form opens your email app to send your message to {email}",
+      "mailFrom": "From: {name} ({email})"
+    },
     "success": {
       "heading": "Message Sent!",
       "subtitle": "Thank you for reaching out. We'll get back to you within 24 hours.",
       "backToHome": "Back to Home",
       "sendAnother": "Send another message"
+    },
+    "faq": {
+      "heading": "Frequently asked questions",
+      "subheading": "Quick answers to common questions",
+      "items": {
+        "createProduct": {
+          "question": "How do I create a product?",
+          "answer": "First create your shop from your dashboard. Then open the shop, press \"Add product\", fill in the name, description and price, upload your product file, and press \"Create Product\". Before it appears publicly, every product goes through two checks: the file is scanned automatically for safety, and our team reviews the listing. Until then it shows as \"Under review\" in your dashboard. We email you when it's approved, or tell you what to change. Once approved, it's live at its own link that you can share."
+        },
+        "uploadFiles": {
+          "question": "How do I upload files?",
+          "answer": "Upload your file in the product form when you create or edit a product. You can sell PDFs, EPUB ebooks, ZIP archives, audio, video and images (JPEG, PNG, WebP, GIF, HEIC and AVIF). Files are stored privately and checked for safety before they can be sold; buyers download them through a secure link after they pay."
+        },
+        "payouts": {
+          "question": "When do I get paid?",
+          "answer": "Your earnings (each sale minus SaiFlow's 7% commission) are sent by bank transfer to a Saudi bank account (IBAN) in your name, which you add on your store's Payouts page. For now, selling and payouts are for creators based in Saudi Arabia; international is coming soon. The exact payout schedule will be announced when sales open."
+        },
+        "delivery": {
+          "question": "How do customers receive their files?",
+          "answer": "After a successful purchase, customers receive an email with a secure download link. The link works for 7 days. After that, they sign in to SaiFlow with the same email address (or create an account with it) and download again from \"My purchases\", as often as they need."
+        },
+        "editProduct": {
+          "question": "Can I edit my product after publishing?",
+          "answer": "Yes. Open your shop and press the edit (pencil) button on the product. Changes to the name, description or price are saved right away. If you replace the file of an approved product, it goes back for review: it comes off your store until the new file passes the safety scan and our team approves it again. Saving a rejected product after you fix it also sends it back for review."
+        },
+        "deleteAccount": {
+          "question": "How do I delete my account?",
+          "answer": "Email support@saiflow.io from the email address on your account and ask us to delete it. We'll confirm your request, then delete or anonymize your personal information, except what we must keep for legal or business reasons, as explained in our Privacy Policy."
+        }
+      }
     }
   },
   "storefront": {
