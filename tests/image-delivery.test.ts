@@ -8,6 +8,9 @@
  * - Resized images may be cached for a long time (upload URLs never change).
  * - The hero mascot, the page's largest image, is preloaded and fetched first.
  * - The footer's small print is readable (no gray-500/600 on the dark background).
+ * - The navigation is plain links in the <nav> landmark, not an ARIA menu
+ *   (mobile report: role="menu" whose children were not all menuitems), and
+ *   the closed mobile drawer is inert.
  *
  * Behavioural for canOptimizeImage; structural (reads the source) for the rest.
  */
@@ -84,4 +87,14 @@ test("the footer's small print is readable on its dark background", () => {
   const bottom = footer.slice(footer.indexOf("{/* Bottom row */}"));
   assert.ok(!/text-gray-(500|600)/.test(bottom.slice(0, bottom.indexOf("Social links"))), "copyright and registration lines");
   assert.match(footer, /<p className="text-xs text-gray-400">\{t\('footer.newsletterDesc'\)\}<\/p>/);
+});
+
+test("the navigation is links in a <nav>, not an ARIA menu, and the closed drawer is inert", () => {
+  const nav = read("components/Navbar.tsx");
+  const code = nav.replace(/\{\/\*[\s\S]*?\*\/\}/g, "");
+  assert.match(code, /<nav[\s\S]*?aria-label=\{t\('mainNav'\)\}/);
+  assert.ok(!/role="(menu|menubar|menuitem)"/.test(code), "no ARIA menu roles");
+  assert.match(code, /id="mobile-menu"\s*inert=\{!menuOpen\}/);
+  assert.match(code, /aria-controls="mobile-menu"/);
+  assert.match(code, /aria-expanded=\{menuOpen\}/);
 });

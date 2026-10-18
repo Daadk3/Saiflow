@@ -41,17 +41,20 @@ export default function Navbar() {
 
           {/* Desktop nav. The full bar needs about 900px, so it starts at lg:
               at md (768px) it pushed the page 147px wider than the screen. */}
-          <div className="hidden lg:flex items-center gap-6 xl:gap-8" role="menubar">
-            <Link href="/browse" className={navLinkClass} role="menuitem">
+          {/* Plain links inside the <nav> landmark: a site navigation is not an
+              ARIA menu (role="menu" promises arrow-key menu behaviour and
+              requires every child to be a menuitem). */}
+          <div className="hidden lg:flex items-center gap-6 xl:gap-8">
+            <Link href="/browse" className={navLinkClass}>
               {t('products')}
             </Link>
-            <Link href="/#categories" className={navLinkClass} role="menuitem">
+            <Link href="/#categories" className={navLinkClass}>
               {t('categories')}
             </Link>
-            <Link href="/#how-to-sell" className={navLinkClass} role="menuitem">
+            <Link href="/#how-to-sell" className={navLinkClass}>
               {t('howToSell')}
             </Link>
-            <Link href="/pricing" className={navLinkClass} role="menuitem">
+            <Link href="/pricing" className={navLinkClass}>
               {t('pricing')}
             </Link>
           </div>
@@ -124,10 +127,12 @@ export default function Navbar() {
       </div>
 
       {/* Mobile drawer */}
+      {/* Inert while closed: the collapsed drawer is only squeezed to zero
+          height, so without this its links stayed focusable and in the
+          accessibility tree. */}
       <div
         id="mobile-menu"
-        role="menu"
-        aria-label={t('mobileMenu')}
+        inert={!menuOpen}
         className={`lg:hidden transition-all duration-200 ${
           menuOpen ? "max-h-screen opacity-100" : "max-h-0 opacity-0 overflow-hidden"
         }`}
@@ -138,16 +143,16 @@ export default function Navbar() {
             <span className="text-xs text-gray-500">{pathname}</span>
           </div>
           <div className="flex flex-col gap-3">
-            <Link href="/browse" className={navLinkClass} onClick={() => setMenuOpen(false)} role="menuitem">
+            <Link href="/browse" className={navLinkClass} onClick={() => setMenuOpen(false)}>
               {t('products')}
             </Link>
-            <Link href="/#categories" className={navLinkClass} onClick={() => setMenuOpen(false)} role="menuitem">
+            <Link href="/#categories" className={navLinkClass} onClick={() => setMenuOpen(false)}>
               {t('categories')}
             </Link>
-            <Link href="/#how-to-sell" className={navLinkClass} onClick={() => setMenuOpen(false)} role="menuitem">
+            <Link href="/#how-to-sell" className={navLinkClass} onClick={() => setMenuOpen(false)}>
               {t('howToSell')}
             </Link>
-            <Link href="/pricing" className={navLinkClass} onClick={() => setMenuOpen(false)} role="menuitem">
+            <Link href="/pricing" className={navLinkClass} onClick={() => setMenuOpen(false)}>
               {t('pricing')}
             </Link>
             {session ? (
