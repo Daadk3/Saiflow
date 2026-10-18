@@ -7,9 +7,21 @@ import { useTranslations } from "next-intl";
 // Order of the questions; the text lives in messages under support.faq.items.
 const FAQ_KEYS = ["createProduct", "uploadFiles", "payouts", "delivery", "editProduct", "deleteAccount"] as const;
 
+const SUPPORT_EMAIL = "support@saiflow.io";
+
+// The value goes into the email subject and stays English in every language,
+// so support can sort mail the same way; only the label is translated.
+const SUBJECTS = [
+  { value: "General", key: "general" },
+  { value: "Technical", key: "technical" },
+  { value: "Billing", key: "billing" },
+  { value: "Other", key: "other" },
+] as const;
+
 export default function SupportPage() {
   const router = useRouter();
   const t = useTranslations("support.faq");
+  const tPage = useTranslations("support");
   const faqs = FAQ_KEYS.map((key) => ({
     question: t(`items.${key}.question`),
     answer: t(`items.${key}.answer`),
@@ -25,7 +37,8 @@ export default function SupportPage() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const { name, email, subject, message } = formData;
-    const mailtoLink = `mailto:support@saiflow.io?subject=${encodeURIComponent(subject)} - ${encodeURIComponent(name)}&body=${encodeURIComponent(`From: ${name} (${email})\n\n${message}`)}`;
+    const from = tPage("form.mailFrom", { name, email });
+    const mailtoLink = `mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent(subject)} - ${encodeURIComponent(name)}&body=${encodeURIComponent(`${from}\n\n${message}`)}`;
     
     // Try to open mailto link (may be blocked by browser)
     try {
@@ -53,10 +66,10 @@ export default function SupportPage() {
       <section className="pt-16 pb-12 px-4 border-b border-white/10">
         <div className="max-w-4xl mx-auto text-center">
           <h1 className="text-4xl sm:text-5xl font-extrabold text-white mb-4">
-            How can we help?
+            {tPage("hero.title")}
           </h1>
           <p className="text-xl text-gray-400">
-            We&apos;re here to help you succeed
+            {tPage("hero.subtitle")}
           </p>
         </div>
       </section>
@@ -72,15 +85,15 @@ export default function SupportPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                 </svg>
               </div>
-              <h3 className="text-xl font-bold text-white mb-2">Email Us</h3>
+              <h3 className="text-xl font-bold text-white mb-2">{tPage("contact.email.title")}</h3>
               <p className="text-gray-400 mb-6">
-                Get a response within 24 hours
+                {tPage("contact.email.body")}
               </p>
               <a
-                href="mailto:support@saiflow.io"
+                href={`mailto:${SUPPORT_EMAIL}`}
                 className="inline-flex items-center gap-2 bg-teal-500 hover:bg-teal-400 text-black font-semibold px-6 py-3 rounded-xl transition-colors"
               >
-                Send Email
+                {tPage("contact.email.cta")}
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                 </svg>
@@ -94,15 +107,15 @@ export default function SupportPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </div>
-              <h3 className="text-xl font-bold text-white mb-2">FAQs</h3>
+              <h3 className="text-xl font-bold text-white mb-2">{tPage("contact.faq.title")}</h3>
               <p className="text-gray-400 mb-6">
-                Find quick answers to common questions
+                {tPage("contact.faq.body")}
               </p>
               <button
                 onClick={scrollToFaqs}
                 className="inline-flex items-center gap-2 bg-teal-500 hover:bg-teal-400 text-black font-semibold px-6 py-3 rounded-xl transition-colors"
               >
-                View FAQs
+                {tPage("contact.faq.cta")}
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
@@ -116,9 +129,9 @@ export default function SupportPage() {
                   <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
                 </svg>
               </div>
-              <h3 className="text-xl font-bold text-white mb-2">Twitter/X</h3>
+              <h3 className="text-xl font-bold text-white mb-2">{tPage("contact.social.title")}</h3>
               <p className="text-gray-400 mb-6">
-                Follow us for updates
+                {tPage("contact.social.body")}
               </p>
               <a
                 href="https://twitter.com/saiflow"
@@ -126,7 +139,7 @@ export default function SupportPage() {
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 bg-teal-500 hover:bg-teal-400 text-black font-semibold px-6 py-3 rounded-xl transition-colors"
               >
-                Follow Us
+                {tPage("contact.social.cta")}
                 <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
                 </svg>
@@ -187,17 +200,17 @@ export default function SupportPage() {
         <div className="max-w-2xl mx-auto">
           <div className="text-center mb-12">
             <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">
-              Send us a message
+              {tPage("form.heading")}
             </h2>
             <p className="text-gray-400">
-              Can&apos;t find what you&apos;re looking for? We&apos;re here to help.
+              {tPage("form.subheading")}
             </p>
           </div>
 
           <form onSubmit={handleSubmit} className="bg-[#1A1A1A] rounded-2xl border border-white/10 p-8 space-y-6">
             <div>
               <label htmlFor="name" className="block text-sm font-medium text-gray-300 mb-2">
-                Name
+                {tPage("form.nameLabel")}
               </label>
               <input
                 type="text"
@@ -206,13 +219,13 @@ export default function SupportPage() {
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 className="w-full px-4 py-3 bg-[#0A0A0A] border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-teal-500 transition-colors"
-                placeholder="Your name"
+                placeholder={tPage("form.namePlaceholder")}
               />
             </div>
 
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-300 mb-2">
-                Email
+                {tPage("form.emailLabel")}
               </label>
               <input
                 type="email"
@@ -221,13 +234,13 @@ export default function SupportPage() {
                 value={formData.email}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                 className="w-full px-4 py-3 bg-[#0A0A0A] border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-teal-500 transition-colors"
-                placeholder="your@email.com"
+                placeholder={tPage("form.emailPlaceholder")}
               />
             </div>
 
             <div>
               <label htmlFor="subject" className="block text-sm font-medium text-gray-300 mb-2">
-                Subject
+                {tPage("form.subjectLabel")}
               </label>
               <select
                 id="subject"
@@ -235,16 +248,17 @@ export default function SupportPage() {
                 onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
                 className="w-full px-4 py-3 bg-[#0A0A0A] border border-white/10 rounded-xl text-white focus:outline-none focus:border-teal-500 transition-colors"
               >
-                <option value="General">General</option>
-                <option value="Technical">Technical</option>
-                <option value="Billing">Billing</option>
-                <option value="Other">Other</option>
+                {SUBJECTS.map(({ value, key }) => (
+                  <option key={value} value={value}>
+                    {tPage(`form.subjects.${key}`)}
+                  </option>
+                ))}
               </select>
             </div>
 
             <div>
               <label htmlFor="message" className="block text-sm font-medium text-gray-300 mb-2">
-                Message
+                {tPage("form.messageLabel")}
               </label>
               <textarea
                 id="message"
@@ -253,7 +267,7 @@ export default function SupportPage() {
                 value={formData.message}
                 onChange={(e) => setFormData({ ...formData, message: e.target.value })}
                 className="w-full px-4 py-3 bg-[#0A0A0A] border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-teal-500 transition-colors resize-none"
-                placeholder="Tell us how we can help..."
+                placeholder={tPage("form.messagePlaceholder")}
               />
             </div>
 
@@ -261,11 +275,11 @@ export default function SupportPage() {
               type="submit"
               className="w-full bg-teal-500 hover:bg-teal-400 text-black font-semibold px-6 py-4 rounded-xl transition-colors shadow-lg shadow-teal-500/25"
             >
-              Send Message
+              {tPage("form.submit")}
             </button>
 
             <p className="text-sm text-gray-500 text-center">
-              This form will open your email client to send a message to support@saiflow.io
+              {tPage("form.note", { email: SUPPORT_EMAIL })}
             </p>
           </form>
         </div>

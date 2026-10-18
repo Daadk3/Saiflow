@@ -737,6 +737,47 @@
     "paidNoLink": "Your download is not available yet. Refresh this page in a moment, or contact support with your reference."
   },
   "support": {
+    "hero": {
+      "title": "How can we help?",
+      "subtitle": "We're here to help you succeed"
+    },
+    "contact": {
+      "email": {
+        "title": "Email us",
+        "body": "Get a response within 24 hours",
+        "cta": "Send email"
+      },
+      "faq": {
+        "title": "FAQs",
+        "body": "Find quick answers to common questions",
+        "cta": "View FAQs"
+      },
+      "social": {
+        "title": "X (Twitter)",
+        "body": "Follow us for updates",
+        "cta": "Follow us"
+      }
+    },
+    "form": {
+      "heading": "Send us a message",
+      "subheading": "Can't find what you're looking for? We're here to help.",
+      "nameLabel": "Name",
+      "namePlaceholder": "Your name",
+      "emailLabel": "Email",
+      "emailPlaceholder": "you@example.com",
+      "subjectLabel": "Subject",
+      "subjects": {
+        "general": "General",
+        "technical": "Technical",
+        "billing": "Billing",
+        "other": "Other"
+      },
+      "messageLabel": "Message",
+      "messagePlaceholder": "Tell us how we can help…",
+      "submit": "Send message",
+      "note": "This form opens your email app to send your message to {email}",
+      "mailFrom": "From: {name} ({email})"
+    },
     "success": {
       "heading": "Message Sent!",
       "subtitle": "Thank you for reaching out. We'll get back to you within 24 hours.",
