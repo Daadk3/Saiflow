@@ -24,6 +24,10 @@ const nextConfig: NextConfig = {
     ];
   },
   images: {
+    // Upload URLs never change content (a new upload gets a new key), so a
+    // resized thumbnail can be cached for a month instead of re-made daily.
+    // Keep remotePatterns in step with lib/image-hosts.
+    minimumCacheTTL: 2678400,
     remotePatterns: [
       {
         protocol: "https",

@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useState } from "react";
 import type { ReactNode } from "react";
+import { canOptimizeImage } from "@/lib/image-hosts";
 
 interface ProductThumbnailProps {
   /** The stored thumbnail URL, or null when the product has none. */
@@ -19,6 +20,9 @@ interface ProductThumbnailProps {
  * and a subtle tinted backdrop fills whatever the artwork does not cover, so
  * portrait ebook and course covers keep every word and edge.
  * This is the only client-side piece of the product card.
+ *
+ * Resized by Vercel to the card's size (`sizes`) whenever its host allows
+ * (lib/image-hosts), instead of sending the seller's full-size upload.
  */
 export function ProductThumbnail({ src, fallback, sizes }: ProductThumbnailProps) {
   const [failed, setFailed] = useState(false);
@@ -32,7 +36,7 @@ export function ProductThumbnail({ src, fallback, sizes }: ProductThumbnailProps
         alt=""
         aria-hidden="true"
         fill
-        unoptimized
+        unoptimized={!canOptimizeImage(src)}
         sizes={sizes}
         onError={() => setFailed(true)}
         className="object-contain object-center p-3 transition duration-300 group-hover:scale-[1.02]"

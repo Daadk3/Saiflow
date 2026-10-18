@@ -69,7 +69,7 @@ export default function Footer() {
               {showSuccess ? (
                 <p className="text-xs text-teal-400" role="status">{t('footer.newsletterComingSoon')}</p>
               ) : (
-                <p className="text-xs text-gray-500">{t('footer.newsletterDesc')}</p>
+                <p className="text-xs text-gray-400">{t('footer.newsletterDesc')}</p>
               )}
             </div>
           </div>
@@ -119,7 +119,7 @@ export default function Footer() {
         {/* Bottom row */}
         <div className="mt-12 flex flex-col sm:flex-row items-center justify-between gap-6 border-t border-gray-800 pt-6">
           <div className="space-y-1 text-center sm:text-start">
-            <p className="text-sm text-gray-500">
+            <p className="text-sm text-gray-400">
               {t('footer.copyright')}
             </p>
             {/* Registered-entity disclosure. The KSA e-commerce rules require
@@ -127,7 +127,7 @@ export default function Footer() {
                 itself, so it lives in the global footer and therefore appears
                 on the homepage and every public store page. Deliberately
                 quiet: this is a legal disclosure, not a design element. */}
-            <p className="text-xs text-gray-600 leading-relaxed">
+            <p className="text-xs text-gray-400 leading-relaxed">
               {establishmentName(ar)}
               {" · "}
               {t('footer.commercialRegistration')}:{" "}
@@ -148,7 +148,7 @@ export default function Footer() {
                 Number only. The certificate carries banking details and is
                 never published, linked, or stored in this repository, and no
                 verification URL is asserted because none was issued. */}
-            <p className="text-xs text-gray-600 leading-relaxed">
+            <p className="text-xs text-gray-400 leading-relaxed">
               {t('footer.authenticatedBy')}
               {" · "}
               {t('footer.authenticationNumber')}{" "}
