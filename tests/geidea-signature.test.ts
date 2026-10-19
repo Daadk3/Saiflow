@@ -453,7 +453,8 @@ describe("the Geidea env surface is server-side only and never committed", () =>
 
   test(".gitignore keeps the local env file out of the repository", () => {
     const ignore = read(".gitignore");
-    assert.match(ignore, /^\.env\.local$/m);
-    assert.match(ignore, /^\.env\*\.local$/m);
+    // Every .env file (local, production, preview, test), except the template.
+    assert.match(ignore, /^\.env\*$/m);
+    assert.match(ignore, /^!\.env\.example$/m);
   });
 });
