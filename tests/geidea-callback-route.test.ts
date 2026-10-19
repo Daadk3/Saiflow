@@ -72,6 +72,8 @@ interface SessionRow {
   providerStatus: string | null;
   failureReason: string | null;
   callbackReceivedAt: Date | null;
+  /** A founder test (lib/payments/live-mode); copied onto the Order. */
+  founderTest?: boolean;
   /** Read by checkout, never by the callback; present here to show that. */
   expiresAt?: Date | null;
   currentAttemptKey?: string | null;
