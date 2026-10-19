@@ -29,8 +29,11 @@
 /** Opening real payments to the public is a reviewed release, not an env value. */
 export const LIVE_PUBLIC_ALLOWED = false;
 
-/** The most a founder test may charge, in riyals. */
-export const FOUNDER_TEST_MAX_SAR = 5;
+/**
+ * The most a founder test may charge, in riyals. Geidea requires real-payment
+ * tests of at least 10 SAR, so the cap leaves room above that minimum.
+ */
+export const FOUNDER_TEST_MAX_SAR = 20;
 
 export type LivePaymentsMode = "off" | "founder_only" | "public";
 

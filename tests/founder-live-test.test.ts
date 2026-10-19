@@ -10,7 +10,7 @@
  *   the server from the session (never from the request body). Everyone
  *   else, signed in or not, gets the same 503 pre_launch as before.
  * - A founder test may use the production Geidea account, only for a price
- *   of at most 5 SAR, and its attempt is marked founderTest. Every other gate
+ *   of at most 20 SAR, and its attempt is marked founderTest. Every other gate
  *   still runs (product, moderation, file safety).
  * - Public stays locked: with PRE_LAUNCH_MODE off, a production account is
  *   refused whatever LIVE_PAYMENTS_MODE says, and a test account works for
@@ -99,10 +99,10 @@ describe("the rules", () => {
     for (const env of [undefined, "", "preview", "development", "Production"]) assert.equal(productionAccountHere(env), false, String(env));
   });
 
-  test("the founder test cap is 5 SAR", () => {
-    assert.equal(FOUNDER_TEST_MAX_SAR, 5);
-    for (const ok of ["0.01", "1.00", "4.99", "5.00"]) assert.equal(withinFounderCap(ok), true, ok);
-    for (const no of ["5.01", "10.00", "49.00", "0.00", "", "abc", "-1.00"]) assert.equal(withinFounderCap(no), false, no);
+  test("the founder test cap is 20 SAR (Geidea's minimum for a real test is 10 SAR)", () => {
+    assert.equal(FOUNDER_TEST_MAX_SAR, 20);
+    for (const ok of ["0.01", "1.00", "10.00", "19.99", "20.00"]) assert.equal(withinFounderCap(ok), true, ok);
+    for (const no of ["20.01", "25.00", "49.00", "0.00", "", "abc", "-1.00"]) assert.equal(withinFounderCap(no), false, no);
   });
 });
 
@@ -343,12 +343,14 @@ describe("the checkout route", () => {
     assertNothingStarted();
   });
 
-  test("the amount cap: up to 5 SAR is allowed, anything above is refused before anything starts", async () => {
+  test("the amount cap: up to 20 SAR is allowed, anything above is refused before anything starts", async () => {
     asFounder();
-    state.price = "5.00";
-    state.product = product();
-    assert.equal((await checkout()).status, 200);
-    for (const price of ["5.01", "10.00", "49.00"]) {
+    for (const price of ["10.00", "20.00"]) {
+      state.price = price;
+      state.product = product();
+      assert.equal((await checkout()).status, 200, price);
+    }
+    for (const price of ["20.01", "25.00", "49.00"]) {
       attempts.length = 0;
       sessionCalls.length = 0;
       state.price = price;
