@@ -55,9 +55,25 @@ export async function GET(
 
     const { id } = await params;
 
+    // Only what the edit page shows: never the storage key, scan hashes or
+    // scan bookkeeping, which the browser has no use for.
     const product = await prisma.product.findUnique({
       where: { id },
-      include: {
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        description: true,
+        price: true,
+        currency: true,
+        category: true,
+        fileUrl: true,
+        thumbnailUrl: true,
+        moderationStatus: true,
+        isActive: true,
+        createdAt: true,
+        updatedAt: true,
+        shopId: true,
         shop: {
           select: {
             id: true,
@@ -102,7 +118,7 @@ export async function GET(
         : null;
     return NextResponse.json({ ...product, shop, rejectionReason: rejection?.reason?.trim() || null });
   } catch (error) {
-    console.error("Error fetching product:", error);
+    console.error("Error fetching product:", (error as Error)?.name ?? "Error", (error as { code?: unknown })?.code ?? "");
     return NextResponse.json(
       { error: "Something went wrong" },
       { status: 500 }
@@ -127,6 +143,21 @@ export async function PUT(
 
     const { id } = await params;
     const { name, description, price, category, fileUrl, thumbnailUrl } = await req.json();
+
+    // The same bounds as on create (app/api/products POST): an edit must not
+    // be the way around them.
+    if (name !== undefined && name !== null && name !== "" && (typeof name !== "string" || name.trim().length < 2 || name.length > 200)) {
+      return NextResponse.json({ error: "Product name must be between 2 and 200 characters" }, { status: 400 });
+    }
+    if (description !== undefined && description !== null && (typeof description !== "string" || description.length > 10000)) {
+      return NextResponse.json({ error: "Description must be less than 10,000 characters" }, { status: 400 });
+    }
+    if (fileUrl !== undefined && fileUrl !== null && typeof fileUrl !== "string") {
+      return NextResponse.json({ error: "Invalid file URL" }, { status: 400 });
+    }
+    if (thumbnailUrl !== undefined && thumbnailUrl !== null && typeof thumbnailUrl !== "string") {
+      return NextResponse.json({ error: "Invalid thumbnail URL" }, { status: 400 });
+    }
 
     if (category && !isProductCategory(category)) {
       return NextResponse.json({ error: "Invalid category" }, { status: 400 });
@@ -225,8 +256,17 @@ export async function PUT(
     if (submittedFileUrl !== undefined) {
       if (!fileUrlChanged) {
         // Same file as before. Derive the key with the permissive reader so a
-        // legacy row backfills its key instead of being rejected.
-        nextFileKey = product.fileKey ?? extractAssetKey(product.fileUrl);
+        // legacy row backfills its key instead of being rejected, but only
+        // when that key is this shop's own upload: an old row could point at
+        // another shop's file, and backfilling it would make that file this
+        // product's deliverable. Otherwise the seller re-uploads.
+        if (product.fileKey) {
+          nextFileKey = product.fileKey;
+        } else {
+          const legacyKey = extractAssetKey(product.fileUrl);
+          const owned = legacyKey ? await verifyDeliverableProvenance(legacyKey, product.shopId) : null;
+          nextFileKey = owned?.ok ? legacyKey : null;
+        }
       } else if (submittedFileUrl === null) {
         nextFileKey = null;
       } else {
@@ -334,86 +374,107 @@ export async function PUT(
     const fileChanged =
       nextFileKey !== undefined && nextFileKey !== product.fileKey;
 
-    const updatedProduct = await prisma.product.update({
-      where: { id },
-      data: {
-        name: name || product.name,
-        description: description !== undefined ? description : product.description,
-        price: nextPrice !== undefined ? nextPrice : product.price,
-        category: category !== undefined ? (category || null) : product.category,
-        fileUrl: fileUrl !== undefined ? fileUrl || null : product.fileUrl,
-        thumbnailUrl:
-          thumbnailUrl !== undefined ? thumbnailUrl || null : product.thumbnailUrl,
-        ...(nextFileKey !== undefined ? { fileKey: nextFileKey } : {}),
-        ...(fileChanged && replacementScanFields ? replacementScanFields : {}),
-      },
-    });
+    const nextName = name || product.name;
+    const nextDescription = description !== undefined ? description : product.description;
+    const nextThumbnail = thumbnailUrl !== undefined ? thumbnailUrl || null : product.thumbnailUrl;
 
     /**
-     * A rejected product returns to review when its seller saves an edit.
+     * Back to review, decided BEFORE anything is written and written in the
+     * same transaction as the edit, so a product is never live, even briefly,
+     * with content no one has approved.
      *
-     * The rejection email tells the seller to read the reason and edit the
-     * product; before this, the edit changed nothing about the decision, so
-     * the product stayed REJECTED and no one was asked to look again.
+     * - REJECTED: any edit resubmits it (the rejection email asks for one),
+     *   except in a suspended shop, whose rejections stand until an admin
+     *   restores it.
+     * - APPROVED: an approval was a decision about what was looked at, so
+     *   replacing the file or changing what a buyer reads or sees (name,
+     *   description, picture) sends it back. Price and category do not. This
+     *   applies in a suspended shop too, so restoring the shop never revives
+     *   an unreviewed listing.
      *
-     * Only after the edit itself is saved, so a review state never changes
-     * without the seller's change behind it. The return is conditional on the
-     * row still being REJECTED, in one transaction with its entry in the
-     * append-only moderation log (RESUBMITTED, by the seller), so a decision
-     * an admin makes at the same moment is never overwritten. PENDING keeps
-     * the product off the storefront until an admin decides again; nothing
-     * here can approve or publish anything.
+     * The write matches only while the product still has the status this
+     * request read: an admin's decision made at the same moment is never
+     * overwritten (the seller is asked to reload instead).
      */
-    let resubmitted = false;
-    // An APPROVED product whose file is replaced goes back to review too: an
-    // approval was a decision about the file that was looked at, and a
-    // seller must not be able to swap in a different one after it. (The new
-    // file is scanned either way; this is about what it contains.)
+    const listingChanged =
+      nextName !== product.name ||
+      // "" and null are the same empty description: the edit form sends ""
+      // for a product saved without one.
+      (nextDescription ?? "") !== (product.description ?? "") ||
+      nextThumbnail !== product.thumbnailUrl;
     const reopenFrom =
-      product.moderationStatus === "REJECTED" || (product.moderationStatus === "APPROVED" && fileChanged)
-        ? product.moderationStatus
-        : null;
-    // A suspended shop (isActive false, the runbook's suspension) cannot reopen
-    // anything: its rejections stand until an admin restores the shop.
-    if (reopenFrom && product.shop.isActive) {
-      try {
-        resubmitted = await prisma.$transaction(async (tx) => {
-          const reopened = await tx.product.updateMany({
-            where: { id, moderationStatus: reopenFrom },
-            data: { moderationStatus: "PENDING" },
-          });
-          if (reopened.count !== 1) return false;
+      product.moderationStatus === "APPROVED" && (fileChanged || listingChanged)
+        ? ("APPROVED" as const)
+        : product.moderationStatus === "REJECTED" && product.shop.isActive
+          ? ("REJECTED" as const)
+          : null;
+
+    let updatedProduct;
+    // One write; a transaction only when its moderation log entry goes with it.
+    const save = async (tx: Prisma.TransactionClient | typeof prisma) => {
+        const written = await tx.product.update({
+          where: { id, moderationStatus: product.moderationStatus },
+          data: {
+            name: nextName,
+            description: nextDescription,
+            price: nextPrice !== undefined ? nextPrice : product.price,
+            category: category !== undefined ? (category || null) : product.category,
+            fileUrl: fileUrl !== undefined ? fileUrl || null : product.fileUrl,
+            thumbnailUrl: nextThumbnail,
+            ...(nextFileKey !== undefined ? { fileKey: nextFileKey } : {}),
+            ...(fileChanged && replacementScanFields ? replacementScanFields : {}),
+            ...(reopenFrom ? { moderationStatus: "PENDING" as const } : {}),
+          },
+        });
+        if (reopenFrom) {
           await tx.moderationEvent.create({
             data: {
               productId: id,
               action: "RESUBMITTED",
               actor: `seller:${user.id}`,
-              reason: reopenFrom === "APPROVED" ? "File replaced after approval" : null,
+              reason:
+                reopenFrom === "APPROVED"
+                  ? fileUrlChanged
+                    ? "File replaced after approval"
+                    : "Listing edited after approval"
+                  : null,
               previousStatus: reopenFrom,
               newStatus: "PENDING",
             },
           });
-          return true;
-        });
-      } catch (error) {
-        // The edit is saved; it stays REJECTED and a later save can retry.
-        console.error("[moderation] resubmit failed", (error as Error)?.name);
+        }
+        return written;
+    };
+    try {
+      updatedProduct = reopenFrom ? await prisma.$transaction((tx) => save(tx)) : await save(prisma);
+    } catch (error) {
+      // P2025: no row matched id AND the status read above, i.e. an admin
+      // decided while this edit was saving.
+      if ((error as { code?: unknown } | null)?.code === "P2025") {
+        return NextResponse.json(
+          { error: "This product's review status changed while you were editing. Reload the page and try again." },
+          { status: 409 }
+        );
       }
-      if (resubmitted) {
-        console.log(`[moderation] resubmitted product=${redactId(id)} by=seller`);
-      }
+      throw error;
+    }
+    const resubmitted = reopenFrom !== null;
+    if (resubmitted) {
+      console.log(`[moderation] resubmitted product=${redactId(id)} by=seller`);
     }
 
     // Same race as on create: the worker may have settled the new file
-    // between the provenance read and this write.
-    if (fileChanged && nextFileKey) {
-      // Same as on create: a replacement whose verdict was already SAFE was
-      // written SAFE just now, and only this call site can announce it.
+    // between the provenance read and this write. One announcement covers a
+    // replaced file and a resubmission alike: the row was written PENDING
+    // in the same step when it went back to review.
+    if ((fileChanged && nextFileKey) || resubmitted) {
       try {
         await announceReadyAtAttach(updatedProduct);
       } catch (error) {
         console.error("[notify] announce after edit failed", (error as Error)?.name);
       }
+    }
+    if (fileChanged && nextFileKey) {
       try {
         await reconcileProductScanState(updatedProduct.id, nextFileKey);
       } catch (error) {
@@ -423,19 +484,7 @@ export async function PUT(
       scheduleScan(nextFileKey);
     }
 
-    // Back in review. The announcement above saw the row as written, still
-    // REJECTED, so it sent nothing; this is the one that can. If the file is
-    // SAFE the founder hears now; if it is still being scanned, the scan that
-    // settles it announces, since the product is PENDING again.
-    if (resubmitted) {
-      try {
-        await announceReadyAtAttach({ ...updatedProduct, moderationStatus: "PENDING" });
-      } catch (error) {
-        console.error("[notify] announce after resubmit failed", (error as Error)?.name);
-      }
-    }
-
-    return NextResponse.json(resubmitted ? { ...updatedProduct, moderationStatus: "PENDING" } : updatedProduct);
+    return NextResponse.json(updatedProduct);
   } catch (error) {
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
       return NextResponse.json(
@@ -443,7 +492,7 @@ export async function PUT(
         { status: 400 }
       );
     }
-    console.error("Error updating product:", error);
+    console.error("Error updating product:", (error as Error)?.name ?? "Error", (error as { code?: unknown })?.code ?? "");
     return NextResponse.json(
       { error: "Something went wrong" },
       { status: 500 }
@@ -533,7 +582,7 @@ export async function DELETE(
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("Error deleting product:", error);
+    console.error("Error deleting product:", (error as Error)?.name ?? "Error", (error as { code?: unknown })?.code ?? "");
     return NextResponse.json(
       { error: "Something went wrong" },
       { status: 500 }

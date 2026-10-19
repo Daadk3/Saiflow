@@ -47,7 +47,7 @@ export async function GET(req: Request) {
       })),
     });
   } catch (error) {
-    console.error("Error fetching moderation queue:", error);
+    console.error("Error fetching moderation queue:", (error as Error)?.name ?? "Error", (error as { code?: unknown })?.code ?? "");
     return NextResponse.json({ error: "Something went wrong" }, { status: 500 });
   }
 }

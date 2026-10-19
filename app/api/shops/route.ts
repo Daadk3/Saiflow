@@ -104,7 +104,7 @@ export async function POST(req: Request) {
         { status: 400 }
       );
     }
-    console.error("Error creating shop:", error);
+    console.error("Error creating shop:", (error as Error)?.name ?? "Error", (error as { code?: unknown })?.code ?? "");
     return NextResponse.json(
       { error: "Something went wrong" },
       { status: 500 }
@@ -160,7 +160,7 @@ export async function GET() {
 
     return NextResponse.json(shops);
   } catch (error) {
-    console.error("Error fetching shops:", error);
+    console.error("Error fetching shops:", (error as Error)?.name ?? "Error", (error as { code?: unknown })?.code ?? "");
     return NextResponse.json(
       { error: "Something went wrong" },
       { status: 500 }

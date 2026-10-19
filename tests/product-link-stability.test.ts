@@ -204,7 +204,11 @@ describe("renaming a product never rewrites its slug", () => {
 
   test("the update targets one row by id and cannot touch another", async () => {
     await renameProduct("My Guide");
-    assert.deepEqual(calls.productUpdate[0].where, { id: "prod_1" });
+    // The id, plus the moderation status the route read: an admin's decision
+    // made meanwhile makes the write match nothing rather than be overwritten.
+    const where = calls.productUpdate[0].where as Record<string, unknown>;
+    assert.equal(where.id, "prod_1");
+    assert.deepEqual(Object.keys(where).sort(), ["id", "moderationStatus"]);
   });
 
   test("no update statement mentions slug under any request shape", async () => {

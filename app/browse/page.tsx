@@ -66,6 +66,8 @@ async function getProducts(filters: Filters): Promise<Product[]> {
         },
       },
       orderBy,
+      // A public page: bounded however large the catalogue grows.
+      take: 500,
     });
 
     return products.map((p) => ({
@@ -74,7 +76,7 @@ async function getProducts(filters: Filters): Promise<Product[]> {
     }));
   } catch (error) {
     // Don't let a DB hiccup take down /browse — render the empty state.
-    console.error("Browse: failed to load products, rendering without them.", error);
+    console.error("Browse: failed to load products, rendering without them.", (error as Error)?.name ?? "Error", (error as { code?: unknown })?.code ?? "");
     return [];
   }
 }
