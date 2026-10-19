@@ -139,6 +139,9 @@ describe("the server's drop-in reply", () => {
     assert.equal(startProblemFor(404), "not_available");
     assert.equal(startProblemFor(503), "payments_off");
     assert.equal(startProblemFor(428), "cookies", "asked for an identity twice: the cookie is not being kept");
+    assert.equal(startProblemFor(403, { error: "own_product" }), "own_product", "the buyer's address belongs to the selling shop");
+    assert.equal(startProblemFor(403), "service", "a 403 from a firewall or proxy is not an own-shop refusal");
+    assert.equal(startProblemFor(403, { error: "Forbidden" }), "service");
     for (const status of [500, 502, 504, 401, 403]) assert.equal(startProblemFor(status), "service");
   });
 });

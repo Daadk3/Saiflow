@@ -120,9 +120,10 @@ describe("the Order snapshot", () => {
     ]) {
       assert.ok(geidea.includes(line), `geidea: ${line}`);
     }
+    // The Stripe webhook is retired (answers 410) and creates no Order at all.
     const stripe = strip(read("app/api/webhooks/stripe/route.ts"));
-    assert.match(stripe, /const split = saleBreakdown\(product\.price\);/);
-    assert.ok(stripe.includes("sellerNetAmount: fromHalalas(split.sellerNetHalalas)"));
+    assert.match(stripe, /status: 410/);
+    assert.ok(!/order\.create|prisma/.test(stripe));
   });
 
   test("nothing about verification, inquiry, download authorisation or moderation changed shape", () => {

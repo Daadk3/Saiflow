@@ -36,6 +36,7 @@ import { normalizeBuyerEmail } from "@/lib/checkout/buyer-email";
 import { unsellableReason } from "@/lib/sellable";
 import { accountAllowed, productionAccountHere, withinFounderCap } from "@/lib/payments/live-mode";
 import { currentCheckoutAccess } from "@/lib/payments/request-access";
+import { isShopMemberEmail } from "@/lib/fraud-signals";
 
 /**
  * Checkout: the one place a purchase attempt begins.
@@ -406,6 +407,10 @@ export async function POST(req: Request) {
         { status: 400 }
       );
     }
+    // A plain text id only: an object here would be read as a query operator.
+    if (typeof productId !== "string" || productId.length > 64) {
+      return NextResponse.json({ error: "Invalid product ID" }, { status: 400 });
+    }
 
     // Where the receipt goes. Required, so every purchase can reach its
     // buyer again after the success page is closed. Checked with the same
@@ -423,7 +428,7 @@ export async function POST(req: Request) {
     // gate silently starts deciding on undefined.
     const product = await prisma.product.findUnique({
       where: { id: productId },
-      include: { shop: true },
+      include: { shop: { include: { shopUsers: { select: { user: { select: { email: true } } } } } } },
     });
 
     if (!product) {
@@ -497,6 +502,29 @@ export async function POST(req: Request) {
       );
     }
 
+    // A shop's own team never buys from it. Paying for your own product with
+    // someone else's card and collecting the payout is the plainest way to
+    // launder money through a marketplace, and an honest seller testing
+    // their checkout has no reason to. Compared by mailbox (lib/fraud-signals),
+    // so "+tags" and Gmail dots do not get around it. A different address
+    // does, which is why the admin's payout page flags repeat buyers too.
+    // The shop's public contact address counts as the team's.
+    const teamEmails = product.shop.shopUsers.map((member) => member.user.email);
+    if (product.shop.email) teamEmails.push(product.shop.email);
+    // Except a founder test (lib/payments/live-mode): the founder buys from
+    // her own test shop on purpose, and a founder test is never paid out, so
+    // there is no payout for this rule to protect.
+    if (access.kind !== "founder_test" && isShopMemberEmail(buyerEmail, teamEmails)) {
+      // The same answer as any unavailable product, so the response never
+      // reveals whether an address belongs to a shop's team. The reason is
+      // kept in the server log.
+      log("warn", "refused", { reason: "own_shop_buyer", product: product.id });
+      return NextResponse.json(
+        { error: "not_available", message: "This product is not available for purchase." },
+        { status: 400 }
+      );
+    }
+
     // Payments unconfigured => same behavior as pre-launch: unavailable.
     // GEIDEA_ENV has no default, so a deployment that never said which
     // account it is against is unconfigured, whatever credentials it holds.
@@ -511,9 +539,12 @@ export async function POST(req: Request) {
     // A production Geidea account only for a founder test (and, later, a
     // reviewed public release): a credentials swap alone can never start
     // taking the public's money.
+    // And the live site never runs on a test account: a test card would
+    // otherwise buy real files there (lib/payments/live-mode).
     if (
       !accountAllowed(access, livePaymentsMode, configuredMode) ||
-      (configuredMode === "production" && !productionAccountHere(process.env.VERCEL_ENV))
+      (configuredMode === "production" && !productionAccountHere(process.env.VERCEL_ENV)) ||
+      (configuredMode === "test" && productionAccountHere(process.env.VERCEL_ENV))
     ) {
       log("error", "refused", { reason: "live_geidea_not_allowed", product: product.id });
       return NextResponse.json(

@@ -6,7 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { SELLABLE_PRODUCT_WHERE, SELLABLE_SHOP_WHERE } from "@/lib/sellable";
 import { checkoutScriptUrl, geideaMode, isGeideaConfigured } from "@/lib/payments/geidea/client";
 import { isLiveCheckout } from "@/lib/payments/checkout-mode";
-import { FOUNDER_TEST_MAX_SAR, withinFounderCap } from "@/lib/payments/live-mode";
+import { FOUNDER_TEST_MAX_SAR, productionAccountHere, withinFounderCap } from "@/lib/payments/live-mode";
 import { currentCheckoutAccess } from "@/lib/payments/request-access";
 import { canonicalAmount } from "@/lib/payments/geidea/callback";
 import { CheckoutSummary } from "@/components/checkout/CheckoutSummary";
@@ -93,7 +93,10 @@ export default async function CheckoutPage({
   // on every request; this page only declines to offer what it would refuse.
   const { access } = await currentCheckoutAccess();
   const founderTest = access.kind === "founder_test";
-  const formOffered = access.kind !== "closed";
+  // The route never charges on a test account on the live site (it would
+  // sell real files for test cards), so the form is not offered there either.
+  const testAccountOnLiveSite = geideaMode() === "test" && productionAccountHere(process.env.VERCEL_ENV);
+  const formOffered = access.kind !== "closed" && !testAccountOnLiveSite;
   const live = isLiveCheckout(isGeideaConfigured(), geideaMode());
   // A founder test charges a real card, so only small prices (the route refuses the rest).
   const overFounderCap = founderTest && !withinFounderCap(canonicalAmount(product.price) ?? "");
