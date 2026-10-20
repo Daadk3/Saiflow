@@ -625,6 +625,7 @@ function product(id: string, shopId: string, key: string, moderationStatus: stri
     fileScanAttempts: 1,
     thumbnailUrl: null,
     moderationStatus,
+    isActive: true,
     certifiedAt: T0,
     createdAt: T0,
     updatedAt: T0,

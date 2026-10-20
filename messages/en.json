@@ -324,7 +324,7 @@
       "emptyState": "No sales yet. When you make your first sale, the details will appear here."
     },
     "product": {
-      "replaceFileReview": "This product is approved. Replacing its file sends it back for review, and it is hidden from buyers until it's approved again.",
+      "replaceFileReview": "This product is approved. Changing its file, name, description or picture sends it back for review, and it is hidden from buyers until it's approved again. Changing only the price or category does not.",
       "fileRequired": "Upload your product file before submitting. The cover picture is not the product file.",
       "productNameLabel": "Product Name",
       "productNamePlaceholder": "e.g., My Awesome Ebook",

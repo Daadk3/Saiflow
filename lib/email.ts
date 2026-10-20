@@ -22,7 +22,7 @@ export function escapeHtml(value: string): string {
 }
 
 /** A subject line is one line: no header can be smuggled in after it. */
-function subjectSafe(value: string): string {
+export function subjectSafe(value: string): string {
   return value.replace(/[\r\n\u0000-\u001f\u007f]+/g, ' ').trim().slice(0, 150);
 }
 

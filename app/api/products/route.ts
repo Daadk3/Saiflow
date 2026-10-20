@@ -57,6 +57,11 @@ export async function POST(req: Request) {
       );
     }
 
+    // Plain text ids only: an object here would be read as a query operator.
+    if (shopId !== undefined && shopId !== null && (typeof shopId !== "string" || shopId.length > 64)) {
+      return NextResponse.json({ error: "Invalid shopId" }, { status: 400 });
+    }
+
     if (!name || price === undefined || price === null || !shopId) {
       return NextResponse.json(
         { error: "Name, price, and shopId are required" },
@@ -260,7 +265,7 @@ export async function POST(req: Request) {
         { status: 400 }
       );
     }
-    console.error("Error creating product:", error);
+    console.error("Error creating product:", (error as Error)?.name ?? "Error", (error as { code?: unknown })?.code ?? "");
     return NextResponse.json(
       { error: "Something went wrong" },
       { status: 500 }
