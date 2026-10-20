@@ -89,9 +89,11 @@ describe("the store directory data", () => {
 describe("the page", () => {
   const page = read("app/dashboard/admin/stores/page.tsx");
 
-  test("it lives under the admin segment, whose layout enforces admin access", () => {
+  test("it lives under the admin segment, and checks admin access itself before reading data", () => {
     const layout = read("app/dashboard/admin/layout.tsx");
-    assert.match(layout, /if \(!isAdminEmail\(session\.user\.email\)\) redirect\("\/dashboard"\);/);
+    assert.match(layout, /await requireAdminPage\(\);/);
+    assert.match(read("lib/admin-page-guard.ts"), /if \(!isAdminEmail\(email\)\) redirect\("\/dashboard"\);/);
+    assert.ok(page.indexOf("await requireAdminPage();") < page.indexOf("getStoresDirectory("), "the page's own check comes first");
   });
 
   test("a store's public page is linked only while the store is active", () => {
