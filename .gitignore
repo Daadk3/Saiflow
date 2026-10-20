@@ -85,3 +85,24 @@ logs
 
 # Local archives
 *.zip
+
+# Screenshots and media dropped in the project root. Site images live in
+# public/, which this does not touch.
+/*.png
+/*.jpg
+/*.jpeg
+/*.mov
+/*.mp4
+__MACOSX/
+
+# Database files and backups. Migrations in prisma/migrations/*.sql stay
+# tracked.
+*.db
+*.sqlite
+*.sqlite3
+*.dump
+*.backup
+*.bak
+
+# Claude Code local files (covers settings.local.json and worktrees/ above)
+.claude/
