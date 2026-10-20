@@ -5,6 +5,8 @@ import Link from "next/link";
 import { useLocale, useTranslations } from "next-intl";
 import { formatPrice } from "@/lib/formatPrice";
 import { formatDate } from "@/lib/formatDate";
+import { CLEARING_DAYS } from "@/lib/payouts";
+import { REPEAT_BUYER_THRESHOLD } from "@/lib/fraud-signals";
 
 /**
  * Seller payouts, for SaiFlow's admins (the admin layout enforces that).
@@ -13,6 +15,10 @@ import { formatDate } from "@/lib/formatDate";
  * form sends back the amount and order count the admin saw; the server
  * recomputes both from the orders and refuses if anything changed, so a
  * recorded payout always matches exactly the orders it marks as paid.
+ *
+ * Only cleared sales are payable; newer ones are shown as clearing, with the
+ * date the next one clears. Each shop also shows the warning signs among its
+ * unpaid orders (lib/fraud-signals), as counts.
  *
  * Before paying, check Geidea for refunds and chargebacks on these orders:
  * refunds are not recorded on orders yet (see lib/payouts).
@@ -23,7 +29,9 @@ interface ShopOwed {
   name: string;
   slug: string;
   owed: { amount: string; currency: string; orderCount: number; unreadable: number };
+  clearing: { amount: string; currency: string; orderCount: number; nextClearsAt: string | null };
   oldestOrderAt: string;
+  warnings: { ownShopOrders: number; repeatBuyerOrders: number };
   account: {
     holderName: string;
     iban: string;
@@ -44,12 +52,15 @@ function RecordPayout({ shop, onRecorded }: { shop: ShopOwed; onRecorded: () => 
   const [bankReference, setBankReference] = useState("");
   const [paidOn, setPaidOn] = useState(today());
   const [confirmed, setConfirmed] = useState(false);
+  // Changed in the last week: the server refuses until this is ticked too.
+  const recentChange = shop.account?.changedRecently === true;
+  const [confirmedChange, setConfirmedChange] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!confirmed) return;
+    if (!confirmed || (recentChange && !confirmedChange)) return;
     setBusy(true);
     setError(null);
     try {
@@ -63,6 +74,7 @@ function RecordPayout({ shop, onRecorded }: { shop: ShopOwed; onRecorded: () => 
           expectedAccountUpdatedAt: shop.account?.updatedAt,
           bankReference,
           paidOn,
+          confirmRecentChange: recentChange && confirmedChange,
         }),
       });
       const body = await res.json().catch(() => null);
@@ -73,6 +85,8 @@ function RecordPayout({ shop, onRecorded }: { shop: ShopOwed; onRecorded: () => 
             ? t("errors.balanceChanged")
             : code === "account_changed"
               ? t("errors.accountChanged")
+              : code === "account_recently_changed"
+                ? t("errors.accountRecentlyChanged")
               : code === "no_payout_account"
                 ? t("errors.noAccount")
               : code === "invalid_bank_reference"
@@ -124,10 +138,21 @@ function RecordPayout({ shop, onRecorded }: { shop: ShopOwed; onRecorded: () => 
           })}
         </span>
       </label>
+      {recentChange && (
+        <label className="flex items-start gap-2 text-sm text-amber-300">
+          <input
+            type="checkbox"
+            checked={confirmedChange}
+            onChange={(e) => setConfirmedChange(e.target.checked)}
+            className="mt-1"
+          />
+          <span>{t("confirmRecentChange")}</span>
+        </label>
+      )}
       {error && <p role="alert" className="text-sm text-amber-400">{error}</p>}
       <button
         type="submit"
-        disabled={!confirmed || busy || bankReference.trim().length < 3}
+        disabled={!confirmed || (recentChange && !confirmedChange) || busy || bankReference.trim().length < 3}
         className="rounded-lg bg-teal-500 px-4 py-2 text-sm font-medium text-white hover:bg-teal-400 disabled:opacity-50"
       >
         {busy ? t("recording") : t("record")}
@@ -186,10 +211,32 @@ export default function AdminPayoutsPage() {
                   <bdi>{formatPrice(Number(shop.owed.amount), shop.owed.currency, locale)}</bdi>
                 </p>
               </div>
-              <p className="mt-1 text-sm text-gray-500">
-                {t("ordersSince", { count: shop.owed.orderCount, date: formatDate(shop.oldestOrderAt, locale) })}
-              </p>
+              {shop.owed.orderCount > 0 && (
+                <p className="mt-1 text-sm text-gray-500">
+                  {t("ordersSince", { count: shop.owed.orderCount, date: formatDate(shop.oldestOrderAt, locale) })}
+                </p>
+              )}
               {shop.owed.unreadable > 0 && <p className="mt-1 text-sm text-amber-400">{t("unreadable", { count: shop.owed.unreadable })}</p>}
+              {shop.owed.orderCount === 0 && <p className="mt-1 text-sm text-gray-400">{t("nothingPayableYet", { days: CLEARING_DAYS })}</p>}
+              {shop.clearing.orderCount > 0 && shop.clearing.nextClearsAt && (
+                <p className="mt-1 text-sm text-gray-400">
+                  {t("clearing", {
+                    amount: formatPrice(Number(shop.clearing.amount), shop.clearing.currency, locale),
+                    count: shop.clearing.orderCount,
+                    date: formatDate(shop.clearing.nextClearsAt, locale),
+                  })}
+                </p>
+              )}
+              {shop.warnings.ownShopOrders > 0 && (
+                <p className="mt-2 rounded-lg border border-red-500/30 bg-red-500/[0.06] p-2 text-sm text-red-300">
+                  {t("ownShopOrders", { count: shop.warnings.ownShopOrders })}
+                </p>
+              )}
+              {shop.warnings.repeatBuyerOrders > 0 && (
+                <p className="mt-2 rounded-lg border border-amber-500/25 bg-amber-500/[0.06] p-2 text-sm text-amber-300">
+                  {t("repeatBuyerOrders", { count: shop.warnings.repeatBuyerOrders, threshold: REPEAT_BUYER_THRESHOLD })}
+                </p>
+              )}
               {shop.account ? (
                 <div className="mt-3 space-y-1 text-sm">
                   <p className="text-gray-300">{shop.account.holderName}</p>

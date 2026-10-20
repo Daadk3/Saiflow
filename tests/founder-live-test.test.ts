@@ -150,7 +150,8 @@ function product(over: Record<string, unknown> = {}) {
     fileKey: KEY,
     fileScanStatus: "SAFE",
     fileScanKey: KEY,
-    shop: { isActive: true, slug: "my-shop" },
+    // The founder's own test shop: she is its member, as on Production.
+    shop: { isActive: true, slug: "my-shop", email: null, shopUsers: [{ user: { email: FOUNDER } }] },
     ...over,
   };
 }
@@ -362,12 +363,29 @@ describe("the checkout route", () => {
     }
   });
 
+  test("the founder may buy from her own shop (the own-shop rule protects payouts, which a founder test never has)", async () => {
+    asFounder();
+    const res = await checkout({ productId: "prod_1", buyerEmail: FOUNDER });
+    assert.equal(res.status, 200);
+    assert.equal(attempts[0].founderTest, true);
+  });
+
+  test("anyone else buying from their own shop is still refused, test account or not", async () => {
+    state.preLaunch = false;
+    state.account = "test";
+    state.product = product({ shop: { isActive: true, slug: "my-shop", email: null, shopUsers: [{ user: { email: "seller@example.com" } }] } });
+    const res = await checkout({ productId: "prod_1", buyerEmail: "seller@example.com" });
+    assert.equal(res.status, 400);
+    assert.equal(res.body.error, "not_available", "the generic answer: team membership is never revealed");
+    assertNothingStarted();
+  });
+
   test("a founder test still passes every other gate", async () => {
     asFounder();
     for (const over of [
       { moderationStatus: "PENDING" },
       { isActive: false },
-      { shop: { isActive: false, slug: "my-shop" } },
+      { shop: { isActive: false, slug: "my-shop", email: null, shopUsers: [{ user: { email: FOUNDER } }] } },
       { fileScanStatus: "PENDING_SCAN" },
       { fileScanKey: "other-key" },
     ]) {
@@ -384,22 +402,45 @@ describe("the checkout route", () => {
     for (const mode of [undefined, "founder_only", "public"]) {
       state.livePaymentsMode = mode;
       state.session = { user: { email: FOUNDER } };
-      const res = await checkout();
+      // An ordinary buyer, so only the account rule is being tested.
+      const res = await checkout({ productId: "prod_1", buyerEmail: "buyer@example.com" });
       assert.equal(res.status, 503, String(mode));
       assert.equal(res.body.error, "pre_launch");
     }
     assertNothingStarted();
   });
 
-  test("public with a test account is exactly as before: open to everyone, never marked", async () => {
+  test("public with a test account is exactly as before on a Preview: open to everyone, never marked", async () => {
+    process.env.VERCEL_ENV = "preview";
     state.preLaunch = false;
     state.account = "test";
     state.livePaymentsMode = "public";
-    const res = await checkout();
+    const res = await checkout({ productId: "prod_1", buyerEmail: "buyer@example.com" });
     assert.equal(res.status, 200);
     assert.equal(attempts[0].environment, "TEST");
     assert.equal(attempts[0].founderTest, false);
     assert.equal(state.sessionReads, 0, "no session is read for the public");
+  });
+
+  test("the live site never runs on a test account: a test card must not buy real files there", async () => {
+    state.preLaunch = false;
+    state.account = "test";
+    for (const mode of [undefined, "public"]) {
+      state.livePaymentsMode = mode;
+      const res = await checkout({ productId: "prod_1", buyerEmail: "buyer@example.com" });
+      assert.equal(res.status, 503, String(mode));
+    }
+    asFounder();
+    state.preLaunch = true;
+    assert.equal((await checkout()).status, 503, "not even for a founder test");
+    assertNothingStarted();
+  });
+
+  test("a product id must be plain text", async () => {
+    asFounder();
+    const res = await checkout({ productId: { not: "x" }, buyerEmail: FOUNDER });
+    assert.equal(res.status, 400);
+    assertNothingStarted();
   });
 
   test("public mode with pre-launch on is still the pre-launch notice", async () => {
@@ -430,7 +471,10 @@ describe("founder tests are never revenue and never paid out", () => {
 
   test("payouts, seller totals and revenue leave them out", () => {
     const payouts = strip(read("lib/payouts.ts"));
-    assert.equal((payouts.match(/founderTest: false,/g) ?? []).length, 2, "both payable-order definitions");
+    // UNPAID_ORDERS_WHERE, which every payable and unpaid query builds on.
+    assert.match(payouts, /export const UNPAID_ORDERS_WHERE = \{[^}]*founderTest: false,/);
+    assert.match(payouts, /return \{ product: \{ shopId \}, \.\.\.UNPAID_ORDERS_WHERE \};/);
+    assert.match(payouts, /return \{ \.\.\.unpaidOrdersWhere\(shopId\), createdAt: \{ lte: clearingCutoff\(now\) \} \};/);
     const orders = strip(read("app/api/orders/route.ts"));
     assert.match(orders, /order\.paymentEnvironment === "PRODUCTION" && !order\.founderTest/);
     const stats = strip(read("lib/admin-stats.ts"));

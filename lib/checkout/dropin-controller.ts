@@ -288,7 +288,7 @@ export function createDropInController(
         host.replace(conflict.statusPath);
         return null;
       }
-      emit({ kind: "unavailable", problem: startProblemFor(reply.status) });
+      emit({ kind: "unavailable", problem: startProblemFor(reply.status, reply.body) });
       return null;
     }
   }

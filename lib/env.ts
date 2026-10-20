@@ -31,11 +31,10 @@ export const env = createEnv({
       .default("development"),
     // Pre-launch mode. Defaults to true (fail-closed); only "false"
     // disables it. Anything else (missing, empty, "true", typos) keeps
-    // pre-launch ON.
-    PRE_LAUNCH_MODE: z
-      .string()
-      .default("true")
-      .transform((v) => v !== "false"),
+    // pre-launch ON. Decided in runtimeEnv below, before validation, so the
+    // rule also holds when SKIP_ENV_VALIDATION hands the raw values through
+    // (an unset string there used to read as "off").
+    PRE_LAUNCH_MODE: z.boolean(),
 
     // ── Geidea Checkout v2 (KSA) ───────────────────────────────────────
     // Server-side only. None of these may move to the `client` block or gain
@@ -98,7 +97,8 @@ export const env = createEnv({
     OPENAI_API_KEY: process.env.OPENAI_API_KEY,
     ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY,
     NODE_ENV: process.env.NODE_ENV,
-    PRE_LAUNCH_MODE: process.env.PRE_LAUNCH_MODE,
+    // On unless exactly "false": the one place this is decided.
+    PRE_LAUNCH_MODE: process.env.PRE_LAUNCH_MODE !== "false",
     GEIDEA_MERCHANT_PUBLIC_KEY: process.env.GEIDEA_MERCHANT_PUBLIC_KEY,
     GEIDEA_API_PASSWORD: process.env.GEIDEA_API_PASSWORD,
     GEIDEA_API_BASE_URL: process.env.GEIDEA_API_BASE_URL,

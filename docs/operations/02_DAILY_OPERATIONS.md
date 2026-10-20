@@ -17,6 +17,8 @@ Saiflow is run by one person with a full-time job. The daily loop is **≤ 15 mi
 
 Orders and payouts join this list when payments go live (check Moyasar dashboard: settlements, chargebacks, disputes).
 
+Payouts (`/dashboard/admin/payouts`): a sale becomes payable 14 days after it was paid (`CLEARING_DAYS` in `lib/payouts.ts`), so refunds and chargebacks surface first. Before recording a transfer, read the shop's warnings: a red one means orders were bought with an email from the shop's own team (checkout refuses this, so treat it as serious); an amber one means a buyer paid the shop 3 or more times, usually a fan, but check in the payment dashboard that the cards differ.
+
 ## Weekly (~30 min, pick a fixed day)
 
 - [ ] Review the week's `ModerationEvent` rows — any pattern in rejections/reports?

@@ -203,12 +203,27 @@ export type StartProblem =
   | "payments_off"
   | "cookies"
   | "lock_unavailable"
+  | "own_product"
   | "service";
 
-export function startProblemFor(status: number): StartProblem {
+/**
+ * `own_product` is read from the body as well as the status, so a 403 from
+ * anything else on the way (a firewall challenge, a proxy) still reads as a
+ * service problem the buyer can retry, never as "this is your own shop".
+ */
+export function startProblemFor(status: number, body?: unknown): StartProblem {
   if (status === 429) return "rate_limited";
   if (status === 400 || status === 404) return "not_available";
   if (status === 503) return "payments_off";
   if (status === 428) return "cookies";
+  if (
+    status === 403 &&
+    body !== null &&
+    typeof body === "object" &&
+    !Array.isArray(body) &&
+    (body as Record<string, unknown>).error === "own_product"
+  ) {
+    return "own_product";
+  }
   return "service";
 }
