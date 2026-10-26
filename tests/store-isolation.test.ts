@@ -682,8 +682,8 @@ function seed() {
       { ...ADMIN, name: "Founder", createdAt: T0 },
     ],
     shop: [
-      { id: "shop_a", slug: "shop-a", name: "Shop A", description: "A", logo: null, coverImage: null, isActive: true, createdAt: T0, updatedAt: T0 },
-      { id: "shop_b", slug: "shop-b", name: "Shop B", description: "B", logo: null, coverImage: null, isActive: true, createdAt: T0, updatedAt: T0 },
+      { id: "shop_a", slug: "shop-a", name: "Shop A", description: "A", logo: null, coverImage: null, country: null, city: null, isActive: true, createdAt: T0, updatedAt: T0 },
+      { id: "shop_b", slug: "shop-b", name: "Shop B", description: "B", logo: null, coverImage: null, country: null, city: null, isActive: true, createdAt: T0, updatedAt: T0 },
     ],
     shopUser: [
       { id: "su_a", userId: "user_a", shopId: "shop_a", role: "OWNER" },

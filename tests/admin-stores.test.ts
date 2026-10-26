@@ -15,7 +15,12 @@ import { fileURLToPath } from "node:url";
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const read = (p: string) => readFileSync(resolve(ROOT, p), "utf8");
 
-const calls: { findMany?: Record<string, unknown>; count?: Record<string, unknown>; groupBy?: Record<string, unknown> } = {};
+const calls: {
+  findMany?: Record<string, unknown>;
+  count?: Record<string, unknown>;
+  groupBy?: Record<string, unknown>;
+  shopGroupBy?: Record<string, unknown>;
+} = {};
 const prisma = {
   shop: {
     findMany: (args: Record<string, unknown>) => {
@@ -23,10 +28,12 @@ const prisma = {
       return [
         {
           id: "shop_new", name: "قصص للأطفال", slug: "shop-8uccus", isActive: true, createdAt: new Date("2026-10-11T18:31:00Z"),
+          country: null, city: null,
           shopUsers: [], _count: { products: 0 },
         },
         {
           id: "shop_old", name: "memo", slug: "memo", isActive: false, createdAt: new Date("2026-09-01T10:00:00Z"),
+          country: "SA", city: "الرياض",
           shopUsers: [{ user: { name: "Maya", email: "maya@example.test" } }], _count: { products: 3 },
         },
       ];
@@ -34,6 +41,14 @@ const prisma = {
     count: (args: Record<string, unknown>) => {
       calls.count = args;
       return 2;
+    },
+    groupBy: async (args: Record<string, unknown>) => {
+      calls.shopGroupBy = args;
+      return [
+        { country: null, _count: { _all: 1 } },
+        { country: "EG", _count: { _all: 4 } },
+        { country: "SA", _count: { _all: 4 } },
+      ];
     },
   },
   product: {
@@ -48,7 +63,9 @@ const prisma = {
 
 import type { StoreRow } from "../lib/admin-stores.ts";
 
-let getStoresDirectory: (q?: string) => Promise<{ rows: StoreRow[]; total: number }>;
+let getStoresDirectory: (
+  query?: { q?: string; country?: string }
+) => Promise<{ rows: StoreRow[]; total: number; byCountry: Array<{ country: string | null; count: number }> }>;
 
 before(async () => {
   mock.module("@/lib/prisma", { namedExports: { prisma } });
@@ -61,7 +78,14 @@ describe("the store directory data", () => {
     assert.equal(total, 2);
     assert.deepEqual(rows.map((r) => r.slug), ["shop-8uccus", "memo"]);
     assert.equal(rows[0].products, 0);
+    assert.equal(rows[0].country, null, "a store opened before location was asked is unknown");
+    assert.equal(rows[0].city, null);
+    assert.equal(rows[1].country, "SA");
+    assert.equal(rows[1].city, "الرياض");
     assert.deepEqual(rows[0].owners, []);
+    const select = calls.findMany!.select as Record<string, unknown>;
+    assert.equal(select.country, true);
+    assert.equal(select.city, true);
     assert.deepEqual(calls.findMany!.orderBy, { createdAt: "desc" });
     assert.deepEqual((calls.findMany!.select as Record<string, { where?: unknown }>).shopUsers.where, { role: "OWNER" });
   });
@@ -79,10 +103,31 @@ describe("the store directory data", () => {
   });
 
   test("search is by store name, case-insensitive, and applies to the total too", async () => {
-    await getStoresDirectory("Memo");
+    await getStoresDirectory({ q: "Memo" });
     const where = { name: { contains: "Memo", mode: "insensitive" } };
     assert.deepEqual(calls.findMany!.where, where);
     assert.deepEqual(calls.count!.where, where);
+  });
+
+  test("a country filter limits the list, and unknown means no country was saved", async () => {
+    await getStoresDirectory({ country: "SA" });
+    assert.deepEqual(calls.findMany!.where, { country: "SA" });
+    assert.deepEqual(calls.count!.where, { country: "SA" });
+    await getStoresDirectory({ q: "Memo", country: "unknown" });
+    assert.deepEqual(calls.findMany!.where, {
+      name: { contains: "Memo", mode: "insensitive" },
+      country: null,
+    });
+  });
+
+  test("the summary counts every store per country, including unknown, and ignores the list filter", async () => {
+    const { byCountry } = await getStoresDirectory({ country: "SA" });
+    assert.deepEqual(calls.shopGroupBy, { by: ["country"], _count: { _all: true } });
+    assert.deepEqual(byCountry, [
+      { country: "EG", count: 4 },
+      { country: "SA", count: 4 },
+      { country: null, count: 1 },
+    ]);
   });
 });
 
@@ -103,9 +148,18 @@ describe("the page", () => {
     for (const lang of ["ar", "en"]) {
       const admin = JSON.parse(read(`messages/${lang}.json`)).admin;
       assert.ok(admin.actions.stores, lang);
-      for (const key of ["title", "subtitle", "search", "searchButton", "count", "showingFirst", "empty", "active", "suspended", "owner", "products", "productCounts", "created"]) {
+      for (const key of ["title", "subtitle", "search", "searchButton", "count", "showingFirst", "empty", "active", "suspended", "owner", "products", "productCounts", "created", "country", "city", "unknown", "countryAll", "countryFilter", "byCountry"]) {
         assert.ok(admin.stores[key], `${lang} admin.stores.${key}`);
       }
     }
+  });
+
+  test("it shows country and city, filters by country, and summarizes stores per country", () => {
+    assert.match(page, /t\("stores\.country"\)/);
+    assert.match(page, /t\("stores\.city"\)/);
+    assert.match(page, /t\("stores\.unknown"\)/);
+    assert.match(page, /t\("stores\.byCountry"\)/);
+    assert.match(page, /name="country"/);
+    assert.match(page, /countryOptionLabel/);
   });
 });

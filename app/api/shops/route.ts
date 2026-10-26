@@ -8,6 +8,7 @@ import { accountKey, rateLimiters, retryAfterSeconds } from "@/lib/rate-limit";
 import { runAfterResponse } from "@/lib/after-response";
 import { notifyAdminsStoreCreated } from "@/lib/notify";
 import { sessionUserId } from "@/lib/session-account";
+import { parseNewStoreLocation } from "@/lib/store-location";
 
 // POST - Create a new shop
 export async function POST(req: Request) {
@@ -32,7 +33,8 @@ export async function POST(req: Request) {
       );
     }
 
-    const { name, description } = await req.json();
+    const body = await req.json();
+    const { name, description } = body ?? {};
 
     if (!name || typeof name !== "string" || name.trim().length < 2 || name.length > 100) {
       return NextResponse.json(
@@ -45,6 +47,15 @@ export async function POST(req: Request) {
         { error: "Description must be less than 1,000 characters" },
         { status: 400 }
       );
+    }
+    // Country is required. City is optional. Existing shops are untouched:
+    // this only runs when a store is opened.
+    const location = parseNewStoreLocation({
+      country: body?.country,
+      city: body?.city,
+    });
+    if (!location.ok) {
+      return NextResponse.json({ error: location.error }, { status: 400 });
     }
 
     // Get the user
@@ -80,6 +91,8 @@ export async function POST(req: Request) {
         name,
         slug,
         description,
+        country: location.country,
+        city: location.city,
         shopUsers: {
           create: {
             userId: user.id,
@@ -92,7 +105,14 @@ export async function POST(req: Request) {
     // Tell the founder, after the row exists and after the response: the
     // notifier never throws, and nothing here can undo the shop.
     await runAfterResponse(() =>
-      notifyAdminsStoreCreated({ id: shop.id, name: shop.name, slug: shop.slug })
+      notifyAdminsStoreCreated({
+        id: shop.id,
+        name: shop.name,
+        slug: shop.slug,
+        country: shop.country,
+        city: shop.city,
+        creatorName: user.name?.trim() || null,
+      })
     );
 
     return NextResponse.json(shop, { status: 201 });

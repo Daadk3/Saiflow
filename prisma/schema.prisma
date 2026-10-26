@@ -131,6 +131,13 @@ model Shop {
   email       String?
   phone       String?
   address     String?
+  /// ISO 3166-1 alpha-2 for where the store is based. Null on shops opened
+  /// before this was asked; the admin directory shows those as unknown.
+  /// Kept off `address` (an unused street line) and off Profile.location
+  /// (the person, not the store) so a country filter can group on a code.
+  country     String?
+  /// Optional city, as the seller typed it. Null when left blank.
+  city        String?
   isActive    Boolean  @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -144,6 +151,7 @@ model Shop {
   @@index([slug])
   @@index([isActive])
   @@index([createdAt])
+  @@index([country])
 }
 
 model ShopUser {

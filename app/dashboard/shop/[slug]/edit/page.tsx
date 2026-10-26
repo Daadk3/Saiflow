@@ -9,6 +9,7 @@ import { useTranslations } from "next-intl";
 import { UploadButton } from "@/lib/uploadthing";
 import { useUploadContent } from "@/components/upload/useUploadContent";
 import { DashboardSkeleton } from "@/components/ui/DashboardSkeleton";
+import { StoreLocationFields } from "@/components/shop/StoreLocationFields";
 
 interface Shop {
   id: string;
@@ -17,6 +18,8 @@ interface Shop {
   description: string | null;
   logo: string | null;
   coverImage: string | null;
+  country: string | null;
+  city: string | null;
 }
 
 export default function EditShopPage() {
@@ -25,6 +28,8 @@ export default function EditShopPage() {
   const [description, setDescription] = useState("");
   const [logo, setLogo] = useState("");
   const [coverImage, setCoverImage] = useState("");
+  const [country, setCountry] = useState("");
+  const [city, setCity] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -66,6 +71,8 @@ export default function EditShopPage() {
       setDescription(data.description || "");
       setLogo(data.logo || "");
       setCoverImage(data.coverImage || "");
+      setCountry(data.country || "");
+      setCity(data.city || "");
     } catch {
       setError(t("shop.somethingWrong"));
     } finally {
@@ -90,6 +97,8 @@ export default function EditShopPage() {
           description,
           logo: logo || null,
           coverImage: coverImage || null,
+          country: country || null,
+          city,
         }),
       });
 
@@ -372,6 +381,14 @@ export default function EditShopPage() {
                   className="w-full px-4 py-3 bg-[#0a0a0a] border border-gray-800 rounded-xl text-white placeholder-gray-600 focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500 transition-colors resize-none"
                 />
               </div>
+
+              <StoreLocationFields
+                country={country}
+                city={city}
+                onCountryChange={setCountry}
+                onCityChange={setCity}
+                countryRequired={false}
+              />
 
               {/* Error Message */}
               {error && (

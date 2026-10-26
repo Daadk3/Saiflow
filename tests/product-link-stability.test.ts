@@ -242,6 +242,57 @@ describe("renaming a shop never rewrites its slug", () => {
     await renameShop("Daad Studio");
     assert.deepEqual(calls.shopUpdate[0].where, { id: "shop_1" });
   });
+
+  test("a rename that does not mention location leaves the country and city untouched", async () => {
+    await renameShop("Daad Studio");
+    const data = calls.shopUpdate[0].data as Record<string, unknown>;
+    assert.ok(!("country" in data));
+    assert.ok(!("city" in data));
+    assert.ok(!("slug" in data));
+  });
+
+  test("the seller can set the country and city, and can clear them", async () => {
+    const set = await shopPUT(
+      new Request("https://saiflow.test/api/shops/daad-s-store", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ country: "sa", city: "  جدة  " }),
+      }),
+      { params: Promise.resolve({ slug: ORIGINAL_SHOP_SLUG }) }
+    );
+    assert.equal(set.status, 200);
+    const saved = calls.shopUpdate[0].data as Record<string, unknown>;
+    assert.equal(saved.country, "SA");
+    assert.equal(saved.city, "جدة");
+    assert.ok(!("slug" in saved));
+
+    calls.shopUpdate = [];
+    const cleared = await shopPUT(
+      new Request("https://saiflow.test/api/shops/daad-s-store", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ country: null, city: "" }),
+      }),
+      { params: Promise.resolve({ slug: ORIGINAL_SHOP_SLUG }) }
+    );
+    assert.equal(cleared.status, 200);
+    const empty = calls.shopUpdate[0].data as Record<string, unknown>;
+    assert.equal(empty.country, null);
+    assert.equal(empty.city, null);
+  });
+
+  test("an unknown country is refused and nothing is written", async () => {
+    const res = await shopPUT(
+      new Request("https://saiflow.test/api/shops/daad-s-store", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ country: "Atlantis" }),
+      }),
+      { params: Promise.resolve({ slug: ORIGINAL_SHOP_SLUG }) }
+    );
+    assert.equal(res.status, 400);
+    assert.equal(calls.shopUpdate.length, 0);
+  });
 });
 
 /* ================================================================== */

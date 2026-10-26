@@ -8,6 +8,7 @@ import { creatorFileStatus } from "@/lib/creator-file-status";
 import { sellerFileState, type SellerAssetView } from "@/lib/seller-file-state";
 import { IMAGE_NOT_ALLOWED, verifyImageProvenance } from "@/lib/image-provenance";
 import { sessionUserId } from "@/lib/session-account";
+import { parseStoreLocationPatch } from "@/lib/store-location";
 
 export async function GET(
   req: Request,
@@ -42,6 +43,8 @@ export async function GET(
         name: true,
         slug: true,
         description: true,
+        country: true,
+        city: true,
         logo: true,
         coverImage: true,
         createdAt: true,
@@ -221,7 +224,8 @@ export async function PUT(
     const userId = sessionUserId(session);
 
     const { slug } = await params;
-    const { name, description, logo, coverImage } = await req.json();
+    const body = await req.json();
+    const { name, description, logo, coverImage } = body ?? {};
 
     // Bounds + asset-URL validation (same rules as shop/product creation)
     if (name !== undefined && (typeof name !== "string" || name.trim().length < 2 || name.length > 100)) {
@@ -235,6 +239,12 @@ export async function PUT(
         { error: "Description must be less than 1,000 characters" },
         { status: 400 }
       );
+    }
+    // Location is optional on edit. A request that does not mention it
+    // leaves the saved country and city exactly as they are.
+    const location = body && typeof body === "object" ? parseStoreLocationPatch(body) : { ok: true as const };
+    if (!location.ok) {
+      return NextResponse.json({ error: location.error }, { status: 400 });
     }
     if (logo && !isAllowedAssetUrl(logo)) {
       return NextResponse.json({ error: "Invalid logo URL" }, { status: 400 });
@@ -316,6 +326,9 @@ export async function PUT(
         description: description !== undefined ? description : shop.description,
         logo: logo !== undefined ? logo : shop.logo,
         coverImage: coverImage !== undefined ? coverImage : shop.coverImage,
+        // Only keys the seller actually sent. A rename cannot clear location.
+        ...("country" in location ? { country: location.country } : {}),
+        ...("city" in location ? { city: location.city } : {}),
       },
     });
 

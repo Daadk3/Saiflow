@@ -263,7 +263,7 @@ describe("the migration only adds, and replaces the two delete rules", () => {
     assert.equal(statements[0], `CREATE TYPE "CheckoutPresentation" AS ENUM (${members.map((m) => `'${m}'`).join(", ")})`);
   });
 
-  test("it follows the commission snapshot, and only seller payouts and the missing-objects catch-up follow it", () => {
+  test("migrations after the commission snapshot are the known follow-ups", () => {
     const dirs = readdirSync(resolve(ROOT, MIGRATIONS), { withFileTypes: true })
       .filter((entry) => entry.isDirectory())
       .map((entry) => entry.name)
@@ -274,6 +274,7 @@ describe("the migration only adds, and replaces the two delete rules", () => {
       "20261009120000_seller_payouts",
       "20261009180000_schema_objects_missing_from_migrations",
       "20261018120000_founder_test_payments",
+      "20261026120000_add_shop_location",
     ]);
   });
 });
