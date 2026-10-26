@@ -43,6 +43,11 @@ export function adminDashboardUrl(): string {
   return `${notificationOrigin()}/dashboard/admin`;
 }
 
+/** The founder's store directory. On production this is https://www.saiflow.io/dashboard/admin/stores. */
+export function adminStoresUrl(): string {
+  return `${notificationOrigin()}/dashboard/admin/stores`;
+}
+
 export function publicShopUrl(shopSlug: string): string {
   return `${notificationOrigin()}/shop/${seg(shopSlug)}`;
 }

@@ -8,6 +8,7 @@ import Image from "next/image";
 import { useTranslations } from "next-intl";
 import { slugBase } from "@/lib/slug";
 import { SITE_URL } from "@/lib/site-url";
+import { StoreLocationFields } from "@/components/shop/StoreLocationFields";
 
 /** The shop address shown before the shop exists: the real host, no protocol. */
 const SITE_HOST = new URL(SITE_URL).host;
@@ -16,6 +17,8 @@ export default function CreateShopPage() {
   const t = useTranslations("dashboard");
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
+  const [country, setCountry] = useState("");
+  const [city, setCity] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
@@ -44,6 +47,11 @@ export default function CreateShopPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (!country) {
+      setError(t("createShop.countryRequired"));
+      return;
+    }
+
     setError(null);
     setLoading(true);
 
@@ -53,7 +61,7 @@ export default function CreateShopPage() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ name, description }),
+        body: JSON.stringify({ name, description, country, city: city.trim() || null }),
       });
 
       const data = await res.json();
@@ -174,6 +182,14 @@ export default function CreateShopPage() {
                   className="w-full p-3 bg-gray-800 text-white border border-gray-700 rounded-lg focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500 transition-colors resize-none"
                 />
               </div>
+
+              <StoreLocationFields
+                country={country}
+                city={city}
+                onCountryChange={setCountry}
+                onCityChange={setCity}
+                countryRequired
+              />
 
               {/* Error Message */}
               {error && (

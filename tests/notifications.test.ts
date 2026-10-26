@@ -137,6 +137,7 @@ describe("links are absolute and point at the deployment that sends them", () =>
     assert.equal(links.notificationOrigin(), SITE_URL);
     delete process.env.NEXTAUTH_URL;
     assert.equal(links.notificationOrigin(), SITE_URL);
+    assert.equal(links.adminStoresUrl(), `${SITE_URL}/dashboard/admin/stores`);
     process.env.NEXTAUTH_URL = "   ";
     assert.equal(links.notificationOrigin(), SITE_URL);
   });
@@ -147,6 +148,7 @@ describe("links are absolute and point at the deployment that sends them", () =>
     assert.equal(links.sellerProductEditUrl("s/1", "p#2"), `${ORIGIN}/dashboard/shop/s%2F1/product/p%232/edit`);
     assert.equal(links.moderationQueueUrl(), `${ORIGIN}/dashboard/moderation`);
     assert.equal(links.adminDashboardUrl(), `${ORIGIN}/dashboard/admin`);
+    assert.equal(links.adminStoresUrl(), `${ORIGIN}/dashboard/admin/stores`);
     assert.equal(links.sellerSalesUrl(), `${ORIGIN}/dashboard/sales`);
     assert.equal(links.sellerShopUrl("x"), `${ORIGIN}/dashboard/shop/x`);
   });
@@ -175,8 +177,11 @@ describe("sending", () => {
     assert.ok(html.includes("A creator opened a new store"));
     assert.ok(text.includes("أنشأ صانع محتوى متجرًا جديدًا\nA creator opened a new store"));
     assert.ok(subject.includes(shop.name));
-    assert.ok(html.includes(`href="${ORIGIN}/shop/daad-s-store"`), "absolute link in the button");
-    assert.ok(text.includes(`${ORIGIN}/shop/daad-s-store`), "absolute link in the text version");
+    assert.ok(html.includes(`href="${ORIGIN}/dashboard/admin/stores"`), "the button opens the stores dashboard");
+    assert.ok(html.includes("لوحة المتاجر"));
+    assert.ok(text.includes(`${ORIGIN}/dashboard/admin/stores`), "absolute link in the text version");
+    assert.ok(html.includes("غير معروف"), "a store with no country says so");
+    assert.ok(html.includes("Unknown"));
   });
 
   test("no admin list: a quiet skip, nothing sent", async () => {
@@ -226,11 +231,39 @@ describe("sending", () => {
     assert.deepEqual(outcome, { ok: false, reason: "timeout" });
   });
 
+  test("a new store email names the country, the city and the creator", async () => {
+    await notify.notifyAdminsStoreCreated({
+      ...shop,
+      country: "SA",
+      city: "الرياض",
+      creatorName: "داد",
+    });
+    const { html, text } = sent[0];
+    assert.ok(html.includes("المملكة العربية السعودية"));
+    assert.ok(html.includes("Saudi Arabia"));
+    assert.ok(html.includes("الرياض"));
+    assert.ok(html.includes("داد"));
+    assert.ok(html.includes("صاحب المتجر"));
+    assert.ok(html.includes("Creator"));
+    assert.ok(html.includes(`href="${ORIGIN}/dashboard/admin/stores"`));
+    assert.ok(text.includes("Country: Saudi Arabia"));
+    assert.ok(text.includes("City: الرياض"));
+    assert.ok(text.includes("Creator: داد"));
+  });
+
   test("people's text is escaped into HTML and cannot break a header", async () => {
-    await notify.notifyAdminsStoreCreated({ ...shop, name: `<b>Zooz</b> & "co" 'x'\r\nBcc: someone` });
+    await notify.notifyAdminsStoreCreated({
+      ...shop,
+      name: `<b>Zooz</b> & "co" 'x'\r\nBcc: someone`,
+      city: `<i>Jeddah</i>`,
+      creatorName: `<b>Daad</b>`,
+    });
     const { html, subject, text } = sent[0];
     assert.ok(html.includes("&lt;b&gt;Zooz&lt;/b&gt; &amp; &quot;co&quot; &#39;x&#39;"));
+    assert.ok(html.includes("&lt;i&gt;Jeddah&lt;/i&gt;"));
+    assert.ok(html.includes("&lt;b&gt;Daad&lt;/b&gt;"));
     assert.ok(!html.includes("<b>Zooz</b>"), "raw markup never reaches the HTML");
+    assert.ok(!html.includes("<i>Jeddah</i>"));
     assert.ok(!/[\r\n]/.test(subject), "no line break in a header");
     assert.ok(subject.length <= 200);
     assert.ok(text.includes("<b>Zooz</b>"), "the text version is verbatim, it is not HTML");

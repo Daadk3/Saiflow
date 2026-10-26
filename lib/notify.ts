@@ -30,10 +30,11 @@ import { Resend } from "resend";
 import { prisma } from "@/lib/prisma";
 import { getAdminEmails } from "@/lib/admin";
 import { redactId } from "@/lib/redact-id";
+import { countryNames, isStoreCountry } from "@/lib/store-location";
 import {
   adminDashboardUrl,
   adminProductReviewUrl,
-  publicShopUrl,
+  adminStoresUrl,
   sellerProductEditUrl,
   sellerSalesUrl,
   sellerShopUrl,
@@ -256,7 +257,14 @@ export async function notifyAdminsStoreCreated(shop: {
   id: string;
   name: string;
   slug: string;
+  /** ISO country code. Missing on a caller that predates location. */
+  country?: string | null;
+  city?: string | null;
+  creatorName?: string | null;
 }): Promise<NotifyOutcome> {
+  const country = shop.country && isStoreCountry(shop.country) ? countryNames(shop.country) : null;
+  const city = shop.city?.trim() || null;
+  const creator = shop.creatorName?.trim() || null;
   return sendNotification({
     kind: "store_created",
     ref: shop.id,
@@ -266,8 +274,16 @@ export async function notifyAdminsStoreCreated(shop: {
     lines: [
       { ar: `المتجر: ${shop.name}`, en: `Store: ${shop.name}` },
       { ar: `المعرّف: ${shop.slug}`, en: `Handle: ${shop.slug}` },
+      { ar: `صاحب المتجر: ${creator ?? "—"}`, en: `Creator: ${creator ?? "—"}` },
+      country
+        ? { ar: `الدولة: ${country.ar}`, en: `Country: ${country.en}` }
+        : { ar: "الدولة: غير معروف", en: "Country: Unknown" },
+      { ar: `المدينة: ${city ?? "—"}`, en: `City: ${city ?? "—"}` },
     ],
-    link: { url: publicShopUrl(shop.slug), label: { ar: "عرض المتجر", en: "View the store" } },
+    link: {
+      url: adminStoresUrl(),
+      label: { ar: "لوحة المتاجر", en: "Stores dashboard" },
+    },
   });
 }
 

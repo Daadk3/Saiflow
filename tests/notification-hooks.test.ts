@@ -169,13 +169,20 @@ before(async () => {
         user: {
           findFirst: async () => {
             state.userLookups++;
-            return { id: "user_1", email: account };
+            return { id: "user_1", email: account, name: "داد" };
           },
         },
         shop: {
           findUnique: async () => state.shopBySlug,
           create: async ({ data }: { data: Record<string, unknown> }) => {
-            const row = { id: "shop_1", name: data.name, slug: data.slug, description: data.description ?? null };
+            const row = {
+              id: "shop_1",
+              name: data.name,
+              slug: data.slug,
+              description: data.description ?? null,
+              country: data.country ?? null,
+              city: data.city ?? null,
+            };
             state.created.push(row);
             return row;
           },
@@ -250,7 +257,8 @@ const drain = async () => {
 
 const json = (url: string, body: unknown) =>
   new Request(url, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
-const createShop = (name: string) => shopsPOST(json("http://test/api/shops", { name }));
+const createShop = (name: string, extra: Record<string, unknown> = {}) =>
+  shopsPOST(json("http://test/api/shops", { name, country: "SA", ...extra }));
 
 /* ------------------------------------------------------------------ */
 /* 1. A creator opens a store                                          */
@@ -263,7 +271,14 @@ describe("a creator opens a store", () => {
     assert.equal(calls.storeCreated.length, 0, "nothing is sent before the response");
     assert.equal(state.afterTasks.length, 1, "one task waits for the response");
     await drain();
-    assert.deepEqual(calls.storeCreated, [{ id: "shop_1", name: "متجر داد", slug: state.created[0].slug }]);
+    assert.deepEqual(calls.storeCreated, [{
+      id: "shop_1",
+      name: "متجر داد",
+      slug: state.created[0].slug,
+      country: "SA",
+      city: null,
+      creatorName: "داد",
+    }]);
   });
 
   test("a notifier failure changes nothing: the shop exists and the reply is still 201", async () => {
@@ -283,6 +298,22 @@ describe("a creator opens a store", () => {
     assert.equal(res.status, 201);
     assert.equal(calls.storeCreated.length, 1, "already called, no queue");
     assert.equal(state.afterTasks.length, 0);
+  });
+
+  test("a store needs a real country; the city is optional and is what gets saved", async () => {
+    const missing = await shopsPOST(json("http://test/api/shops", { name: "متجر داد" }));
+    assert.equal(missing.status, 400);
+    assert.equal(state.created.length, 0);
+    const named = await shopsPOST(json("http://test/api/shops", { name: "متجر داد", country: "Saudi Arabia" }));
+    assert.equal(named.status, 400);
+    const res = await shopsPOST(json("http://test/api/shops", { name: "متجر داد", country: "sa", city: "  الرياض  " }));
+    assert.equal(res.status, 201);
+    assert.equal(state.created[0].country, "SA");
+    assert.equal(state.created[0].city, "الرياض");
+    await drain();
+    assert.equal(calls.storeCreated[0].country, "SA");
+    assert.equal(calls.storeCreated[0].city, "الرياض");
+    assert.equal(calls.storeCreated[0].creatorName, "داد");
   });
 
   test("a refused request sends nothing", async () => {

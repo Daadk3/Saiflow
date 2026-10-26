@@ -2,8 +2,22 @@ import Link from "next/link";
 import { getTranslations, getLocale } from "next-intl/server";
 import { getStoresDirectory, STORES_PAGE_SIZE } from "@/lib/admin-stores";
 import { formatDate } from "@/lib/formatDate";
+import {
+  STORE_COUNTRIES,
+  UNKNOWN_COUNTRY_FILTER,
+  countryOptionLabel,
+  parseCountryFilter,
+} from "@/lib/store-location";
 
 export const dynamic = "force-dynamic";
+
+function storesHref(params: { q?: string; country?: string }): string {
+  const search = new URLSearchParams();
+  if (params.q) search.set("q", params.q);
+  if (params.country) search.set("country", params.country);
+  const query = search.toString();
+  return query ? `/dashboard/admin/stores?${query}` : "/dashboard/admin/stores";
+}
 
 /**
  * Every store on SaiFlow, newest first. Admin-only through the admin layout.
@@ -20,7 +34,10 @@ export default async function AdminStoresPage({
   const sp = await searchParams;
   const rawQ = Array.isArray(sp.q) ? sp.q[0] : sp.q;
   const q = rawQ?.trim().slice(0, 100) || undefined;
-  const { rows, total } = await getStoresDirectory(q);
+  const rawCountry = Array.isArray(sp.country) ? sp.country[0] : sp.country;
+  const country = parseCountryFilter(rawCountry);
+  const { rows, total, byCountry } = await getStoresDirectory({ q, country });
+  const directoryTotal = byCountry.reduce((sum, row) => sum + row.count, 0);
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white">
@@ -33,7 +50,45 @@ export default async function AdminStoresPage({
           <p className="mt-1 text-sm text-gray-500">{t("stores.subtitle")}</p>
         </header>
 
-        <form method="get" className="mb-5 flex gap-2">
+        <section className="mb-5">
+          <h2 className="mb-2 text-sm font-medium text-gray-300">{t("stores.byCountry")}</h2>
+          <ul className="flex flex-wrap gap-2">
+            <li>
+              <Link
+                href={storesHref({ q })}
+                className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs ${
+                  country
+                    ? "border-gray-800 bg-[#111] text-gray-300 hover:border-gray-600"
+                    : "border-teal-500 bg-teal-500/10 text-teal-300"
+                }`}
+              >
+                {t("stores.countryAll")}
+                <span className="tabular-nums text-gray-500">{directoryTotal}</span>
+              </Link>
+            </li>
+            {byCountry.map((row) => {
+              const value = row.country ?? UNKNOWN_COUNTRY_FILTER;
+              const active = country === value;
+              return (
+                <li key={value}>
+                  <Link
+                    href={storesHref({ q, country: value })}
+                    className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs ${
+                      active
+                        ? "border-teal-500 bg-teal-500/10 text-teal-300"
+                        : "border-gray-800 bg-[#111] text-gray-300 hover:border-gray-600"
+                    }`}
+                  >
+                    <bdi>{row.country ? countryOptionLabel(row.country) : t("stores.unknown")}</bdi>
+                    <span className="tabular-nums text-gray-500">{row.count}</span>
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+
+        <form method="get" className="mb-5 flex flex-wrap gap-2">
           <input
             name="q"
             defaultValue={q ?? ""}
@@ -41,6 +96,20 @@ export default async function AdminStoresPage({
             placeholder={t("stores.search")}
             className="w-full max-w-xs rounded-lg border border-gray-800 bg-[#111] px-3 py-2 text-sm text-white placeholder-gray-600 focus:border-teal-500 focus:outline-none"
           />
+          <select
+            name="country"
+            defaultValue={country ?? ""}
+            aria-label={t("stores.countryFilter")}
+            className="max-w-full rounded-lg border border-gray-800 bg-[#111] px-3 py-2 text-sm text-white focus:border-teal-500 focus:outline-none"
+          >
+            <option value="">{t("stores.countryAll")}</option>
+            <option value={UNKNOWN_COUNTRY_FILTER}>{t("stores.unknown")}</option>
+            {STORE_COUNTRIES.map((code) => (
+              <option key={code} value={code}>
+                {countryOptionLabel(code)}
+              </option>
+            ))}
+          </select>
           <button type="submit" className="rounded-lg border border-gray-800 bg-[#111] px-4 py-2 text-sm text-gray-300 hover:text-white">
             {t("stores.searchButton")}
           </button>
@@ -94,6 +163,16 @@ export default async function AdminStoresPage({
                             </span>
                           ))}
                     </dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs text-gray-500">{t("stores.country")}</dt>
+                    <dd className="text-gray-300">
+                      {store.country ? <bdi>{countryOptionLabel(store.country)}</bdi> : t("stores.unknown")}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs text-gray-500">{t("stores.city")}</dt>
+                    <dd className="text-gray-300">{store.city ? <bdi>{store.city}</bdi> : "—"}</dd>
                   </div>
                   <div>
                     <dt className="text-xs text-gray-500">{t("stores.products")}</dt>
