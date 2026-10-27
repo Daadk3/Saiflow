@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { RescanButton } from "@/components/admin/RescanButton";
 import DecisionButtons from "@/components/admin/DecisionButtons";
-import { ListingStandards } from "@/components/ListingStandards";
+import { ReviewChecklist } from "@/components/admin/ReviewChecklist";
 import Link from "next/link";
 import Image from "next/image";
 import { notFound, redirect } from "next/navigation";
@@ -159,6 +159,8 @@ export default async function AdminProductPreviewPage({
 
           {/* Moderation facts */}
           <aside className="space-y-4">
+            {/* The 8-point checklist: stored auto-checks flag, the founder decides. */}
+            <ReviewChecklist rows={product.checklist} />
             <div className="rounded-xl border border-gray-800 bg-[#0f0f0f] p-5">
               <h2 className="mb-3 text-sm font-semibold text-gray-300">
                 {t("preview.moderation")}
@@ -210,6 +212,7 @@ export default async function AdminProductPreviewPage({
                 productId={product.id}
                 productName={product.name}
                 status={product.moderationStatus}
+                checklist={product.checklist}
                 approveBlocked={product.fileSafety.publishable ? null : product.fileSafety.reason}
               />
             </div>
@@ -240,16 +243,6 @@ export default async function AdminProductPreviewPage({
               )}
             </div>
 
-            {/* Real results: ✓ only where the server verified it (lib/admin-product-preview). */}
-            <ListingStandards
-              ar={locale.startsWith("ar")}
-              variant="admin"
-              checks={product.checks.map((check) =>
-                check.key === "file_safe" && check.state === "fail"
-                  ? { ...check, detail: t(`notSellable.short.${product.fileSafety.reason}`) }
-                  : check
-              )}
-            />
 
             <FileSafetyPanel
               safety={product.fileSafety}

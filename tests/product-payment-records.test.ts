@@ -275,6 +275,7 @@ describe("the migration only adds, and replaces the two delete rules", () => {
       "20261009180000_schema_objects_missing_from_migrations",
       "20261018120000_founder_test_payments",
       "20261026120000_add_shop_location",
+      "20261027120000_add_review_checklist",
     ]);
   });
 });

@@ -4,6 +4,9 @@ import { useCallback, useEffect, useState } from "react";
 import Image from "next/image";
 import { useLocale } from "next-intl";
 import { formatPrice } from "@/lib/formatPrice";
+import RejectDialog from "@/components/admin/RejectDialog";
+import { ReviewChecklist } from "@/components/admin/ReviewChecklist";
+import type { ChecklistPointId, ChecklistRow } from "@/lib/review-checklist";
 
 // Tier 0 moderation queue — deliberately spartan.
 // Admin authority is enforced server-side (ADMIN_EMAILS); non-admins get 403.
@@ -25,6 +28,8 @@ interface PendingProduct {
   certifiedAt: string | null;
   createdAt: string;
   shop: { name: string; slug: string };
+  /** The 8-point review checklist; auto-checks flag, the founder decides. */
+  checklist: ChecklistRow[];
 }
 
 export default function ModerationQueuePage() {
@@ -36,6 +41,9 @@ export default function ModerationQueuePage() {
   const [forbidden, setForbidden] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [actingId, setActingId] = useState<string | null>(null);
+  // The product whose reject dialog is open, and the error to show inside it.
+  const [rejecting, setRejecting] = useState<PendingProduct | null>(null);
+  const [rejectError, setRejectError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -60,36 +68,37 @@ export default function ModerationQueuePage() {
     load();
   }, [load]);
 
-  async function decide(id: string, action: "APPROVED" | "REJECTED") {
-    let reason: string | undefined;
-    if (action === "REJECTED") {
-      reason =
-        window.prompt(
-          ar
-            ? "سبب الرفض (سيُسجل في سجل المراجعة):"
-            : "Rejection reason (recorded in the audit log):"
-        ) ?? undefined;
-      if (!reason?.trim()) return; // rejection requires a reason
-    }
+  // A rejection needs a reason, written in the reject dialog from the
+  // checklist points the founder ticks (the API refuses one without).
+  async function decide(id: string, action: "APPROVED" | "REJECTED", reason?: string, failedPoints: ChecklistPointId[] = []) {
+    if (action === "REJECTED" && !reason?.trim()) return; // rejection requires a reason
     setActingId(id);
+    setRejectError(null);
     try {
       const res = await fetch(`/api/admin/moderation/${id}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action, reason }),
+        body: JSON.stringify({ action, reason, failedPoints }),
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        setError(
+        const message =
           data.error === "not_approvable"
             ? ar
               ? "لا يمكن اعتماد منتج قبل أن يجتاز ملفه فحص الأمان. افتح المنتج لمعرفة السبب."
               : "A product can't be approved until its file passes the safety check. Open the product to see why."
-            : data.error || (ar ? "فشل تسجيل القرار" : "Failed to record the decision")
-        );
+            : data.error || (ar ? "فشل تسجيل القرار" : "Failed to record the decision");
+        // A refused rejection keeps its dialog open with the error inside.
+        if (action === "REJECTED") setRejectError(message);
+        else setError(message);
         return;
       }
+      setRejecting(null);
       setItems((prev) => prev.filter((p) => p.id !== id));
+    } catch {
+      const message = ar ? "فشل تسجيل القرار" : "Failed to record the decision";
+      if (action === "REJECTED") setRejectError(message);
+      else setError(message);
     } finally {
       setActingId(null);
     }
@@ -166,6 +175,15 @@ export default function ModerationQueuePage() {
                     {ar ? "معاينة الملف" : "Inspect file"}
                   </a>
                 )}
+                <a
+                  href={`/dashboard/admin/products/${p.id}/preview`}
+                  className="ms-3 inline-block mt-2 text-xs text-teal-400 hover:text-teal-300 underline"
+                >
+                  {ar ? "صفحة المراجعة" : "Review page"}
+                </a>
+                <div className="mt-3">
+                  <ReviewChecklist rows={p.checklist ?? []} compact />
+                </div>
               </div>
               <div className="flex sm:flex-col gap-2 sm:justify-center">
                 <button
@@ -176,7 +194,10 @@ export default function ModerationQueuePage() {
                   {ar ? "اعتماد" : "Approve"}
                 </button>
                 <button
-                  onClick={() => decide(p.id, "REJECTED")}
+                  onClick={() => {
+                    setRejectError(null);
+                    setRejecting(p);
+                  }}
                   disabled={actingId === p.id}
                   className="px-4 py-2 rounded-lg bg-red-500/20 hover:bg-red-500/30 disabled:opacity-50 text-red-400 text-sm font-semibold border border-red-500/30 transition-colors"
                 >
@@ -187,6 +208,21 @@ export default function ModerationQueuePage() {
           </div>
         ))}
       </div>
+
+      <RejectDialog
+        open={rejecting !== null}
+        productName={rejecting?.name ?? ""}
+        busy={rejecting !== null && actingId === rejecting.id}
+        error={rejectError}
+        checklist={rejecting?.checklist}
+        onCancel={() => {
+          setRejecting(null);
+          setRejectError(null);
+        }}
+        onConfirm={(reason, failedPoints) => {
+          if (rejecting) void decide(rejecting.id, "REJECTED", reason, failedPoints);
+        }}
+      />
     </div>
   );
 }

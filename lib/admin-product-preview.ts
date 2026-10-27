@@ -10,6 +10,7 @@ import {
   MIN_DESCRIPTION_LENGTH,
   type ListingCheck,
 } from "@/lib/listing-standards";
+import { checklistRows, type ChecklistRow } from "@/lib/review-checklist";
 import {
   moderatorFileSafety,
   type ModeratorFileSafety,
@@ -87,10 +88,11 @@ export interface AdminProductPreview {
   /** Why an APPROVED product is still not on sale (lib/sellable), or null. */
   notSellableReason: UnsellableReason | null;
   /**
-   * The "Before approving" checklist: three facts checked here, then every
-   * listing standard as a manual check. See listingChecks.
+   * The founder's 8-point review checklist (lib/review-checklist): stored
+   * auto-checks for points 3, 6 and 7, manual review for the rest. It
+   * replaced the "Before approving" list from listingChecks on this page.
    */
-  checks: ListingCheck[];
+  checklist: ChecklistRow[];
 }
 
 /**
@@ -144,6 +146,7 @@ export async function getAdminProductPreview(
       fileKey: true,
       fileScanStatus: true,
       fileScanKey: true,
+      reviewChecks: true,
       shop: {
         // No logo: the preview does not render one, and a column that is not
         // selected cannot be rendered by a later edit. isActive feeds the
@@ -181,12 +184,7 @@ export async function getAdminProductPreview(
       product.moderationStatus === "APPROVED" && unsellableReason(product) !== "sellable"
         ? unsellableReason(product)
         : null,
-    // From the same allowlisted images the page shows, so "there is a
-    // preview" means one the founder can actually see.
-    checks: listingChecks({
-      ...product,
-      thumbnailUrl: isAllowedAssetUrl(product.thumbnailUrl) ? product.thumbnailUrl : null,
-      images: product.images.filter(isAllowedAssetUrl),
-    }),
+    // The stored auto-checks, resolved against the file the product has now.
+    checklist: checklistRows(product.reviewChecks, product.fileKey),
   };
 }

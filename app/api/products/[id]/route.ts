@@ -18,6 +18,7 @@ import { scheduleScan } from "@/lib/scan/schedule";
 import { IMAGE_NOT_ALLOWED, verifyImageProvenance } from "@/lib/image-provenance";
 import { FILE_REQUIRED } from "@/lib/product-file-required";
 import { announceReadyAtAttach } from "@/lib/scan/announce";
+import { refreshReviewChecks } from "@/lib/review-checks-store";
 import { redactId } from "@/lib/redact-id";
 import { priceProblemMessage, validatePrice } from "@/lib/pricing";
 
@@ -422,6 +423,10 @@ export async function PUT(
       // The file changed: scan the new bytes now rather than at the next sweep.
       scheduleScan(nextFileKey);
     }
+
+    // The title, description or file may have changed: recompute the
+    // founder's checklist auto-checks (flags only). Never throws.
+    await refreshReviewChecks(updatedProduct.id);
 
     // Back in review. The announcement above saw the row as written, still
     // REJECTED, so it sent nothing; this is the one that can. If the file is

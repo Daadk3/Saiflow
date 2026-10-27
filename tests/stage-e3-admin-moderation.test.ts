@@ -583,7 +583,7 @@ describe("the preview payload carries no internals", () => {
     assert.deepEqual(Object.keys(preview!).sort(), [
       "canInspect",
       "category",
-      "checks",
+      "checklist",
       "createdAt",
       "currency",
       "description",

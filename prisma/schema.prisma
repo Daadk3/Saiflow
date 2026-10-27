@@ -224,6 +224,13 @@ model Product {
   /// Bounded-retry counter, persisted so a crash loop cannot reset it.
   fileScanAttempts Int            @default(0)
 
+  /// The founder's review checklist auto-checks (points 3, 6 and 7), as
+  /// computed by lib/review-checks-store when the seller submits and again
+  /// when the file scan settles. Flags for a person only: nothing reads this
+  /// to approve, reject or gate anything. Shape: StoredReviewChecks.
+  reviewChecks     Json?
+  reviewChecksAt   DateTime?
+
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
@@ -298,6 +305,11 @@ model FileAsset {
   /// Short reason category (e.g. "malware", "format_mismatch"). Never the
   /// provider's raw payload, and never file contents.
   scanReason   String?
+  /// What the scan learned about the bytes for the review checklist: opens,
+  /// PDF page count, and contact/banned-type flag codes found in the text
+  /// (lib/file-facts). Codes and counts only, never file contents. Keyed by
+  /// this row, so a replaced file can never inherit another file's facts.
+  contentFacts Json?
 
   /// Lease held by the worker currently scanning this asset.
   ///

@@ -15,6 +15,7 @@ import {
 import { isProductCategory } from "@/lib/categories";
 import { scheduleScan } from "@/lib/scan/schedule";
 import { announceReadyAtAttach } from "@/lib/scan/announce";
+import { refreshReviewChecks } from "@/lib/review-checks-store";
 import { priceProblemMessage, validatePrice } from "@/lib/pricing";
 import { accountKey, rateLimiters, retryAfterSeconds } from "@/lib/rate-limit";
 
@@ -247,6 +248,8 @@ export async function POST(req: Request) {
       } catch (error) {
         console.error("[scan] reconcile after create failed", (error as Error)?.name);
       }
+      // The founder's checklist auto-checks (flags only). Never throws.
+      await refreshReviewChecks(product.id);
       // The file is attached: scan it now rather than at the next sweep.
       scheduleScan(fileKey);
     }
