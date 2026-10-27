@@ -64,7 +64,9 @@ export async function GET(
               where: { action: "REJECTED" },
               orderBy: { createdAt: "desc" },
               take: 1,
-              select: { reason: true },
+              // Never the actor: a seller is told what was decided and when,
+              // not which admin decided it.
+              select: { reason: true, createdAt: true },
             },
             createdAt: true,
             // Server-side only — see the map below. fileUrl is deliberately
@@ -175,6 +177,7 @@ export async function GET(
         // Only while rejected; null when the rejection recorded no reason.
         rejectionReason:
           p.moderationStatus === "REJECTED" ? p.moderationEvents[0]?.reason?.trim() || null : null,
+        rejectedAt: p.moderationStatus === "REJECTED" ? p.moderationEvents[0]?.createdAt ?? null : null,
         createdAt: p.createdAt,
         // A boolean, not the URL — the deliverable URL is not the browser's
         // business, and the dashboard only ever asked "is there a file?".

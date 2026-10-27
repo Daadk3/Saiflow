@@ -371,6 +371,12 @@ export async function notifyAdminsProductReadyForReview(
   return outcomes;
 }
 
+/**
+ * Signs every moderation email. A seller is told the team decided, never which
+ * admin: the actor stays in the audit log and on the admin pages only.
+ */
+const MODERATION_SIGNOFF: BilingualLine = { ar: "فريق SaiFlow", en: "The SaiFlow team" };
+
 /** A moderation decision → the shop's members. Call after the decision is committed. */
 export async function notifyProductModerated(input: {
   productId: string;
@@ -407,6 +413,7 @@ export async function notifyProductModerated(input: {
           ar: "اعتمدنا منتجك بعد أن اجتاز ملفه الفحص، وأصبح ظاهرًا في متجرك.",
           en: "We approved your product after its file passed the check. It's now visible on your store.",
         },
+        MODERATION_SIGNOFF,
       ],
       link: { url: sellerShopUrl(product.shop.slug), label: { ar: "لوحة متجرك", en: "Your store dashboard" } },
     });
@@ -424,6 +431,7 @@ export async function notifyProductModerated(input: {
         ar: "راجع السبب أعلاه وعدّل المنتج من لوحة متجرك. عند حفظ التعديل يعود منتجك إلى المراجعة.",
         en: "Read the reason above and edit the product from your store dashboard. Saving your changes sends it back for review.",
       },
+      MODERATION_SIGNOFF,
     ],
     link: {
       url: sellerProductEditUrl(product.shop.slug, product.slug),

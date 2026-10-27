@@ -371,6 +371,7 @@ describe("a moderation decision", () => {
     assert.ok(sent[0].html.includes(`href="${ORIGIN}/dashboard/shop/daad-s-store"`));
     // Approval now requires a file that passed its check, so it can say the product is visible.
     assert.ok(sent[0].html.includes("أصبح ظاهرًا في متجرك"), "approval says where the product now is");
+    assert.ok(sent[0].text.includes("فريق SaiFlow"), "signed by the team, never by an admin");
   });
 
   test("rejected: the stored reason is included, escaped, with a link to edit the product", async () => {
@@ -388,6 +389,7 @@ describe("a moderation decision", () => {
     // Editing really does send it back now (app/api/products/[id]/route.ts), so the email says so.
     assert.ok(sent[0].html.includes("عند حفظ التعديل يعود منتجك إلى المراجعة."));
     assert.ok(sent[0].html.includes("Saving your changes sends it back for review."));
+    assert.ok(sent[0].text.includes("فريق SaiFlow") && sent[0].text.includes("The SaiFlow team"));
   });
 
   test("a rejection with no reason still says so, honestly", async () => {

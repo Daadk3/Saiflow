@@ -91,16 +91,22 @@ export async function GET(
 
     // Don't leak the member list in the response
     const shop = { id: product.shop.id, name: product.shop.name, slug: product.shop.slug };
-    // Why it was rejected, for the edit page: the seller's own product.
+    // Why and when it was rejected, for the edit page: the seller's own
+    // product. Never the actor: sellers are not told which admin decided.
     const rejection =
       product.moderationStatus === "REJECTED"
         ? await prisma.moderationEvent.findFirst({
             where: { productId: product.id, action: "REJECTED" },
             orderBy: { createdAt: "desc" },
-            select: { reason: true },
+            select: { reason: true, createdAt: true },
           })
         : null;
-    return NextResponse.json({ ...product, shop, rejectionReason: rejection?.reason?.trim() || null });
+    return NextResponse.json({
+      ...product,
+      shop,
+      rejectionReason: rejection?.reason?.trim() || null,
+      rejectedAt: rejection?.createdAt ?? null,
+    });
   } catch (error) {
     console.error("Error fetching product:", error);
     return NextResponse.json(
