@@ -231,7 +231,7 @@ describe("the response carries a status, not the scan columns", () => {
     assert.deepEqual(
       Object.keys(body.products[0]).sort(),
       ["createdAt","currency","description","fileSafety","fileState","hasFile","id",
-       "moderationStatus","name","price","rejectionReason","slug","thumbnailUrl"]
+       "moderationStatus","name","price","rejectedAt","rejectionReason","slug","thumbnailUrl"]
     );
   });
 

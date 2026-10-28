@@ -6,6 +6,7 @@ import { useSession } from "next-auth/react";
 import Link from "next/link";
 import Image from "next/image";
 import { useLocale, useTranslations } from "next-intl";
+import { formatDate } from "@/lib/formatDate";
 import { ListingStandards } from "@/components/ListingStandards";
 import { UploadButton } from "@/lib/uploadthing";
 import { useUploadContent } from "@/components/upload/useUploadContent";
@@ -37,6 +38,8 @@ interface Product {
   moderationStatus?: "PENDING" | "APPROVED" | "REJECTED";
   /** Why it was rejected, while it is; null when no reason was recorded. */
   rejectionReason?: string | null;
+  /** When it was rejected, while it is. Who decided is never sent to a seller. */
+  rejectedAt?: string | null;
   /**
    * Server-derived, and supplied ONLY by GET /api/shops/[slug] — the product
    * endpoint returns raw columns, not this verdict. Held in state from the
@@ -323,6 +326,11 @@ export default function EditProductPage() {
                   <p dir="auto" className="mt-1 whitespace-pre-line text-sm text-gray-200 [unicode-bidi:plaintext]">
                     {product.rejectionReason ?? tModeration("noReasonRecorded")}
                   </p>
+                  {product.rejectedAt && (
+                    <p className="mt-1 text-xs text-gray-500">
+                      {tModeration("decidedBy", { date: formatDate(product.rejectedAt, locale) })}
+                    </p>
+                  )}
                   <p className="mt-1 text-xs text-gray-500">{tModeration("fixAndResubmit")}</p>
                 </div>
               </div>

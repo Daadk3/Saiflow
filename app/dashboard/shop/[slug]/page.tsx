@@ -6,6 +6,7 @@ import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { useLocale, useTranslations } from "next-intl";
+import { formatDate } from "@/lib/formatDate";
 import { formatPrice } from "@/lib/formatPrice";
 import { formatNumber } from "@/lib/formatNumber";
 // TYPE ONLY. The derivation runs on the server — lib/creator-file-status
@@ -40,6 +41,8 @@ interface Product {
   moderationStatus?: "PENDING" | "APPROVED" | "REJECTED";
   /** Why it was rejected, while it is; null when no reason was recorded. */
   rejectionReason?: string | null;
+  /** When it was rejected, while it is. Who decided is never sent to a seller. */
+  rejectedAt?: string | null;
   /** Whether a deliverable is attached. The URL itself is not sent here. */
   hasFile: boolean;
   /**
@@ -431,6 +434,11 @@ export default function ShopDashboard() {
                         <p dir="auto" className="mt-1 whitespace-pre-line text-sm text-gray-200 [unicode-bidi:plaintext]">
                           {product.rejectionReason ?? tModeration("noReasonRecorded")}
                         </p>
+                        {product.rejectedAt && (
+                          <p className="mt-1 text-xs text-gray-500">
+                            {tModeration("decidedBy", { date: formatDate(product.rejectedAt, locale) })}
+                          </p>
+                        )}
                         <p className="mt-1 text-xs text-gray-500">{tModeration("fixAndResubmit")}</p>
                       </div>
                     )}
