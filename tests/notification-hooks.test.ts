@@ -620,7 +620,9 @@ describe("the remaining call sites (structural)", () => {
       ["app/api/products/[id]/route.ts", "updatedProduct"],
     ] as const) {
       const src = read(file);
-      const write = src.indexOf(row === "product" ? "const product = await prisma.$transaction(" : "const updatedProduct = await prisma.product.update(");
+      // The edit route writes inside `save` (one update, in a transaction when
+      // the product goes back to review), then announces.
+      const write = src.indexOf(row === "product" ? "const product = await prisma.$transaction(" : "const written = await tx.product.update(");
       const announce = src.indexOf(`await announceReadyAtAttach(${row});`);
       const reconcile = src.indexOf(`await reconcileProductScanState(${row}.id`);
       const schedule = src.indexOf("scheduleScan(");

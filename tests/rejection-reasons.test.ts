@@ -125,8 +125,8 @@ describe("where the reason is shown", () => {
 describe("a new file on an approved product goes back to review", () => {
   test("the edit route reopens APPROVED on a file change, and tells the seller beforehand", () => {
     const route = read("app/api/products/[id]/route.ts");
-    assert.ok(route.includes('(product.moderationStatus === "APPROVED" && fileChanged)'));
-    assert.ok(route.includes('reason: reopenFrom === "APPROVED" ? "File replaced after approval" : null'));
+    assert.ok(route.includes('product.moderationStatus === "APPROVED" && (fileChanged || listingChanged)'));
+    assert.match(route, /reopenFrom === "APPROVED"\s*\?\s*fileUrlChanged\s*\?\s*"File replaced after approval"\s*:\s*"Listing edited after approval"\s*:\s*null/);
     assert.ok(read("app/dashboard/shop/[slug]/product/[productSlug]/edit/page.tsx").includes('t("dashboard.product.replaceFileReview")'));
   });
 });

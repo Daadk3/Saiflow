@@ -36,6 +36,11 @@ export async function POST(
         { status: 400 }
       );
     }
+    // Any reason sent must be text of reasonable length: it is stored in the
+    // audit log and emailed to the seller as written.
+    if (reason !== undefined && reason !== null && (typeof reason !== "string" || reason.length > 2000)) {
+      return NextResponse.json({ error: "The reason must be text of at most 2,000 characters." }, { status: 400 });
+    }
     if (action === "REJECTED" && (!reason || typeof reason !== "string" || !reason.trim())) {
       // Rejections without reasons are unappealable and unexplainable — refuse.
       return NextResponse.json(
@@ -117,7 +122,7 @@ export async function POST(
     if (error instanceof NotApprovable) {
       return NextResponse.json({ error: "not_approvable", reason: "file_changed" }, { status: 409 });
     }
-    console.error("Error recording moderation decision:", error);
+    console.error("Error recording moderation decision:", (error as Error)?.name ?? "Error", (error as { code?: unknown })?.code ?? "");
     return NextResponse.json({ error: "Something went wrong" }, { status: 500 });
   }
 }

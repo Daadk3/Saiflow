@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { subjectSafe } from "@/lib/email";
 import { prisma } from "@/lib/prisma";
 import { rateLimiters, getClientIp } from "@/lib/rate-limit";
 import { getAdminEmails } from "@/lib/admin";
@@ -85,7 +86,8 @@ export async function POST(
       ).emails.send({
         from: "Saiflow <noreply@saiflow.io>",
         to,
-        subject: `[Report] ${category} — ${product.name}`,
+        // The product name is the seller's text: no line breaks in a header.
+        subject: subjectSafe(`[Report] ${category} — ${product.name}`),
         text:
           `Product reported.\n\n` +
           `Product: ${product.name} (${product.id})\n` +
@@ -102,17 +104,18 @@ export async function POST(
       // Addresses are deliberately not logged: ADMIN_EMAILS is sensitive.
       if (emailApiError) {
         console.error(
-          `[report] notification rejected by provider: ${emailApiError.name} (${emailApiError.statusCode}) — ${emailApiError.message} [recipients=${to.length}]`
+          // Name and status only: the provider's message can repeat recipients.
+          `[report] notification rejected by provider: ${emailApiError.name} (${emailApiError.statusCode}) [recipients=${to.length}]`
         );
       }
     } catch (emailError) {
       // Transport-level faults only: network failure, timeout, bad key.
-      console.error("Report notification email failed:", emailError);
+      console.error("[report] notification email failed", (emailError as Error)?.name ?? "Error");
     }
 
     return NextResponse.json({ received: true });
   } catch (error) {
-    console.error("Error submitting report:", error);
+    console.error("Error submitting report:", (error as Error)?.name ?? "Error", (error as { code?: unknown })?.code ?? "");
     return NextResponse.json({ error: "Something went wrong" }, { status: 500 });
   }
 }

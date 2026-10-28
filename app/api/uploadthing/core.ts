@@ -46,6 +46,8 @@ const requireShopMember = async ({ input }: { input: { shopId: string } }) => {
     where: {
       shopId: input.shopId,
       user: { email: { equals: session.user.email, mode: "insensitive" } },
+      // A suspended shop uploads nothing: no storage, no scans.
+      shop: { isActive: true },
     },
     select: { userId: true },
   });

@@ -202,7 +202,7 @@ export async function GET(
       })),
     });
   } catch (error) {
-    console.error("Error fetching shop:", error);
+    console.error("Error fetching shop:", (error as Error)?.name ?? "Error", (error as { code?: unknown })?.code ?? "");
     return NextResponse.json(
       { error: "Something went wrong" },
       { status: 500 }
@@ -343,7 +343,7 @@ export async function PUT(
         { status: 400 }
       );
     }
-    console.error("Error updating shop:", error);
+    console.error("Error updating shop:", (error as Error)?.name ?? "Error", (error as { code?: unknown })?.code ?? "");
     return NextResponse.json(
       { error: "Something went wrong" },
       { status: 500 }

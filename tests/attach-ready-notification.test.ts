@@ -183,7 +183,8 @@ const prisma = {
     findMany: async (args: Args = {}) => db.products.filter((r) => matches(r, args.where)).map((r) => project("product", r, args)),
     update: async ({ where, data }: { where: Row; data: Row }) => {
       const row = db.products.find((r) => matches(r, where));
-      if (!row) throw new Error("stand-in: product not found");
+      // As Prisma does when no row matches an update's where.
+      if (!row) throw Object.assign(new Error("stand-in: no row matched"), { code: "P2025" });
       applyData(row, data);
       row.updatedAt = new Date();
       return { ...row };
@@ -621,47 +622,82 @@ describe("a rejected product returns to review when its seller edits it", () => 
     assert.equal(sent.length, 1);
   });
 
-  test("edits to PENDING or APPROVED products change no decision and log nothing", async () => {
-    for (const status of ["PENDING", "APPROVED"]) {
+  test("edits to a PENDING product change no decision and log nothing", async () => {
+    const id = await seedSafeProduct("keyPENDING", "PENDING");
+    assert.equal((await replace(id, { name: "Renamed PENDING", fileUrl: fileUrl("keyPENDING") })).status, 200);
+    assert.equal(product(id).moderationStatus, "PENDING");
+    assert.equal(resubmissions().length, 0);
+  });
+
+  test("an APPROVED product whose name, description or picture changes goes back to review, in the same write", async () => {
+    for (const edit of [{ name: "Renamed" }, { description: "A different description of what is included" }]) {
       db.events = [];
-      const id = await seedSafeProduct(`key${status}`, status);
-      assert.equal((await replace(id, { name: `Renamed ${status}`, fileUrl: fileUrl(`key${status}`) })).status, 200);
-      assert.equal(product(id).moderationStatus, status);
-      assert.equal(resubmissions().length, 0, status);
+      const id = await seedSafeProduct("keyAPPROVED", "APPROVED");
+      assert.equal((await replace(id, { ...edit, fileUrl: fileUrl("keyAPPROVED") })).status, 200);
+      assert.equal(product(id).moderationStatus, "PENDING", JSON.stringify(edit));
+      assert.equal(resubmissions().length, 1);
+      assert.equal(resubmissions()[0].reason, "Listing edited after approval");
+      assert.equal(resubmissions()[0].previousStatus, "APPROVED");
     }
   });
 
-  test("a decision made while the edit is saving is never overwritten", async () => {
+  test("an APPROVED product whose price or category changes keeps its approval", async () => {
+    const id = await seedSafeProduct("keyAPPROVED2", "APPROVED");
+    assert.equal((await replace(id, { price: "59", fileUrl: fileUrl("keyAPPROVED2") })).status, 200);
+    assert.equal(product(id).moderationStatus, "APPROVED");
+    assert.equal(resubmissions().length, 0);
+  });
+
+  test("the edit form's empty description (\"\") is not a change for a product saved without one", async () => {
+    const id = await seedSafeProduct("keyAPPROVED3", "APPROVED");
+    product(id).description = null;
+    // What the edit page sends on a price-only save: every field, description "".
+    const res = await replace(id, { name: product(id).name, description: "", price: "59", fileUrl: fileUrl("keyAPPROVED3") });
+    assert.equal(res.status, 200);
+    assert.equal(product(id).moderationStatus, "APPROVED");
+    assert.equal(resubmissions().length, 0);
+  });
+
+  test("an APPROVED product in a suspended shop still goes back to review when its listing changes", async () => {
+    const id = await seedSafeProduct("keyAPPROVED4", "APPROVED");
+    db.shops[0].isActive = false;
+    assert.equal((await replace(id, { name: "Changed while suspended", fileUrl: fileUrl("keyAPPROVED4") })).status, 200);
+    assert.equal(product(id).moderationStatus, "PENDING", "restoring the shop never revives an unreviewed listing");
+  });
+
+  test("a decision made while the edit is saving is never overwritten: the seller is asked to reload", async () => {
     const id = await seedSafeProduct("keyAAAA0001", "REJECTED");
-    // The route loaded REJECTED; an admin approves before its transaction runs.
+    // The route loaded REJECTED; an admin approves before its write runs.
     const original = prisma.$transaction;
     prisma.$transaction = async (fn) => {
       product(id).moderationStatus = "APPROVED";
       return original(fn);
     };
     try {
-      assert.equal((await replace(id, { name: "Late edit", fileUrl: fileUrl("keyAAAA0001") })).status, 200);
+      assert.equal((await replace(id, { name: "Late edit", fileUrl: fileUrl("keyAAAA0001") })).status, 409);
     } finally {
       prisma.$transaction = original;
     }
     assert.equal(product(id).moderationStatus, "APPROVED", "the admin's decision stands");
+    assert.notEqual(product(id).name, "Late edit", "and the edit was not written over it");
     assert.equal(resubmissions().length, 0);
     await drain();
     assert.equal(sent.length, 0);
   });
 
-  test("if reopening fails, the edit is still saved and the product stays rejected", async () => {
+  test("the edit and its return to review succeed or fail together", async () => {
     const id = await seedSafeProduct("keyAAAA0001", "REJECTED");
+    const before = product(id).name;
     const original = prisma.$transaction;
     prisma.$transaction = async () => {
       throw new Error("connection reset");
     };
     try {
-      assert.equal((await replace(id, { name: "Saved anyway", fileUrl: fileUrl("keyAAAA0001") })).status, 200);
+      assert.equal((await replace(id, { name: "Not saved", fileUrl: fileUrl("keyAAAA0001") })).status, 500);
     } finally {
       prisma.$transaction = original;
     }
-    assert.equal(product(id).name, "Saved anyway");
+    assert.equal(product(id).name, before, "nothing was written");
     assert.equal(product(id).moderationStatus, "REJECTED");
     assert.equal(resubmissions().length, 0);
   });
