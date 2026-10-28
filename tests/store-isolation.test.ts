@@ -362,11 +362,14 @@ describe("founder dashboard layout", () => {
     const path = "app/dashboard/admin/layout.tsx";
     assert.ok(existsSync(resolve(ROOT, path)));
     const src = strip(read(path));
-    assert.match(src, /getServerSession\(authOptions\)/);
-    assert.match(src, /if\s*\(\s*!session\?\.user\?\.email\s*\)\s*redirect\("\/login"\)/);
-    assert.match(src, /if\s*\(\s*!isAdminEmail\(session\.user\.email\)\s*\)\s*redirect\("\/dashboard"\)/);
+    // The check lives in lib/admin-page-guard, shared with every admin page.
+    assert.match(src, /await requireAdminPage\(\);/);
+    const guard = strip(read("lib/admin-page-guard.ts"));
+    assert.match(guard, /getServerSession\(authOptions\)/);
+    assert.match(guard, /if\s*\(\s*!email\s*\)\s*redirect\("\/login"\)/);
+    assert.match(guard, /if\s*\(\s*!isAdminEmail\(email\)\s*\)\s*redirect\("\/dashboard"\)/);
     // The check runs before children render, and nothing renders on the way.
-    assert.ok(src.indexOf("isAdminEmail(") < src.indexOf("{children}"));
+    assert.ok(src.indexOf("requireAdminPage(") < src.indexOf("{children}"));
   });
 
   test("the guarding layout sits at the root of the admin segment", () => {
