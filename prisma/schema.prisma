@@ -383,7 +383,8 @@ model Order {
   customerEmail   String
   /// Stripe's checkout session id. Nullable since Geidea, because a Geidea
   /// order has none. Kept, and still unique, so every existing Stripe row is
-  /// unchanged and the dormant Stripe webhook still compiles and matches on it.
+  /// unchanged and the download route still finds past Stripe orders by it
+  /// (the Stripe webhook itself is retired).
   stripeSessionId String?  @unique
 
   // ---------------------------------------------------------------------

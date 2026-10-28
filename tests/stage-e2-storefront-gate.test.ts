@@ -288,8 +288,7 @@ describe("the enforced gates and the flag are untouched", () => {
 
   test("PRE_LAUNCH_MODE still defaults closed", () => {
     const code = strip(read("lib/env.ts"));
-    assert.ok(/\.default\("true"\)/.test(code));
-    assert.ok(/v !== "false"/.test(code));
+    assert.ok(/PRE_LAUNCH_MODE: process\.env\.PRE_LAUNCH_MODE !== "false",/.test(code), "on unless exactly \"false\", decided before validation");
   });
 
   test("the predicate itself was not edited", () => {

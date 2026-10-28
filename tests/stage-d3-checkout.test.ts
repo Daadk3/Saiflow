@@ -42,7 +42,7 @@ interface ProductRow {
   fileKey: string | null;
   fileScanStatus: string;
   fileScanKey: string | null;
-  shop: { isActive: boolean; slug: string };
+  shop: { isActive: boolean; slug: string; email?: string | null; shopUsers: Array<{ user: { email: string } }> };
 }
 
 const state: {
@@ -168,7 +168,7 @@ const product = (over: Partial<ProductRow> = {}): ProductRow => ({
   fileKey: KEY,
   fileScanStatus: "SAFE",
   fileScanKey: KEY,
-  shop: { isActive: true, slug: "my-shop" },
+  shop: { isActive: true, slug: "my-shop", shopUsers: [{ user: { email: "Seller@Example.com" } }] },
   ...over,
 });
 
@@ -403,7 +403,7 @@ describe("checkout: existing gates are preserved", () => {
 
   test("an inactive shop is still refused", async () => {
     reset();
-    state.product = product({ shop: { isActive: false, slug: "my-shop" } });
+    state.product = product({ shop: { isActive: false, slug: "my-shop", shopUsers: [] } });
     await assertRefusedBeforePayment(await checkout());
   });
 
@@ -469,6 +469,44 @@ describe("checkout: existing gates are preserved", () => {
 /* ------------------------------------------------------------------ */
 /* The gate uses the reviewed authority                                */
 /* ------------------------------------------------------------------ */
+
+describe("checkout: a shop's own team cannot buy from it", () => {
+  test("a buyer address from the shop's team is refused before payment", async () => {
+    reset();
+    state.product = product();
+    const res = await checkout({ productId: "prod_1", buyerEmail: "seller@example.com" });
+    // The generic unavailable answer: whether an address is on a shop's team is never revealed.
+    assert.equal(res.status, 400);
+    await assertRefusedBeforePayment(res, "not_available");
+  });
+
+  test("a +tag or Gmail dots do not get around it", async () => {
+    reset();
+    state.product = product({
+      shop: { isActive: true, slug: "my-shop", shopUsers: [{ user: { email: "my.shop@gmail.com" } }] },
+    });
+    for (const buyerEmail of ["myshop+test@gmail.com", "My.Shop@googlemail.com", "m.y.s.h.o.p@gmail.com"]) {
+      state.sessionCalls = [];
+      await assertRefusedBeforePayment(await checkout({ productId: "prod_1", buyerEmail }), "not_available");
+    }
+  });
+
+  test("the shop's public contact address counts as the team's", async () => {
+    reset();
+    state.product = product({
+      shop: { isActive: true, slug: "my-shop", email: "hello@myshop.example", shopUsers: [] },
+    });
+    await assertRefusedBeforePayment(await checkout({ productId: "prod_1", buyerEmail: "Hello@MyShop.example" }), "not_available");
+  });
+
+  test("any other buyer still reaches the payment path", async () => {
+    reset();
+    state.product = product();
+    const res = await checkout({ productId: "prod_1", buyerEmail: "seller@example.org" });
+    assert.equal(res.status, 200);
+    assert.equal(state.sessionCalls.length, 1);
+  });
+});
 
 describe("checkout uses the single safety authority", () => {
   test("it calls isDeliverableSafe directly", () => {

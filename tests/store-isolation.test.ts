@@ -129,7 +129,7 @@ const ROUTE_POLICY: Record<string, RouteDecision> = {
 
   // Provider callbacks, authenticated by signature.
   "POST /api/webhooks/geidea": { policy: "webhook", mustContain: ["verifyCallbackSignature("] },
-  "POST /api/webhooks/stripe": { policy: "webhook", mustContain: ["constructEvent(", "stripe-signature"] },
+  "POST /api/webhooks/stripe": { policy: "public", reason: "retired: answers 410 Gone and creates nothing", mustContain: ["status: 410"] },
 
   // Cron/operator worker, authenticated by a secret header.
   "GET /api/internal/scan": { policy: "internal" },
@@ -832,6 +832,7 @@ before(async () => {
       notifyAdminsProductReadyForReview: noop,
       notifyProductModerated: noop,
       notifySaleFulfilled: noop,
+      notifyPayoutAccountChanged: noop,
     },
   });
   mock.module(local("lib/after-response.ts"), {
