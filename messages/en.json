@@ -893,7 +893,8 @@
     "rejectionReasonLabel": "Why it was rejected",
     "noReasonRecorded": "No reason recorded. Check your email, or contact support.",
     "fixAndResubmit": "Fix this, then save the product: it goes back for review automatically.",
-    "pendingNotice": "New products are reviewed before they appear publicly."
+    "pendingNotice": "New products are reviewed before they appear publicly.",
+    "decidedBy": "The SaiFlow team, {date}"
   },
   "fileSafety": {
     "noticeTitle": "Your product is awaiting approval",

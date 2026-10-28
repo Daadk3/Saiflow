@@ -893,7 +893,8 @@
     "rejectionReasonLabel": "سبب الرفض",
     "noReasonRecorded": "لم يُسجَّل سبب. راجع بريدك الإلكتروني أو تواصل مع الدعم.",
     "fixAndResubmit": "عدّل ما يلزم ثم احفظ المنتج: يعود تلقائيًا إلى المراجعة.",
-    "pendingNotice": "تُراجع المنتجات الجديدة قبل ظهورها للعامة."
+    "pendingNotice": "تُراجع المنتجات الجديدة قبل ظهورها للعامة.",
+    "decidedBy": "فريق SaiFlow، {date}"
   },
   "fileSafety": {
     "noticeTitle": "منتجك بانتظار الاعتماد",
