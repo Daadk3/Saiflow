@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import RejectDialog from "@/components/admin/RejectDialog";
+import type { ChecklistPointId, ChecklistRow } from "@/lib/review-checklist";
 import { DECISION_TOAST_MS, afterDecision, readDecisionResponse, type Decision } from "@/lib/decision-feedback";
 
 type Status = "PENDING" | "APPROVED" | "REJECTED";
@@ -31,6 +32,7 @@ export default function DecisionButtons({
   productName,
   status,
   approveBlocked = null,
+  checklist,
 }: {
   productId: string;
   /** Shown in the reject dialog, so the founder knows which product the reason is for. */
@@ -42,6 +44,8 @@ export default function DecisionButtons({
    * says so before the click.
    */
   approveBlocked?: string | null;
+  /** The 8-point review checklist, shown beside the reject dialog's tick boxes. */
+  checklist?: ChecklistRow[];
 }) {
   const t = useTranslations("admin.directory");
   const router = useRouter();
@@ -83,7 +87,7 @@ export default function DecisionButtons({
     void send("APPROVED");
   }
 
-  async function send(action: "APPROVED" | "REJECTED", reason?: string) {
+  async function send(action: "APPROVED" | "REJECTED", reason?: string, failedPoints: ChecklistPointId[] = []) {
     if (action === "REJECTED" && !reason?.trim()) return; // the API requires a reason for rejections
     setBusy(true);
     setError(null);
@@ -91,7 +95,7 @@ export default function DecisionButtons({
       const res = await fetch(`/api/admin/moderation/${productId}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action, reason }),
+        body: JSON.stringify({ action, reason, failedPoints }),
       });
       const result = readDecisionResponse(res.ok, res.ok ? null : await res.json().catch(() => ({})));
       if (!result.ok) {
@@ -164,7 +168,8 @@ export default function DecisionButtons({
           setRejecting(false);
           setError(null);
         }}
-        onConfirm={(reason) => void send("REJECTED", reason)}
+        checklist={checklist}
+        onConfirm={(reason, failedPoints) => void send("REJECTED", reason, failedPoints)}
       />
     </div>
   );

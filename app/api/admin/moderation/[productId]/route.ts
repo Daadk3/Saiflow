@@ -7,12 +7,15 @@ import { rateLimiters, getClientIp } from "@/lib/rate-limit";
 import { runAfterResponse } from "@/lib/after-response";
 import { notifyProductModerated } from "@/lib/notify";
 import { SAFE_DELIVERABLE_WHERE, deliverableGateReason, isDeliverableSafe } from "@/lib/file-safety";
+import { isChecklistPointId } from "@/lib/review-checklist";
 
 /** Approval refused inside the transaction: the file changed after the check. */
 class NotApprovable extends Error {}
 
 // POST - Record a moderation decision for a product (admins only).
-// Body: { action: "APPROVED" | "REJECTED", reason?: string }
+// Body: { action: "APPROVED" | "REJECTED", reason?: string, failedPoints?: number[] }
+// failedPoints are the review-checklist points (1–8) the founder ticked as
+// failed when rejecting; they are kept in the audit row's categories.
 // Every decision is written to the append-only ModerationEvent audit log.
 export async function POST(
   req: Request,
@@ -28,7 +31,12 @@ export async function POST(
     }
 
     const { productId } = await params;
-    const { action, reason } = await req.json();
+    const { action, reason, failedPoints } = await req.json();
+    // Unknown values are dropped, never stored: only 1–8, once each, in order.
+    const checklistCategories =
+      action === "REJECTED" && Array.isArray(failedPoints)
+        ? [...new Set(failedPoints.filter(isChecklistPointId))].sort((a, b) => a - b).map((id) => `checklist:${id}`)
+        : [];
 
     if (action !== "APPROVED" && action !== "REJECTED") {
       return NextResponse.json(
@@ -97,6 +105,7 @@ export async function POST(
           reason: reason?.trim() || null,
           previousStatus: product.moderationStatus,
           newStatus: action,
+          categories: checklistCategories,
         },
       });
       return p;

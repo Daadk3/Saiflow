@@ -4,6 +4,8 @@ import { prisma } from "@/lib/prisma";
 import { authOptions } from "../../auth/authOptions";
 import { isAdminEmail } from "@/lib/admin";
 import { rateLimiters, getClientIp } from "@/lib/rate-limit";
+import { checklistRows, hasCoverImage } from "@/lib/review-checklist";
+import { isAllowedAssetUrl } from "@/lib/validations";
 
 // GET - Pending moderation queue (admins only)
 export async function GET(req: Request) {
@@ -27,6 +29,7 @@ export async function GET(req: Request) {
         currency: true,
         category: true,
         thumbnailUrl: true,
+        images: true,
         // The deliverable's own URL is deliberately NOT selected. Since Stage B
         // it is a private object that no browser can open, and the queue now
         // inspects through /api/admin/inspect/[productId] instead. `fileKey` is
@@ -34,6 +37,7 @@ export async function GET(req: Request) {
         fileKey: true,
         certifiedAt: true,
         createdAt: true,
+        reviewChecks: true,
         shop: { select: { name: true, slug: true } },
       },
     });
@@ -41,9 +45,15 @@ export async function GET(req: Request) {
     // Emit a boolean, never a key and never a URL: the client needs to know
     // only whether to render the inspect link.
     return NextResponse.json({
-      pending: pending.map(({ fileKey, ...rest }) => ({
+      pending: pending.map(({ fileKey, reviewChecks, images, ...rest }) => ({
         ...rest,
         canInspect: fileKey != null,
+        // The 8-point checklist, already resolved to rows. The key is only
+        // compared here, never sent.
+        checklist: checklistRows(reviewChecks, fileKey, {
+          description: rest.description,
+          hasCover: hasCoverImage({ thumbnailUrl: rest.thumbnailUrl, images }, isAllowedAssetUrl),
+        }),
       })),
     });
   } catch (error) {

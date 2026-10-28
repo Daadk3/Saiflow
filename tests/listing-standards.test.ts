@@ -24,19 +24,18 @@ test("every standard exists in Arabic and English", () => {
   assert.match(en, /preview image of the actual content, not just a logo/);
 });
 
-test("the policy, both seller forms and the review page all render the same list", () => {
+test("the policy and both seller forms render the same list; the review page has the 8-point checklist", () => {
   assert.match(read("app/content-policy/page.tsx"), /LISTING_STANDARDS\.map/);
   for (const [file, variant] of [
     ["app/dashboard/shop/[slug]/add-product/page.tsx", "seller"],
     ["app/dashboard/shop/[slug]/product/[productSlug]/edit/page.tsx", "seller"],
-    ["app/dashboard/admin/products/[id]/preview/page.tsx", "admin"],
   ] as const) {
     const src = read(file);
     assert.match(src, /import \{ ListingStandards \} from "@\/components\/ListingStandards";/, file);
     assert.match(src, new RegExp(`<ListingStandards\\s+ar=\\{locale\\.startsWith\\("ar"\\)\\}\\s+variant="${variant}"`), file);
   }
-  // The review page passes the server's checks; the standards themselves are among them.
-  assert.ok(read("app/dashboard/admin/products/[id]/preview/page.tsx").includes("checks={product.checks.map("));
+  // The founder's review page shows the review checklist (lib/review-checklist) instead.
+  assert.ok(read("app/dashboard/admin/products/[id]/preview/page.tsx").includes("<ReviewChecklist rows={product.checklist} />"));
   assert.match(read("lib/admin-product-preview.ts"), /\.\.\.LISTING_STANDARDS\.map\(/);
   assert.match(read("components/ListingStandards.tsx"), /LISTING_STANDARDS\.map/);
 });

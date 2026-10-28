@@ -1116,7 +1116,11 @@
       "previewNext": "Read the reason above and edit the product from your store dashboard. Saving your changes sends it back for review.",
       "cancel": "Cancel",
       "confirm": "Reject and email the seller",
-      "sending": "Rejecting…"
+      "sending": "Rejecting…",
+      "checklistHeading": "Tick the points the product failed (the message is written for you):",
+      "rebuild": "Rewrite the message from the ticked points",
+      "editedNote": "You edited the text, so changing the points won't overwrite it.",
+      "otherReasons": "Or start from a ready reason:"
     },
     "directory": {
       "approveBlocked": {

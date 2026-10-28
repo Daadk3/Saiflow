@@ -15,6 +15,8 @@ import {
 import { isProductCategory } from "@/lib/categories";
 import { scheduleScan } from "@/lib/scan/schedule";
 import { announceReadyAtAttach } from "@/lib/scan/announce";
+import { refreshReviewChecks } from "@/lib/review-checks-store";
+import { withoutReviewChecks } from "@/lib/review-checklist";
 import { priceProblemMessage, validatePrice } from "@/lib/pricing";
 import { accountKey, rateLimiters, retryAfterSeconds } from "@/lib/rate-limit";
 
@@ -247,11 +249,14 @@ export async function POST(req: Request) {
       } catch (error) {
         console.error("[scan] reconcile after create failed", (error as Error)?.name);
       }
+      // The founder's checklist auto-checks (flags only). Never throws.
+      await refreshReviewChecks(product.id);
       // The file is attached: scan it now rather than at the next sweep.
       scheduleScan(fileKey);
     }
 
-    return NextResponse.json(product, { status: 201 });
+    // Never the founder's review flags (admin-only).
+    return NextResponse.json(withoutReviewChecks(product), { status: 201 });
   } catch (error) {
     // Unique-constraint race on (shopId, slug): return a friendly error, not a 500
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {

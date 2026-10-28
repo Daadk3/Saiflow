@@ -22,6 +22,9 @@ import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { MAX_SCANNABLE_BYTES, readPrivateObject } from "@/lib/storage/provider";
 import { notifyAdminsProductReadyForReview } from "@/lib/notify";
+import { extractFileFacts } from "@/lib/file-facts";
+import type { FileContentFacts } from "@/lib/review-checklist";
+import { refreshReviewChecks } from "@/lib/review-checks-store";
 import { cloudmersiveProvider } from "./cloudmersive";
 import {
   resolveContentPolicy,
@@ -191,8 +194,10 @@ async function finalizeVerdict(params: {
   reason: string | null;
   sha256: string | null;
   providerId: string;
-}): Promise<{ written: boolean; readyForReview: string[] }> {
-  const { key, token, status, reason, sha256, providerId } = params;
+  /** Review-checklist facts about the bytes (lib/file-facts), or null when they were not read. */
+  contentFacts?: FileContentFacts | null;
+}): Promise<{ written: boolean; readyForReview: string[]; productIds: string[] }> {
+  const { key, token, status, reason, sha256, providerId, contentFacts = null } = params;
   const now = new Date();
 
   return prisma.$transaction(async (tx) => {
@@ -209,10 +214,11 @@ async function finalizeVerdict(params: {
         scanAt: now,
         scanClaimToken: null,
         scanClaimedAt: null,
+        ...(contentFacts ? { contentFacts: contentFacts as unknown as Prisma.InputJsonValue } : {}),
       },
     });
 
-    if (finalized.count !== 1) return { written: false, readyForReview: [] };
+    if (finalized.count !== 1) return { written: false, readyForReview: [], productIds: [] };
 
     // `where: { fileKey: key }` is the other half of the safety property. A
     // product pointed at a different upload has a different fileKey, matches
@@ -253,6 +259,7 @@ async function finalizeVerdict(params: {
 
     return {
       written: true,
+      productIds: affected.map((product) => product.id),
       readyForReview:
         status === "SAFE"
           ? affected.filter((product) => product.moderationStatus === "PENDING").map((product) => product.id)
@@ -327,6 +334,8 @@ export async function scanFileAsset(
 
   // The products the SAFE transaction bound, for the notice below.
   let readyForReview: string[] = [];
+  // Review-checklist facts, read from the bytes once they are in memory.
+  let contentFacts: FileContentFacts | null = null;
   const settle = async (
     status: "SAFE" | "UNSAFE" | "SCAN_ERROR",
     reason: string | null,
@@ -339,9 +348,14 @@ export async function scanFileAsset(
       reason,
       sha256,
       providerId: provider.id,
+      contentFacts,
     });
     if (!result.written) return { key, outcome: "STALE_CLAIM" };
     readyForReview = result.readyForReview;
+    // The founder's checklist now reflects this verdict and these facts.
+    // After the commit, and unable to affect it: refreshReviewChecks never
+    // throws and only writes Product.reviewChecks.
+    for (const productId of result.productIds) await refreshReviewChecks(productId);
     return reason
       ? { key, outcome: status, reason }
       : { key, outcome: status };
@@ -351,6 +365,9 @@ export async function scanFileAsset(
   if (!read.ok) return settle("SCAN_ERROR", `storage_${read.reason}`, null);
 
   const bytes = read.bytes;
+  // Flags for the founder's checklist only; never part of the verdict below.
+  // extractFileFacts is bounded and never throws.
+  contentFacts = extractFileFacts(bytes);
 
   // Hashed before anything else touches the buffer, so the digest provably
   // describes the same bytes the provider is about to receive.

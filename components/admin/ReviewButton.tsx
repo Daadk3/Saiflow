@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import RejectDialog from "@/components/admin/RejectDialog";
+import type { ChecklistPointId, ChecklistRow } from "@/lib/review-checklist";
 
 /**
  * The products directory must not be a dead end.
@@ -19,6 +20,7 @@ export default function ReviewButton({
   previewHref,
   fileHref,
   approveBlocked = null,
+  checklist,
 }: {
   productId: string;
   productName: string;
@@ -51,6 +53,8 @@ export default function ReviewButton({
    * says so before the click.
    */
   approveBlocked?: string | null;
+  /** The 8-point review checklist, shown beside the reject dialog's tick boxes. */
+  checklist?: ChecklistRow[];
 }) {
   const t = useTranslations("admin.directory");
   const router = useRouter();
@@ -71,7 +75,7 @@ export default function ReviewButton({
     void send("APPROVED");
   }
 
-  async function send(action: "APPROVED" | "REJECTED", reason?: string) {
+  async function send(action: "APPROVED" | "REJECTED", reason?: string, failedPoints: ChecklistPointId[] = []) {
     if (action === "REJECTED" && !reason?.trim()) return; // the API requires a reason for rejections
     setBusy(true);
     setError(null);
@@ -79,7 +83,7 @@ export default function ReviewButton({
       const res = await fetch(`/api/admin/moderation/${productId}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action, reason }),
+        body: JSON.stringify({ action, reason, failedPoints }),
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
@@ -164,7 +168,8 @@ export default function ReviewButton({
         busy={busy}
         error={rejecting ? error : null}
         onCancel={() => setRejecting(false)}
-        onConfirm={(reason) => void send("REJECTED", reason)}
+        checklist={checklist}
+        onConfirm={(reason, failedPoints) => void send("REJECTED", reason, failedPoints)}
       />
     </div>
   );
