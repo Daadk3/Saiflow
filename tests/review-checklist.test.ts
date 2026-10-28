@@ -242,7 +242,7 @@ describe("auto-checks only flag", () => {
   test("the queue cards and the preview page show the checklist", () => {
     assert.ok(read("app/dashboard/moderation/page.tsx").includes("<ReviewChecklist rows={p.checklist ?? []} compact />"));
     assert.ok(read("app/dashboard/admin/products/[id]/preview/page.tsx").includes("<ReviewChecklist rows={product.checklist} />"));
-    assert.ok(read("app/api/admin/moderation/route.ts").includes("checklist: checklistRows(reviewChecks, fileKey)"));
+    assert.ok(read("app/api/admin/moderation/route.ts").includes("checklist: checklistRows(reviewChecks, fileKey, {"));
   });
 });
 
@@ -303,5 +303,52 @@ describe("file facts from the bytes", () => {
     const facts = extractFileFacts(pdf(1, "BT (Secret sentence that must never be stored 0551234567) Tj ET"));
     assert.ok(!JSON.stringify(facts).includes("Secret"));
     assert.ok(!JSON.stringify(facts).includes("0551234567"));
+  });
+});
+
+describe("sellers never see the review flags", () => {
+  test("withoutReviewChecks drops both columns and keeps the rest", async () => {
+    const { withoutReviewChecks } = await import("@/lib/review-checklist");
+    const row = { id: "p1", name: "x", fileUrl: "u", reviewChecks: { version: 1 }, reviewChecksAt: new Date() };
+    assert.deepEqual(Object.keys(withoutReviewChecks(row)).sort(), ["fileUrl", "id", "name"]);
+  });
+
+  test("every seller-facing product response strips them", () => {
+    const one = read("app/api/products/[id]/route.ts");
+    assert.ok(one.includes("...withoutReviewChecks(product), shop"), "GET");
+    assert.ok(one.includes("const sellerProduct = withoutReviewChecks(updatedProduct);"), "PUT");
+    assert.ok(!/NextResponse\.json\(updatedProduct\)/.test(one));
+    assert.ok(read("app/api/products/route.ts").includes("NextResponse.json(withoutReviewChecks(product), { status: 201 })"), "POST");
+  });
+});
+
+describe("the old Before-approving facts live inside the checklist", () => {
+  test("point 2 shows the description length, point 8 the cover image, both still manual", () => {
+    const rows = checklistRows(computeReviewChecks(base), "key_a", { description: "x".repeat(80), hasCover: true });
+    const two = rows.find((r) => r.id === 2)!;
+    const eight = rows.find((r) => r.id === 8)!;
+    assert.equal(two.state, "manual");
+    assert.equal(eight.state, "manual");
+    assert.equal(two.hint?.state, "ok");
+    assert.equal(eight.hint?.state, "ok");
+  });
+
+  test("a short description or no cover is ⚠️", () => {
+    const rows = checklistRows(null, "key_a", { description: "  قصير  ", hasCover: false });
+    assert.equal(rows.find((r) => r.id === 2)!.hint?.state, "warn");
+    assert.match(rows.find((r) => r.id === 2)!.hint!.text, /\(4\)/);
+    assert.equal(rows.find((r) => r.id === 8)!.hint?.state, "warn");
+  });
+
+  test("the cover counts only from allowed hosts", async () => {
+    const { hasCoverImage } = await import("@/lib/review-checklist");
+    const allowed = (u: string | null | undefined) => typeof u === "string" && u.startsWith("https://ok/");
+    assert.equal(hasCoverImage({ thumbnailUrl: "https://evil/x", images: [] }, allowed), false);
+    assert.equal(hasCoverImage({ thumbnailUrl: null, images: ["https://ok/1"] }, allowed), true);
+  });
+
+  test("the queue and the preview pass the basics", () => {
+    assert.ok(read("app/api/admin/moderation/route.ts").includes("hasCover: hasCoverImage("));
+    assert.ok(read("lib/admin-product-preview.ts").includes("hasCover: hasCoverImage(product, isAllowedAssetUrl)"));
   });
 });

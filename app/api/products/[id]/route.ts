@@ -19,6 +19,7 @@ import { IMAGE_NOT_ALLOWED, verifyImageProvenance } from "@/lib/image-provenance
 import { FILE_REQUIRED } from "@/lib/product-file-required";
 import { announceReadyAtAttach } from "@/lib/scan/announce";
 import { refreshReviewChecks } from "@/lib/review-checks-store";
+import { withoutReviewChecks } from "@/lib/review-checklist";
 import { redactId } from "@/lib/redact-id";
 import { priceProblemMessage, validatePrice } from "@/lib/pricing";
 
@@ -101,7 +102,8 @@ export async function GET(
             select: { reason: true },
           })
         : null;
-    return NextResponse.json({ ...product, shop, rejectionReason: rejection?.reason?.trim() || null });
+    // The founder's review flags are admin-only, so they are dropped here.
+    return NextResponse.json({ ...withoutReviewChecks(product), shop, rejectionReason: rejection?.reason?.trim() || null });
   } catch (error) {
     console.error("Error fetching product:", error);
     return NextResponse.json(
@@ -440,7 +442,9 @@ export async function PUT(
       }
     }
 
-    return NextResponse.json(resubmitted ? { ...updatedProduct, moderationStatus: "PENDING" } : updatedProduct);
+    // Never the founder's review flags (admin-only).
+    const sellerProduct = withoutReviewChecks(updatedProduct);
+    return NextResponse.json(resubmitted ? { ...sellerProduct, moderationStatus: "PENDING" } : sellerProduct);
   } catch (error) {
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
       return NextResponse.json(

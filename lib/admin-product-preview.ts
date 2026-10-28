@@ -10,7 +10,7 @@ import {
   MIN_DESCRIPTION_LENGTH,
   type ListingCheck,
 } from "@/lib/listing-standards";
-import { checklistRows, type ChecklistRow } from "@/lib/review-checklist";
+import { checklistRows, hasCoverImage, type ChecklistRow } from "@/lib/review-checklist";
 import {
   moderatorFileSafety,
   type ModeratorFileSafety,
@@ -185,6 +185,11 @@ export async function getAdminProductPreview(
         ? unsellableReason(product)
         : null,
     // The stored auto-checks, resolved against the file the product has now.
-    checklist: checklistRows(product.reviewChecks, product.fileKey),
+    // Points 2 and 8 carry the old "Before approving" facts as hints, from
+    // the same allowlisted images the page shows.
+    checklist: checklistRows(product.reviewChecks, product.fileKey, {
+      description: product.description,
+      hasCover: hasCoverImage(product, isAllowedAssetUrl),
+    }),
   };
 }

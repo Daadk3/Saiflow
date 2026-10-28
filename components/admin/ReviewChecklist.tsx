@@ -5,7 +5,8 @@ import type { ChecklistRow } from "@/lib/review-checklist";
  *
  * ✅ and ⚠️ are the automatic checks (points 3, 6 and 7), stored when the
  * seller submitted and when the file scan settled; ○ is a point only a
- * person can judge. These are flags: none of them approves or rejects, and
+ * person can judge, with a ✅ / ⚠️ hint under points 2 and 8 for the basic
+ * facts (description length, cover image). These are flags: none of them approves or rejects, and
  * every product still waits for the founder's decision.
  *
  * No hooks, so the server preview page and the client review queue can both
@@ -30,6 +31,11 @@ export function ReviewChecklist({ rows, compact = false }: { rows: ChecklistRow[
               >
                 {row.reason}
               </span>
+              {row.hint && (
+                <span className={`block text-xs ${row.hint.state === "warn" ? "text-amber-300/90" : "text-teal-300/80"}`}>
+                  <span aria-hidden="true">{row.hint.state === "warn" ? "⚠️" : "✅"}</span> {row.hint.text}
+                </span>
+              )}
             </span>
           </li>
         ))}

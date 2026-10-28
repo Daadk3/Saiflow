@@ -11,9 +11,15 @@
  * /api/admin/moderation/[productId], exactly as before. A ✅ here is not an
  * approval and a ⚠️ is not a rejection.
  *
+ * Points 2 and 8 also carry the two basic facts the old "Before approving"
+ * list checked (description long enough, a cover image), as hints under the
+ * point; the point itself stays manual review.
+ *
  * Pure and client-safe: no Prisma, no Node APIs. The file-side facts it reads
  * come from lib/file-facts, which runs in the scan pipeline.
  */
+
+import { MIN_DESCRIPTION_LENGTH } from "@/lib/listing-standards";
 
 export type ChecklistPointId = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8;
 
@@ -306,6 +312,45 @@ export interface ChecklistRow {
   label: string;
   state: "ok" | "warn" | "manual";
   reason: string;
+  /**
+   * A basic fact checked under a manual point (2: description length,
+   * 8: cover image). It informs the point; it does not decide it.
+   */
+  hint?: { state: "ok" | "warn"; text: string };
+}
+
+/** The listing facts behind the hints on points 2 and 8, read live from the product. */
+export interface ListingBasics {
+  description: string | null;
+  /** Whether there is a cover or preview image the founder can see. */
+  hasCover: boolean;
+}
+
+/** The two facts the old "Before approving" list checked, as hints. */
+export function basicHints(basics: ListingBasics): Partial<Record<ChecklistPointId, ChecklistRow["hint"]>> {
+  const length = (basics.description ?? "").trim().length;
+  return {
+    2:
+      length >= MIN_DESCRIPTION_LENGTH
+        ? { state: "ok", text: `الوصف ${MIN_DESCRIPTION_LENGTH} حرفًا على الأقل` }
+        : { state: "warn", text: `الوصف أقصر من ${MIN_DESCRIPTION_LENGTH} حرفًا (${length})` },
+    8: basics.hasCover ? { state: "ok", text: "توجد صورة غلاف" } : { state: "warn", text: "لا توجد صورة غلاف" },
+  };
+}
+
+/** A product's cover or first image, filtered by the caller's allowlist, decides `hasCover`. */
+export function hasCoverImage(
+  product: { thumbnailUrl: string | null; images?: string[] | null },
+  allowed: (url: string | null | undefined) => boolean
+): boolean {
+  return allowed(product.thumbnailUrl) || (product.images ?? []).some((url) => allowed(url));
+}
+
+/** Sellers never see the founder's review flags: drop them from any row sent to a seller. */
+export function withoutReviewChecks<T extends object>(row: T): Omit<T, "reviewChecks" | "reviewChecksAt"> {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { reviewChecks, reviewChecksAt, ...rest } = row as T & { reviewChecks?: unknown; reviewChecksAt?: unknown };
+  return rest;
 }
 
 /** Narrow an untyped JSON column to StoredReviewChecks, or null. */
@@ -326,12 +371,14 @@ export function readStoredChecks(value: unknown): StoredReviewChecks | null {
  * rather than as passed. Stored results for a file the product no longer has
  * are shown as stale for the same reason.
  */
-export function checklistRows(stored: unknown, currentFileKey: string | null): ChecklistRow[] {
+export function checklistRows(stored: unknown, currentFileKey: string | null, basics?: ListingBasics): ChecklistRow[] {
   const checks = readStoredChecks(stored);
   const stale = checks !== null && checks.fileKey !== currentFileKey;
+  const hints = basics ? basicHints(basics) : {};
   return REVIEW_CHECKLIST.map((point) => {
     if (!AUTO_CHECKED_POINTS.includes(point.id)) {
-      return { id: point.id, label: point.label, state: "manual", reason: MANUAL_REVIEW_LABEL };
+      const hint = hints[point.id];
+      return { id: point.id, label: point.label, state: "manual", reason: MANUAL_REVIEW_LABEL, ...(hint ? { hint } : {}) };
     }
     if (!checks) return { id: point.id, label: point.label, state: "warn", reason: "لم يُفحص بعد" };
     if (stale) return { id: point.id, label: point.label, state: "warn", reason: "الملف تغيّر · بانتظار فحص جديد" };
