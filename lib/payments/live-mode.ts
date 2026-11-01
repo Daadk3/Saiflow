@@ -31,9 +31,10 @@ export const LIVE_PUBLIC_ALLOWED = false;
 
 /**
  * The most a founder test may charge, in riyals. Geidea requires real-payment
- * tests of at least 10 SAR, so the cap leaves room above that minimum.
+ * tests of at least 10 SAR, and small amounts do not show clearly in
+ * settlement, so the cap leaves room for a 30 SAR settlement test.
  */
-export const FOUNDER_TEST_MAX_SAR = 20;
+export const FOUNDER_TEST_MAX_SAR = 50;
 
 export type LivePaymentsMode = "off" | "founder_only" | "public";
 
