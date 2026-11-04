@@ -377,7 +377,7 @@ describe("a newly attached file is scanned without waiting for Cron", () => {
   });
 
   test("the scheduling call sits after reconciliation, on the attached key", () => {
-    const code = strip(read("app/api/products/route.ts"));
+    const code = strip(read("lib/products/create-product.ts"));
     const reconcile = code.indexOf("await reconcileProductScanState(product.id, fileKey)");
     const schedule = code.indexOf("scheduleScan(fileKey);");
     assert.ok(reconcile !== -1 && schedule !== -1 && reconcile < schedule);

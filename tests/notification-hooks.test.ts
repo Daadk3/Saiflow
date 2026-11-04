@@ -616,7 +616,7 @@ describe("the remaining call sites (structural)", () => {
 
   test("a product written already SAFE is announced from the route, after the write and before reconcile", () => {
     for (const [file, row] of [
-      ["app/api/products/route.ts", "product"],
+      ["lib/products/create-product.ts", "product"],
       ["app/api/products/[id]/route.ts", "updatedProduct"],
     ] as const) {
       const src = read(file);

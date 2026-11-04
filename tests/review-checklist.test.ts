@@ -234,7 +234,8 @@ describe("auto-checks only flag", () => {
   });
 
   test("seller saves and the scan both refresh the checks", () => {
-    assert.ok(read("app/api/products/route.ts").includes("await refreshReviewChecks(product.id)"));
+    assert.ok(read("lib/products/create-product.ts").includes("await refreshReviewChecks(product.id)"));
+    assert.ok(read("app/api/products/route.ts").includes("createProductForSeller("));
     assert.ok(read("app/api/products/[id]/route.ts").includes("await refreshReviewChecks(updatedProduct.id)"));
     assert.ok(read("lib/scan/run.ts").includes("await refreshReviewChecks(productId)"));
   });
@@ -318,7 +319,7 @@ describe("sellers never see the review flags", () => {
     assert.ok(one.includes("...withoutReviewChecks(product), shop"), "GET");
     assert.ok(one.includes("const sellerProduct = withoutReviewChecks(updatedProduct);"), "PUT");
     assert.ok(!/NextResponse\.json\(updatedProduct\)/.test(one));
-    assert.ok(read("app/api/products/route.ts").includes("NextResponse.json(withoutReviewChecks(product), { status: 201 })"), "POST");
+    assert.ok(read("lib/products/create-product.ts").includes("NextResponse.json(withoutReviewChecks(product), { status: 201 })"), "POST");
   });
 });
 

@@ -199,14 +199,16 @@ describe("the revenue views", () => {
 
 describe("create and edit share one price validator", () => {
   test("both routes call validatePrice and answer with the shared wording", () => {
-    for (const route of ["app/api/products/route.ts", "app/api/products/[id]/route.ts"]) {
+    for (const route of ["lib/products/create-product.ts", "app/api/products/[id]/route.ts"]) {
       const src = strip(read(route));
       assert.match(src, /import \{ priceProblemMessage, validatePrice \} from "@\/lib\/pricing";/, route);
       assert.match(src, /const priceCheck = validatePrice\(price\);/, route);
       assert.match(src, /priceProblemMessage\(priceCheck\.reason\)/, route);
       assert.ok(!/Number\(price\)|parseFloat\(price\)|numericPrice/.test(src), `${route}: no second parser`);
     }
-    assert.match(strip(read("app/api/products/route.ts")), /price: priceCheck\.price,/);
+    assert.match(strip(read("lib/products/create-product.ts")), /price: priceCheck\.price,/);
+    assert.ok(read("app/api/products/route.ts").includes("createProductForSeller("));
+    assert.ok(!/Number\(price\)|parseFloat\(price\)|numericPrice|validatePrice\(/.test(strip(read("app/api/products/route.ts"))));
     assert.match(strip(read("app/api/products/[id]/route.ts")), /price: nextPrice !== undefined \? nextPrice : product\.price,/);
   });
 });

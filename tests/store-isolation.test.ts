@@ -60,6 +60,12 @@ interface RouteDecision {
   reason?: string;
   /** The handler lives in another file (UploadThing's router). */
   delegate?: string;
+  /**
+   * A helper the route calls, included in the authorization scope. The route
+   * file still has to call it; this is where a check that cannot live in the
+   * route file (Next.js only allows HTTP exports there) is read.
+   */
+  shared?: string;
   /** Extra source facts the decision depends on. */
   mustContain?: string[];
   mustNotContain?: string[];
@@ -79,7 +85,11 @@ const ROUTE_POLICY: Record<string, RouteDecision> = {
 
   // A member of the shop the request acts on.
   "POST /api/ai/listing": { policy: "shop-member" },
-  "POST /api/products": { policy: "shop-member" },
+  "POST /api/products": {
+    policy: "shop-member",
+    shared: "lib/products/create-product.ts",
+    mustContain: ["createProductForSeller("],
+  },
   "GET /api/products/[id]": { policy: "shop-member" },
   "PUT /api/products/[id]": { policy: "shop-member" },
   "DELETE /api/products/[id]": { policy: "shop-member" },
@@ -249,7 +259,7 @@ const REFUSAL = /status:\s*(?:403|404)|fail\("FORBIDDEN",\s*403\)/;
 function policyProblems(key: string, decision: RouteDecision, source: string): string[] {
   const method = key.split(" ")[0];
   const problems: string[] = [];
-  const scope = methodScope(source, method);
+  const scope = methodScope(source, method) + (decision.shared ? "\n" + strip(read(decision.shared)) : "");
   const src = strip(source);
 
   switch (decision.policy) {

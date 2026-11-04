@@ -50,7 +50,7 @@ describe("provenance: the store's own, real upload", () => {
 
 describe("the routes refuse a product with no file", () => {
   test("create requires a file after the membership check; save refuses a product left without one", () => {
-    const create = read("app/api/products/route.ts");
+    const create = read("lib/products/create-product.ts");
     const member = create.indexOf("if (!shopUser)");
     const required = create.indexOf("return NextResponse.json(FILE_REQUIRED, { status: 400 });");
     assert.ok(member > 0 && required > member);

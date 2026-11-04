@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { createProductForSeller } from "@/app/api/products/route";
+import { createProductForSeller } from "@/lib/products/create-product";
 import { recordProvenance } from "@/app/api/uploadthing/core";
 import { isProductCategory } from "@/lib/categories";
 import { authorizeFounderBot } from "@/lib/founder-bot/gate";

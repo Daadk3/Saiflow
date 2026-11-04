@@ -73,7 +73,7 @@ describe("the routes (structural)", () => {
   const strip = (src: string) => src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
 
   test("creating a product checks the thumbnail after shop membership", () => {
-    const src = strip(read("app/api/products/route.ts"));
+    const src = strip(read("lib/products/create-product.ts"));
     const member = src.indexOf("if (!shopUser)");
     const check = src.indexOf('verifyImageProvenance(thumbnailUrl, shopId, "PRODUCT_THUMBNAIL")');
     const create = src.indexOf("tx.product.create(");
@@ -99,7 +99,7 @@ describe("the routes (structural)", () => {
 
   test("one refusal for every reason", () => {
     assert.equal(mod.IMAGE_NOT_ALLOWED.code, "image_not_allowed");
-    for (const file of ["app/api/products/route.ts", "app/api/products/[id]/route.ts", "app/api/shops/[slug]/route.ts"]) {
+    for (const file of ["lib/products/create-product.ts", "app/api/products/[id]/route.ts", "app/api/shops/[slug]/route.ts"]) {
       assert.ok(read(file).includes("NextResponse.json(IMAGE_NOT_ALLOWED, { status: 400 })"), file);
     }
   });

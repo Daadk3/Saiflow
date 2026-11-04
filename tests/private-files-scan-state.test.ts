@@ -34,7 +34,8 @@ import {
 const read = (p: string) => readFileSync(new URL(p, import.meta.url), "utf8");
 
 const core = read("../app/api/uploadthing/core.ts");
-const createRoute = read("../app/api/products/route.ts");
+const createRoute = read("../lib/products/create-product.ts");
+const createHttp = read("../app/api/products/route.ts");
 const editRoute = read("../app/api/products/[id]/route.ts");
 const schema = read("../prisma/schema.prisma");
 const migration = read(
@@ -245,9 +246,11 @@ describe("create binds the key it stores", () => {
   test("the key is derived from the URL, not read from the body", () => {
     // Strict extractor: derived AND pinned to our own app.
     assert.ok(createRoute.includes("extractOwnAssetKey(fileUrl)"));
+    assert.ok(createHttp.includes("createProductForSeller("));
     // fileKey must not be destructured from the request body.
-    const body = createRoute.slice(0, createRoute.indexOf("await req.json()"));
+    const body = createHttp.slice(0, createHttp.indexOf("await req.json()"));
     assert.ok(!/\bfileKey\b/.test(body), "fileKey must not come from the client");
+    assert.ok(!/fileKey[,}\s]/.test(createHttp.slice(createHttp.indexOf("await req.json()"), createHttp.indexOf("createProductForSeller("))));
   });
 
   test("an unresolvable file URL is rejected", () => {
