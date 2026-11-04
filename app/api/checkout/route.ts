@@ -367,6 +367,16 @@ async function releaseIfNeverPaid(held: HeldAttempt, key: string): Promise<"rele
   return "released";
 }
 
+function preLaunchRefusal() {
+  return NextResponse.json(
+    {
+      error: "pre_launch",
+      message: "Saiflow is in pre-launch. Payments are not yet available.",
+    },
+    { status: 503 }
+  );
+}
+
 export async function POST(req: Request) {
   // Pre-launch gate: defense in depth alongside the disabled BuyButton.
   // Returns 503 with a machine-readable error code so the client can show
@@ -374,15 +384,14 @@ export async function POST(req: Request) {
   // Only a founder test passes it while pre-launch is on. PRE_LAUNCH_MODE is
   // read here directly as well as inside currentCheckoutAccess, so the
   // public stays refused even if that decision were ever wrong.
-  const { access, mode: livePaymentsMode } = await currentCheckoutAccess();
-  if ((env.PRE_LAUNCH_MODE && access.kind !== "founder_test") || access.kind === "closed") {
-    return NextResponse.json(
-      {
-        error: "pre_launch",
-        message: "Saiflow is in pre-launch. Payments are not yet available.",
-      },
-      { status: 503 }
-    );
+  // In own_store mode the answer depends on the product's store, which is
+  // not known yet: it is decided again, from the database row, below.
+  const first = await currentCheckoutAccess();
+  let access = first.access;
+  const livePaymentsMode = first.mode;
+  const ownStoreMode = env.PRE_LAUNCH_MODE && livePaymentsMode === "own_store";
+  if (!ownStoreMode && ((env.PRE_LAUNCH_MODE && access.kind !== "founder_test") || access.kind === "closed")) {
+    return preLaunchRefusal();
   }
 
   // Abuse limit, before the body is even read: a limited caller learns
@@ -431,6 +440,14 @@ export async function POST(req: Request) {
         { error: "Product not found" },
         { status: 404 }
       );
+    }
+
+    // Own-store sales: only a product whose store is on LIVE_STORE_SLUGS gets
+    // past pre-launch. The slug comes from the row, never from the request,
+    // and every other store is answered exactly as the pre-launch gate does.
+    if (ownStoreMode) {
+      access = (await currentCheckoutAccess(product.shop.slug)).access;
+      if (access.kind !== "own_store") return preLaunchRefusal();
     }
 
     // Unpublished/unapproved products and deactivated shops must not be

@@ -89,9 +89,10 @@ export default async function CheckoutPage({
 
   // The same decision the checkout route makes (lib/payments/request-access):
   // the form is offered to the public when pre-launch is off, and otherwise
-  // only to a signed-in founder on FOUNDER_TEST_EMAILS. The route re-decides
+  // only to a signed-in founder on FOUNDER_TEST_EMAILS, or for a store on
+  // LIVE_STORE_SLUGS in own_store mode. The route re-decides
   // on every request; this page only declines to offer what it would refuse.
-  const { access } = await currentCheckoutAccess();
+  const { access } = await currentCheckoutAccess(product.shop.slug);
   const founderTest = access.kind === "founder_test";
   const formOffered = access.kind !== "closed";
   const live = isLiveCheckout(isGeideaConfigured(), geideaMode());

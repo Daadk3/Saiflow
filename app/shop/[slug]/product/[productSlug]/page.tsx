@@ -11,6 +11,7 @@ import ShareButton from "@/components/ShareButton";
 import { getLocale, getTranslations } from "next-intl/server";
 import { formatPrice } from "@/lib/formatPrice";
 import { env } from "@/lib/env";
+import { currentCheckoutAccess } from "@/lib/payments/request-access";
 import { checkoutPath } from "@/lib/checkout/embedded";
 
 const BASE_URL = "https://www.saiflow.io";
@@ -120,7 +121,11 @@ export default async function ProductPage({
 
   const locale = await getLocale();
   const t = await getTranslations();
-  const preLaunchMode = env.PRE_LAUNCH_MODE;
+  // Pre-launch keeps the Buy button disabled, except for a store that may
+  // already sell (own_store mode, lib/payments/live-mode). The checkout route
+  // stays the authority; this only decides what the button shows.
+  const preLaunchMode =
+    env.PRE_LAUNCH_MODE && (await currentCheckoutAccess(product.shop.slug)).access.kind !== "own_store";
   // Buying opens SaiFlow's own checkout page; the payment session starts there.
   const checkoutHref = checkoutPath(product.shop.slug, product.slug);
 

@@ -8,6 +8,7 @@ import {
   FOUNDER_TEST_MAX_SAR,
   LIVE_PUBLIC_ALLOWED,
   parseFounderEmails,
+  parseLiveStoreSlugs,
   parseLivePaymentsMode,
 } from "@/lib/payments/live-mode";
 import FirstVisitNote from "@/components/admin/FirstVisitNote";
@@ -270,6 +271,12 @@ export default async function FounderDashboardPage() {
                   return t(account === "production" ? "payments.founderOnlyLive" : "payments.founderOnlyTest", {
                     max: FOUNDER_TEST_MAX_SAR,
                     count,
+                  });
+                }
+                if (!paymentsEnabled && configured && account !== null && liveMode === "own_store") {
+                  const stores = [...parseLiveStoreSlugs(process.env.LIVE_STORE_SLUGS)].join(", ");
+                  return t(account === "production" ? "payments.ownStoreLive" : "payments.ownStoreTest", {
+                    stores: stores || "—",
                   });
                 }
                 return t("payments.disabled");
