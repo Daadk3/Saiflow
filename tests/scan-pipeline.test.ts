@@ -45,7 +45,7 @@ const read = (p: string) => readFileSync(new URL(p, import.meta.url), "utf8");
 
 const runSrc = read("../lib/scan/run.ts");
 const coreSrc = read("../app/api/uploadthing/core.ts");
-const createSrc = read("../app/api/products/route.ts");
+const createSrc = read("../lib/products/create-product.ts");
 const editSrc = read("../app/api/products/[id]/route.ts");
 const workerSrc = read("../app/api/internal/scan/route.ts");
 const storageSrc = read("../lib/storage/provider.ts");

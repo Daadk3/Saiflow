@@ -156,6 +156,10 @@ saiflow/
 | `STRIPE_SECRET_KEY` | Stripe secret key (dormant integration) | No |
 | `STRIPE_WEBHOOK_SECRET` | Stripe webhook signing secret (dormant) | No |
 | `UPLOADTHING_TOKEN` | UploadThing API token | Yes |
+| `FOUNDER_BOT_API_TOKEN` | Turns on the founder-only bot API. Unset = the API answers 404 | No |
+| `FOUNDER_BOT_OWNER_EMAIL` | The only account the bot may create stores and products for. Must also be in `ADMIN_EMAILS` and `FOUNDER_TEST_EMAILS` | No |
+
+The founder bot (stores and pending product uploads for that one account) is documented in [`docs/FOUNDER_BOT_API.md`](docs/FOUNDER_BOT_API.md), including example `curl` requests. It cannot approve products or touch payments. Unset `FOUNDER_BOT_API_TOKEN` to turn it off.
 
 ## Deployment
 

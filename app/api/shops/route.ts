@@ -3,12 +3,11 @@ import { getServerSession } from "next-auth";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { authOptions } from "../auth/authOptions";
-import { slugify } from "@/lib/slug";
 import { accountKey, rateLimiters, retryAfterSeconds } from "@/lib/rate-limit";
 import { runAfterResponse } from "@/lib/after-response";
 import { notifyAdminsStoreCreated } from "@/lib/notify";
 import { sessionUserId } from "@/lib/session-account";
-import { parseNewStoreLocation } from "@/lib/store-location";
+import { openStoreForOwner } from "@/lib/shops/open-store";
 
 // POST - Create a new shop
 export async function POST(req: Request) {
@@ -36,29 +35,8 @@ export async function POST(req: Request) {
     const body = await req.json();
     const { name, description } = body ?? {};
 
-    if (!name || typeof name !== "string" || name.trim().length < 2 || name.length > 100) {
-      return NextResponse.json(
-        { error: "Shop name must be between 2 and 100 characters" },
-        { status: 400 }
-      );
-    }
-    if (description !== undefined && description !== null && (typeof description !== "string" || description.length > 1000)) {
-      return NextResponse.json(
-        { error: "Description must be less than 1,000 characters" },
-        { status: 400 }
-      );
-    }
-    // Country is required. City is optional. Existing shops are untouched:
-    // this only runs when a store is opened.
-    const location = parseNewStoreLocation({
-      country: body?.country,
-      city: body?.city,
-    });
-    if (!location.ok) {
-      return NextResponse.json({ error: location.error }, { status: 400 });
-    }
-
-    // Get the user
+    // Get the user. The id passed below is the signed-in account, never a
+    // value from the body.
     const user = await prisma.user.findFirst({
       where: { email: { equals: session.user.email, mode: "insensitive" } },
     });
@@ -70,37 +48,19 @@ export async function POST(req: Request) {
       );
     }
 
-    // Create slug from name (falls back to a random handle for non-Latin names)
-    const slug = slugify(name, "shop");
-
-    // Check if slug already exists
-    const existingShop = await prisma.shop.findUnique({
-      where: { slug },
+    // Validation, slug, and the owner row live in one place, shared with the
+    // founder bot (lib/shops/open-store).
+    const opened = await openStoreForOwner({
+      userId: user.id,
+      name,
+      description,
+      country: body?.country,
+      city: body?.city,
     });
-
-    if (existingShop) {
-      return NextResponse.json(
-        { error: "A shop with this name already exists" },
-        { status: 400 }
-      );
+    if (!opened.ok) {
+      return NextResponse.json({ error: opened.error }, { status: opened.status });
     }
-
-    // Create shop and connect user as owner
-    const shop = await prisma.shop.create({
-      data: {
-        name,
-        slug,
-        description,
-        country: location.country,
-        city: location.city,
-        shopUsers: {
-          create: {
-            userId: user.id,
-            role: "OWNER",
-          },
-        },
-      },
-    });
+    const shop = opened.shop;
 
     // Tell the founder, after the row exists and after the response: the
     // notifier never throws, and nothing here can undo the shop.
