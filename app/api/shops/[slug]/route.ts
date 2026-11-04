@@ -318,7 +318,8 @@ export async function PUT(
      * working. The route is addressed by slug (`/api/shops/[slug]`), so
      * freezing also means a shop's own API path stays stable across renames.
      *
-     * Creation is untouched: `POST /api/shops` still calls `slugify`.
+     * Creation is untouched: opening a store still calls `slugify`
+     * (`lib/shops/open-store.ts`, used by `POST /api/shops`).
      */
 
     // Update the shop

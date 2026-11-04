@@ -52,7 +52,7 @@ const local = (p: string) => pathToFileURL(resolve(ROOT, p)).href;
 /* PART 1. Route x role inventory (structural)                        */
 /* ================================================================== */
 
-type Policy = "admin" | "shop-member" | "shop-owner" | "self" | "public" | "webhook" | "internal";
+type Policy = "admin" | "shop-member" | "shop-owner" | "self" | "public" | "webhook" | "internal" | "founder-bot";
 
 interface RouteDecision {
   policy: Policy;
@@ -98,7 +98,7 @@ const ROUTE_POLICY: Record<string, RouteDecision> = {
   // The signed-in account's own data, no shop named by the caller.
   "GET /api/orders": { policy: "self" },
   "GET /api/shops": { policy: "self", mustContain: ["sessionUserId("] },
-  "POST /api/shops": { policy: "self", mustContain: ["userId: user.id", 'role: "OWNER"'] },
+  "POST /api/shops": { policy: "self", mustContain: ["userId: user.id", "openStoreForOwner("] },
 
   // No account check, on purpose.
   "GET /api/auth/[...nextauth]": { policy: "public", reason: "NextAuth sign-in flow" },
@@ -134,6 +134,26 @@ const ROUTE_POLICY: Record<string, RouteDecision> = {
   // Cron/operator worker, authenticated by a secret header.
   "GET /api/internal/scan": { policy: "internal" },
   "POST /api/internal/scan": { policy: "internal" },
+
+  // Founder bot: bearer token, and only the founder account named in env.
+  // It cannot approve, take payment, or touch another user's rows.
+  "GET /api/founder-bot/stores": {
+    policy: "founder-bot",
+    mustNotContain: ["prisma.order", "prisma.payout", "LIVE_PAYMENTS_MODE", "PRE_LAUNCH_MODE", 'moderationStatus: "APPROVED"'],
+  },
+  "POST /api/founder-bot/stores": {
+    policy: "founder-bot",
+    mustNotContain: ["prisma.order", "prisma.payout", "LIVE_PAYMENTS_MODE", "PRE_LAUNCH_MODE", 'moderationStatus: "APPROVED"', "prisma.shop.update"],
+  },
+  "GET /api/founder-bot/products": {
+    policy: "founder-bot",
+    mustNotContain: ["prisma.order", "prisma.payout", "LIVE_PAYMENTS_MODE", "PRE_LAUNCH_MODE", 'moderationStatus: "APPROVED"', "prisma.product.update"],
+  },
+  "POST /api/founder-bot/products": {
+    policy: "founder-bot",
+    mustContain: ["createProductForSeller(", "decideUpload(PRODUCT_FILE_CONFIG", 'certified: true', "founder-bot:"],
+    mustNotContain: ["prisma.order", "prisma.payout", "LIVE_PAYMENTS_MODE", "PRE_LAUNCH_MODE", 'moderationStatus: "APPROVED"', "prisma.product.update"],
+  },
 };
 
 const HTTP_METHODS = ["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"];
@@ -195,7 +215,7 @@ function methodBody(source: string, method: string): string | null {
 function methodScope(source: string, method: string): string {
   const src = strip(source);
   const helpers = new Map<string, string>();
-  for (const m of src.matchAll(/(?:^|\n)(?:async\s+)?function\s+(\w+)\s*\(/g)) {
+  for (const m of src.matchAll(/(?:^|\n)(?:export\s+)?(?:async\s+)?function\s+(\w+)\s*\(/g)) {
     const at = (m.index ?? 0) + (m[0].startsWith("\n") ? 1 : 0);
     const rest = src.slice(at + 1);
     const next = rest.search(/\n(?:export|async function|function|class|const|let|type|interface)\b/);
@@ -276,6 +296,18 @@ function policyProblems(key: string, decision: RouteDecision, source: string): s
       if (!/timingSafeEqual\(/.test(scope)) problems.push("does not compare the secret in constant time");
       if (!/status:\s*403/.test(scope)) problems.push("never answers 403");
       break;
+    case "founder-bot": {
+      if (!/authorizeFounderBot\(/.test(scope)) problems.push("does not call authorizeFounderBot()");
+      const gate = strip(read("lib/founder-bot/gate.ts"));
+      if (!/FOUNDER_BOT_API_TOKEN/.test(gate)) problems.push("gate never reads FOUNDER_BOT_API_TOKEN");
+      if (!/timingSafeEqual\(/.test(gate)) problems.push("gate does not compare the secret in constant time");
+      if (!/status:\s*404/.test(gate)) problems.push("gate never answers 404 when disabled");
+      if (!/status:\s*403/.test(gate)) problems.push("gate never answers 403");
+      if (!/FOUNDER_BOT_OWNER_EMAIL/.test(gate)) problems.push("gate never reads the owner email");
+      if (!/isAdminEmail\(/.test(gate)) problems.push("gate never checks isAdminEmail()");
+      if (!/parseFounderEmails\(/.test(gate)) problems.push("gate never checks FOUNDER_TEST_EMAILS");
+      break;
+    }
   }
   for (const needle of decision.mustContain ?? []) {
     if (!src.includes(needle)) problems.push(`source lacks ${JSON.stringify(needle)}`);
@@ -355,6 +387,15 @@ export async function POST() { if (!isAdminEmail(e)) return NextResponse.json({}
       assert.deepEqual(problems, [], `${key} (${relative(ROOT, file)}): ${problems.join("; ")}`);
     });
   }
+});
+
+describe("store creation ownership", () => {
+  test("opening a store still makes that user the owner", () => {
+    const src = read("lib/shops/open-store.ts");
+    assert.match(src, /userId: input\.userId/);
+    assert.match(src, /role: "OWNER"/);
+    assert.match(read("app/api/shops/route.ts"), /openStoreForOwner\(\{[\s\S]*?userId: user\.id/);
+  });
 });
 
 describe("founder dashboard layout", () => {

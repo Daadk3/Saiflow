@@ -157,7 +157,20 @@ export const rateLimiters = {
   // Product creation: 20 per hour per account. Listing a catalogue fits
   // comfortably; every product past the gates schedules a file scan and, once
   // it passes, an email to the founder, which is exactly what an abuser would
-  // be spending.
+  // be spending. The founder bot uses this same limiter, so the dashboard and
+  // the bot share one catalogue budget.
   createProduct: (account: string) =>
     rateLimit(`create-product:${account}`, { windowMs: 60 * 60 * 1000, maxRequests: 20 }),
+
+  // Founder bot, once the bearer has matched: 60 requests an hour for the
+  // one founder account. Reads and writes share it. Store and product
+  // creation also spend createShop / createProduct, which stay the tighter
+  // caps on those writes.
+  founderBot: (account: string) =>
+    rateLimit(`founder-bot:${account}`, { windowMs: 60 * 60 * 1000, maxRequests: 60 }),
+
+  // Wrong or missing bearer tokens, per IP, so guessing the token cannot run
+  // unbounded. The token itself is never the key.
+  founderBotAuth: (ip: string) =>
+    rateLimit(`founder-bot-auth:${ip}`, { windowMs: 10 * 60 * 1000, maxRequests: 30 }),
 };

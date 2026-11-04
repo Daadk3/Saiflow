@@ -16,6 +16,8 @@
 | `RESEND_API_KEY` | ✅ | starts `re_` — sender domain `saiflow.io` must be verified in Resend |
 | `PRE_LAUNCH_MODE` | ✅ | **`true` until payments are live.** Only the literal string `false` opens checkout |
 | `ADMIN_EMAILS` | ✅ | Comma-separated moderation admins (the founder's own address) — without it, nothing can be approved |
+| `FOUNDER_BOT_API_TOKEN` | optional | Founder-only bot API. Unset, blank, or shorter than 16 characters: the API answers 404. Generate with `openssl rand -hex 32`. Never log it. See [`FOUNDER_BOT_API.md`](FOUNDER_BOT_API.md) |
+| `FOUNDER_BOT_OWNER_EMAIL` | optional | The one account the bot may act as. Must also appear in `ADMIN_EMAILS` and `FOUNDER_TEST_EMAILS`, and must already be a registered user |
 | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | optional | Google sign-in; redirect URI `https://www.saiflow.io/api/auth/callback/google` |
 | `STRIPE_SECRET_KEY` / `STRIPE_WEBHOOK_SECRET` / `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | optional | Dormant integration — omit entirely until a payment decision; app builds and runs without them |
 

@@ -331,7 +331,7 @@ describe("neither edit route can regenerate a handle", () => {
 /* ================================================================== */
 
 describe("create-time slug generation still works", () => {
-  for (const route of ["app/api/products/route.ts", "app/api/shops/route.ts"]) {
+  for (const route of ["app/api/products/route.ts", "lib/shops/open-store.ts"]) {
     test(`${route} still calls slugify`, () => {
       const code = strip(read(route));
       assert.ok(code.includes("slugify("), `${route} stopped generating slugs`);

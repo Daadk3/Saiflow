@@ -13,6 +13,9 @@
     "app/api/products/route.ts": {
       "maxDuration": 300
     },
+    "app/api/founder-bot/products/route.ts": {
+      "maxDuration": 300
+    },
     "app/api/products/\\[id\\]/route.ts": {
       "maxDuration": 300
     },

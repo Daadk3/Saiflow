@@ -303,11 +303,21 @@ describe("scheduleScan runs the worker after the response, for one key", () => {
   });
 
   test("every route that schedules a scan carries the worker's duration budget", () => {
-    for (const f of ["app/api/products/route.ts", "app/api/products/[id]/route.ts", "app/api/products/[id]/rescan/route.ts"]) {
+    for (const f of [
+      "app/api/products/route.ts",
+      "app/api/products/[id]/route.ts",
+      "app/api/products/[id]/rescan/route.ts",
+      "app/api/founder-bot/products/route.ts",
+    ]) {
       assert.ok(/export const maxDuration = 300;/.test(read(f)), f);
     }
     const vercel = JSON.parse(read("vercel.json")) as { functions: Record<string, { maxDuration: number }> };
-    for (const key of ["app/api/products/route.ts", "app/api/products/\\[id\\]/route.ts", "app/api/products/\\[id\\]/rescan/route.ts"]) {
+    for (const key of [
+      "app/api/products/route.ts",
+      "app/api/products/\\[id\\]/route.ts",
+      "app/api/products/\\[id\\]/rescan/route.ts",
+      "app/api/founder-bot/products/route.ts",
+    ]) {
       assert.equal(vercel.functions[key]?.maxDuration, 300, key);
     }
   });

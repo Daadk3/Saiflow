@@ -31,6 +31,10 @@ Rules of conduct in [`06_MODERATION_RUNBOOK.md`](06_MODERATION_RUNBOOK.md). Two 
 1. Never change a product's `moderationStatus` directly in the database — always through the queue/API so the audit log stays complete.
 2. Rejections without written reasons don't exist (the API enforces it; don't route around it).
 
+## Founder bot
+
+Daad's assistants can open stores and upload products through `/api/founder-bot`, documented in [`docs/FOUNDER_BOT_API.md`](../FOUNDER_BOT_API.md). Uploads stay pending; the bot cannot approve them or touch payments. **Turn it off** by deleting `FOUNDER_BOT_API_TOKEN` in Vercel and redeploying. The URLs then answer 404.
+
 ## Emergency shutdown (in escalating order)
 1. **Payments only:** set `PRE_LAUNCH_MODE=true` → redeploy. Checkout returns 503; site stays fully up. *This is the switch you'll actually use.*
 2. **One seller:** `Shop.isActive=false` — everything they have disappears from public view instantly.

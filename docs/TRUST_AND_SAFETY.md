@@ -14,11 +14,12 @@ What exists in code today:
 | Seller certification (mandatory, per-upload) | `add-product` form checkbox → enforced in `POST /api/products` → `Product.certifiedAt` |
 | Prohibited Content Policy (AR/EN, Saudi-first) | `/content-policy`, linked at certification + footer |
 | Pending-review default | `Product.moderationStatus = PENDING` on create; public queries filter `APPROVED` only (home, browse, shop, product, checkout, sitemap) |
-| Audit log | `ModerationEvent` — append-only: action, actor, reason, categories, confidence, timestamp |
+| Audit log | `ModerationEvent` — append-only: action, actor, reason, categories, confidence, timestamp. A founder-bot upload is `actor: founder-bot:<userId>` and stays `PENDING` |
+| Founder bot | `/api/founder-bot` — optional, off unless `FOUNDER_BOT_API_TOKEN` is set. Creates stores and pending products for `FOUNDER_BOT_OWNER_EMAIL` only. No approve endpoint. See `docs/FOUNDER_BOT_API.md` |
 | Review queue | `/dashboard/moderation` (admin-gated via `ADMIN_EMAILS`) — approve / reject-with-reason |
 | Backfill rule | Products created before moderation existed were auto-`APPROVED` in the migration |
 
-**Design invariant:** the schema is already AI-ready. `ModerationEvent.actor` distinguishes `seller:<id>` / `admin:<id>` / `ai:<model>`; `categories[]` and `confidence` are populated only by AI. **Tiers 1–2 require no database changes.**
+**Design invariant:** the schema is already AI-ready. `ModerationEvent.actor` distinguishes `seller:<id>` / `admin:<id>` / `founder-bot:<id>` / `ai:<model>`; `categories[]` and `confidence` are populated only by AI. **Tiers 1–2 require no database changes.** The founder bot does not approve.
 
 ---
 

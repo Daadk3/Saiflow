@@ -273,8 +273,10 @@ enum UploadRoute {
 /// Upload provenance: proof of who put an object in our storage, for which
 /// shop, through which route — plus the scan verdict for its bytes.
 ///
-/// This record is written ONLY by `onUploadComplete`, from middleware metadata
-/// the server established itself. It is never created or amended from a client
+/// This record is written ONLY by `recordProvenance`
+/// (app/api/uploadthing/core.ts). The upload callback calls it from middleware
+/// metadata, and the founder bot calls it after a server-side upload that
+/// passed the same route config. It is never created or amended from a client
 /// payload, which is what makes it usable as an authorisation source.
 ///
 /// It exists as its own model rather than as columns on Product because at

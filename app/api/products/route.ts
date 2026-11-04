@@ -50,6 +50,65 @@ export async function POST(req: Request) {
 
     const { name, description, price, category, shopId, fileUrl, thumbnailUrl, currency, certified } = await req.json();
 
+    // Get the user. The founder bot calls createProductForSeller with the
+    // founder account directly; this route only ever passes the signed-in one.
+    const user = await prisma.user.findFirst({
+      where: { email: { equals: session.user.email, mode: "insensitive" } },
+    });
+
+    if (!user) {
+      return NextResponse.json(
+        { error: "User not found" },
+        { status: 404 }
+      );
+    }
+
+    return await createProductForSeller(user, {
+      name,
+      description,
+      price,
+      category,
+      shopId,
+      fileUrl,
+      thumbnailUrl,
+      currency,
+      certified,
+    });
+  } catch (error) {
+    console.error("Error creating product:", error);
+    return NextResponse.json(
+      { error: "Something went wrong" },
+      { status: 500 }
+    );
+  }
+}
+
+/**
+ * Create one product for a seller who is already authenticated.
+ *
+ * The dashboard route and the founder bot both call this. It is the upload
+ * path: provenance, the pending moderation row, the scan, and the review
+ * checklist. It has no way to approve or to name a different seller.
+ * `audit` is optional and only accepts the seller or founder-bot actor; the
+ * dashboard omits it.
+ */
+export async function createProductForSeller(
+  user: { id: string },
+  input: {
+    name: unknown;
+    description: unknown;
+    price: unknown;
+    category: unknown;
+    shopId: unknown;
+    fileUrl: unknown;
+    thumbnailUrl: unknown;
+    currency: unknown;
+    certified: unknown;
+  },
+  audit?: { actor: string; reason: string }
+): Promise<NextResponse> {
+  const { name, description, price, category, shopId, fileUrl, thumbnailUrl, currency, certified } = input;
+  try {
     // Trust & Safety: the seller must explicitly certify ownership, legality
     // under Saudi regulations, and responsibility before every upload.
     if (certified !== true) {
@@ -59,7 +118,7 @@ export async function POST(req: Request) {
       );
     }
 
-    if (!name || price === undefined || price === null || !shopId) {
+    if (!name || price === undefined || price === null || typeof shopId !== "string" || !shopId) {
       return NextResponse.json(
         { error: "Name, price, and shopId are required" },
         { status: 400 }
@@ -119,22 +178,10 @@ export async function POST(req: Request) {
     // explicit non-SAR currency loudly so future multi-currency
     // attempts fail visibly instead of silently writing USD again.
     const ALLOWED_CURRENCIES = ["SAR"];
-    if (currency && !ALLOWED_CURRENCIES.includes(currency)) {
+    if (currency && (typeof currency !== "string" || !ALLOWED_CURRENCIES.includes(currency))) {
       return NextResponse.json(
         { error: "Invalid currency" },
         { status: 400 }
-      );
-    }
-
-    // Get the user
-    const user = await prisma.user.findFirst({
-      where: { email: { equals: session.user.email, mode: "insensitive" } },
-    });
-
-    if (!user) {
-      return NextResponse.json(
-        { error: "User not found" },
-        { status: 404 }
       );
     }
 
@@ -165,7 +212,7 @@ export async function POST(req: Request) {
     // A product without its deliverable is not a product: refused here, not
     // just disabled in the form (lib/product-file-required). After the
     // membership check, so an outsider is always refused as an outsider.
-    if (!fileKey) {
+    if (!fileKey || typeof fileUrl !== "string") {
       return NextResponse.json(FILE_REQUIRED, { status: 400 });
     }
     const provenance = await verifyDeliverableProvenance(fileKey, shopId);
@@ -195,14 +242,14 @@ export async function POST(req: Request) {
         data: {
           name: name.trim(),
           slug,
-          description,
+          description: typeof description === "string" ? description : null,
           price: priceCheck.price,
-          category: category || null,
+          category: isProductCategory(category) ? category : null,
           shopId,
           fileUrl,
           fileKey,
           ...scanFields,
-          thumbnailUrl,
+          thumbnailUrl: typeof thumbnailUrl === "string" ? thumbnailUrl : null,
           currency: "SAR",
           certifiedAt: now,
           // moderationStatus defaults to PENDING via schema.
@@ -211,12 +258,21 @@ export async function POST(req: Request) {
           // without anything here having to say so.
         },
       });
+      // Dashboard uploads stay `seller:<id>`. The founder bot passes its own
+      // actor; anything else is ignored so a caller cannot pretend to be an admin.
+      const submitted =
+        audit && (audit.actor.startsWith("seller:") || audit.actor.startsWith("founder-bot:"))
+          ? audit
+          : {
+              actor: `seller:${user.id}`,
+              reason: "Seller certified ownership, legality, and responsibility at upload.",
+            };
       await tx.moderationEvent.create({
         data: {
           productId: created.id,
           action: "SUBMITTED",
-          actor: `seller:${user.id}`,
-          reason: "Seller certified ownership, legality, and responsibility at upload.",
+          actor: submitted.actor,
+          reason: submitted.reason,
           previousStatus: null, // product creation — no prior state
           newStatus: "PENDING",
         },

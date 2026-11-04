@@ -62,11 +62,12 @@ const requireShopMember = async ({ input }: { input: { shopId: string } }) => {
 /**
  * Record provenance for a completed upload.
  *
- * This is the only place a FileAsset is ever created, and every value it
- * stores is one the server already established: the key and size come from
- * UploadThing's own callback, the shop and uploader from middleware that
- * verified membership. Nothing here is taken from a request body, which is
- * what makes the record usable later as an authorisation source.
+ * This is the only place a FileAsset is ever created. The upload callback
+ * calls it, and so does the founder bot after a server-side upload that
+ * passed the same route config. Every value stored is one the server already
+ * established: the key and size come from UploadThing, the shop and uploader
+ * from a check the server made. Nothing here is taken from a request body,
+ * which is what makes the record usable later as an authorisation source.
  *
  * Provenance ONLY — no scanning. The scan moves bytes twice and cannot fit in
  * this route's duration budget; the dedicated worker owns that.
@@ -74,7 +75,7 @@ const requireShopMember = async ({ input }: { input: { shopId: string } }) => {
  * Idempotent by upsert: UploadThing may replay a callback, and a replay must
  * not reset a verdict the worker has already written.
  */
-const recordProvenance =
+export const recordProvenance =
   (route: UploadRoute) =>
   async ({
     file,
