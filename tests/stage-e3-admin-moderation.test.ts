@@ -452,7 +452,11 @@ const calls = {
   findUnique: null as Record<string, unknown> | null,
   findMany: [] as Record<string, unknown>[],
 };
-const state = { product: null as unknown, directoryRows: [] as unknown[] };
+const state = {
+  product: null as unknown,
+  directoryRows: [] as unknown[],
+  scanReason: null as string | null,
+};
 
 const revenueState = { rows: [] as Record<string, unknown>[] };
 let getAdminProductPreview: (id: string) => Promise<Record<string, unknown> | null>;
@@ -483,6 +487,9 @@ before(async () => {
         shopUser: { findMany: async () => [] },
         moderationEvent: { count: async () => 0 },
         order: { count: async () => 0, groupBy: async () => revenueState.rows },
+        fileAsset: {
+          findUnique: async () => ({ scanReason: state.scanReason }),
+        },
       },
     },
   });
@@ -505,6 +512,7 @@ beforeEach(() => {
   calls.findMany = [];
   state.product = null;
   state.directoryRows = [];
+  state.scanReason = null;
 });
 
 function productRow(overrides: Record<string, unknown> = {}) {
@@ -539,6 +547,7 @@ describe("a PENDING, unscanned product can be previewed", () => {
       reason: "pending_scan",
       publishable: false,
       tone: "waiting",
+      blockedBecause: null,
     });
   });
 
@@ -558,6 +567,27 @@ describe("a PENDING, unscanned product can be previewed", () => {
     const preview = await getAdminProductPreview("prod_pending_1");
     assert.equal((preview?.fileSafety as { reason: string }).reason, "unsafe");
     assert.equal(preview?.canInspect, false);
+    assert.equal((preview?.fileSafety as { blockedBecause: string | null }).blockedBecause, null);
+  });
+
+  test("an UNSAFE product explains an allowlisted scan category and drops anything else", async () => {
+    state.scanReason = "pdf_javascript";
+    state.product = productRow({
+      fileScanStatus: "UNSAFE",
+      fileScanKey: SECRET_KEY,
+    });
+    const named = await getAdminProductPreview("prod_pending_1");
+    assert.equal((named?.fileSafety as { blockedBecause: string | null }).blockedBecause, "script");
+
+    const hostile = "pdf_javascript <script>alert(1)</script> SHOULD_NEVER_REACH_BROWSER";
+    state.scanReason = hostile;
+    const hidden = await getAdminProductPreview("prod_pending_1");
+    const body = JSON.stringify(hidden);
+    assert.equal((hidden?.fileSafety as { blockedBecause: string | null }).blockedBecause, null);
+    assert.ok(!body.includes("<script>"), "raw reason must not be echoed");
+    assert.ok(!body.includes("SHOULD_NEVER_REACH_BROWSER"));
+    assert.ok(!body.includes(SECRET_KEY));
+    assert.equal(hidden?.canInspect, false);
   });
 
   test("a SAFE product is inspectable and publishable", async () => {
@@ -739,6 +769,13 @@ describe("legacy rows never look like they have a scannable deliverable", () => 
             rows[0].hasFile,
             reason !== "missing_file_key",
             JSON.stringify({ fileKey, fileScanKey, fileScanStatus })
+          );
+          // The inspect link follows the route, not the presence of a key.
+          // UNSAFE has a key and is still not openable.
+          assert.equal(
+            rows[0].canInspect,
+            reason !== "unsafe" && reason !== "missing_file_key",
+            JSON.stringify({ fileKey, fileScanKey, fileScanStatus, reason })
           );
         }
       }

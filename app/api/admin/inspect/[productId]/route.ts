@@ -5,6 +5,10 @@ import { authOptions } from "../../../auth/authOptions";
 import { isAdminEmail } from "@/lib/admin";
 import { rateLimiters, getClientIp } from "@/lib/rate-limit";
 import { inspectProduct, INSPECT_TTL_SECONDS } from "@/lib/inspect";
+import {
+  inspectRefusalLocation,
+  isInspectDocumentNavigation,
+} from "@/lib/inspect-document";
 import { createDeliveryUrl } from "@/lib/storage/provider";
 
 /**
@@ -38,6 +42,10 @@ import { createDeliveryUrl } from "@/lib/storage/provider";
  * and a query string is not a confirmation. Should SaiFlow later need the
  * founder to open a rejected file, that is a POST with CSRF protection and a
  * durable audit record, designed on its own terms rather than bolted on here.
+ *
+ * A browser that navigates here and is refused is sent to the review page.
+ * That redirect carries no file, no storage key and no signed URL. API
+ * clients still receive the JSON refusal.
  */
 export const dynamic = "force-dynamic";
 
@@ -84,6 +92,16 @@ export async function GET(
     const { decision, reason } = inspectProduct(product, "admin");
 
     if (!decision.allow) {
+      // A click or a pasted URL is a document navigation. JSON is the right
+      // body for an API client and a blank page for a person, so the browser
+      // is sent to the review page, which explains the same refusal and still
+      // does not serve the file. The location is relative and built only from
+      // the row id and the refusal code. Anything else keeps the JSON.
+      if (isInspectDocumentNavigation(req)) {
+        const location = inspectRefusalLocation(product.id, decision.code);
+        if (location) return refusalRedirect(location);
+      }
+
       // The scan reason is returned so the founder is told WHY. It is a short
       // category, never a provider payload and never file contents.
       return NextResponse.json(
@@ -135,6 +153,18 @@ export async function GET(
  */
 function redirectToDelivery(url: string): NextResponse {
   const res = NextResponse.redirect(url, 302);
+  res.headers.set("Cache-Control", "no-store, must-revalidate");
+  res.headers.set("Referrer-Policy", "no-referrer");
+  return res;
+}
+
+/**
+ * Send the browser to an internal page. Not a delivery redirect: the location
+ * is a path on this host, the status is 303, and nothing has been signed.
+ */
+function refusalRedirect(location: string): NextResponse {
+  const res = new NextResponse(null, { status: 303 });
+  res.headers.set("Location", location);
   res.headers.set("Cache-Control", "no-store, must-revalidate");
   res.headers.set("Referrer-Policy", "no-referrer");
   return res;

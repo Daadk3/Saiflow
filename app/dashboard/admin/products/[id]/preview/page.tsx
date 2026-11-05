@@ -12,6 +12,8 @@ import { isAdminEmail } from "@/lib/admin";
 import { getAdminProductPreview } from "@/lib/admin-product-preview";
 import { getDecisionHistory, latestRejection, type DecisionEntry } from "@/lib/moderation-history";
 import type { ModeratorFileSafety } from "@/lib/moderator-file-status";
+import { isInspectionRefusalHint } from "@/lib/inspect-document";
+import type { ScanExplanationKey } from "@/lib/scan-explanation";
 import { formatPrice } from "@/lib/formatPrice";
 import { formatDate } from "@/lib/formatDate";
 
@@ -39,9 +41,12 @@ import { formatDate } from "@/lib/formatDate";
  * NO DELIVERABLE, EVER. The file itself is reached only through
  * /api/admin/inspect/[productId], which re-authorises the request, applies the
  * inspection policy and mints a signed URL that expires in a minute. This page
- * receives a reason and two booleans from lib/admin-product-preview.ts and
- * never sees a storage key, a URL or a scan column — check by reading: no
- * file-column identifier appears anywhere below.
+ * receives a reason, a boolean and an allowlisted block category from
+ * lib/admin-product-preview.ts and never sees a storage key, a URL or a scan
+ * column — check by reading: no file-column identifier appears anywhere below.
+ *
+ * A refused inspection link redirects here. The query only decides whether to
+ * show a fixed sentence; the safety result is the one loaded above.
  */
 
 export const dynamic = "force-dynamic";
@@ -58,8 +63,10 @@ export const metadata: Metadata = {
 
 export default async function AdminProductPreviewPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   /**
    * app/dashboard/admin/layout.tsx is the authorization boundary and already
@@ -75,6 +82,11 @@ export default async function AdminProductPreviewPage({
   const { id } = await params;
   const product = await getAdminProductPreview(id);
   if (!product) notFound();
+  const inspection = (await searchParams).inspection;
+  // The query is a hint that a refused inspection link landed here. It is not
+  // rendered, and it cannot describe a file the gate would still open.
+  const refusedInspection =
+    !product.canInspect && isInspectionRefusalHint(inspection);
   const history = await getDecisionHistory(product.id);
   const rejection = product.moderationStatus === "REJECTED" ? latestRejection(history) : null;
 
@@ -247,6 +259,7 @@ export default async function AdminProductPreviewPage({
             <FileSafetyPanel
               safety={product.fileSafety}
               canInspect={product.canInspect}
+              refusedInspection={refusedInspection}
               productId={product.id}
               t={t}
             />
@@ -306,11 +319,13 @@ function Row({
 function FileSafetyPanel({
   safety,
   canInspect,
+  refusedInspection,
   productId,
   t,
 }: {
-  safety: ModeratorFileSafety;
+  safety: ModeratorFileSafety & { blockedBecause: ScanExplanationKey | null };
   canInspect: boolean;
+  refusedInspection: boolean;
   productId: string;
   t: (k: string) => string;
 }) {
@@ -321,11 +336,24 @@ function FileSafetyPanel({
     blocked: "bg-red-500/10 text-red-400",
   }[safety.tone];
 
+  const closed =
+    safety.reason === "unsafe"
+      ? t("fileSafety.notOpenable")
+      : safety.reason === "missing_file_key"
+        ? t("fileSafety.noFile")
+        : t("fileSafety.noInspection");
+
   return (
-    <div className="rounded-xl border border-gray-800 bg-[#0f0f0f] p-5">
+    <div id="file-safety" className="rounded-xl border border-gray-800 bg-[#0f0f0f] p-5">
       <h2 className="mb-3 text-sm font-semibold text-gray-300">
         {t("fileSafety.heading")}
       </h2>
+
+      {refusedInspection && (
+        <p className="mb-3 text-xs leading-relaxed text-amber-200/90">
+          {t("fileSafety.inspectionRefused")}
+        </p>
+      )}
 
       <span
         className={`inline-block whitespace-nowrap rounded-md px-2 py-0.5 text-[11px] font-medium ${tone}`}
@@ -341,6 +369,14 @@ function FileSafetyPanel({
           ? t("fileSafety.publishable")
           : t("fileSafety.notPublishable")}
       </p>
+
+      {safety.reason === "unsafe" && (
+        <p className="mt-2 text-xs leading-relaxed text-red-300/90">
+          {safety.blockedBecause
+            ? t(`fileSafety.blockedBecause.${safety.blockedBecause}`)
+            : t("fileSafety.blockedGeneric")}
+        </p>
+      )}
 
       {(safety.reason === "scan_error" || safety.reason === "pending_scan") && (
         <RescanButton
@@ -365,8 +401,8 @@ function FileSafetyPanel({
           {t("directory.inspectFile")}
         </a>
       ) : (
-        <p className="mt-4 text-xs text-gray-600">
-          {t("fileSafety.noInspection")}
+        <p className="mt-4 text-xs text-gray-400">
+          {closed}
         </p>
       )}
     </div>

@@ -25,6 +25,8 @@ interface PendingProduct {
    * The file's own URL is never sent here — it is a private object.
    */
   canInspect: boolean;
+  /** True when the safety check blocked the file, so there is no inspect link. */
+  scanBlocked?: boolean;
   certifiedAt: string | null;
   createdAt: string;
   shop: { name: string; slug: string };
@@ -162,10 +164,11 @@ export default function ModerationQueuePage() {
                   {ar ? "إقرار البائع:" : "Seller certified:"}{" "}
                   {p.certifiedAt ? new Date(p.certifiedAt).toLocaleString(locale) : "—"}
                 </p>
-                {p.canInspect && (
+                {p.canInspect ? (
                   // SaiFlow's inspection route, not the file's URL: it
                   // re-checks admin authority and redirects to a signed URL
-                  // that expires in a minute.
+                  // that expires in a minute. Absent when the policy would
+                  // refuse — a blocked file has no inspect link to follow.
                   <a
                     href={`/api/admin/inspect/${p.id}`}
                     target="_blank"
@@ -174,7 +177,13 @@ export default function ModerationQueuePage() {
                   >
                     {ar ? "معاينة الملف" : "Inspect file"}
                   </a>
-                )}
+                ) : p.scanBlocked ? (
+                  <p className="mt-2 text-xs text-red-300/90">
+                    {ar
+                      ? "لم يجتز هذا الملف فحص السلامة، لذلك لا يمكن فتحه."
+                      : "This file failed the safety check, so it cannot be opened."}
+                  </p>
+                ) : null}
                 <a
                   href={`/dashboard/admin/products/${p.id}/preview`}
                   className="ms-3 inline-block mt-2 text-xs text-teal-400 hover:text-teal-300 underline"

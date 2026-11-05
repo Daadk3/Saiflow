@@ -5,6 +5,7 @@ import { authOptions } from "../../auth/authOptions";
 import { isAdminEmail } from "@/lib/admin";
 import { rateLimiters, getClientIp } from "@/lib/rate-limit";
 import { checklistRows, hasCoverImage } from "@/lib/review-checklist";
+import { inspectProduct } from "@/lib/inspect";
 import { isAllowedAssetUrl } from "@/lib/validations";
 
 // GET - Pending moderation queue (admins only)
@@ -32,9 +33,12 @@ export async function GET(req: Request) {
         images: true,
         // The deliverable's own URL is deliberately NOT selected. Since Stage B
         // it is a private object that no browser can open, and the queue now
-        // inspects through /api/admin/inspect/[productId] instead. `fileKey` is
-        // read only to decide whether that link can work at all.
+        // inspects through /api/admin/inspect/[productId] instead. The scan
+        // columns are read only to ask that route's policy whether the link
+        // would serve the file. A key alone is not enough: UNSAFE is refused.
         fileKey: true,
+        fileScanStatus: true,
+        fileScanKey: true,
         certifiedAt: true,
         createdAt: true,
         reviewChecks: true,
@@ -42,19 +46,27 @@ export async function GET(req: Request) {
       },
     });
 
-    // Emit a boolean, never a key and never a URL: the client needs to know
-    // only whether to render the inspect link.
+    // Emit booleans, never a key, a scan column or a URL. `canInspect` is the
+    // route's own decision, so the queue does not link a file the route will
+    // refuse. `scanBlocked` tells the queue to say why the link is absent.
     return NextResponse.json({
-      pending: pending.map(({ fileKey, reviewChecks, images, ...rest }) => ({
-        ...rest,
-        canInspect: fileKey != null,
-        // The 8-point checklist, already resolved to rows. The key is only
-        // compared here, never sent.
-        checklist: checklistRows(reviewChecks, fileKey, {
-          description: rest.description,
-          hasCover: hasCoverImage({ thumbnailUrl: rest.thumbnailUrl, images }, isAllowedAssetUrl),
-        }),
-      })),
+      pending: pending.map((row) => {
+        const decision = inspectProduct(row, "admin").decision;
+        const { fileKey, fileScanStatus, fileScanKey, reviewChecks, images, ...rest } = row;
+        void fileScanStatus;
+        void fileScanKey;
+        return {
+          ...rest,
+          canInspect: decision.allow,
+          scanBlocked: !decision.allow && decision.code === "unsafe",
+          // The 8-point checklist, already resolved to rows. The key is only
+          // compared here, never sent.
+          checklist: checklistRows(reviewChecks, fileKey, {
+            description: rest.description,
+            hasCover: hasCoverImage({ thumbnailUrl: rest.thumbnailUrl, images }, isAllowedAssetUrl),
+          }),
+        };
+      }),
     });
   } catch (error) {
     console.error("Error fetching moderation queue:", error);
