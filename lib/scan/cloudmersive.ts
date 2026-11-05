@@ -182,11 +182,13 @@ export const cloudmersiveProvider: ScanProvider = {
         method: "POST",
         headers: {
           Apikey: key,
-          // Every threat class is blocked unless SaiFlow has an explicit reason
-          // to permit it. allowHtml is the single exception, for EPUB.
+          // Every threat class is blocked unless this file's policy names an
+          // exception. allowHtml is EPUB and the local HTML app archive.
+          // allowScripts is the local HTML app archive only, after our own
+          // member rules. Malware detection does not depend on either flag.
           allowExecutables: bool(false),
           allowInvalidFiles: bool(false),
-          allowScripts: bool(false),
+          allowScripts: bool(request.allowScripts === true),
           allowPasswordProtectedFiles: bool(false),
           allowMacros: bool(false),
           allowXmlExternalEntities: bool(false),

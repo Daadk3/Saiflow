@@ -116,11 +116,21 @@ export interface ScanRequest {
   /**
    * Whether HTML markup is legitimate inside this file.
    *
-   * True for EPUB only. An EPUB is a ZIP of XHTML by definition, so blocking
-   * HTML there would reject every valid ebook — SaiFlow's core category. The
-   * threat in an EPUB is script and executables, which stay blocked.
+   * True for EPUB, and for the named local HTML app archive. An EPUB is a ZIP
+   * of XHTML by definition, so blocking HTML there would reject every valid
+   * ebook. A local HTML app is HTML by definition too, but only when the
+   * archive marker says so — a plain ZIP stays false. The product description
+   * is never an input to this flag.
    */
   allowHtml: boolean;
+  /**
+   * Whether browser JavaScript is legitimate inside this file.
+   *
+   * True only for the named local HTML app archive. Omitted or false for
+   * every other file, including EPUB. Malware, executables, macros and unsafe
+   * archives are unaffected.
+   */
+  allowScripts?: boolean;
 }
 
 export interface ScanProvider {

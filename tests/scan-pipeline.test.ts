@@ -399,9 +399,10 @@ describe("EPUB policy", () => {
     const policy = resolveContentPolicy(epub)!;
     assert.equal(policy.kind, "epub");
     assert.deepEqual(policy.restrictToExtensions, [".epub"]);
-    // The whole point: XHTML is the format, so HTML must be permitted here and
-    // nowhere else.
+    // XHTML is the format, so HTML is permitted. A plain ZIP is not; the named
+    // local HTML app archive is a separate policy (tests/local-html-app.test.ts).
     assert.equal(policy.allowHtml, true);
+    assert.notEqual(policy.allowScripts, true);
   });
 
   test("XHTML inside an EPUB is allowed", () => {
@@ -464,9 +465,16 @@ describe("provider findings are reconciled with policy", () => {
     });
   }
 
-  test("HTML is allowed only inside an EPUB", () => {
+  test("HTML is rejected for a PDF and allowed for an EPUB", () => {
     assert.equal(
       verdictFromFindings(cleanFindings({ containsHtml: true }), pdfPolicy).outcome,
+      "REJECT"
+    );
+    assert.equal(
+      verdictFromFindings(
+        cleanFindings({ containsHtml: true, verifiedFileFormat: ".zip" }),
+        { kind: "zip", restrictToExtensions: [".zip"], allowHtml: false }
+      ).outcome,
       "REJECT"
     );
     assert.equal(
@@ -1563,11 +1571,12 @@ describe("EPUB identity is proven from content, not from entry names", () => {
     });
   }
 
-  test("a ZIP misclassified as EPUB would have been the only route to HTML", () => {
-    // Confirms the exemption is genuinely EPUB-only, so the strengthened
-    // identity check is what gates it.
+  test("a plain ZIP still does not get the EPUB HTML exemption", () => {
+    // The strengthened EPUB identity check is what gates that exemption.
+    // The local HTML app exemption is a different marker, not this one.
     const zip = makeZip([{ name: "readme.txt" }]);
     assert.equal(resolveContentPolicy(zip)!.allowHtml, false);
+    assert.notEqual(resolveContentPolicy(zip)!.allowScripts, true);
   });
 });
 

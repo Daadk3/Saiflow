@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { authOptions } from "../../auth/authOptions";
 import { isAdminEmail } from "@/lib/admin";
 import { rateLimiters, getClientIp } from "@/lib/rate-limit";
+import { isLocalHtmlAppReview } from "@/lib/local-html-review";
 import { checklistRows, hasCoverImage } from "@/lib/review-checklist";
 import { inspectProduct } from "@/lib/inspect";
 import { isAllowedAssetUrl } from "@/lib/validations";
@@ -46,6 +47,20 @@ export async function GET(req: Request) {
       },
     });
 
+    // The local-HTML label is a boolean derived from the scan facts. The facts
+    // themselves stay here: they can carry flag codes, and the queue does not
+    // need them. A missing asset is simply "not this product type".
+    const fileKeys = pending.flatMap((row) => (row.fileKey ? [row.fileKey] : []));
+    const assets = fileKeys.length
+      ? await prisma.fileAsset.findMany({
+          where: { key: { in: fileKeys } },
+          select: { key: true, contentFacts: true },
+        })
+      : [];
+    const localHtmlKeys = new Set(
+      assets.filter((asset) => isLocalHtmlAppReview(asset.contentFacts)).map((asset) => asset.key)
+    );
+
     // Emit booleans, never a key, a scan column or a URL. `canInspect` is the
     // route's own decision, so the queue does not link a file the route will
     // refuse. `scanBlocked` tells the queue to say why the link is absent.
@@ -59,6 +74,7 @@ export async function GET(req: Request) {
           ...rest,
           canInspect: decision.allow,
           scanBlocked: !decision.allow && decision.code === "unsafe",
+          localHtmlApp: fileKey !== null && localHtmlKeys.has(fileKey),
           // The 8-point checklist, already resolved to rows. The key is only
           // compared here, never sent.
           checklist: checklistRows(reviewChecks, fileKey, {

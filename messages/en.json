@@ -996,7 +996,11 @@
       "description": "Description",
       "descriptionEmpty": "No description provided.",
       "noImage": "No image provided",
-      "purchaseDisabled": "Purchase is disabled in preview"
+      "purchaseDisabled": "Purchase is disabled in preview",
+      "localHtmlApp": {
+        "label": "Local HTML app — private ZIP",
+        "risk": "This file is a reviewed local HTML application. SaiFlow does not host it and does not run it. It can only be delivered as a private ZIP attachment after you approve it and a buyer is authorized to download it. Open the archive and review every HTML, CSS, and JavaScript file before approving. This is not an ebook, and it is not a page on SaiFlow. Approval stays manual."
+      }
     },
     "title": "Founder Dashboard",
     "subtitle": "What needs your attention today.",

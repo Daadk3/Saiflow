@@ -32,6 +32,8 @@ interface PendingProduct {
   shop: { name: string; slug: string };
   /** The 8-point review checklist; auto-checks flag, the founder decides. */
   checklist: ChecklistRow[];
+  /** Named local HTML app archive. A review label, not a delivery mode. */
+  localHtmlApp?: boolean;
 }
 
 export default function ModerationQueuePage() {
@@ -159,6 +161,13 @@ export default function ModerationQueuePage() {
                 </p>
                 {p.description && (
                   <p className="text-sm text-gray-400 mt-2 line-clamp-3">{p.description}</p>
+                )}
+                {p.localHtmlApp && (
+                  <p className="mt-2 rounded-md border border-amber-500/40 bg-amber-500/10 px-2 py-1 text-xs leading-relaxed text-amber-100">
+                    {ar
+                      ? "تطبيق HTML محلي — أرشيف ZIP خاص. المنصة لا تستضيفه ولا تشغّله. راجع ملفات HTML وCSS وJavaScript قبل الاعتماد."
+                      : "Local HTML app — private ZIP. SaiFlow does not host or run it. Review the HTML, CSS, and JavaScript before approving."}
+                  </p>
                 )}
                 <p className="text-xs text-gray-600 mt-2 font-mono">
                   {ar ? "إقرار البائع:" : "Seller certified:"}{" "}

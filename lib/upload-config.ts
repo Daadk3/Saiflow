@@ -50,6 +50,10 @@ const rasterImages = <const C extends { maxFileSize: string }>(config: C) => ({
  * Absent on purpose:
  * - `text` — expands to `text/*`, which includes `text/html`. HTML uploaded
  *   here would be served inline from a public URL: free phishing hosting.
+ *   A reviewed local HTML app is not a standalone HTML upload. It travels
+ *   inside an `application/zip` whose bytes carry the `saiflow-local-html-app`
+ *   marker (lib/scan/local-html-app.ts). The ZIP stays private and
+ *   `content-disposition: attachment`. SaiFlow does not host or run it.
  * - `application/x-rar-compressed` — a second archive format with no
  *   legitimate need here, its own decoder CVE history, and the same
  *   executable-smuggling profile as ZIP. ZIP remains.

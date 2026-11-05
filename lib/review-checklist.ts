@@ -20,6 +20,7 @@
  */
 
 import { MIN_DESCRIPTION_LENGTH } from "@/lib/listing-standards";
+import { LOCAL_HTML_APP_KIND } from "@/lib/local-html-review";
 
 export type ChecklistPointId = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8;
 
@@ -243,6 +244,13 @@ const SCAN_STATE_REASON: Record<string, string> = {
 
 const ARABIC_NOTE = "سلامة العربي تُراجع يدويًا";
 
+/**
+ * Shown on point 3 when the file is the named local HTML app. It is a review
+ * note, not a delivery instruction and not something read from the description.
+ */
+const LOCAL_HTML_APP_REVIEW_NOTE =
+  "تطبيق HTML محلي — أرشيف ZIP خاص · المنصة لا تستضيفه ولا تشغّله · راجع ملفات HTML وCSS وJavaScript قبل الاعتماد";
+
 function pointThree(input: ReviewCheckInput): StoredCheck {
   if (!input.fileKey) return { state: "warn", reason: "لا يوجد ملف مرفق" };
   const current = input.fileScanKey === input.fileKey;
@@ -256,6 +264,9 @@ function pointThree(input: ReviewCheckInput): StoredCheck {
   if (facts.kind === "pdf") {
     if (!facts.pageCount) return { state: "warn", reason: "اجتاز فحص الأمان · تعذر عدّ صفحات PDF" };
     return { state: "ok", reason: `آمن · يفتح · ${pageWord(facts.pageCount)} · ${ARABIC_NOTE}` };
+  }
+  if (facts.kind === LOCAL_HTML_APP_KIND) {
+    return { state: "ok", reason: `آمن · يفتح · ${LOCAL_HTML_APP_REVIEW_NOTE} · ${ARABIC_NOTE}` };
   }
   return { state: "ok", reason: `آمن · يفتح · ${ARABIC_NOTE}` };
 }

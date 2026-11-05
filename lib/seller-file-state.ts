@@ -84,6 +84,7 @@ const UNSAFE_REASONS = new Set([
   "unsafe_archive",
   "archive_executable",
   "archive_script",
+  "archive_active_html",
   "archive_nested",
 ]);
 const FORMAT_REASONS = new Set([
@@ -100,6 +101,9 @@ export function failureCategory(reason: string | null): SellerFailure {
   const base = reason.replace(/_terminal$/, "");
   if (base.startsWith("pdf_") || UNSAFE_REASONS.has(base)) return "unsafe_content";
   if (base === "password_protected" || base === "archive_encrypted") return "password_protected";
+  // The marker was valid but the archive has no HTML page, so it is not this
+  // product. Said as a format problem rather than a damaged ZIP.
+  if (base === "archive_not_html_app") return "unsupported_format";
   if (base.startsWith("archive_")) return "archive_problem";
   if (FORMAT_REASONS.has(base)) return "unsupported_format";
   if (base.startsWith("provider_") || base.startsWith("storage_") || UNAVAILABLE_REASONS.has(base)) {
