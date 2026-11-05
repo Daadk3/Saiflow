@@ -19,9 +19,9 @@
  * exactly as before: the pre-launch notice. Every other checkout gate still
  * runs.
  *
- * PUBLIC STAYS LOCKED. With PRE_LAUNCH_MODE off, checkout behaves exactly as
- * before this switch existed: a test Geidea account works for everyone, and
- * a production account is refused. "public" does not change that yet:
+ * PUBLIC STAYS LOCKED. With PRE_LAUNCH_MODE off, a test Geidea account works
+ * for everyone on a Preview (never on the live site, where a test card would
+ * buy real files), and a production account is refused. "public" does not change that yet:
  * opening real payments to everyone stays a separate, reviewed release
  * (LIVE_PUBLIC_ALLOWED below).
  */

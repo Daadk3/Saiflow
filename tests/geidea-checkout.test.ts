@@ -49,7 +49,7 @@ interface ProductRow {
   fileKey: string | null;
   fileScanStatus: string;
   fileScanKey: string | null;
-  shop: { isActive: boolean; slug: string };
+  shop: { isActive: boolean; slug: string; shopUsers: Array<{ user: { email: string } }> };
 }
 
 interface AttemptRow extends Record<string, unknown> {
@@ -231,7 +231,7 @@ const product = (over: Partial<ProductRow> = {}): ProductRow => ({
   fileKey: KEY,
   fileScanStatus: "SAFE",
   fileScanKey: KEY,
-  shop: { isActive: true, slug: "my-shop" },
+  shop: { isActive: true, slug: "my-shop", shopUsers: [] },
   ...over,
 });
 
@@ -488,7 +488,7 @@ describe("refusals record no attempt and ask Geidea nothing", () => {
       ["inactive", { isActive: false }],
       ["not approved", { moderationStatus: "PENDING" }],
       ["rejected", { moderationStatus: "REJECTED" }],
-      ["inactive shop", { shop: { isActive: false, slug: "my-shop" } }],
+      ["inactive shop", { shop: { isActive: false, slug: "my-shop", shopUsers: [] } }],
       ["no file", { fileUrl: null }],
     ];
     for (const [name, over] of cases) {

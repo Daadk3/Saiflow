@@ -96,7 +96,9 @@ describe("only what the storefront sells can reach checkout", () => {
     // request (lib/payments/request-access): the public when pre-launch is
     // off, otherwise only an allowlisted founder (tests/founder-live-test).
     assert.match(page, /const \{ access \} = await currentCheckoutAccess\(\);/);
-    assert.match(page, /const formOffered = access\.kind !== "closed";/);
+    // ... and never on a test Geidea account on the live site (the route refuses it there).
+    assert.match(page, /const testAccountOnLiveSite = geideaMode\(\) === "test" && productionAccountHere\(process\.env\.VERCEL_ENV\);/);
+    assert.match(page, /const formOffered = access\.kind !== "closed" && !testAccountOnLiveSite;/);
     assert.match(page, /\{!formOffered \? \([\s\S]*payments_offTitle[\s\S]*\) : overFounderCap \? \([\s\S]*founderTestAmountTitle[\s\S]*\) : \([\s\S]*<DropInCheckout/);
   });
 });
@@ -322,7 +324,7 @@ describe("the checkout copy", () => {
   });
 
   test("every state the panel can show has its words", () => {
-    for (const problem of ["rate_limited", "not_available", "payments_off", "cookies", "lock_unavailable", "service"]) {
+    for (const problem of ["rate_limited", "not_available", "payments_off", "cookies", "lock_unavailable", "own_product", "service"]) {
       for (const suffix of ["Title", "Body"]) assert.ok(en.checkout[`${problem}${suffix}`], `${problem}${suffix}`);
     }
     const panel = read("components/checkout/DropInPanel.tsx");

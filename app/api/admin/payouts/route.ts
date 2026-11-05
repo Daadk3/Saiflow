@@ -6,21 +6,27 @@ import { isAdminEmail } from "@/lib/admin";
 import { rateLimiters, getClientIp } from "@/lib/rate-limit";
 import { parseMoney } from "@/lib/pricing";
 import {
-  PAYABLE_ORDERS_WHERE,
   PAYOUT_CURRENCY,
+  UNPAID_ORDERS_WHERE,
   changedRecently,
   maskIban,
+  nextClearing,
   normalizeBankReference,
   owedFor,
   payableOrdersWhere,
+  splitByClearing,
 } from "@/lib/payouts";
+import { payoutWarnings } from "@/lib/fraud-signals";
 
 /**
  * Manual payouts, for SaiFlow's admins only.
  *
- * GET: every shop that is owed money, with its payout details. The full IBAN
- * is included here, and only here, because the admin types it into the bank
- * to send the transfer.
+ * GET: every shop with unpaid revenue, with its payout details. What is
+ * payable now is separated from what is still clearing (lib/payouts), and
+ * each shop carries the warning signs among its unpaid orders
+ * (lib/fraud-signals) as counts, never buyer addresses. The full IBAN is
+ * included here, and only here, because the admin types it into the bank to
+ * send the transfer.
  *
  * POST: record a transfer the admin has ALREADY made. Nothing here sends
  * money. The admin states what they saw (amount, number of orders, and the
@@ -46,17 +52,17 @@ export async function GET(req: Request) {
     const admin = await requireAdmin();
     if (admin instanceof NextResponse) return admin;
 
-    const payable = await prisma.order.findMany({
-      where: PAYABLE_ORDERS_WHERE,
+    const unpaid = await prisma.order.findMany({
+      where: UNPAID_ORDERS_WHERE,
       orderBy: { createdAt: "asc" },
-      select: { sellerNetAmount: true, createdAt: true, product: { select: { shopId: true } } },
+      select: { sellerNetAmount: true, createdAt: true, customerEmail: true, product: { select: { shopId: true } } },
     });
 
-    const byShop = new Map<string, { orders: Array<{ sellerNetAmount: unknown }>; oldest: Date }>();
-    for (const order of payable) {
-      const entry = byShop.get(order.product.shopId);
-      if (entry) entry.orders.push(order);
-      else byShop.set(order.product.shopId, { orders: [order], oldest: order.createdAt });
+    const byShop = new Map<string, typeof unpaid>();
+    for (const order of unpaid) {
+      const orders = byShop.get(order.product.shopId);
+      if (orders) orders.push(order);
+      else byShop.set(order.product.shopId, [order]);
     }
 
     const shops = byShop.size
@@ -67,6 +73,8 @@ export async function GET(req: Request) {
             name: true,
             slug: true,
             payoutAccount: { select: { holderName: true, iban: true, bankName: true, updatedAt: true } },
+            email: true,
+            shopUsers: { select: { user: { select: { email: true } } } },
           },
         })
       : [];
@@ -75,15 +83,29 @@ export async function GET(req: Request) {
     return NextResponse.json({
       shops: shops
         .map((shop) => {
-          const entry = byShop.get(shop.id)!;
-          const owed = owedFor(entry.orders);
+          const orders = byShop.get(shop.id)!;
+          const { payable, clearing } = splitByClearing(orders, now);
+          const owed = owedFor(payable);
+          const held = owedFor(clearing);
+          const nextClears = nextClearing(clearing);
           const account = shop.payoutAccount;
           return {
             shopId: shop.id,
             name: shop.name,
             slug: shop.slug,
             owed: { amount: owed.amount, currency: PAYOUT_CURRENCY, orderCount: owed.orderCount, unreadable: owed.unreadable },
-            oldestOrderAt: entry.oldest.toISOString(),
+            clearing: {
+              amount: held.amount,
+              currency: PAYOUT_CURRENCY,
+              orderCount: held.orderCount,
+              nextClearsAt: nextClears ? nextClears.toISOString() : null,
+            },
+            // Orders arrive oldest first, so this is the oldest unpaid sale.
+            oldestOrderAt: orders[0].createdAt.toISOString(),
+            warnings: payoutWarnings(orders, [
+              ...shop.shopUsers.map((member) => member.user.email),
+              ...(shop.email ? [shop.email] : []),
+            ]),
             account: account
               ? {
                   holderName: account.holderName,
@@ -154,13 +176,19 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "invalid_paid_at" }, { status: 400 });
     }
     if (expectedAccountVersion === null) return NextResponse.json({ error: "invalid_payout" }, { status: 400 });
+    // Paying an account changed in the last week needs the admin's explicit
+    // word that the new details were confirmed with the shop's owner.
+    const confirmedRecentChange = body.confirmRecentChange === true;
 
     const recorded = await prisma.$transaction(async (tx) => {
       const account = await tx.sellerPayoutAccount.findUnique({ where: { shopId }, select: { iban: true, updatedAt: true } });
       if (!account) throw new PayoutRefused("no_payout_account", 409);
       // The bank details the admin paid to, and no later version of them.
       if (account.updatedAt.toISOString() !== expectedAccountVersion) throw new PayoutRefused("account_changed", 409);
+      if (changedRecently(account.updatedAt) && !confirmedRecentChange) throw new PayoutRefused("account_recently_changed", 409);
 
+      // Cleared orders only: one still inside the clearing window is never
+      // paid, whatever the admin's page showed.
       const orders = await tx.order.findMany({
         where: payableOrdersWhere(shopId),
         select: { id: true, sellerNetAmount: true },

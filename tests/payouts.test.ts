@@ -5,6 +5,10 @@
  * What must hold:
  * - Only PRODUCTION orders with a commission split and no payout are owed;
  *   TEST orders are never revenue and never paid out.
+ * - An order is payable only once it has cleared (CLEARING_DAYS after the
+ *   sale); before that it is shown as clearing and never paid.
+ * - The admin sees the warning signs among each shop's unpaid orders, as
+ *   counts and never as buyer addresses.
  * - Only a shop's OWNER reads or changes its bank details, and never sees the
  *   full IBAN back; the IBAN is a valid Saudi IBAN or it is refused.
  * - Only an admin records a payout, only for exactly the orders and amount
@@ -18,8 +22,14 @@ import { pathToFileURL } from "node:url";
 import { resolve } from "node:path";
 
 import {
-  PAYABLE_ORDERS_WHERE,
+  CLEARING_DAYS,
+  UNPAID_ORDERS_WHERE,
   changedRecently,
+  clearingCutoff,
+  clearsAt,
+  hasCleared,
+  nextClearing,
+  splitByClearing,
   maskIban,
   normalizeBankName,
   normalizeBankReference,
@@ -78,18 +88,41 @@ describe("lib/payouts rules", () => {
     assert.equal(normalizeBankReference("re\u0007f"), null);
   });
 
-  test("what is owed: PRODUCTION, split, unpaid; summed in halalas", () => {
-    assert.deepEqual(payableOrdersWhere("shop_1"), {
+  test("what is owed: PRODUCTION, split, unpaid and cleared; summed in halalas", () => {
+    const now = new Date("2026-10-20T12:00:00Z");
+    assert.deepEqual(payableOrdersWhere("shop_1", now), {
       product: { shopId: "shop_1" },
       paymentEnvironment: "PRODUCTION",
       // A founder test (lib/payments/live-mode) is the founder's own money: never paid out.
       founderTest: false,
       sellerNetAmount: { not: null },
       payoutId: null,
+      createdAt: { lte: new Date("2026-10-06T12:00:00Z") },
     });
-    assert.deepEqual(PAYABLE_ORDERS_WHERE, { paymentEnvironment: "PRODUCTION", founderTest: false, sellerNetAmount: { not: null }, payoutId: null });
+    assert.deepEqual(UNPAID_ORDERS_WHERE, { paymentEnvironment: "PRODUCTION", founderTest: false, sellerNetAmount: { not: null }, payoutId: null });
     const owed = owedFor([{ sellerNetAmount: "46.50" }, { sellerNetAmount: "0.10" }, { sellerNetAmount: "0.20" }, { sellerNetAmount: "x" }]);
     assert.deepEqual(owed, { amount: "46.80", halalas: 4680, orderCount: 3, unreadable: 1 });
+  });
+
+  test("a sale clears exactly CLEARING_DAYS after it was paid", () => {
+    assert.equal(CLEARING_DAYS, 14);
+    const paid = new Date("2026-10-01T09:30:00Z");
+    assert.equal(clearsAt(paid).toISOString(), "2026-10-15T09:30:00.000Z");
+    assert.equal(hasCleared(paid, new Date("2026-10-15T09:29:59Z")), false);
+    assert.equal(hasCleared(paid, new Date("2026-10-15T09:30:00Z")), true, "the boundary itself has cleared, as the query's lte says");
+    assert.equal(clearingCutoff(new Date("2026-10-15T09:30:00Z")).toISOString(), paid.toISOString());
+
+    const now = new Date("2026-10-20T00:00:00Z");
+    const orders = [
+      { id: "old", createdAt: new Date("2026-10-01T00:00:00Z") },
+      { id: "new", createdAt: new Date("2026-10-15T00:00:00Z") },
+      { id: "newer", createdAt: new Date("2026-10-18T00:00:00Z") },
+    ];
+    const { payable, clearing } = splitByClearing(orders, now);
+    assert.deepEqual(payable.map((o) => o.id), ["old"]);
+    assert.deepEqual(clearing.map((o) => o.id), ["new", "newer"]);
+    assert.equal(nextClearing(clearing)!.toISOString(), "2026-10-29T00:00:00.000Z", "the earliest of the clearing orders");
+    assert.equal(nextClearing([]), null);
   });
 
   test("a recent bank-detail change is flagged for a week", () => {
@@ -110,6 +143,9 @@ type OrderRow = {
   sellerNetAmount: string | null;
   payoutId: string | null;
   createdAt: Date;
+  customerEmail: string;
+  /** A founder's own test purchase (lib/payments/live-mode); absent means false. */
+  founderTest?: boolean;
 };
 type AccountRow = { shopId: string; holderName: string; iban: string; bankName: string | null; updatedById: string; updatedAt: Date };
 type PayoutRow = Record<string, unknown> & { id: string; shopId: string };
@@ -126,13 +162,18 @@ const logged: unknown[][] = [];
 
 function payableFor(where: Record<string, unknown>): OrderRow[] {
   const shopId = (where.product as { shopId?: string } | undefined)?.shopId;
-  return db.orders.filter(
-    (o) =>
-      (shopId === undefined || o.shopId === shopId) &&
-      o.paymentEnvironment === where.paymentEnvironment &&
-      o.sellerNetAmount !== null &&
-      o.payoutId === null
-  );
+  const before = (where.createdAt as { lte?: Date } | undefined)?.lte;
+  return db.orders
+    .filter(
+      (o) =>
+        (shopId === undefined || o.shopId === shopId) &&
+        o.paymentEnvironment === where.paymentEnvironment &&
+        (where.founderTest === undefined || (o.founderTest ?? false) === where.founderTest) &&
+        o.sellerNetAmount !== null &&
+        o.payoutId === null &&
+        (before === undefined || o.createdAt.getTime() <= before.getTime())
+    )
+    .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
 }
 
 function makeClient(staged: { payouts: PayoutRow[]; links: Array<[OrderRow, string]> } | null) {
@@ -155,6 +196,8 @@ function makeClient(staged: { payouts: PayoutRow[]; links: Array<[OrderRow, stri
               payoutAccount: account
                 ? { holderName: account.holderName, iban: account.iban, bankName: account.bankName, updatedAt: account.updatedAt }
                 : null,
+              email: null,
+              shopUsers: s.members.map((m) => ({ user: { email: m.email } })),
             };
           }),
     },
@@ -170,7 +213,13 @@ function makeClient(staged: { payouts: PayoutRow[]; links: Array<[OrderRow, stri
     },
     order: {
       findMany: async ({ where }: { where: Record<string, unknown> }) =>
-        payableFor(where).map((o) => ({ id: o.id, sellerNetAmount: o.sellerNetAmount, createdAt: o.createdAt, product: { shopId: o.shopId } })),
+        payableFor(where).map((o) => ({
+          id: o.id,
+          sellerNetAmount: o.sellerNetAmount,
+          createdAt: o.createdAt,
+          customerEmail: o.customerEmail,
+          product: { shopId: o.shopId },
+        })),
       updateMany: async ({ where, data }: { where: { id: { in: string[] }; payoutId: null }; data: { payoutId: string } }) => {
         let count = 0;
         for (const order of db.orders) {
@@ -222,6 +271,8 @@ before(async () => {
   }
 });
 
+const daysAgo = (days: number) => new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+
 let ip = 0;
 function request(method: string, url: string, body?: unknown): Request {
   ip++;
@@ -248,13 +299,18 @@ beforeEach(() => {
   ];
   db.accounts = [];
   db.payouts = [];
+  // Relative to now, because the clearing window is: o1 and o2 have cleared,
+  // o7 is still clearing.
   db.orders = [
-    { id: "o1", shopId: "shop_1", paymentEnvironment: "PRODUCTION", sellerNetAmount: "46.50", payoutId: null, createdAt: new Date("2026-10-01T10:00:00Z") },
-    { id: "o2", shopId: "shop_1", paymentEnvironment: "PRODUCTION", sellerNetAmount: "93.00", payoutId: null, createdAt: new Date("2026-10-02T10:00:00Z") },
-    { id: "o3", shopId: "shop_1", paymentEnvironment: "TEST", sellerNetAmount: "93.00", payoutId: null, createdAt: new Date("2026-10-03T10:00:00Z") },
-    { id: "o4", shopId: "shop_1", paymentEnvironment: "PRODUCTION", sellerNetAmount: null, payoutId: null, createdAt: new Date("2026-10-04T10:00:00Z") },
-    { id: "o5", shopId: "shop_1", paymentEnvironment: "PRODUCTION", sellerNetAmount: "10.00", payoutId: "po_old", createdAt: new Date("2026-09-01T10:00:00Z") },
-    { id: "o6", shopId: "shop_2", paymentEnvironment: "PRODUCTION", sellerNetAmount: "20.00", payoutId: null, createdAt: new Date("2026-10-05T10:00:00Z") },
+    { id: "o1", shopId: "shop_1", paymentEnvironment: "PRODUCTION", sellerNetAmount: "46.50", payoutId: null, createdAt: daysAgo(30), customerEmail: "a@buyer.test" },
+    { id: "o2", shopId: "shop_1", paymentEnvironment: "PRODUCTION", sellerNetAmount: "93.00", payoutId: null, createdAt: daysAgo(20), customerEmail: "b@buyer.test" },
+    { id: "o3", shopId: "shop_1", paymentEnvironment: "TEST", sellerNetAmount: "93.00", payoutId: null, createdAt: daysAgo(20), customerEmail: "c@buyer.test" },
+    { id: "o4", shopId: "shop_1", paymentEnvironment: "PRODUCTION", sellerNetAmount: null, payoutId: null, createdAt: daysAgo(20), customerEmail: "d@buyer.test" },
+    { id: "o5", shopId: "shop_1", paymentEnvironment: "PRODUCTION", sellerNetAmount: "10.00", payoutId: "po_old", createdAt: daysAgo(40), customerEmail: "e@buyer.test" },
+    { id: "o6", shopId: "shop_2", paymentEnvironment: "PRODUCTION", sellerNetAmount: "20.00", payoutId: null, createdAt: daysAgo(25), customerEmail: "f@buyer.test" },
+    { id: "o7", shopId: "shop_1", paymentEnvironment: "PRODUCTION", sellerNetAmount: "25.00", payoutId: null, createdAt: daysAgo(3), customerEmail: "g@buyer.test" },
+    // A founder test: real money on the live account, cleared, but never owed.
+    { id: "o8", shopId: "shop_1", paymentEnvironment: "PRODUCTION", sellerNetAmount: "18.60", payoutId: null, createdAt: daysAgo(30), customerEmail: "founder@example.test", founderTest: true },
   ];
   state.session = null;
   state.linkShortfall = 0;
@@ -279,12 +335,19 @@ describe("the shop owner's payout details", () => {
     assert.equal(upserts.length, 0);
   });
 
-  test("the owner sees what is owed: PRODUCTION, split, unpaid orders of this shop only", async () => {
+  test("the owner sees what is owed: PRODUCTION, split, unpaid, cleared orders of this shop only", async () => {
     state.session = { user: { email: "owner@example.test" } };
     const res = await sellerRoute.GET(request("GET", "https://saiflow.test/api/shops/planner-co/payout-account"), params("planner-co"));
     assert.equal(res.status, 200);
     const body = await res.json();
     assert.deepEqual(body.owed, { amount: "139.50", currency: "SAR", orderCount: 2, unreadable: 0 });
+    const o7 = db.orders.find((o) => o.id === "o7")!;
+    assert.deepEqual(
+      body.clearing,
+      { amount: "25.00", currency: "SAR", orderCount: 1, nextClearsAt: clearsAt(o7.createdAt).toISOString() },
+      "a recent sale is shown as clearing, with the date it clears"
+    );
+    assert.ok(!JSON.stringify(body).includes("@buyer.test"), "no buyer address reaches the seller");
     assert.equal(body.account, null);
   });
 
@@ -364,9 +427,39 @@ describe("recording a payout (admins only)", () => {
     const { shops } = await res.json();
     assert.deepEqual(shops.map((s: { shopId: string }) => s.shopId), ["shop_1", "shop_2"]);
     assert.deepEqual(shops[0].owed, { amount: "139.50", currency: "SAR", orderCount: 2, unreadable: 0 });
+    assert.equal(shops[0].clearing.amount, "25.00");
+    assert.equal(shops[0].clearing.orderCount, 1);
+    assert.deepEqual(shops[0].warnings, { ownShopOrders: 0, repeatBuyerOrders: 0 });
     assert.equal(shops[0].account.iban, IBAN);
     assert.equal(shops[0].account.changedRecently, false);
     assert.equal(shops[1].account.changedRecently, true);
+  });
+
+  test("a shop with only clearing sales is listed, with nothing payable", async () => {
+    db.orders = db.orders.filter((o) => o.shopId !== "shop_1" || o.id === "o7");
+    owner();
+    state.session = { user: { email: "founder@example.test" } };
+    const { shops } = await (await adminRoute.GET(request("GET", "https://saiflow.test/api/admin/payouts"))).json();
+    const shop = shops.find((s: { shopId: string }) => s.shopId === "shop_1");
+    assert.equal(shop.owed.orderCount, 0);
+    assert.equal(shop.clearing.orderCount, 1);
+    const res = await record({ ...valid, expectedAmount: "25.00", expectedOrderCount: 1 });
+    assert.equal(res.status, 409, "a clearing sale cannot be recorded as paid");
+    assert.equal(db.payouts.length, 0);
+  });
+
+  test("the warning signs are counted, never named", async () => {
+    owner();
+    db.orders.find((o) => o.id === "o2")!.customerEmail = "Owner+test@example.test";
+    for (const id of ["r1", "r2", "r3"]) {
+      db.orders.push({ id, shopId: "shop_1", paymentEnvironment: "PRODUCTION", sellerNetAmount: "5.00", payoutId: null, createdAt: daysAgo(18), customerEmail: "same@buyer.test" });
+    }
+    state.session = { user: { email: "founder@example.test" } };
+    const res = await adminRoute.GET(request("GET", "https://saiflow.test/api/admin/payouts"));
+    const text = await res.text();
+    const shop = JSON.parse(text).shops.find((s: { shopId: string }) => s.shopId === "shop_1");
+    assert.deepEqual(shop.warnings, { ownShopOrders: 1, repeatBuyerOrders: 3 });
+    assert.ok(!text.includes("@buyer.test") && !text.includes("owner+test"), "no buyer address in the response");
   });
 
   test("a recorded payout covers exactly the owed orders, once", async () => {
@@ -384,6 +477,7 @@ describe("recording a payout (admins only)", () => {
     assert.deepEqual(db.orders.filter((o) => o.payoutId === payout.id).map((o) => o.id), ["o1", "o2"]);
     assert.equal(db.orders.find((o) => o.id === "o3")!.payoutId, null, "a TEST order is never paid out");
     assert.equal(db.orders.find((o) => o.id === "o6")!.payoutId, null, "another shop's order is untouched");
+    assert.equal(db.orders.find((o) => o.id === "o7")!.payoutId, null, "an order still clearing is never paid");
 
     const again = await record(valid);
     assert.equal(again.status, 409, "nothing is owed any more");
@@ -413,6 +507,44 @@ describe("recording a payout (admins only)", () => {
     assert.equal(res.status, 409);
     assert.deepEqual(await res.json(), { error: "account_changed" });
     assert.equal(db.payouts.length, 0, "the ledger never names an account the admin did not pay");
+  });
+
+  test("a founder test order is never owed, shown or linked to a payout", async () => {
+    owner();
+    state.session = { user: { email: "founder@example.test" } };
+    const res = await record(valid);
+    assert.ok(res.ok, `recorded: ${res.status}`);
+    assert.equal(db.payouts.length, 1);
+    const linked = db.orders.filter((o) => o.payoutId === db.payouts[0].id).map((o) => o.id).sort();
+    assert.deepEqual(linked, ["o1", "o2"], "139.50 from o1 and o2; the founder test (o8) stays out");
+    assert.equal(db.orders.find((o) => o.id === "o8")!.payoutId, null);
+  });
+
+  test("bank details changed in the last week: refused until the admin confirms them with the owner", async () => {
+    owner();
+    state.session = { user: { email: "founder@example.test" } };
+    const recent = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000);
+    db.accounts[0].updatedAt = recent;
+    const body = { ...valid, expectedAccountUpdatedAt: recent.toISOString() };
+    const refused = await record(body);
+    assert.equal(refused.status, 409);
+    assert.deepEqual(await refused.json(), { error: "account_recently_changed" });
+    assert.equal(db.payouts.length, 0);
+    const confirmed = await record({ ...body, confirmRecentChange: true });
+    assert.ok(confirmed.ok, `confirmed: ${confirmed.status}`);
+    assert.equal(db.payouts.length, 1);
+  });
+
+  test("only a literal true confirms a recent change", async () => {
+    owner();
+    state.session = { user: { email: "founder@example.test" } };
+    const recent = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    db.accounts[0].updatedAt = recent;
+    for (const confirmRecentChange of ["true", 1, "yes", {}]) {
+      const res = await record({ ...valid, expectedAccountUpdatedAt: recent.toISOString(), confirmRecentChange });
+      assert.equal(res.status, 409, JSON.stringify(confirmRecentChange));
+    }
+    assert.equal(db.payouts.length, 0);
   });
 
   test("today's date is accepted at any hour, Riyadh time included", async () => {

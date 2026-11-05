@@ -8,10 +8,12 @@ import { useLocale, useTranslations } from "next-intl";
 import { formatPrice } from "@/lib/formatPrice";
 import { formatDate } from "@/lib/formatDate";
 import { DashboardSkeleton } from "@/components/ui/DashboardSkeleton";
+import { CLEARING_DAYS } from "@/lib/payouts";
 
 /**
  * A shop owner's payouts: where SaiFlow sends their earnings, what they are
- * owed now, and every payout already made.
+ * owed now, what is still clearing and when it clears, and every payout
+ * already made.
  *
  * Display and one form only. The server decides who may see or change the
  * bank details (the shop's OWNER), validates the IBAN, computes the balance
@@ -38,6 +40,7 @@ interface PayoutRow {
 interface PayoutData {
   account: Account | null;
   owed: { amount: string; currency: string; orderCount: number; unreadable: number };
+  clearing: { amount: string; currency: string; orderCount: number; nextClearsAt: string | null };
   payouts: PayoutRow[];
 }
 
@@ -161,6 +164,17 @@ export default function ShopPayoutsPage() {
           <p className="mt-3 text-sm text-gray-400">{t("owedNote")}</p>
           {data.owed.unreadable > 0 && <p className="mt-2 text-sm text-amber-400">{t("unreadable", { count: data.owed.unreadable })}</p>}
         </section>
+
+        {data.clearing.orderCount > 0 && data.clearing.nextClearsAt && (
+          <section className="mt-6 rounded-2xl border border-gray-800 bg-[#111111] p-6">
+            <h2 className="text-sm font-medium text-gray-400">{t("clearingHeading")}</h2>
+            <p className="mt-2 text-2xl font-bold text-gray-200">{money(data.clearing.amount, data.clearing.currency)}</p>
+            <p className="mt-1 text-sm text-gray-500">{t("clearingOrders", { count: data.clearing.orderCount })}</p>
+            <p className="mt-3 text-sm text-gray-400">
+              {t("clearingNote", { days: CLEARING_DAYS, date: formatDate(data.clearing.nextClearsAt, locale) })}
+            </p>
+          </section>
+        )}
 
         <section className="mt-6 rounded-2xl border border-gray-800 bg-[#111111] p-6">
           <h2 className="text-lg font-semibold text-white">{t("accountHeading")}</h2>

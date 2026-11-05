@@ -358,11 +358,10 @@ describe("existing Stripe orders remain representable", () => {
     }
   });
 
-  test("the dormant Stripe webhook still writes an Order without knowing the new columns", () => {
+  test("the Stripe webhook is retired: it answers 410 and writes no Order", () => {
     const stripe = stripTs(read("app/api/webhooks/stripe/route.ts"));
-    assert.ok(stripe.includes("stripeSessionId: session.id"));
-    assert.ok(!stripe.includes("paymentProvider"), "unchanged: it relies on the defaults");
-    assert.ok(stripe.includes("where: { stripeSessionId: session.id }"), "its idempotency check still works");
+    assert.match(stripe, /status: 410/);
+    assert.ok(!/order\.create|prisma/.test(stripe));
   });
 
   test("no Stripe row is rewritten: the migration has no UPDATE, DELETE or backfill", () => {
@@ -579,7 +578,6 @@ describe("the attempt table is written only where a purchase begins", () => {
 
   test("PRE_LAUNCH_MODE still defaults closed", () => {
     const env = stripTs(read("lib/env.ts"));
-    assert.ok(/\.default\("true"\)/.test(env));
-    assert.ok(/v !== "false"/.test(env));
+    assert.ok(/PRE_LAUNCH_MODE: process\.env\.PRE_LAUNCH_MODE !== "false",/.test(env), "on unless exactly \"false\", decided before validation");
   });
 });

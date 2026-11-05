@@ -63,3 +63,8 @@ export function sellerProductEditUrl(shopSlug: string, productSlug: string): str
 export function sellerSalesUrl(): string {
   return `${notificationOrigin()}/dashboard/sales`;
 }
+
+/** A shop's payouts page, where its owner sees and changes the bank account. */
+export function sellerPayoutsUrl(shopSlug: string): string {
+  return sellerShopUrl(shopSlug) + "/payouts";
+}

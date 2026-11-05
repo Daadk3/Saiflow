@@ -570,8 +570,7 @@ describe("no gate was touched", () => {
 
   test("PRE_LAUNCH_MODE still defaults closed", () => {
     const env = strip(read("lib/env.ts"));
-    assert.ok(/\.default\("true"\)/.test(env));
-    assert.ok(/v !== "false"/.test(env));
+    assert.ok(/PRE_LAUNCH_MODE: process\.env\.PRE_LAUNCH_MODE !== "false",/.test(env), "on unless exactly \"false\", decided before validation");
   });
 
   test("the canonical predicate is unedited", () => {

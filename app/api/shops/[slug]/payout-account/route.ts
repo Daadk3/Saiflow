@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server";
+import { runAfterResponse } from "@/lib/after-response";
+import { notifyPayoutAccountChanged } from "@/lib/notify";
 import { getServerSession } from "next-auth";
 import { prisma } from "@/lib/prisma";
 import { authOptions } from "../../../auth/authOptions";
@@ -9,8 +11,10 @@ import {
   normalizeBankName,
   normalizeHolderName,
   normalizeIban,
+  nextClearing,
   owedFor,
-  payableOrdersWhere,
+  splitByClearing,
+  unpaidOrdersWhere,
 } from "@/lib/payouts";
 
 /**
@@ -23,7 +27,8 @@ import {
  * transfer screen.
  *
  * Nothing here moves money or changes an order. The balance is computed by
- * lib/payouts from the orders themselves; a payout is recorded only by an
+ * lib/payouts from the orders themselves, split into what is payable now and
+ * what is still inside the clearing window; a payout is recorded only by an
  * admin, after the transfer was made (app/api/admin/payouts).
  */
 
@@ -70,14 +75,14 @@ export async function GET(req: Request, { params }: { params: Promise<{ slug: st
     const owner = await requireOwner(slug);
     if (owner instanceof NextResponse) return owner;
 
-    const [account, payable, payouts] = await Promise.all([
+    const [account, unpaid, payouts] = await Promise.all([
       prisma.sellerPayoutAccount.findUnique({
         where: { shopId: owner.shopId },
         select: { holderName: true, iban: true, bankName: true, updatedAt: true },
       }),
       prisma.order.findMany({
-        where: payableOrdersWhere(owner.shopId),
-        select: { sellerNetAmount: true },
+        where: unpaidOrdersWhere(owner.shopId),
+        select: { sellerNetAmount: true, createdAt: true },
       }),
       prisma.payout.findMany({
         where: { shopId: owner.shopId },
@@ -87,10 +92,19 @@ export async function GET(req: Request, { params }: { params: Promise<{ slug: st
       }),
     ]);
 
+    const { payable, clearing } = splitByClearing(unpaid);
     const owed = owedFor(payable);
+    const held = owedFor(clearing);
+    const nextClears = nextClearing(clearing);
     return NextResponse.json({
       account: accountView(account),
       owed: { amount: owed.amount, currency: PAYOUT_CURRENCY, orderCount: owed.orderCount, unreadable: owed.unreadable },
+      clearing: {
+        amount: held.amount,
+        currency: PAYOUT_CURRENCY,
+        orderCount: held.orderCount,
+        nextClearsAt: nextClears ? nextClears.toISOString() : null,
+      },
       payouts: payouts.map((payout) => ({
         id: payout.id,
         amount: String(payout.amount),
@@ -133,6 +147,11 @@ export async function PUT(req: Request, { params }: { params: Promise<{ slug: st
     const bankName = normalizeBankName(body.bankName);
     if (bankName === undefined) return NextResponse.json({ error: "invalid_bank_name" }, { status: 400 });
 
+    // Which IBAN was there before, to tell the owners when it changes.
+    const previous = await prisma.sellerPayoutAccount.findUnique({
+      where: { shopId: owner.shopId },
+      select: { iban: true },
+    });
     const saved = await prisma.sellerPayoutAccount.upsert({
       where: { shopId: owner.shopId },
       create: { shopId: owner.shopId, holderName, iban, bankName, updatedById: owner.userId },
@@ -141,6 +160,11 @@ export async function PUT(req: Request, { params }: { params: Promise<{ slug: st
     });
     // Which shop, never the details.
     console.log("[payouts] account_saved", { shop: owner.shopId });
+    // A new or different IBAN: every owner hears, after the reply. A stolen
+    // session cannot then redirect payouts silently.
+    if (previous?.iban !== saved.iban) {
+      await runAfterResponse(() => notifyPayoutAccountChanged({ shopId: owner.shopId, ibanLast4: saved.iban.slice(-4) }));
+    }
     return NextResponse.json({ account: accountView(saved) });
   } catch (error) {
     console.error("Error saving payout details:", error instanceof Error ? error.name : "Error");

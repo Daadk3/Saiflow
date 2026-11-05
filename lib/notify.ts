@@ -38,6 +38,7 @@ import {
   sellerProductEditUrl,
   sellerSalesUrl,
   sellerShopUrl,
+  sellerPayoutsUrl,
 } from "@/lib/notification-links";
 
 /** The same verified sender the receipt and the report email use. */
@@ -508,4 +509,45 @@ export async function notifySaleFulfilled(input: {
   });
 
   return { seller, admins };
+}
+
+/**
+ * A shop's payout bank account changed → every OWNER of that shop.
+ *
+ * A stolen session could otherwise redirect the shop's next payout without
+ * anyone noticing. The email names only the last four characters of the new
+ * IBAN; the founder's payouts page separately refuses to record a payout to
+ * an account changed in the last week without an explicit confirmation.
+ */
+export async function notifyPayoutAccountChanged(input: {
+  shopId: string;
+  ibanLast4: string;
+  at?: Date;
+}): Promise<NotifyOutcome> {
+  const shop = await prisma.shop.findUnique({
+    where: { id: input.shopId },
+    select: {
+      name: true,
+      slug: true,
+      shopUsers: { where: { role: "OWNER" }, select: { user: { select: { email: true } } } },
+    },
+  });
+  const when = formatWhen(input.at ?? new Date());
+  return sendNotification({
+    kind: "payout_account_changed",
+    ref: input.shopId,
+    to: memberEmails(shop),
+    subject: `تغيّر الحساب البنكي لمتجرك على SaiFlow | Your SaiFlow payout account changed`,
+    heading: { ar: "تغيّر الحساب البنكي لتحويل أرباح متجرك", en: "Your shop's payout bank account was changed" },
+    lines: [
+      { ar: `المتجر: ${shop?.name ?? ""}`, en: `Shop: ${shop?.name ?? ""}` },
+      { ar: `الآيبان الجديد ينتهي بـ ${input.ibanLast4}`, en: `The new IBAN ends in ${input.ibanLast4}` },
+      when,
+      {
+        ar: "إن لم تكن أنت من غيّره، فغيّر كلمة المرور فورًا وتواصل معنا على support@saiflow.io.",
+        en: "If this wasn't you, change your password now and contact support@saiflow.io.",
+      },
+    ],
+    link: shop ? { url: sellerPayoutsUrl(shop.slug), label: { ar: "صفحة المدفوعات", en: "Payouts page" } } : null,
+  });
 }
