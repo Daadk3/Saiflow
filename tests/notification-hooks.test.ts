@@ -578,7 +578,7 @@ describe("the remaining call sites (structural)", () => {
 
   test("the Geidea webhook notifies after the receipt and before the reply, with no buyer data", () => {
     const src = read("app/api/webhooks/geidea/route.ts");
-    const receipt = src.indexOf("await sendReceipt(session, result.orderId, result.productName);");
+    const receipt = src.indexOf("await sendReceipt(session, result.orderId, result.productName, result.hosted);");
     const notify = src.indexOf("notifySaleFulfilled({");
     const reply = src.indexOf('return reply(200, { received: true, result: "fulfilled" });');
     assert.ok(receipt > 0 && notify > receipt && reply > notify, "order: receipt, notify, reply");

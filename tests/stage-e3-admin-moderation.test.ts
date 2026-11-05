@@ -616,6 +616,7 @@ describe("the preview payload carries no internals", () => {
       "checklist",
       "createdAt",
       "currency",
+      "deliveryType",
       "description",
       "fileSafety",
       "id",

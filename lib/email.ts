@@ -96,15 +96,27 @@ export async function sendPurchaseEmail({
   productName,
   downloadUrl,
   amountPaid,
+  deliveryType,
 }: {
   customerEmail: string;
   productName: string;
+  /** The download link, or for a hosted-access product the access page link. */
   downloadUrl: string;
+  /** HOSTED_ACCESS changes the wording: buyers get access, not a file. */
+  deliveryType?: "FILE" | "HOSTED_ACCESS";
   /** The price the order recorded. Omitted, or unreadable, the receipt simply leaves the line out. */
   amountPaid?: { amount: unknown; currency: string };
 }) {
   const name = escapeHtml(productName);
   const href = escapeHtml(downloadUrl);
+  const hosted = deliveryType === "HOSTED_ACCESS";
+  const ctaLabel = hosted ? 'افتح وصولك · Open your access' : 'تحميل المنتج · Download your product';
+  const noteAr = hosted
+    ? `هذا المنتج وصول إلى خدمة مستضافة لدى البائع، وليس ملفًا للتحميل. رابط صفحة الوصول صالح لمدة ${RECEIPT_LINK_TTL_DAYS} أيام. بعدها، سجّل الدخول إلى SaiFlow بهذا البريد الإلكتروني وافتح «مشترياتي».`
+    : `رابط التحميل صالح لمدة ${RECEIPT_LINK_TTL_DAYS} أيام. بعدها، سجّل الدخول إلى SaiFlow بهذا البريد الإلكتروني وافتح «مشترياتي» لتحميل ملفك مرة أخرى.`;
+  const noteEn = hosted
+    ? `This product is access to a service the seller hosts, not a file download. The access page link works for ${RECEIPT_LINK_TTL_DAYS} days. After that, sign in to SaiFlow with this email address and open "My purchases".`
+    : `This download link works for ${RECEIPT_LINK_TTL_DAYS} days. After that, sign in to SaiFlow with this email address and open "My purchases" to download your file again.`;
   try {
     // Digits, a point and three capitals only (formatPaid), so safe in HTML.
     const paid = formatPaid(amountPaid);
@@ -128,12 +140,12 @@ export async function sendPurchaseEmail({
             </p>
             ${paidAr}
             <p style="color: #9ca3af; font-size: 14px;">
-              رابط التحميل صالح لمدة ${RECEIPT_LINK_TTL_DAYS} أيام. بعدها، سجّل الدخول إلى SaiFlow بهذا البريد الإلكتروني وافتح «مشترياتي» لتحميل ملفك مرة أخرى.
+              ${noteAr}
             </p>
           </div>
           <div style="text-align: center; margin: 30px 0;">
             <a href="${href}" style="display: inline-block; background: #14b8a6; color: white; padding: 16px 32px; text-decoration: none; border-radius: 12px; font-weight: bold;">
-              تحميل المنتج · Download your product
+              ${ctaLabel}
             </a>
           </div>
           <div dir="ltr" lang="en" style="text-align: left;">
@@ -143,7 +155,7 @@ export async function sendPurchaseEmail({
             </p>
             ${paidEn}
             <p style="color: #9ca3af; font-size: 14px;">
-              This download link works for ${RECEIPT_LINK_TTL_DAYS} days. After that, sign in to SaiFlow with this email address and open "My purchases" to download your file again.
+              ${noteEn}
             </p>
           </div>
           <p style="color: #6b7280; font-size: 12px; text-align: center;">

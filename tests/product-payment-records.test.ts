@@ -276,6 +276,7 @@ describe("the migration only adds, and replaces the two delete rules", () => {
       "20261018120000_founder_test_payments",
       "20261026120000_add_shop_location",
       "20261027120000_add_review_checklist",
+      "20261105120000_hosted_access_products",
     ]);
   });
 });

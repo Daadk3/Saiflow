@@ -8,6 +8,8 @@ import { runAfterResponse } from "@/lib/after-response";
 import { notifyProductModerated } from "@/lib/notify";
 import { SAFE_DELIVERABLE_WHERE, deliverableGateReason, isDeliverableSafe } from "@/lib/file-safety";
 import { isChecklistPointId } from "@/lib/review-checklist";
+import { hostedAccessReady } from "@/lib/hosted-access/validate";
+import { HOSTED_ACCESS_READY_WHERE } from "@/lib/sellable";
 
 /** Approval refused inside the transaction: the file changed after the check. */
 class NotApprovable extends Error {}
@@ -62,7 +64,15 @@ export async function POST(
 
     const product = await prisma.product.findUnique({
       where: { id: productId },
-      select: { id: true, moderationStatus: true, fileKey: true, fileScanStatus: true, fileScanKey: true },
+      select: {
+        id: true,
+        moderationStatus: true,
+        fileKey: true,
+        fileScanStatus: true,
+        fileScanKey: true,
+        deliveryType: true,
+        hostedAccess: { select: { accessUrl: true, instructions: true } },
+      },
     });
     if (!product) {
       return NextResponse.json({ error: "Product not found" }, { status: 404 });
@@ -72,7 +82,18 @@ export async function POST(
     // deliverable that passed its safety check. Approving a product with no
     // file, or one still scanning, failed or flagged, is refused with the
     // reason, so the review page can say why. Rejection needs no file.
-    if (action === "APPROVED" && !isDeliverableSafe(product)) {
+    //
+    // A HOSTED_ACCESS product has no file. It is approvable only with its
+    // access record present and passing the link and instructions rules,
+    // which the admin has read on the review page.
+    const hosted = product.deliveryType === "HOSTED_ACCESS";
+    if (action === "APPROVED" && hosted && !hostedAccessReady(product.hostedAccess)) {
+      return NextResponse.json(
+        { error: "not_approvable", reason: "hosted_access_missing" },
+        { status: 409 }
+      );
+    }
+    if (action === "APPROVED" && !hosted && !isDeliverableSafe(product)) {
       return NextResponse.json(
         { error: "not_approvable", reason: deliverableGateReason(product) },
         { status: 409 }
@@ -85,8 +106,13 @@ export async function POST(
         // The same gate again, as the write's own condition: a file replaced
         // or re-flagged after the check above makes this match nothing, and
         // the whole decision rolls back.
+        // For a hosted product: still hosted, access record still present,
+        // and still the status that was read, so a seller edit committed in
+        // between (which reopens to PENDING) is not silently approved past.
         const approved = await tx.product.updateMany({
-          where: { id: productId, ...SAFE_DELIVERABLE_WHERE },
+          where: hosted
+            ? { id: productId, moderationStatus: product.moderationStatus, ...HOSTED_ACCESS_READY_WHERE }
+            : { id: productId, ...SAFE_DELIVERABLE_WHERE },
           data: { moderationStatus: "APPROVED" },
         });
         if (approved.count !== 1) throw new NotApprovable();

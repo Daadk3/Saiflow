@@ -57,6 +57,8 @@ interface Product {
    * derived server-side; this page only renders it.
    */
   fileState: FileScanStateView | null;
+  /** FILE or HOSTED_ACCESS (no file by design). */
+  deliveryType?: "FILE" | "HOSTED_ACCESS";
   createdAt: string;
 }
 
@@ -80,6 +82,7 @@ export default function ShopDashboard() {
   const t = useTranslations("dashboard.shop");
   const tModeration = useTranslations("moderation");
   const tFileSafety = useTranslations("fileSafety");
+  const tHosted = useTranslations("hostedAccess");
   const tLink = useTranslations("productLink");
 
   const [shop, setShop] = useState<Shop | null>(null);
@@ -415,7 +418,12 @@ export default function ShopDashboard() {
                           {t("awaitingApproval")}
                         </span>
                       )}
-                      {!product.hasFile && (
+                      {product.deliveryType === "HOSTED_ACCESS" && (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-cyan-500/10 text-cyan-300 border border-cyan-500/20">
+                          {tHosted("sellerBadge")}
+                        </span>
+                      )}
+                      {product.deliveryType !== "HOSTED_ACCESS" && !product.hasFile && (
                         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-amber-500/10 text-amber-400 border border-amber-500/20">
                           <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
@@ -446,7 +454,7 @@ export default function ShopDashboard() {
                         creation, so a creator may copy it before a file
                         exists; making it the alternative to this warning hid
                         the address from the people still setting up. */}
-                    {!product.hasFile && (
+                    {product.deliveryType !== "HOSTED_ACCESS" && !product.hasFile && (
                       <p className="text-xs text-amber-400/70 mt-1">
                         ⚠️ {t("uploadFileWarning")}
                       </p>

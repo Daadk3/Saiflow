@@ -423,7 +423,11 @@ describe("the migration is additive and matches the schema", () => {
         // written. The one exception is a boolean flag with a constant
         // default (founderTest): Postgres gives every existing row that
         // default without rewriting it, so no row's meaning changes.
-        const flagWithDefault = /^ALTER TABLE "(PaymentSession|Order)" ADD COLUMN IF NOT EXISTS "founderTest" BOOLEAN NOT NULL DEFAULT false$/.test(s);
+        // Likewise Product.deliveryType (hosted access): an enum with the
+        // constant default FILE, which is what every existing product is.
+        const flagWithDefault =
+          /^ALTER TABLE "(PaymentSession|Order)" ADD COLUMN IF NOT EXISTS "founderTest" BOOLEAN NOT NULL DEFAULT false$/.test(s) ||
+          /^ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "deliveryType" "ProductDeliveryType" NOT NULL DEFAULT 'FILE'$/.test(s);
         if (!/^CREATE TABLE\b/i.test(s) && !flagWithDefault) assert.ok(!/\bNOT NULL\b/i.test(s), `${later} is not additive: ${s}`);
         const dropped = /^ALTER TABLE "(\w+)" DROP CONSTRAINT "(\w+_productId_fkey)"$/.exec(s);
         if (dropped === null) {

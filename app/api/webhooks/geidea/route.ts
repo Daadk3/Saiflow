@@ -71,7 +71,7 @@ import {
 import type { GeideaOrder } from "@/lib/payments/geidea/client";
 import { verifyCallbackSignature } from "@/lib/payments/geidea/signature";
 import { redactId } from "@/lib/redact-id";
-import { receiptDownloadUrl } from "@/lib/download-links";
+import { receiptDownloadUrl, receiptAccessUrl } from "@/lib/download-links";
 import {
   MAX_CALLBACK_BYTES,
   canonicalAmount,
@@ -379,7 +379,7 @@ async function fulfilPaid(
 
   // The Order id is the receipt channel's bearer: redacted like the reference.
   log("log", "fulfilled", { order: redactId(result.orderId), ...ids });
-  await sendReceipt(session, result.orderId, result.productName);
+  await sendReceipt(session, result.orderId, result.productName, result.hosted);
   // Seller and founder, after the Order is committed and after the reply.
   // The product, the gross amount and the environment: never the buyer,
   // never the payload, never a bearer. Exactly once, because a repeated
@@ -409,7 +409,7 @@ class FulfilmentBlocked extends Error {
 }
 
 type FulfilResult =
-  | { kind: "fulfilled"; orderId: string; productName: string }
+  | { kind: "fulfilled"; orderId: string; productName: string; hosted?: boolean }
   | { kind: "already_fulfilled" }
   | { kind: "blocked"; reason: string };
 
@@ -478,7 +478,8 @@ async function fulfil(
 
       const product = await tx.product.findUnique({
         where: { id: session.productId },
-        select: { name: true },
+        // deliveryType only chooses which link the receipt carries.
+        select: { name: true, deliveryType: true },
       });
       if (!product) throw new FulfilmentBlocked("product_missing");
 
@@ -515,7 +516,12 @@ async function fulfil(
         select: { id: true },
       });
 
-      return { kind: "fulfilled", orderId: created.id, productName: product.name } as const;
+      return {
+        kind: "fulfilled",
+        orderId: created.id,
+        productName: product.name,
+        hosted: product.deliveryType === "HOSTED_ACCESS",
+      } as const;
     });
   } catch (error) {
     if (error instanceof FulfilmentBlocked) return { kind: "blocked", reason: error.reason };
@@ -531,7 +537,7 @@ async function fulfil(
  * (lib/download-links), the same one the Stripe receipt uses. A failure here is
  * logged and does not change the response: the purchase exists either way.
  */
-async function sendReceipt(session: Session, orderId: string, productName: string): Promise<void> {
+async function sendReceipt(session: Session, orderId: string, productName: string, hosted = false): Promise<void> {
   if (!session.buyerEmail) return;
   const base = env.NEXTAUTH_URL;
   if (!base) {
@@ -539,6 +545,20 @@ async function sendReceipt(session: Session, orderId: string, productName: strin
     return;
   }
   try {
+    // A hosted-access product (e.g. an AI agent) has no file: its receipt
+    // links to the secure access page with the same signed, dated token.
+    // The email never carries the seller's link itself; the page re-checks
+    // the Order on every open.
+    if (hosted) {
+      await sendPurchaseEmail({
+        customerEmail: session.buyerEmail,
+        productName,
+        downloadUrl: receiptAccessUrl(base, { orderId, productId: session.productId }, env.NEXTAUTH_SECRET),
+        amountPaid: { amount: session.amount, currency: session.currency },
+        deliveryType: "HOSTED_ACCESS",
+      });
+      return;
+    }
     await sendPurchaseEmail({
       customerEmail: session.buyerEmail,
       productName,

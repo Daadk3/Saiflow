@@ -223,6 +223,8 @@ export interface DirectoryRow {
   id: string;
   name: string;
   slug: string;
+  /** FILE, or HOSTED_ACCESS (no file by design). */
+  deliveryType?: "FILE" | "HOSTED_ACCESS";
   thumbnailUrl: string | null;
   price: number;
   currency: string;
@@ -369,6 +371,10 @@ export async function getProductsDirectory(opts: {
         fileKey: true,
         fileScanStatus: true,
         fileScanKey: true,
+        // Hosted access (no file by design): its type, and only whether its
+        // private record exists. Never the link.
+        deliveryType: true,
+        hostedAccess: { select: { productId: true } },
         shop: {
           select: {
             name: true,
@@ -420,6 +426,7 @@ export async function getProductsDirectory(opts: {
         reportCount: p._count.moderationEvents,
         humanReviewed: latest != null && latest.newStatus === p.moderationStatus,
         hasFile: p.fileKey != null,
+        deliveryType: p.deliveryType,
         fileSafety: moderatorFileSafety(p),
         canInspect: inspectProduct(p, "admin").decision.allow,
         notSellableReason:

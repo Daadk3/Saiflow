@@ -26,6 +26,8 @@ export interface StatusResponse {
   orderExists: boolean;
   /** Present only when the server has a confirmed Order: a same-origin download path. */
   downloadUrl: string | null;
+  /** For a hosted-access product instead: the same-origin delivery page path. */
+  accessPath?: string;
 }
 
 export type PollOutcome =
@@ -34,6 +36,8 @@ export type PollOutcome =
       status: Exclude<PaymentStatus, "processing">;
       productName: string;
       downloadUrl: string | null;
+      /** Present only for a paid hosted-access order. */
+      accessPath?: string;
     }
   | { kind: "processing"; productName: string | null }
   | { kind: "unknown" }
@@ -65,17 +69,26 @@ function defaultSleep(ms: number, signal?: AbortSignal): Promise<void> {
 
 /** A download path is accepted only as SaiFlow's own download route, relative. */
 const DOWNLOAD_PATH = /^\/api\/download\/[^/?#]+\?ref=[0-9a-f-]{36}$/i;
+/** An access path is accepted only as SaiFlow's own delivery page, relative. */
+const ACCESS_PATH = /^\/access\/[A-Za-z0-9_-]{1,64}\?ref=[0-9a-f-]{36}$/i;
 
 function decode(body: unknown): StatusResponse | null {
   if (typeof body !== "object" || body === null) return null;
-  const { status, productName, orderExists, downloadUrl } = body as Record<string, unknown>;
+  const { status, productName, orderExists, downloadUrl, accessPath } = body as Record<string, unknown>;
   if (typeof status !== "string" || !(PAYMENT_STATUSES as readonly string[]).includes(status)) {
     return null;
   }
   if (typeof productName !== "string" || typeof orderExists !== "boolean") return null;
   const path =
     typeof downloadUrl === "string" && DOWNLOAD_PATH.test(downloadUrl) ? downloadUrl : null;
-  return { status: status as PaymentStatus, productName, orderExists, downloadUrl: path };
+  const access = typeof accessPath === "string" && ACCESS_PATH.test(accessPath) ? accessPath : null;
+  return {
+    status: status as PaymentStatus,
+    productName,
+    orderExists,
+    downloadUrl: path,
+    ...(access !== null ? { accessPath: access } : {}),
+  };
 }
 
 export async function pollPaymentStatus(options: PollOptions): Promise<PollOutcome> {
@@ -130,6 +143,7 @@ export async function pollPaymentStatus(options: PollOptions): Promise<PollOutco
               productName,
               // Only a paid answer may carry a download path; anything else is dropped.
               downloadUrl: decoded.status === "paid" ? decoded.downloadUrl : null,
+              ...(decoded.status === "paid" && decoded.accessPath ? { accessPath: decoded.accessPath } : {}),
             };
           }
         }

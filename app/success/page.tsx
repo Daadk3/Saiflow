@@ -49,16 +49,23 @@ function viewFor(outcome: PollOutcome): View {
 
 function SuccessContent() {
   const t = useTranslations("success");
+  const tHosted = useTranslations("hostedAccess");
   const searchParams = useSearchParams();
   const ref = searchParams.get("ref");
 
   const [view, setView] = useState<View>(ref ? { kind: "processing" } : { kind: "unknown" });
+  // A hosted-access purchase (e.g. an AI agent): the path to its secure
+  // delivery page, supplied by the status endpoint only for a paid Order.
+  const [accessPath, setAccessPath] = useState<string | null>(null);
 
   useEffect(() => {
     if (!ref) return;
     const controller = new AbortController();
     pollPaymentStatus({ ref, signal: controller.signal }).then((outcome) => {
-      if (!controller.signal.aborted) setView(viewFor(outcome));
+      if (!controller.signal.aborted) {
+        setView(viewFor(outcome));
+        setAccessPath(outcome.kind === "settled" && outcome.status === "paid" ? outcome.accessPath ?? null : null);
+      }
     });
     return () => controller.abort();
   }, [ref]);
@@ -141,7 +148,21 @@ function SuccessContent() {
               </a>
             )}
             {view.kind === "paid" && view.downloadUrl === null && (
-              <p className="text-amber-400 text-sm mb-6">{t("paidNoLink")}</p>
+              accessPath !== null ? (
+                <div className="mb-6">
+                  {/* A hosted-access purchase: same tab, because the delivery
+                      page is SaiFlow's own and re-checks the Order. */}
+                  <a
+                    href={accessPath}
+                    className="inline-flex items-center gap-2 bg-teal-500 hover:bg-teal-400 text-white px-6 py-3 rounded-xl font-semibold transition-colors"
+                  >
+                    {tHosted("successCta")}
+                  </a>
+                  <p className="mt-3 text-sm text-gray-400">{tHosted("successBody")}</p>
+                </div>
+              ) : (
+                <p className="text-amber-400 text-sm mb-6">{t("paidNoLink")}</p>
+              )
             )}
 
             {(isTimeout || isEnded || view.kind === "unknown" || view.kind === "error") && ref && (

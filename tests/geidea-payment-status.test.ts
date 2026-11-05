@@ -295,7 +295,8 @@ describe("GET /api/payment-status", () => {
     const select = (reads[0] as { select: Record<string, unknown> }).select;
     assert.deepEqual(Object.keys(select).sort(), ["expiresAt", "order", "product", "status"]);
     assert.deepEqual(select.order, { select: { productId: true } }, "the Order's id is never even read");
-    assert.deepEqual(select.product, { select: { name: true } });
+    // deliveryType picks a download path or a hosted-access page path.
+    assert.deepEqual(select.product, { select: { name: true, deliveryType: true } });
     // Any write would have thrown inside the fake and surfaced as a 500.
   });
 

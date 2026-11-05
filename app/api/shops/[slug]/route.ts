@@ -76,6 +76,9 @@ export async function GET(
             fileKey: true,
             fileScanStatus: true,
             fileScanKey: true,
+            // FILE or HOSTED_ACCESS: changes the seller's badges only. The
+            // hosted access details are never selected here.
+            deliveryType: true,
             updatedAt: true,
           },
         },
@@ -191,6 +194,7 @@ export async function GET(
         //
         // fileKey is the column every gate reads, so this now agrees with them.
         hasFile: p.fileKey !== null,
+        deliveryType: p.deliveryType,
         // Derived here, from the same columns the gates read, by the same
         // reviewed vocabulary. The browser renders this string; it cannot
         // compute it, contradict it, or send one back.

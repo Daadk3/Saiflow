@@ -25,6 +25,7 @@ import { FileScanState, type FileScanStateView } from "@/components/FileScanStat
 import { isScanInProgress } from "@/lib/scan-status-polling";
 import { useScanStatusPolling } from "@/lib/use-scan-status-polling";
 import { DashboardSkeleton } from "@/components/ui/DashboardSkeleton";
+import { HostedAccessFields } from "@/components/HostedAccessFields";
 
 interface Product {
   id: string;
@@ -48,6 +49,10 @@ interface Product {
   fileSafety?: CreatorFileStatus;
   fileState?: FileScanStateView | null;
   thumbnailUrl: string | null;
+  /** FILE, or HOSTED_ACCESS for access to something the seller hosts. Fixed at creation. */
+  deliveryType?: "FILE" | "HOSTED_ACCESS";
+  /** The private access details: members only, from GET /api/products/[id]. */
+  hostedAccess?: { accessUrl: string; instructions: string | null } | null;
   shop: {
     id: string;
     name: string;
@@ -76,6 +81,15 @@ export default function EditProductPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [accessUrl, setAccessUrl] = useState("");
+  const [accessInstructions, setAccessInstructions] = useState("");
+  const [hostedCertified, setHostedCertified] = useState(false);
+  const hosted = product?.deliveryType === "HOSTED_ACCESS";
+  const accessChanged =
+    hosted &&
+    (accessUrl !== (product?.hostedAccess?.accessUrl ?? "") ||
+      accessInstructions !== (product?.hostedAccess?.instructions ?? ""));
+  const deliverableReady = hosted ? accessUrl.trim() !== "" && (!accessChanged || hostedCertified) : Boolean(fileUrl);
 
   // Built from the shared taxonomy — see lib/categories.ts
   const categories = [
@@ -155,6 +169,8 @@ export default function EditProductPage() {
       setCategory(productData.category || "");
       setFileUrl(productData.fileUrl || "");
       setThumbnailUrl(productData.thumbnailUrl || "");
+      setAccessUrl(productData.hostedAccess?.accessUrl || "");
+      setAccessInstructions(productData.hostedAccess?.instructions || "");
       if (productData.fileUrl) {
         setFileName(t("dashboard.product.edit.currentFileName"));
       }
@@ -196,20 +212,37 @@ export default function EditProductPage() {
       const res = await fetch(`/api/products/${product.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name,
-          description,
-          price: parseFloat(price),
-          category: category || null,
-          fileUrl: fileUrl || null,
-          thumbnailUrl: thumbnailUrl || null,
-        }),
+        body: JSON.stringify(
+          hosted
+            ? {
+                name,
+                description,
+                price: parseFloat(price),
+                category: category || null,
+                thumbnailUrl: thumbnailUrl || null,
+                accessUrl,
+                accessInstructions,
+                hostedAccessCertified: hostedCertified,
+              }
+            : {
+                name,
+                description,
+                price: parseFloat(price),
+                category: category || null,
+                fileUrl: fileUrl || null,
+                thumbnailUrl: thumbnailUrl || null,
+              }
+        ),
       });
 
       const data = await res.json();
 
       if (!res.ok) {
-        setError(data.code === "file_required" ? t("dashboard.product.fileRequired") : data.error || t("dashboard.shop.somethingWrong"));
+        setError(
+          data.code === "file_required"
+            ? t("dashboard.product.fileRequired")
+            : (locale.startsWith("ar") && data.errorAr) || data.error || t("dashboard.shop.somethingWrong")
+        );
         return;
       }
 
@@ -543,7 +576,26 @@ export default function EditProductPage() {
                 </div>
               )}
 
+              {/* Hosted access (e.g. an AI agent): no file. Changing the link
+                  or instructions sends an approved product back to review. */}
+              {hosted && (
+                <>
+                  <HostedAccessFields
+                    accessUrl={accessUrl}
+                    onAccessUrl={setAccessUrl}
+                    instructions={accessInstructions}
+                    onInstructions={setAccessInstructions}
+                    certified={hostedCertified}
+                    onCertified={setHostedCertified}
+                  />
+                  {accessChanged && product?.moderationStatus === "APPROVED" && (
+                    <p className="text-xs text-amber-300">{t("hostedAccess.seller.changeReopensReview")}</p>
+                  )}
+                </>
+              )}
+
               {/* File Upload */}
+              {!hosted && (
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">
                   {t("dashboard.product.productFileLabel")}
@@ -659,6 +711,7 @@ export default function EditProductPage() {
                   </div>
                 )}
               </div>
+              )}
 
               {/* Error Message */}
               {error && (
@@ -678,9 +731,9 @@ export default function EditProductPage() {
 
               {/* Action Buttons */}
               {/* A product cannot be saved without its file (the API refuses too). */}
-              {!fileUrl && (
+              {!deliverableReady && (
                 <p id="file-required" role="status" className="text-sm text-amber-300">
-                  {t("dashboard.product.fileRequired")}
+                  {hosted ? t("hostedAccess.seller.required") : t("dashboard.product.fileRequired")}
                 </p>
               )}
               <div className="flex gap-4">
@@ -692,8 +745,8 @@ export default function EditProductPage() {
                 </Link>
                 <button
                   type="submit"
-                  disabled={saving || !fileUrl}
-                  aria-describedby={!fileUrl ? "file-required" : undefined}
+                  disabled={saving || !deliverableReady}
+                  aria-describedby={!deliverableReady ? "file-required" : undefined}
                   className="flex-1 py-3 px-4 bg-teal-500 hover:bg-teal-400 disabled:bg-teal-500/50 disabled:cursor-not-allowed text-white font-semibold rounded-xl transition-colors duration-200 flex items-center justify-center gap-2"
                 >
                   {saving ? (

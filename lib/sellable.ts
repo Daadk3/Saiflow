@@ -1,4 +1,4 @@
-import type { ModerationStatus, Prisma } from "@prisma/client";
+import type { ModerationStatus, Prisma, ProductDeliveryType } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import {
   SAFE_DELIVERABLE_WHERE,
@@ -28,6 +28,19 @@ import {
  * loaded, and unsellableReason says which condition failed first. Tests hold
  * the where-clause and the functions in agreement (tests/sellable.test.ts).
  *
+ * HOSTED ACCESS. Condition 4 depends on what the product delivers. A FILE
+ * product (every existing row) needs exactly what it always needed:
+ * SAFE_DELIVERABLE_WHERE. A HOSTED_ACCESS product (access to something the
+ * seller hosts, such as an AI agent) has no file to scan; it needs its
+ * private access record to exist instead. A hosted product carries no file
+ * key, so the file branch can never match it, and a FILE product can never
+ * match the hosted branch. The two branches sit under AND so a caller that
+ * sets its own OR (browse's search) cannot overwrite them.
+ *
+ * In memory, a row loaded without `deliveryType` is treated as FILE, which
+ * fails closed for a hosted row: it has no file, so it is never sellable
+ * through a query that forgot to load the column.
+ *
  * The download route deliberately does NOT use this: a buyer who already
  * paid keeps their file even if the product is later unlisted. It still
  * requires the safety check (isDeliverableSafe) on every download.
@@ -36,11 +49,28 @@ import {
 /** The shop half of the rule; exported so a query that also filters the shop (by slug) keeps it. */
 export const SELLABLE_SHOP_WHERE = { isActive: true } satisfies Prisma.ShopWhereInput;
 
+/** Condition 4 for a HOSTED_ACCESS product: its private access record exists. */
+export const HOSTED_ACCESS_READY_WHERE = {
+  deliveryType: "HOSTED_ACCESS",
+  hostedAccess: { isNot: null },
+} satisfies Prisma.ProductWhereInput;
+
 export const SELLABLE_PRODUCT_WHERE = {
   isActive: true,
   moderationStatus: "APPROVED",
   shop: SELLABLE_SHOP_WHERE,
-  ...SAFE_DELIVERABLE_WHERE,
+  AND: [
+    {
+      OR: [
+        // Condition 4 for a FILE product: the reviewed safety clause, unchanged.
+        {
+          deliveryType: "FILE",
+          ...SAFE_DELIVERABLE_WHERE,
+        },
+        HOSTED_ACCESS_READY_WHERE,
+      ],
+    },
+  ],
 } satisfies Prisma.ProductWhereInput;
 
 /**
@@ -59,6 +89,9 @@ export const SELLABLE_PRODUCT_WHERE = {
  * is why they are off sale.
  */
 export const APPROVED_NOT_SELLABLE_WHERE = {
+  // File products only: a hosted product has no file by design, and is never
+  // approvable without its access record (the moderation route).
+  deliveryType: "FILE",
   isActive: true,
   moderationStatus: "APPROVED",
   shop: SELLABLE_SHOP_WHERE,
@@ -74,9 +107,28 @@ export interface SellableFacts extends DeliverableSafety {
   isActive: boolean;
   moderationStatus: ModerationStatus;
   shop: { isActive: boolean };
+  /** Missing means FILE: see the note above. */
+  deliveryType?: ProductDeliveryType;
+  /** Only its presence is read; select an id, never the link. */
+  hostedAccess?: object | null;
 }
 
-export type UnsellableReason = "sellable" | "inactive" | "not_approved" | "shop_inactive" | Exclude<DeliverableGateReason, "safe">;
+export type UnsellableReason =
+  | "sellable"
+  | "inactive"
+  | "not_approved"
+  | "shop_inactive"
+  | "hosted_access_missing"
+  | Exclude<DeliverableGateReason, "safe">;
+
+/** Condition 4 in memory, per delivery type. */
+function deliveryReason(product: SellableFacts): "sellable" | "hosted_access_missing" | Exclude<DeliverableGateReason, "safe"> {
+  if (product.deliveryType === "HOSTED_ACCESS") {
+    return product.hostedAccess ? "sellable" : "hosted_access_missing";
+  }
+  const file = deliverableGateReason(product);
+  return file === "safe" ? "sellable" : file;
+}
 
 /**
  * Which condition fails first, in the order a founder would fix them: the
@@ -87,8 +139,7 @@ export function unsellableReason(product: SellableFacts): UnsellableReason {
   if (!product.isActive) return "inactive";
   if (product.moderationStatus !== "APPROVED") return "not_approved";
   if (!product.shop.isActive) return "shop_inactive";
-  const file = deliverableGateReason(product);
-  return file === "safe" ? "sellable" : file;
+  return deliveryReason(product);
 }
 
 /** The same rule as SELLABLE_PRODUCT_WHERE, for a row already loaded. */
@@ -97,6 +148,6 @@ export function isSellable(product: SellableFacts): boolean {
     product.isActive &&
     product.moderationStatus === "APPROVED" &&
     product.shop.isActive &&
-    isDeliverableSafe(product)
+    (product.deliveryType === "HOSTED_ACCESS" ? Boolean(product.hostedAccess) : isDeliverableSafe(product))
   );
 }

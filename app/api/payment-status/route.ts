@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { rateLimiters, getClientIp } from "@/lib/rate-limit";
 import { isMerchantReference, statusFor } from "@/lib/payments/payment-status";
+import { hostedAccessPath } from "@/lib/hosted-access/authorize";
 
 /**
  * Payment status for the success page.
@@ -47,7 +48,9 @@ export async function GET(req: Request) {
     select: {
       status: true,
       expiresAt: true,
-      product: { select: { name: true } },
+      // deliveryType decides which path a paid answer carries: a download
+      // for a file product, the secure access page for a hosted one.
+      product: { select: { name: true, deliveryType: true } },
       order: { select: { productId: true } },
     },
   });
@@ -65,10 +68,15 @@ export async function GET(req: Request) {
     // so the path names exactly what the Order authorises. It carries the
     // reference the buyer already holds and nothing else; the download route
     // re-checks the Order and the file at the moment of the click.
+    //
+    // A hosted-access product has no file, so it gets the delivery page's
+    // path instead, built the same way; that page re-checks the Order too.
     ...(attempt.order !== null && status === "paid"
-      ? {
-          downloadUrl: `/api/download/${encodeURIComponent(attempt.order.productId)}?ref=${encodeURIComponent(ref)}`,
-        }
+      ? attempt.product.deliveryType === "HOSTED_ACCESS"
+        ? { accessPath: hostedAccessPath(attempt.order.productId, { ref }) }
+        : {
+            downloadUrl: `/api/download/${encodeURIComponent(attempt.order.productId)}?ref=${encodeURIComponent(ref)}`,
+          }
       : {}),
   });
 }

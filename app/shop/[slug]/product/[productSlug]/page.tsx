@@ -24,6 +24,8 @@ interface Product {
   currency: string;
   images: string[];
   thumbnailUrl: string | null;
+  /** FILE or HOSTED_ACCESS. Public: it only changes the wording. The access details are never selected here. */
+  deliveryType: "FILE" | "HOSTED_ACCESS";
   shop: {
     name: string;
     slug: string;
@@ -51,6 +53,7 @@ const getProduct = cache(async function getProduct(shopSlug: string, productSlug
       currency: true,
       images: true,
       thumbnailUrl: true,
+      deliveryType: true,
       shop: {
         select: {
           name: true,
@@ -250,6 +253,22 @@ export default async function ProductPage({
               {preLaunchMode && (
                 <p className="-mt-2 mb-4 text-xs text-gray-500">{t("storefront.productDetail.includedOncePaymentsOpen")}</p>
               )}
+              {/* Hosted access (e.g. an AI agent): the buyer gets access to
+                  something the seller hosts, not a file, and the page says so. */}
+              {product.deliveryType === "HOSTED_ACCESS" ? (
+                <ul className="space-y-3 text-sm text-gray-300">
+                  {(["hostedIncludesAccess", "hostedIncludesHostedBySeller", "hostedIncludesNoDownload"] as const).map((key) => (
+                    <li key={key} className="flex items-center gap-2">
+                      <span className="text-teal-500">
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                      </span>
+                      {t(`hostedAccess.product.${key}`)}
+                    </li>
+                  ))}
+                </ul>
+              ) : (
               <ul className="space-y-3 text-sm text-gray-300">
                 <li className="flex items-center gap-2">
                   <span className="text-teal-500">
@@ -276,6 +295,7 @@ export default async function ProductPage({
                   {t("storefront.productDetail.includesFreeUpdates")}
                 </li>
               </ul>
+              )}
             </div>
           </div>
 
@@ -287,6 +307,12 @@ export default async function ProductPage({
                   <bdi>{formatPrice(Number(product.price), product.currency, locale)}</bdi>
                 </span>
               </div>
+
+              {product.deliveryType === "HOSTED_ACCESS" && (
+                <p className="mt-3 inline-flex items-center rounded-full border border-cyan-500/20 bg-cyan-500/10 px-3 py-1 text-xs font-medium text-cyan-300">
+                  {t("hostedAccess.product.badge")}
+                </p>
+              )}
 
               <div className="mt-6">
                 <BuyButton checkoutHref={checkoutHref} sellable preLaunchMode={preLaunchMode} />

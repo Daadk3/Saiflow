@@ -12,6 +12,7 @@ import { useUploadContent } from "@/components/upload/useUploadContent";
 import { PRODUCT_CATEGORIES, CATEGORY_LABEL_KEYS, type ProductCategory } from "@/lib/categories";
 import ListingAssistant from "@/components/ai/ListingAssistant";
 import { PriceBreakdown } from "@/components/PriceBreakdown";
+import { HostedAccessFields } from "@/components/HostedAccessFields";
 
 export default function AddProductPage() {
   const t = useTranslations();
@@ -31,6 +32,14 @@ export default function AddProductPage() {
   const [shopName, setShopName] = useState<string>("");
   // Trust & Safety: seller must certify ownership/legality before every upload
   const [certified, setCertified] = useState(false);
+  // What the buyer gets: a scanned file (the default, unchanged) or access
+  // to something the seller hosts, such as an AI agent.
+  const [deliveryType, setDeliveryType] = useState<"FILE" | "HOSTED_ACCESS">("FILE");
+  const [accessUrl, setAccessUrl] = useState("");
+  const [accessInstructions, setAccessInstructions] = useState("");
+  const [hostedCertified, setHostedCertified] = useState(false);
+  const hosted = deliveryType === "HOSTED_ACCESS";
+  const deliverableReady = hosted ? accessUrl.trim() !== "" && hostedCertified : Boolean(fileUrl);
 
   // Built from the shared taxonomy — see lib/categories.ts
   const categories = [
@@ -85,22 +94,42 @@ export default function AddProductPage() {
       const res = await fetch("/api/products", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name,
-          description,
-          price: parseFloat(price),
-          category: category || null,
-          shopId,
-          fileUrl,
-          thumbnailUrl,
-          certified,
-        }),
+        body: JSON.stringify(
+          hosted
+            ? {
+                deliveryType: "HOSTED_ACCESS",
+                name,
+                description,
+                price: parseFloat(price),
+                category: category || null,
+                shopId,
+                thumbnailUrl,
+                certified,
+                accessUrl,
+                accessInstructions,
+                hostedAccessCertified: hostedCertified,
+              }
+            : {
+                name,
+                description,
+                price: parseFloat(price),
+                category: category || null,
+                shopId,
+                fileUrl,
+                thumbnailUrl,
+                certified,
+              }
+        ),
       });
 
       const data = await res.json();
 
       if (!res.ok) {
-        setError(data.code === "file_required" ? t("dashboard.product.fileRequired") : data.error || t("dashboard.shop.somethingWrong"));
+        setError(
+          data.code === "file_required"
+            ? t("dashboard.product.fileRequired")
+            : (locale.startsWith("ar") && data.errorAr) || data.error || t("dashboard.shop.somethingWrong")
+        );
         return;
       }
 
@@ -334,7 +363,51 @@ export default function AddProductPage() {
                 </p>
               </div>
 
+              {/* What the buyer receives */}
+              <fieldset>
+                <legend className="block text-sm font-medium text-gray-300 mb-2">
+                  {t("hostedAccess.seller.typeLabel")}
+                </legend>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {(["FILE", "HOSTED_ACCESS"] as const).map((type) => (
+                    <label
+                      key={type}
+                      className={`cursor-pointer rounded-xl border p-4 transition-colors ${
+                        deliveryType === type ? "border-teal-500 bg-teal-500/10" : "border-gray-800 hover:border-gray-700"
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="deliveryType"
+                        value={type}
+                        checked={deliveryType === type}
+                        onChange={() => setDeliveryType(type)}
+                        className="sr-only"
+                      />
+                      <span className="block text-sm font-semibold text-white">
+                        {t(type === "FILE" ? "hostedAccess.seller.typeFile" : "hostedAccess.seller.typeHosted")}
+                      </span>
+                      <span className="mt-1 block text-xs text-gray-400">
+                        {t(type === "FILE" ? "hostedAccess.seller.typeFileHelp" : "hostedAccess.seller.typeHostedHelp")}
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              </fieldset>
+
+              {hosted && (
+                <HostedAccessFields
+                  accessUrl={accessUrl}
+                  onAccessUrl={setAccessUrl}
+                  instructions={accessInstructions}
+                  onInstructions={setAccessInstructions}
+                  certified={hostedCertified}
+                  onCertified={setHostedCertified}
+                />
+              )}
+
               {/* File Upload */}
+              {!hosted && (
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">
                   {t("dashboard.product.productFileLabel")} <span className="text-teal-400">*</span>
@@ -411,6 +484,7 @@ export default function AddProductPage() {
                   </div>
                 )}
               </div>
+              )}
 
               {/* Optional AI assistant. Nothing here saves or publishes: it
                   hands values back to this form and the creator submits below
@@ -473,17 +547,17 @@ export default function AddProductPage() {
               {/* Nothing to review without the file to sell: the button waits
                   until the upload has FINISHED (fileUrl is set only by
                   onClientUploadComplete). The API refuses too. */}
-              {!fileUrl && (
+              {!deliverableReady && (
                 <p id="file-required" role="status" className="text-sm text-amber-300">
-                  {t("dashboard.product.fileRequired")}
+                  {hosted ? t("hostedAccess.seller.required") : t("dashboard.product.fileRequired")}
                 </p>
               )}
 
               {/* Submit Button */}
               <button
                 type="submit"
-                disabled={loading || !shopId || !certified || !fileUrl}
-                aria-describedby={!fileUrl ? "file-required" : undefined}
+                disabled={loading || !shopId || !certified || !deliverableReady}
+                aria-describedby={!deliverableReady ? "file-required" : undefined}
                 className="w-full py-3 px-4 bg-teal-500 hover:bg-teal-400 disabled:bg-teal-500/50 disabled:cursor-not-allowed text-white font-semibold rounded-xl transition-colors duration-200 flex items-center justify-center gap-2"
               >
                 {loading ? (

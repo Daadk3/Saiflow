@@ -97,8 +97,13 @@ describe("the store directory data", () => {
     const where = calls.groupBy!.where as Record<string, unknown>;
     assert.equal(where.isActive, true);
     assert.equal(where.moderationStatus, "APPROVED");
-    assert.equal(where.fileScanStatus, "SAFE");
-    assert.deepEqual(where.fileKey, { not: null });
+    // The delivery condition sits under AND: the file branch is the SAFE file
+    // bound to its key, the other is a hosted product's access record.
+    const [{ OR: branches }] = where.AND as Array<{ OR: Array<Record<string, unknown>> }>;
+    assert.equal(branches[0].deliveryType, "FILE");
+    assert.equal(branches[0].fileScanStatus, "SAFE");
+    assert.deepEqual(branches[0].fileKey, { not: null });
+    assert.deepEqual(branches[1], { deliveryType: "HOSTED_ACCESS", hostedAccess: { isNot: null } });
     assert.deepEqual(where.shopId, { in: ["shop_new", "shop_old"] });
   });
 
