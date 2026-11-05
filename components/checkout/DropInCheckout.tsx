@@ -70,17 +70,38 @@ function loadGeideaScript(url: string): Promise<void> {
   return promise;
 }
 
-/** Whether Geidea's iframe has appeared in this mount's container. The iframe's contents are never read. */
+/**
+ * Whether Geidea's iframe has *loaded* in this mount's container.
+ *
+ * The element is inserted before its document has styles, so treating
+ * "an iframe exists" as ready shows that first unstyled paint. `load`
+ * means the hosted document finished loading; `error` or the existing
+ * timeout means it did not, and the panel then shows the stuck notice
+ * instead of leaving the veil up. The document inside the frame is never
+ * read.
+ */
 function waitForFrame(containerId: string, timeoutMs: number): Promise<boolean> {
   return new Promise((resolve) => {
     const deadline = Date.now() + timeoutMs;
+    let settled = false;
+    let watched: HTMLIFrameElement | null = null;
+    const finish = (loaded: boolean) => {
+      if (settled) return;
+      settled = true;
+      resolve(loaded);
+    };
+    const watch = (frame: HTMLIFrameElement) => {
+      if (watched === frame) return;
+      watched = frame;
+      frame.addEventListener("load", () => finish(true), { once: true });
+      frame.addEventListener("error", () => finish(false), { once: true });
+    };
     const tick = () => {
-      if (document.getElementById(containerId)?.querySelector("iframe")) {
-        resolve(true);
-        return;
-      }
+      if (settled) return;
+      const frame = document.getElementById(containerId)?.querySelector("iframe");
+      if (frame instanceof HTMLIFrameElement) watch(frame);
       if (Date.now() >= deadline) {
-        resolve(false);
+        finish(false);
         return;
       }
       window.setTimeout(tick, 200);
@@ -223,12 +244,12 @@ export function DropInCheckout({
   }
 
   if (!resumeChecked) {
-    return <div className="h-40 animate-pulse rounded-2xl border border-gray-800 bg-[#111111]" aria-hidden="true" />;
+    return <div className="h-40 animate-pulse rounded-2xl border border-teal-500/20 bg-[#101918]" aria-hidden="true" />;
   }
 
   if (buyerEmail === null) {
     return (
-      <form onSubmit={submitEmail} noValidate className="rounded-2xl border border-gray-800 bg-[#111111] p-6">
+      <form onSubmit={submitEmail} noValidate className="rounded-2xl border border-teal-500/25 bg-[#101918] p-6 shadow-lg shadow-black/30">
         <label htmlFor="checkout-buyer-email" className="block text-sm font-medium text-white">
           {t("emailLabel")}
         </label>
@@ -251,7 +272,7 @@ export function DropInCheckout({
           }}
           aria-invalid={invalid}
           aria-describedby={invalid ? "checkout-buyer-email-hint checkout-buyer-email-error" : "checkout-buyer-email-hint"}
-          className="mt-3 w-full rounded-xl border border-gray-700 bg-[#0a0a0a] px-4 py-3 text-white placeholder-gray-500 focus:border-teal-500 focus:outline-none"
+          className="mt-3 w-full rounded-xl border border-teal-900 bg-[#071311] px-4 py-3 text-white placeholder-gray-500 focus:border-teal-400 focus:outline-none focus:ring-1 focus:ring-teal-400/50"
           placeholder="name@example.com"
         />
         {invalid && (

@@ -104,8 +104,12 @@ export default async function CheckoutPage({
   const testMode = formOffered && !live;
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a]">
-      <main className="mx-auto w-full max-w-5xl px-4 py-8 sm:px-6 sm:py-12 lg:px-8">
+    <div className="relative min-h-screen bg-[#0a0a0a]">
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute left-1/2 top-0 h-[420px] w-[min(100%,720px)] -translate-x-1/2 rounded-full bg-teal-500/10 blur-[120px]"
+      />
+      <main className="relative mx-auto w-full max-w-5xl px-4 py-8 sm:px-6 sm:py-12 lg:px-8">
         <Link
           href={productHref}
           className="inline-flex items-center gap-2 text-sm text-gray-400 transition-colors hover:text-teal-400"
@@ -144,20 +148,20 @@ export default async function CheckoutPage({
 
           <section aria-labelledby="checkout-pay-by-card" className="min-w-0">
             <div className="mb-4 flex items-center gap-3">
-              <span className="h-px flex-1 bg-gray-800" aria-hidden="true" />
-              <h2 id="checkout-pay-by-card" className="text-sm font-medium text-gray-400">
+              <span className="h-px flex-1 bg-teal-800/70" aria-hidden="true" />
+              <h2 id="checkout-pay-by-card" className="text-sm font-medium text-teal-100/80">
                 {t("payByCard")}
               </h2>
-              <span className="h-px flex-1 bg-gray-800" aria-hidden="true" />
+              <span className="h-px flex-1 bg-teal-800/70" aria-hidden="true" />
             </div>
 
             {!formOffered ? (
-              <div role="status" className="rounded-2xl border border-gray-800 bg-[#111111] p-6 text-center">
+              <div role="status" className="rounded-2xl border border-teal-500/20 bg-[#101918] p-6 text-center">
                 <h3 className="text-base font-semibold text-white">{t("payments_offTitle")}</h3>
                 <p className="mt-1.5 text-sm text-gray-400">{t("payments_offBody")}</p>
               </div>
             ) : overFounderCap ? (
-              <div role="status" className="rounded-2xl border border-fuchsia-400/30 bg-[#111111] p-6 text-center">
+              <div role="status" className="rounded-2xl border border-fuchsia-400/30 bg-[#101918] p-6 text-center">
                 <h3 className="text-base font-semibold text-white">{t("founderTestAmountTitle")}</h3>
                 <p className="mt-1.5 text-sm text-gray-400">{t("founderTestAmountBody", { max: FOUNDER_TEST_MAX_SAR })}</p>
               </div>
