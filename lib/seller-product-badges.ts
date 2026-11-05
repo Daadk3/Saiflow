@@ -40,16 +40,26 @@ export interface SellerBadgeInput {
   hasFile: boolean;
   /** Server-derived (lib/seller-file-state); null when there is no file. */
   fileState?: { state: SellerFileStateName } | null;
+  /** HOSTED_ACCESS has no file by design: the file badges do not apply. */
+  deliveryType?: "FILE" | "HOSTED_ACCESS";
 }
 
 export function sellerProductBadges({
   moderationStatus,
   hasFile,
   fileState,
+  deliveryType,
 }: SellerBadgeInput): SellerBadge[] {
   const badges: SellerBadge[] = [];
   const rejected = moderationStatus === "REJECTED";
   const approved = moderationStatus === "APPROVED";
+
+  // Hosted access (e.g. an AI agent): nothing to scan, so the story is the
+  // review alone.
+  if (deliveryType === "HOSTED_ACCESS") {
+    badges.push(rejected ? "rejected" : approved ? "ready" : "awaiting_approval");
+    return badges;
+  }
 
   // A rejection is always said, first, whatever the file says: it is the one
   // outcome the seller cannot fix by touching the file.

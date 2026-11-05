@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { RescanButton } from "@/components/admin/RescanButton";
 import DecisionButtons from "@/components/admin/DecisionButtons";
 import { ReviewChecklist } from "@/components/admin/ReviewChecklist";
+import { HostedAccessReview } from "@/components/admin/HostedAccessReview";
+import { getHostedAccessForAdmin } from "@/lib/hosted-access/admin";
 import Link from "next/link";
 import Image from "next/image";
 import { notFound, redirect } from "next/navigation";
@@ -91,7 +93,10 @@ export default async function AdminProductPreviewPage({
   const rejection = product.moderationStatus === "REJECTED" ? latestRejection(history) : null;
 
   const t = await getTranslations("admin");
+  const tRoot = await getTranslations();
   const locale = await getLocale();
+  const hostedAccess =
+    product.deliveryType === "HOSTED_ACCESS" ? await getHostedAccessForAdmin(product.id, session.user.email) : null;
 
   const image = product.thumbnailUrl ?? product.images?.[0] ?? null;
 
@@ -266,6 +271,11 @@ export default async function AdminProductPreviewPage({
             </div>
 
 
+            {/* A hosted-access product has no file: the admin reviews its
+                private link and buyer instructions instead. */}
+            {product.deliveryType === "HOSTED_ACCESS" ? (
+              <HostedAccessReview access={hostedAccess} t={tRoot} />
+            ) : (
             <FileSafetyPanel
               safety={product.fileSafety}
               canInspect={product.canInspect}
@@ -273,6 +283,7 @@ export default async function AdminProductPreviewPage({
               productId={product.id}
               t={t}
             />
+            )}
 
             {/* Where the buy card sits on the public page. Deliberately inert:
                 no purchase component is mounted and no checkout endpoint is

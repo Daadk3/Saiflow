@@ -63,9 +63,13 @@ describe("the routes refuse a product with no file", () => {
 describe("the forms and the dashboard", () => {
   test("Submit and Save wait for a finished upload, and say why", () => {
     const add = read("app/dashboard/shop/[slug]/add-product/page.tsx");
-    assert.ok(add.includes("disabled={loading || !shopId || !certified || !fileUrl}"));
+    // A file product is ready only with a finished upload; a hosted-access
+    // product (no file by design) needs its link and its confirmation instead.
+    assert.ok(add.includes("disabled={loading || !shopId || !certified || !deliverableReady}"));
+    assert.ok(add.includes('const deliverableReady = hosted ? accessUrl.trim() !== "" && hostedCertified : Boolean(fileUrl);'));
     const edit = read("app/dashboard/shop/[slug]/product/[productSlug]/edit/page.tsx");
-    assert.ok(edit.includes("disabled={saving || !fileUrl}"));
+    assert.ok(edit.includes("disabled={saving || !deliverableReady}"));
+    assert.ok(edit.includes(': Boolean(fileUrl);'));
     for (const src of [add, edit]) {
       assert.ok(src.includes('t("dashboard.product.fileRequired")'));
       assert.ok(src.includes('data.code === "file_required"'));

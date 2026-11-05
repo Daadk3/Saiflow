@@ -187,7 +187,8 @@ describe("wiring (structural: the row and the component are read as source, not 
     assert.match(page, /\{badges\.includes\("ready"\) && \([\s\S]*?bg-teal-500\/10 text-teal-400[\s\S]*?t\("readyToSell"\)/, "ready is green");
     assert.match(page, /\{badges\.includes\("file_state"\) && \([\s\S]*?<FileScanState[\s\S]*?value=\{product\.fileState\}[\s\S]*?onRetried=\{fetchShop\}/);
     assert.match(page, /\{badges\.includes\("awaiting_approval"\) && \([\s\S]*?bg-amber-500\/10 text-amber-400[\s\S]*?t\("awaitingApproval"\)/, "awaiting approval is amber");
-    assert.match(page, /\{!product\.hasFile && \([\s\S]*?t\("noFile"\)/, "the missing-file warning is unchanged");
+    // Unchanged for file products; a hosted-access product has no file by design.
+    assert.match(page, /\{product\.deliveryType !== "HOSTED_ACCESS" && !product\.hasFile && \([\s\S]*?t\("noFile"\)/, "the missing-file warning is unchanged");
     // Order on the row: rejection, ready, file, approval.
     const at = (s: string) => page.indexOf(s);
     assert.ok(at('badges.includes("rejected")') < at('badges.includes("ready")'));

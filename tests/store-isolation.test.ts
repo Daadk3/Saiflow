@@ -667,6 +667,8 @@ function product(id: string, shopId: string, key: string, moderationStatus: stri
     price: "25.00",
     currency: "SAR",
     category: "templates",
+    // The column's database default: every seeded product is a file product.
+    deliveryType: "FILE",
     fileUrl: `https://app1.ufs.sh/f/${key}`,
     fileKey: key,
     fileScanStatus: "SAFE",

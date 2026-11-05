@@ -22,6 +22,7 @@ import { refreshReviewChecks } from "@/lib/review-checks-store";
 import { withoutReviewChecks } from "@/lib/review-checklist";
 import { redactId } from "@/lib/redact-id";
 import { priceProblemMessage, validatePrice } from "@/lib/pricing";
+import { updateHostedProduct } from "@/lib/products/hosted-product";
 
 // A replacement file schedules its scan to run after the response is sent;
 // see app/api/products/route.ts for why this route carries the worker's budget.
@@ -70,6 +71,9 @@ export async function GET(
             },
           },
         },
+        // The private delivery details of a hosted product. Returned below
+        // only after membership is proven; this route is members-only.
+        hostedAccess: { select: { accessUrl: true, instructions: true } },
       },
     });
 
@@ -134,7 +138,8 @@ export async function PUT(
     }
 
     const { id } = await params;
-    const { name, description, price, category, fileUrl, thumbnailUrl } = await req.json();
+    const body = await req.json();
+    const { name, description, price, category, fileUrl, thumbnailUrl } = body;
 
     if (category && !isProductCategory(category)) {
       return NextResponse.json({ error: "Invalid category" }, { status: 400 });
@@ -209,6 +214,13 @@ export async function PUT(
         { error: "You don't have permission to edit this product" },
         { status: 403 }
       );
+    }
+
+    // A hosted-access product has no file and its own edit rules
+    // (lib/products/hosted-product). Everything below is the file path,
+    // unchanged.
+    if (product.deliveryType === "HOSTED_ACCESS") {
+      return await updateHostedProduct(user, product, body);
     }
 
     /**

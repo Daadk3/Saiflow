@@ -107,3 +107,21 @@ export function receiptDownloadUrl(
   );
   return `${base}/api/download/${encodeURIComponent(input.productId)}?t=${encodeURIComponent(token)}`;
 }
+
+/**
+ * The receipt's link for a hosted-access product: the same signed, dated
+ * token, pointing at the secure access page instead of the download route.
+ * The token still proves only "SaiFlow issued this for this order and
+ * product"; the page re-checks the Order on every open.
+ */
+export function receiptAccessUrl(
+  base: string,
+  input: { orderId: string; productId: string; issuedAt?: Date },
+  secret: string | undefined
+): string {
+  const token = signReceiptToken(
+    { orderId: input.orderId, productId: input.productId, expiresAt: receiptLinkExpiry(input.issuedAt ?? new Date()) },
+    secret
+  );
+  return `${base}/access/${encodeURIComponent(input.productId)}?t=${encodeURIComponent(token)}`;
+}

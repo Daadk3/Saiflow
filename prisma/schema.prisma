@@ -196,6 +196,13 @@ model Product {
   fileKey      String?
   isActive     Boolean  @default(true)
   isDigital    Boolean  @default(true)
+  /// What a buyer receives. FILE (the default, and every existing row) is a
+  /// scanned download; HOSTED_ACCESS is access to a product the seller hosts
+  /// elsewhere, such as an AI agent, delivered as a private link. A hosted
+  /// product carries no file at all, so every file gate refuses it by data
+  /// shape; only the hosted-access gates (lib/hosted-access) can sell or
+  /// deliver one.
+  deliveryType ProductDeliveryType @default(FILE)
 
   // Trust & Safety: publication requires APPROVED status. New uploads start
   // PENDING. Public visibility = isActive && moderationStatus == APPROVED.
@@ -239,6 +246,9 @@ model Product {
   orders           Order[]
   paymentSessions  PaymentSession[]
   moderationEvents ModerationEvent[]
+  /// Private delivery details of a HOSTED_ACCESS product. Its own table so
+  /// that no product query, public or not, can return it without naming it.
+  hostedAccess     HostedAccess?
 
   @@unique([shopId, slug])
   @@index([shopId])
@@ -248,6 +258,32 @@ model Product {
   @@index([category])
   @@index([createdAt])
   @@index([fileScanStatus])
+}
+
+/// See Product.deliveryType.
+enum ProductDeliveryType {
+  FILE
+  HOSTED_ACCESS
+}
+
+/// The private half of a HOSTED_ACCESS product: the link a buyer opens and
+/// the seller's short instructions. Read ONLY by lib/hosted-access, for the
+/// shop's own members, an admin reviewing the product, or the buyer of a
+/// verified paid Order. Never selected by a public page or API, never fetched,
+/// proxied or redirected to by SaiFlow: the buyer's browser opens it.
+///
+/// Not a secret store. The seller certifies, and validation checks, that
+/// neither field carries a password, API key, payment detail or patient data.
+model HostedAccess {
+  productId    String   @id
+  /// https only, validated by lib/hosted-access/validate on every write and
+  /// again on every read.
+  accessUrl    String   @db.Text
+  instructions String?  @db.Text
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
 }
 
 /// Deliberately four states. QUARANTINED would behave identically to UNSAFE at

@@ -6,6 +6,7 @@ import { getLocale, getTranslations } from "next-intl/server";
 import { authOptions } from "@/app/api/auth/authOptions";
 import { prisma } from "@/lib/prisma";
 import { formatDate } from "@/lib/formatDate";
+import { hostedAccessPath } from "@/lib/hosted-access/authorize";
 
 export const dynamic = "force-dynamic";
 
@@ -31,6 +32,7 @@ export default async function PurchasesPage() {
   if (!email) redirect("/login?callbackUrl=/dashboard/purchases");
 
   const t = await getTranslations("purchases");
+  const tHosted = await getTranslations("hostedAccess");
   const locale = await getLocale();
   const orders = await prisma.order.findMany({
     where: { customerEmail: { equals: email, mode: "insensitive" } },
@@ -43,7 +45,7 @@ export default async function PurchasesPage() {
       createdAt: true,
       paymentEnvironment: true,
       founderTest: true,
-      product: { select: { slug: true, shop: { select: { name: true, slug: true } } } },
+      product: { select: { slug: true, deliveryType: true, shop: { select: { name: true, slug: true } } } },
     },
   });
 
@@ -71,12 +73,24 @@ export default async function PurchasesPage() {
                     {(order.paymentEnvironment !== "PRODUCTION" || order.founderTest) && <span className="ms-2 text-amber-400">{t("test")}</span>}
                   </p>
                 </div>
-                <a
-                  href={`/api/download/${encodeURIComponent(order.productId)}?purchase=${encodeURIComponent(order.id)}`}
-                  className="rounded-lg bg-teal-500 px-4 py-2 text-sm font-medium text-white hover:bg-teal-400"
-                >
-                  {t("download")}
-                </a>
+                {/* A hosted-access product (e.g. an AI agent) opens its secure
+                    access page, which re-checks this Order on every visit;
+                    a file product downloads exactly as before. */}
+                {order.product.deliveryType === "HOSTED_ACCESS" ? (
+                  <a
+                    href={hostedAccessPath(order.productId, { purchase: order.id })}
+                    className="rounded-lg bg-teal-500 px-4 py-2 text-sm font-medium text-white hover:bg-teal-400"
+                  >
+                    {tHosted("purchasesCta")}
+                  </a>
+                ) : (
+                  <a
+                    href={`/api/download/${encodeURIComponent(order.productId)}?purchase=${encodeURIComponent(order.id)}`}
+                    className="rounded-lg bg-teal-500 px-4 py-2 text-sm font-medium text-white hover:bg-teal-400"
+                  >
+                    {t("download")}
+                  </a>
+                )}
               </li>
             ))}
           </ul>

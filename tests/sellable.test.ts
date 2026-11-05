@@ -91,11 +91,21 @@ describe("isSellable and unsellableReason", () => {
 
 describe("the where-clauses", () => {
   test("SELLABLE_PRODUCT_WHERE is the four conditions, with the canonical file clause", () => {
+    // Condition 4 depends on what the product delivers: a FILE product needs
+    // the canonical file clause, untouched; a HOSTED_ACCESS product needs its
+    // private access record. Under AND, so a caller's own OR cannot replace it.
     assert.deepEqual(sellable.SELLABLE_PRODUCT_WHERE, {
       isActive: true,
       moderationStatus: "APPROVED",
       shop: { isActive: true },
-      ...safety.SAFE_DELIVERABLE_WHERE,
+      AND: [
+        {
+          OR: [
+            { deliveryType: "FILE", ...safety.SAFE_DELIVERABLE_WHERE },
+            { deliveryType: "HOSTED_ACCESS", hostedAccess: { isNot: null } },
+          ],
+        },
+      ],
     });
     assert.deepEqual(safety.SAFE_DELIVERABLE_WHERE, {
       fileKey: { not: null },

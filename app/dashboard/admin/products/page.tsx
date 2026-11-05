@@ -180,7 +180,9 @@ export default async function AdminProductsPage({
                             </p>
                             <p className="truncate text-xs text-gray-500">
                               <bdi>{p.creatorName}</bdi>
-                              {!p.hasFile && (
+                              {p.deliveryType === "HOSTED_ACCESS" ? (
+                                <span className="ms-2 text-cyan-300">{t("directory.hostedAccess")}</span>
+                              ) : !p.hasFile && (
                                 <span className="ms-2 text-red-400">
                                   {t("directory.noFile")}
                                 </span>
@@ -257,9 +259,14 @@ export default async function AdminProductsPage({
                       <div className="mt-2 flex flex-wrap items-center gap-1.5">
                         <StatusBadge status={p.moderationStatus} t={t} />
                         <NotSellableBadge reason={p.notSellableReason} t={t} />
-                        <FileSafetyBadge safety={p.fileSafety} t={t} />
+                        {p.deliveryType !== "HOSTED_ACCESS" && <FileSafetyBadge safety={p.fileSafety} t={t} />}
                         <ReviewSourceBadge reviewed={p.humanReviewed} t={t} />
-                        {!p.hasFile && (
+                        {p.deliveryType === "HOSTED_ACCESS" && (
+                          <span className="rounded-md bg-cyan-500/10 px-2 py-0.5 text-[11px] font-medium text-cyan-300">
+                            {t("directory.hostedAccess")}
+                          </span>
+                        )}
+                        {p.deliveryType !== "HOSTED_ACCESS" && !p.hasFile && (
                           <span className="rounded-md bg-red-500/10 px-2 py-0.5 text-[11px] font-medium text-red-400">
                             {t("directory.noFile")}
                           </span>

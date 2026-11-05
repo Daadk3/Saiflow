@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { prisma } from "@/lib/prisma";
 import { authOptions } from "../auth/authOptions";
 import { createProductForSeller } from "@/lib/products/create-product";
+import { createHostedProductForSeller } from "@/lib/products/hosted-product";
 import { accountKey, rateLimiters, retryAfterSeconds } from "@/lib/rate-limit";
 
 // Attaching a file schedules its scan to run after this response is sent;
@@ -36,7 +37,12 @@ export async function POST(req: Request) {
       );
     }
 
-    const { name, description, price, category, shopId, fileUrl, thumbnailUrl, currency, certified } = await req.json();
+    const body = await req.json();
+    const { name, description, price, category, shopId, fileUrl, thumbnailUrl, currency, certified, deliveryType } = body;
+    // Only the two known values; anything else is refused, never defaulted.
+    if (deliveryType !== undefined && deliveryType !== "FILE" && deliveryType !== "HOSTED_ACCESS") {
+      return NextResponse.json({ error: "Invalid delivery type" }, { status: 400 });
+    }
 
     // The founder bot calls createProductForSeller with the founder account
     // directly; this route only ever passes the signed-in one.
@@ -49,6 +55,24 @@ export async function POST(req: Request) {
         { error: "User not found" },
         { status: 404 }
       );
+    }
+
+    // Hosted access (e.g. an AI agent the seller hosts) has its own create
+    // path; the file path below is unchanged and still requires a file.
+    if (deliveryType === "HOSTED_ACCESS") {
+      return await createHostedProductForSeller(user, {
+        name,
+        description,
+        price,
+        category,
+        shopId,
+        thumbnailUrl,
+        currency,
+        certified,
+        accessUrl: body.accessUrl,
+        accessInstructions: body.accessInstructions,
+        hostedAccessCertified: body.hostedAccessCertified,
+      });
     }
 
     return await createProductForSeller(user, {

@@ -1019,6 +1019,7 @@
       "badge": "Not on sale",
       "short": {
         "missing_file_key": "No product file",
+        "hosted_access_missing": "No access link",
         "pending_scan": "File still being checked",
         "scan_key_mismatch": "New file being checked",
         "scan_error": "File check didn't finish",
@@ -1033,6 +1034,7 @@
       "eyebrow": "Approved, not sellable",
       "reason": {
         "missing_file_key": "Approved but not on sale: there is no product file. Buyers can't see or buy it. Ask the seller to upload the file, or reject it.",
+        "hosted_access_missing": "Approved but not on sale: the hosted access link is missing. Ask the seller to add it.",
         "pending_scan": "Approved but not on sale yet: its file is still being checked. It goes on sale by itself once the check passes.",
         "scan_key_mismatch": "Approved but not on sale: the seller replaced the file, and the new one is still being checked.",
         "scan_error": "Approved but not on sale: the file's safety check didn't finish. Open it and press Retry check.",
@@ -1146,6 +1148,7 @@
     "directory": {
       "approveBlocked": {
         "missing_file_key": "Can't approve: there is no product file. Ask the seller to upload one.",
+        "hosted_access_missing": "Can't approve: the hosted access link is missing or fails the link rules.",
         "pending_scan": "Can't approve yet: the file's safety check is still running (usually a few minutes).",
         "scan_error": "Can't approve: the file's safety check didn't finish. Press Retry check, then try again.",
         "unsafe": "Can't approve: the file failed its safety check.",
@@ -1159,6 +1162,7 @@
       "empty": "No products match this filter.",
       "next": "Next page",
       "noFile": "Missing file",
+      "hostedAccess": "Hosted access",
       "humanReviewed": "Human reviewed",
       "notYetReviewed": "Not yet reviewed",
       "review": "Review",
@@ -1350,5 +1354,92 @@
     "video": "video",
     "removeImage": "Remove image",
     "removeFile": "Remove file"
+  },
+  "hostedAccess": {
+    "successCta": "Open your access",
+    "successBody": "This is access to a product the seller hosts, not a file download. We've also emailed you the link.",
+    "purchasesCta": "Open access",
+    "sellerBadge": "Hosted access",
+    "product": {
+      "badge": "Hosted access: you get a private link after purchase, not a download",
+      "hostedIncludesAccess": "Private access link, shown after payment",
+      "hostedIncludesHostedBySeller": "Hosted and run by the seller",
+      "hostedIncludesNoDownload": "Nothing to download or install"
+    },
+    "delivery": {
+      "eyebrow": "Your hosted access",
+      "soldBy": "Sold by",
+      "testOrder": "Test order",
+      "whatThisIs": "You bought access to a product the seller hosts on their own site. Open it below; nothing is downloaded.",
+      "openCta": "Open the product",
+      "instructionsTitle": "How to get started",
+      "noteHostedBySeller": "The product runs on the seller's site, which has its own terms and privacy policy.",
+      "noteKeepPrivate": "This page is for you only. Please don't share it.",
+      "noteComeBack": "Come back any time from My purchases, signed in with the email you bought with.",
+      "signIn": "Sign in",
+      "support": "Need help?",
+      "refused": {
+        "no_credential": {
+          "title": "Sign in to open your access",
+          "body": "Open this page from your receipt email or from My purchases, signed in with the email you bought with."
+        },
+        "ambiguous": {
+          "title": "This link isn't valid",
+          "body": "Open your access from your receipt email or from My purchases."
+        },
+        "expired": {
+          "title": "This link has expired",
+          "body": "Access links in receipts work for {days} days. Sign in with the email you bought with and open My purchases."
+        },
+        "not_authorized": {
+          "title": "We couldn't verify this purchase",
+          "body": "Only the buyer of a paid order can open this page. Sign in with the email you bought with and open My purchases."
+        },
+        "unavailable": {
+          "title": "This product isn't available right now",
+          "body": "The seller's access is not available at the moment. Please contact support and we'll help."
+        },
+        "wrong_environment": {
+          "title": "This order can't be opened here",
+          "body": "This order was placed on a different SaiFlow environment. Open it from saiflow.io."
+        }
+      }
+    },
+    "seller": {
+      "typeLabel": "What does the buyer get?",
+      "typeFile": "A file to download",
+      "typeFileHelp": "PDF, ZIP, audio, video or images. We scan it before it goes on sale.",
+      "typeHosted": "Access to a hosted product",
+      "typeHostedHelp": "For example an AI agent you host. Buyers get a private link after paying.",
+      "title": "Hosted access details (private)",
+      "intro": "Only the buyer of a paid order and the SaiFlow review team see these. They never appear on your public product page.",
+      "urlLabel": "Access link",
+      "urlHelp": "The https:// link buyers open to use your product. SaiFlow never opens or checks it for you.",
+      "urlHttps": "The link must start with https://.",
+      "instructionsLabel": "Short instructions for buyers",
+      "instructionsPlaceholder": "e.g. Open the link and sign in with the email you bought with.",
+      "instructionsHelp": "Optional. Plain text, up to {max} characters ({used} used).",
+      "rulePrivate": "Buyers sign in on your site; don't put a shared login here.",
+      "ruleNoSecrets": "No passwords, API keys, tokens or payment details, in the link or the instructions.",
+      "ruleNoPatientData": "No patient data or personal ID numbers.",
+      "ruleReview": "We review the link before approval. Changing it later sends the product back to review.",
+      "certify": "I confirm the link and instructions contain no passwords, API keys, payment details, patient data or other secrets, and that buyers will get what this listing describes.",
+      "required": "Add the access link and tick the confirmation before submitting.",
+      "changeReopensReview": "Saving a changed link or instructions sends this product back to review. It stays off sale until approved again."
+    },
+    "admin": {
+      "title": "Hosted access (private)",
+      "privateNote": "Visible to admins and, after a verified paid order, to its buyer only. Never on the public page.",
+      "missing": "No access link is stored. This product can't be approved.",
+      "link": "Access link",
+      "open": "Open in a new tab (no referrer)",
+      "linkRefused": "This link fails today's rules and won't be delivered. Ask the seller to fix it.",
+      "instructions": "Buyer instructions",
+      "noInstructions": "None",
+      "instructionsRefused": "These instructions fail today's rules and won't be delivered.",
+      "check1": "The link goes to the seller's own product, not a payment page or a download.",
+      "check2": "Nothing here is a password, key, payment detail or patient data.",
+      "check3": "The listing describes access honestly (who hosts it, what the buyer gets)."
+    }
   }
 }

@@ -95,6 +95,8 @@ export interface AdminProductPreview {
    * not trust anything computed here.
    */
   canInspect: boolean;
+  /** FILE, or HOSTED_ACCESS for access to something the seller hosts. */
+  deliveryType: "FILE" | "HOSTED_ACCESS";
   /** Why an APPROVED product is still not on sale (lib/sellable), or null. */
   notSellableReason: UnsellableReason | null;
   /**
@@ -163,6 +165,10 @@ export async function getAdminProductPreview(
       fileScanStatus: true,
       fileScanKey: true,
       reviewChecks: true,
+      // What it delivers, and only whether its private access record exists:
+      // the link itself is loaded separately (lib/hosted-access/admin).
+      deliveryType: true,
+      hostedAccess: { select: { productId: true } },
       shop: {
         // No logo: the preview does not render one, and a column that is not
         // selected cannot be rendered by a later edit. isActive feeds the
@@ -212,6 +218,7 @@ export async function getAdminProductPreview(
     shop: { name: product.shop.name, slug: product.shop.slug },
     fileSafety,
     canInspect: inspectProduct(product, "admin").decision.allow,
+    deliveryType: product.deliveryType,
     notSellableReason:
       product.moderationStatus === "APPROVED" && unsellableReason(product) !== "sellable"
         ? unsellableReason(product)

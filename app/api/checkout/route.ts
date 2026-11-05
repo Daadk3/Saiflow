@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto";
 import { prisma } from "@/lib/prisma";
 import { env } from "@/lib/env";
 import { isDeliverableSafe } from "@/lib/file-safety";
+import { hostedAccessReady } from "@/lib/hosted-access/validate";
 import { rateLimiters, getClientIp } from "@/lib/rate-limit";
 import { redactId } from "@/lib/redact-id";
 import {
@@ -425,7 +426,9 @@ export async function POST(req: Request) {
     // gate silently starts deciding on undefined.
     const product = await prisma.product.findUnique({
       where: { id: productId },
-      include: { shop: true },
+      // hostedAccess: a hosted product's private link, loaded only so the
+      // hosted gate below can re-validate it. Never logged or returned.
+      include: { shop: true, hostedAccess: { select: { accessUrl: true, instructions: true } } },
     });
 
     if (!product) {
@@ -448,55 +451,72 @@ export async function POST(req: Request) {
       );
     }
 
-    // Check if product has a file uploaded
-    if (!product.fileUrl) {
+    // HOSTED ACCESS (e.g. an AI agent the seller hosts) has no file, so the
+    // two file gates below would always refuse it. It gets its own gate
+    // instead: its private access record must exist and still pass the
+    // link and instructions rules. Every other check in this route, before
+    // and after, applies to it unchanged. A FILE product skips this block
+    // and meets the file gates exactly as before.
+    const hosted = product.deliveryType === "HOSTED_ACCESS";
+    if (hosted && !hostedAccessReady(product.hostedAccess)) {
       return NextResponse.json(
-        { error: "This product is not available for purchase. No file has been uploaded." },
+        { error: "not_available", message: "This product is not available for purchase." },
         { status: 400 }
       );
     }
 
-    /**
-     * THE SALE GATE. Stage C computed a scan verdict; this is where it finally
-     * decides something.
-     *
-     * `isDeliverableSafe` is the single reviewed authority and is called
-     * directly — never re-derived, and never reduced to a `fileScanStatus`
-     * check. It requires all three of: a non-null current `fileKey`, a SAFE
-     * verdict, and that verdict being bound to THAT key. So a file still
-     * queued, one whose scan errored, one the scanner rejected, and one whose
-     * SAFE verdict belongs to a since-replaced upload all refuse here, as does
-     * any status a later migration might add.
-     *
-     * Nothing a buyer sends reaches this decision: the only input from the
-     * request is `productId`, and every field read below comes from the row.
-     *
-     * REPLACES A HEAD LIVENESS PROBE, which had to go rather than merely being
-     * redundant. It fetched `product.fileUrl`, and since Stage B that URL names
-     * a PRIVATE object — a HEAD against it answers 403, so the probe refused
-     * every modern deliverable with "the file is no longer accessible". Left in
-     * place behind this gate it would have blocked exactly the products that
-     * pass it.
-     *
-     * What is genuinely lost with it: proof that the object resolves RIGHT NOW.
-     * A SAFE verdict proves the bytes were fetched by key and scanned, not that
-     * a seller has not deleted them since. That gap is recorded rather than
-     * papered over — re-probing would mean minting a signed URL during
-     * checkout, which this route must never do.
-     */
-    if (!isDeliverableSafe(product)) {
-      // Machine-readable code plus an English fallback, matching the
-      // `pre_launch` convention already used above. Deliberately says nothing
-      // about WHICH state failed: a buyer has no business learning whether a
-      // seller's file is unscanned or was rejected as malware.
-      return NextResponse.json(
-        {
-          error: "file_not_ready",
-          message:
-            "This product is not available for purchase. Its file has not completed safety checks.",
-        },
-        { status: 400 }
-      );
+    // The file gates, for a FILE product only, exactly as before.
+    if (!hosted) {
+      // Check if product has a file uploaded
+      if (!product.fileUrl) {
+        return NextResponse.json(
+          { error: "This product is not available for purchase. No file has been uploaded." },
+          { status: 400 }
+        );
+      }
+
+      /**
+       * THE SALE GATE. Stage C computed a scan verdict; this is where it finally
+       * decides something.
+       *
+       * `isDeliverableSafe` is the single reviewed authority and is called
+       * directly — never re-derived, and never reduced to a `fileScanStatus`
+       * check. It requires all three of: a non-null current `fileKey`, a SAFE
+       * verdict, and that verdict being bound to THAT key. So a file still
+       * queued, one whose scan errored, one the scanner rejected, and one whose
+       * SAFE verdict belongs to a since-replaced upload all refuse here, as does
+       * any status a later migration might add.
+       *
+       * Nothing a buyer sends reaches this decision: the only input from the
+       * request is `productId`, and every field read below comes from the row.
+       *
+       * REPLACES A HEAD LIVENESS PROBE, which had to go rather than merely being
+       * redundant. It fetched `product.fileUrl`, and since Stage B that URL names
+       * a PRIVATE object — a HEAD against it answers 403, so the probe refused
+       * every modern deliverable with "the file is no longer accessible". Left in
+       * place behind this gate it would have blocked exactly the products that
+       * pass it.
+       *
+       * What is genuinely lost with it: proof that the object resolves RIGHT NOW.
+       * A SAFE verdict proves the bytes were fetched by key and scanned, not that
+       * a seller has not deleted them since. That gap is recorded rather than
+       * papered over — re-probing would mean minting a signed URL during
+       * checkout, which this route must never do.
+       */
+      if (!isDeliverableSafe(product)) {
+        // Machine-readable code plus an English fallback, matching the
+        // `pre_launch` convention already used above. Deliberately says nothing
+        // about WHICH state failed: a buyer has no business learning whether a
+        // seller's file is unscanned or was rejected as malware.
+        return NextResponse.json(
+          {
+            error: "file_not_ready",
+            message:
+              "This product is not available for purchase. Its file has not completed safety checks.",
+          },
+          { status: 400 }
+        );
+      }
     }
 
     // Payments unconfigured => same behavior as pre-launch: unavailable.
