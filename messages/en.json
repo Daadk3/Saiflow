@@ -954,7 +954,8 @@
         "password_protected": "The file is password-protected, so the safety check could not clear it. It was not opened.",
         "archive": "The archive failed the safety check because of encryption, nesting, or an unsafe layout. It was not opened.",
         "format": "The file format is not one SaiFlow can sell, or it does not match its contents. It was not opened.",
-        "html": "The file contains HTML, which is not allowed for this product. It was not opened."
+        "html": "The file contains HTML, which is not allowed for this product. It was not opened.",
+        "unattributed": "The safety check did not clear this file, and it named no threat or specific problem. It was not opened."
       },
       "retry": "Retry check",
       "retrying": "Retrying…",

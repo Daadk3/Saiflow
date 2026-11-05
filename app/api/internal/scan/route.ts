@@ -6,6 +6,7 @@ import { authOptions } from "../../auth/authOptions";
 import { isAdminEmail } from "@/lib/admin";
 import { cloudmersiveProvider } from "@/lib/scan/cloudmersive";
 import { findScannableKeys, scanFileAsset } from "@/lib/scan/run";
+import { redactId } from "@/lib/redact-id";
 
 /**
  * The scan worker.
@@ -135,7 +136,15 @@ async function runScan(requestedKey: string | null) {
 
   const results = [];
   for (const key of keys) {
-    results.push(await scanFileAsset(key));
+    const report = await scanFileAsset(key);
+    // Same line as lib/scan/schedule.ts: without it a scan the worker finished
+    // leaves no reason in the logs at all.
+    console.log(
+      `[scan] worker key=${redactId(key)} outcome=${report.outcome}${
+        report.reason ? ` reason=${report.reason}` : ""
+      }`
+    );
+    results.push(report);
   }
 
   return NextResponse.json({ scanned: results.length, results });

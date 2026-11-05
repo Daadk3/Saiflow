@@ -268,8 +268,15 @@ describe("the strict checks around it are unchanged", () => {
   });
 
   test("malware with a VALID format still rejects as malware", async () => {
-    const r = await outcome(payload({ CleanResult: false }));
+    const r = await outcome(
+      payload({ CleanResult: false, FoundViruses: [{ VirusName: "Eicar-Test-Signature" }] })
+    );
     assert.equal(r.verdict, "UNSAFE:malware");
+  });
+
+  test("not clean with a VALID format and no named virus still rejects", async () => {
+    const r = await outcome(payload({ CleanResult: false }));
+    assert.equal(r.verdict, "UNSAFE:not_clean_unattributed");
   });
 
   test("the SAFE set is exactly as narrow as before", async () => {

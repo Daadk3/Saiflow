@@ -533,6 +533,7 @@ describe("the seller sees uploaded, scanning, passed or failed — never scannin
 
   test("failure categories are coarse and never echo a provider payload", () => {
     assert.equal(failureCategory("malware"), "unsafe_content");
+    assert.equal(failureCategory("not_clean_unattributed"), "unsafe_content");
     assert.equal(failureCategory("pdf_javascript"), "unsafe_content");
     assert.equal(failureCategory("archive_encrypted"), "password_protected");
     assert.equal(failureCategory("archive_malformed"), "archive_problem");

@@ -29,6 +29,7 @@ describe("a stored scan reason becomes a fixed key or nothing", () => {
     assert.equal(explainScanReason("unsafe_archive"), "archive");
     assert.equal(explainScanReason("html_content"), "html");
     assert.equal(explainScanReason("format_mismatch_terminal"), "format");
+    assert.equal(explainScanReason("not_clean_unattributed"), "unattributed");
   });
 
   test("anything this build does not recognise is dropped, not echoed", () => {
