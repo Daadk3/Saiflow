@@ -456,6 +456,7 @@ const state = {
   product: null as unknown,
   directoryRows: [] as unknown[],
   scanReason: null as string | null,
+  contentFacts: null as unknown,
 };
 
 const revenueState = { rows: [] as Record<string, unknown>[] };
@@ -488,7 +489,10 @@ before(async () => {
         moderationEvent: { count: async () => 0 },
         order: { count: async () => 0, groupBy: async () => revenueState.rows },
         fileAsset: {
-          findUnique: async () => ({ scanReason: state.scanReason }),
+          findUnique: async () => ({
+            scanReason: state.scanReason,
+            contentFacts: state.contentFacts,
+          }),
         },
       },
     },
@@ -513,6 +517,7 @@ beforeEach(() => {
   state.product = null;
   state.directoryRows = [];
   state.scanReason = null;
+  state.contentFacts = null;
 });
 
 function productRow(overrides: Record<string, unknown> = {}) {
@@ -590,6 +595,32 @@ describe("a PENDING, unscanned product can be previewed", () => {
     assert.equal(hidden?.canInspect, false);
   });
 
+  test("the local HTML app label is a boolean and ignores the description", async () => {
+    state.product = productRow({
+      description: "Please host this as a website for buyers",
+      fileScanStatus: "SAFE",
+      fileScanKey: SECRET_KEY,
+    });
+    state.contentFacts = {
+      kind: "local_html_app",
+      note: "<script>alert(1)</script> SHOULD_NEVER_REACH_BROWSER",
+    };
+    const preview = await getAdminProductPreview("prod_pending_1");
+    assert.equal(preview?.localHtmlApp, true);
+    const body = JSON.stringify(preview);
+    assert.ok(!body.includes("<script>"));
+    assert.ok(!body.includes("SHOULD_NEVER_REACH_BROWSER"));
+    assert.ok(!body.includes("local_html_app"), "the stored kind is not echoed");
+
+    state.contentFacts = { kind: "zip" };
+    const ordinary = await getAdminProductPreview("prod_pending_1");
+    assert.equal(ordinary?.localHtmlApp, false);
+
+    state.contentFacts = null;
+    const fromDescription = await getAdminProductPreview("prod_pending_1");
+    assert.equal(fromDescription?.localHtmlApp, false);
+  });
+
   test("a SAFE product is inspectable and publishable", async () => {
     state.product = productRow({
       fileScanStatus: "SAFE",
@@ -621,6 +652,7 @@ describe("the preview payload carries no internals", () => {
       "id",
       "images",
       "isActive",
+      "localHtmlApp",
       "moderationStatus",
       "name",
       "notSellableReason",

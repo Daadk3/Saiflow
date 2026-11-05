@@ -699,6 +699,7 @@ function asset(key: string, shopId: string, userId: string): Row {
     scanSha256: "ab".repeat(32),
     scanClaimToken: null,
     scanClaimedAt: null,
+    contentFacts: null,
     createdAt: T0,
   };
 }

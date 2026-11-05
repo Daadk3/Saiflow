@@ -171,6 +171,16 @@ export default async function AdminProductPreviewPage({
 
           {/* Moderation facts */}
           <aside className="space-y-4">
+            {product.localHtmlApp && (
+              <div className="rounded-xl border border-amber-500/40 bg-amber-500/10 p-5">
+                <p className="text-sm font-semibold text-amber-200">
+                  {t("preview.localHtmlApp.label")}
+                </p>
+                <p className="mt-2 text-xs leading-relaxed text-amber-100/90">
+                  {t("preview.localHtmlApp.risk")}
+                </p>
+              </div>
+            )}
             {/* The 8-point checklist: stored auto-checks flag, the founder decides. */}
             <ReviewChecklist rows={product.checklist} />
             <div className="rounded-xl border border-gray-800 bg-[#0f0f0f] p-5">

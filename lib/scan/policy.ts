@@ -32,6 +32,12 @@ import {
   readZipCentralDirectory,
   type ArchiveEntry,
 } from "./archive";
+import {
+  inspectLocalHtmlApp,
+  isPermittedBrowserScript,
+  localHtmlEntryRejection,
+  localHtmlMarker,
+} from "./local-html-app";
 import type { ScanFindings } from "./provider";
 import { findPdfActiveContent, sniffFormat, type SniffedFormat } from "./sniff";
 
@@ -40,6 +46,7 @@ export type ContentKind =
   | "pdf"
   | "epub"
   | "zip"
+  | "local_html_app"
   | "image"
   | "audio"
   | "video";
@@ -64,8 +71,17 @@ export type PolicyVerdict =
 export interface ContentPolicy {
   kind: ContentKind;
   restrictToExtensions: string[];
-  /** EPUB only — see ScanRequest.allowHtml for why. */
+  /**
+   * EPUB, and the named local HTML app archive. A plain ZIP stays false.
+   * See ScanRequest.allowHtml.
+   */
   allowHtml: boolean;
+  /**
+   * Named local HTML app archive only, after the member rules in
+   * lib/scan/local-html-app.ts. Absent or false for every other kind,
+   * including EPUB. See ScanRequest.allowScripts.
+   */
+  allowScripts?: boolean;
 }
 
 const IMAGE_EXTENSIONS: Record<string, string[]> = {
@@ -126,7 +142,17 @@ export function resolveContentPolicy(bytes: Uint8Array): ContentPolicy | null {
     // A malformed or ZIP64 container gets the strict ZIP policy; the
     // structural pass below rejects it outright.
     if (dir.ok && isEpubLayout(dir.entries, bytes)) {
+      // EPUB wins even if a local-HTML marker was also packed inside. The
+      // marker must not turn an ebook into the script-allowing archive type.
       return { kind: "epub", restrictToExtensions: [".epub"], allowHtml: true };
+    }
+    if (dir.ok && localHtmlMarker(dir.entries, bytes) === "valid") {
+      return {
+        kind: "local_html_app",
+        restrictToExtensions: [".zip"],
+        allowHtml: true,
+        allowScripts: true,
+      };
     }
     return { kind: "zip", restrictToExtensions: [".zip"], allowHtml: false };
   }
@@ -167,7 +193,7 @@ export function structuralVerdict(
     return { outcome: "ALLOW" };
   }
 
-  if (policy.kind === "zip" || policy.kind === "epub") {
+  if (policy.kind === "zip" || policy.kind === "epub" || policy.kind === "local_html_app") {
     const dir = readZipCentralDirectory(bytes);
     if (!dir.ok) {
       return {
@@ -184,12 +210,35 @@ export function structuralVerdict(
       if (entry.symlink) return { outcome: "REJECT", reason: "archive_symlink" };
       if (isNestedArchive(entry)) return { outcome: "REJECT", reason: "archive_nested" };
       if (isExecutableEntry(entry)) return { outcome: "REJECT", reason: "archive_executable" };
-      // XHTML is the substance of an EPUB, but script never is.
-      if (isScriptEntry(entry)) return { outcome: "REJECT", reason: "archive_script" };
+      // XHTML is the substance of an EPUB, but script never is. The local
+      // HTML app is the one archive that may carry classic `.js` files; every
+      // other script extension is still rejected, and a plain ZIP rejects
+      // `.js` too.
+      if (isScriptEntry(entry) && !(policy.kind === "local_html_app" && isPermittedBrowserScript(entry))) {
+        return { outcome: "REJECT", reason: "archive_script" };
+      }
+      if (policy.kind === "local_html_app") {
+        const member = localHtmlEntryRejection(entry);
+        if (member) return { outcome: "REJECT", reason: member };
+      }
     }
 
     if (isDecompressionBomb(dir.entries)) {
       return { outcome: "REJECT", reason: "archive_decompression_bomb" };
+    }
+
+    // A ZIP that uses the marker name without the exact contract does not
+    // become a plain ZIP with a free pass, and a hand-built local-HTML policy
+    // cannot be applied to bytes that are not that archive.
+    if (policy.kind === "zip" && localHtmlMarker(dir.entries, bytes) === "invalid") {
+      return { outcome: "REJECT", reason: "archive_type_marker" };
+    }
+    if (policy.kind === "local_html_app") {
+      if (localHtmlMarker(dir.entries, bytes) !== "valid") {
+        return { outcome: "REJECT", reason: "archive_type_marker" };
+      }
+      const active = inspectLocalHtmlApp(bytes, dir.entries);
+      if (active) return { outcome: "REJECT", reason: active };
     }
     return { outcome: "ALLOW" };
   }
@@ -216,7 +265,11 @@ export function verdictFromFindings(
   // as malware and hid every specific reason below.
   if (findings.virusNames.length > 0) return { outcome: "REJECT", reason: "malware" };
   if (findings.containsExecutable) return { outcome: "REJECT", reason: "executable" };
-  if (findings.containsScript) return { outcome: "REJECT", reason: "script" };
+  // Script stays a rejection except for the named local HTML app, whose
+  // structural pass has already constrained `.js` to classic browser files.
+  if (findings.containsScript && policy.allowScripts !== true) {
+    return { outcome: "REJECT", reason: "script" };
+  }
   if (findings.containsMacros) return { outcome: "REJECT", reason: "macros" };
   if (findings.containsPasswordProtectedFile) {
     return { outcome: "REJECT", reason: "password_protected" };
@@ -233,8 +286,8 @@ export function verdictFromFindings(
   if (findings.containsRestrictedFileFormat) {
     return { outcome: "REJECT", reason: "format_mismatch" };
   }
-  // HTML is a rejection everywhere except inside an EPUB, where it is the
-  // format itself.
+  // HTML is a rejection except where the policy names it: EPUB, and the
+  // local HTML app archive. A plain ZIP does not get either exemption.
   if (findings.containsHtml && !policy.allowHtml) {
     return { outcome: "REJECT", reason: "html_content" };
   }

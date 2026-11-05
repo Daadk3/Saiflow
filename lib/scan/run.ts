@@ -407,6 +407,7 @@ export async function scanFileAsset(
       fileName: asset.name,
       restrictToExtensions: policy.restrictToExtensions,
       allowHtml: policy.allowHtml,
+      allowScripts: policy.allowScripts === true,
     });
   } catch {
     // A provider that throws is a provider that did not answer.

@@ -32,6 +32,27 @@ Product in /dashboard/moderation
 └─ else → APPROVE
 ```
 
+## Local HTML app (private ZIP)
+
+Some products are a local HTML application packed as a ZIP. The review queue
+and the product preview show a fixed label, **Local HTML app — private ZIP**,
+when the scan recognised that archive. The label is not taken from the
+description.
+
+Before approving one:
+
+1. The safety check must already say the file passed. A blocked file stays
+   closed; do not approve it onto the storefront.
+2. Open the archive through the inspection link and read the HTML, CSS, and
+   JavaScript yourself. SaiFlow does not host the app and does not run it.
+   The buyer downloads a private ZIP and opens it on their own computer.
+3. Reject remote script, unexpected programs, or anything the listing does
+   not describe. Classic `.js` files are allowed only inside this archive
+   type; that is not a general permission for scripts in other products.
+4. Approval stays a human decision. Nothing in the label auto-approves.
+
+A plain ZIP, PDF, or EPUB does not show this label and keeps its existing rules.
+
 ## Per-report-category actions (public reports)
 
 | Category | First action | Then | Ban seller when |

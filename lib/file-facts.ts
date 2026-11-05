@@ -18,7 +18,10 @@ import {
   findContactInfo,
   type FileContentFacts,
 } from "@/lib/review-checklist";
+import { LOCAL_HTML_APP_KIND } from "@/lib/local-html-review";
 import { readZipCentralDirectory, type ArchiveEntry } from "@/lib/scan/archive";
+import { localHtmlMarker } from "@/lib/scan/local-html-app";
+import { isEpubLayout } from "@/lib/scan/policy";
 import { sniffFormat } from "@/lib/scan/sniff";
 
 /** Most decompressed bytes read from one file, across all its streams. */
@@ -233,6 +236,8 @@ function pdfFacts(bytes: Uint8Array): FileContentFacts {
 /* ------------------------------------------------------------------ */
 
 const TEXT_ENTRY = /\.(?:xml|xhtml|html?|txt|md|csv|json|opf|ncx)$/i;
+/** Local HTML apps also contribute CSS and classic scripts to the text checks. */
+const LOCAL_HTML_TEXT_ENTRY = /\.(?:html?|css|js|txt|md|json)$/i;
 
 function entryBytes(bytes: Uint8Array, entry: ArchiveEntry, budget: Budget): Uint8Array | null {
   if (entry.encrypted || entry.uncompressedSize > MAX_INFLATED_STREAM) return null;
@@ -259,13 +264,20 @@ function entryBytes(bytes: Uint8Array, entry: ArchiveEntry, budget: Budget): Uin
 function zipFacts(bytes: Uint8Array): FileContentFacts {
   const dir = readZipCentralDirectory(bytes);
   if (!dir.ok) return empty("zip", false);
+  // EPUB stays "zip" here, as it always has: the checklist does not special-case
+  // ebooks. Only a valid local-HTML marker changes the kind, and an EPUB layout
+  // wins over that marker so the two types cannot be combined.
+  const epub = isEpubLayout(dir.entries, bytes);
+  const localHtml = !epub && localHtmlMarker(dir.entries, bytes) === "valid";
+  const kind = localHtml ? LOCAL_HTML_APP_KIND : "zip";
+  const textEntry = localHtml ? LOCAL_HTML_TEXT_ENTRY : TEXT_ENTRY;
   const budget = new Budget();
   const decoder = new TextDecoder("utf-8");
   const parts: string[] = [];
   let size = 0;
   for (const entry of dir.entries) {
     if (size >= MAX_TEXT) break;
-    if (!TEXT_ENTRY.test(entry.name)) continue;
+    if (!textEntry.test(entry.name)) continue;
     const data = entryBytes(bytes, entry, budget);
     if (!data) continue;
     // Markup removed so tag and attribute names are not searched as text,
@@ -277,5 +289,5 @@ function zipFacts(bytes: Uint8Array): FileContentFacts {
     parts.push(text);
     size += text.length;
   }
-  return withText("zip", true, null, parts.join("\n"));
+  return withText(kind, true, null, parts.join("\n"));
 }

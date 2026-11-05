@@ -15,6 +15,7 @@ import {
   type ListingCheck,
 } from "@/lib/listing-standards";
 import { checklistRows, hasCoverImage, type ChecklistRow } from "@/lib/review-checklist";
+import { isLocalHtmlAppReview } from "@/lib/local-html-review";
 import {
   moderatorFileSafety,
   type ModeratorFileSafety,
@@ -102,6 +103,12 @@ export interface AdminProductPreview {
    * replaced the "Before approving" list from listingChecks on this page.
    */
   checklist: ChecklistRow[];
+  /**
+   * True when the attached file's scan facts name the local HTML app archive.
+   * A boolean, never the stored JSON: extra fields on that object must not
+   * reach the page. It does not approve anything and it does not change delivery.
+   */
+  localHtmlApp: boolean;
 }
 
 /**
@@ -174,12 +181,14 @@ export async function getAdminProductPreview(
   // column. `explainScanReason` drops anything it does not recognise, so the
   // value that leaves this function is a key from a fixed list or null.
   let blockedBecause: ScanExplanationKey | null = null;
-  if (gate.reason === "unsafe" && product.fileKey) {
+  let localHtmlApp = false;
+  if (product.fileKey) {
     const asset = await prisma.fileAsset.findUnique({
       where: { key: product.fileKey },
-      select: { scanReason: true },
+      select: { scanReason: true, contentFacts: true },
     });
-    blockedBecause = explainScanReason(asset?.scanReason);
+    if (gate.reason === "unsafe") blockedBecause = explainScanReason(asset?.scanReason);
+    localHtmlApp = isLocalHtmlAppReview(asset?.contentFacts);
   }
   const fileSafety = { ...gate, blockedBecause };
 
@@ -214,5 +223,6 @@ export async function getAdminProductPreview(
       description: product.description,
       hasCover: hasCoverImage(product, isAllowedAssetUrl),
     }),
+    localHtmlApp,
   };
 }
