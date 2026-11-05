@@ -283,7 +283,16 @@ export function verdictFromFindings(
     return { outcome: "REJECT", reason: "insecure_deserialization" };
   }
   if (findings.containsInvalidFile) return { outcome: "REJECT", reason: "malformed_file" };
-  if (findings.containsRestrictedFileFormat) {
+  // restrictFileTypes is the container extension. For this archive that is
+  // `.zip`, and Cloudmersive applies that whitelist to members too, so inner
+  // `.html` / `.css` / `.js` set ContainsRestrictedFileFormat even when
+  // VerifiedFileFormat is still `.zip`. That is the whitelist, not a
+  // container disagreement. Waived only for a local HTML app whose container
+  // verified as `.zip` and whose other threat flags are clear. Structural
+  // inspection has already allowed those members; run.ts settles a structural
+  // rejection before the provider is asked. A verified format that is not
+  // `.zip`, and every other policy, still rejects here.
+  if (findings.containsRestrictedFileFormat && !localHtmlZipWhitelist(findings, policy)) {
     return { outcome: "REJECT", reason: "format_mismatch" };
   }
   // HTML is a rejection except where the policy names it: EPUB, and the
@@ -292,10 +301,18 @@ export function verdictFromFindings(
     return { outcome: "REJECT", reason: "html_content" };
   }
 
-  // Not clean, with nothing named and no flag raised. Still a rejection, and
-  // deliberately before the format checks below, so `!clean` can never reach
-  // UNVERIFIABLE or ALLOW. It only stops claiming to know why.
-  if (!findings.clean) return { outcome: "REJECT", reason: "not_clean_unattributed" };
+  // Not clean, and not explained by a flag this policy already accepts.
+  // Deliberately before the format checks below, so an unexplained `!clean`
+  // can never reach UNVERIFIABLE or ALLOW. It only stops claiming to know why.
+  //
+  // The local HTML app is the one exception. Cloudmersive's CleanResult
+  // follows ContainsHtml, ContainsScript, and the ZIP-whitelist flag above,
+  // which are the same inner members inspectLocalHtmlApp already allowed.
+  // A bare CleanResult:false, with none of those flags, stays a rejection.
+  // EPUB's HTML allowance does not explain an unclean result.
+  if (!findings.clean && !localHtmlCleanIsExplained(findings, policy)) {
+    return { outcome: "REJECT", reason: "not_clean_unattributed" };
+  }
 
   // Reached only after every threat check above has passed, so a file that is
   // both unverifiable AND carries a threat is still REJECTED on the threat —
@@ -321,6 +338,70 @@ export function verdictFromFindings(
   }
 
   return { outcome: "ALLOW" };
+}
+
+/**
+ * The real local HTML app policy, not a neighbouring kind that happens to
+ * allow HTML. EPUB allows HTML and may verify as `.zip`; it does not get
+ * these exceptions.
+ */
+function isLocalHtmlAppPolicy(policy: ContentPolicy): boolean {
+  return policy.kind === "local_html_app" && policy.allowHtml === true && policy.allowScripts === true;
+}
+
+/**
+ * Threat flags that are never explained by inner HTML, CSS, or JS.
+ *
+ * Kept in step with the named rejections in `verdictFromFindings`. Script,
+ * HTML, and the restricted-format flag are absent on purpose: under this
+ * policy those three are the members the structural pass already allowed.
+ */
+function localHtmlThreatFree(findings: ScanFindings): boolean {
+  return (
+    findings.virusNames.length === 0 &&
+    !findings.containsExecutable &&
+    !findings.containsMacros &&
+    !findings.containsPasswordProtectedFile &&
+    !findings.containsUnsafeArchive &&
+    !findings.containsOleEmbeddedObject &&
+    !findings.containsXmlExternalEntities &&
+    !findings.containsInsecureDeserialization &&
+    !findings.containsInvalidFile
+  );
+}
+
+/** Container content-verified as the `.zip` this policy asked for. */
+function localHtmlContainerVerified(findings: ScanFindings, policy: ContentPolicy): boolean {
+  return isLocalHtmlAppPolicy(policy) && formatMatchesPolicy(findings.verifiedFileFormat, policy);
+}
+
+/**
+ * ContainsRestrictedFileFormat caused by the top-level `.zip` whitelist
+ * seeing inner HTML, CSS, or JS. Not a waiver for a container that verified
+ * as something else, and not a waiver when any other threat flag is set.
+ */
+function localHtmlZipWhitelist(findings: ScanFindings, policy: ContentPolicy): boolean {
+  return (
+    findings.containsRestrictedFileFormat &&
+    localHtmlContainerVerified(findings, policy) &&
+    localHtmlThreatFree(findings)
+  );
+}
+
+/**
+ * CleanResult:false fully explained by flags this policy allows.
+ *
+ * At least one of ContainsHtml, ContainsScript, or the ZIP-whitelist flag
+ * must be set. None of them set means the provider declined the file and
+ * did not say why, which stays `not_clean_unattributed`.
+ */
+function localHtmlCleanIsExplained(findings: ScanFindings, policy: ContentPolicy): boolean {
+  if (!localHtmlContainerVerified(findings, policy) || !localHtmlThreatFree(findings)) return false;
+  return (
+    findings.containsHtml ||
+    findings.containsScript ||
+    findings.containsRestrictedFileFormat
+  );
 }
 
 /**

@@ -146,9 +146,14 @@ const PASSED: SellerFileState = { state: "passed", failure: null, canRetry: fals
  * Derive the seller-facing state.
  *
  * Precedence: the product's own gate decides passed and unsafe, because those
- * are what checkout and download read. Everything else comes from the
- * FileAsset row the current key points at, and only that row: an asset for
- * another key, another shop or another route is treated as no record.
+ * are what checkout and download read. An unsafe gate is still failed and
+ * not retryable. The seller's reason category comes from the bound asset's
+ * scan reason when that row is this file, so a format failure is not
+ * described as a program or a script. A missing row, a different file, or a
+ * reason this build does not recognise stays the generic unsafe category.
+ * Everything else comes from the FileAsset row the current key points at,
+ * and only that row: an asset for another key, another shop or another
+ * route is treated as no record.
  */
 export function sellerFileState(
   product: SellerProductView,
@@ -159,7 +164,6 @@ export function sellerFileState(
 
   const gate = deliverableGateReason(product);
   if (gate === "safe") return PASSED;
-  if (gate === "unsafe") return failed("unsafe_content", false);
 
   const usable =
     asset &&
@@ -168,6 +172,12 @@ export function sellerFileState(
     asset.route === "PRODUCT_FILE"
       ? asset
       : null;
+
+  if (gate === "unsafe") {
+    const category = usable ? failureCategory(usable.scanReason) : "unknown";
+    return failed(category === "unknown" ? "unsafe_content" : category, false);
+  }
+
   if (!usable) return failed("no_record", false);
 
   if (usable.scanStatus === "UNSAFE") {
