@@ -15,19 +15,19 @@ export async function PaymentAssurance() {
         {PROVEN_CARD_METHODS.map((method) => (
           <li
             key={method}
-            className="rounded-md border border-gray-800 bg-[#111111] px-2.5 py-1 text-xs font-medium text-gray-300"
+            className="rounded-md border border-teal-800/70 bg-[#101918] px-2.5 py-1 text-xs font-medium text-teal-50"
           >
             {method}
           </li>
         ))}
       </ul>
-      <p className="inline-flex items-center justify-center gap-1.5 text-sm text-gray-300">
+      <p className="inline-flex items-center justify-center gap-1.5 text-sm text-teal-50/90">
         <svg className="h-4 w-4 text-teal-400" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
           <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
         </svg>
         {t("secure")}
       </p>
-      <p className="text-xs text-gray-500">{t("instantDelivery")}</p>
+      <p className="text-xs text-gray-400">{t("instantDelivery")}</p>
     </div>
   );
 }

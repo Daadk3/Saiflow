@@ -37,7 +37,7 @@ interface DropInPanelProps {
 const PRIMARY =
   "inline-flex items-center justify-center gap-2 rounded-xl bg-teal-500 px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-teal-400 disabled:cursor-not-allowed disabled:opacity-60";
 const SECONDARY =
-  "inline-flex items-center justify-center gap-2 rounded-xl border border-gray-700 px-5 py-3 text-sm font-medium text-gray-200 transition-colors hover:border-teal-500/60 hover:text-white";
+  "inline-flex items-center justify-center gap-2 rounded-xl border border-teal-800/80 px-5 py-3 text-sm font-medium text-teal-50 transition-colors hover:border-teal-400/70 hover:text-white";
 
 function Spinner({ className = "h-5 w-5" }: { className?: string }) {
   return (
@@ -64,7 +64,7 @@ function Notice({
       ? "border-amber-500/25 bg-amber-500/[0.06]"
       : tone === "info"
         ? "border-teal-500/25 bg-teal-500/[0.06]"
-        : "border-gray-800 bg-[#111111]";
+        : "border-teal-900/80 bg-[#101918]";
   const icon =
     tone === "warn" ? "text-amber-400" : tone === "info" ? "text-teal-400" : "text-gray-400";
   return (
@@ -97,29 +97,36 @@ export function DropInPanel({ state, containerRef, productHref, onContinueHosted
         </Notice>
       )}
 
-      {/* Geidea's secure form, framed as a light card on the dark page. */}
+      {/* Geidea's secure form. Create Session documents only a header colour,
+          a profile and hiding their logo; the hosted document stays a light
+          page on their origin, so this white surface is theirs. The dark teal
+          bezel is SaiFlow's. The veil stays up until that document loads
+          (see waitForFrame): it covers the first unstyled paint and comes
+          down on load, on error, or when the mount times out into "stuck". */}
       <div
         className={
           frameVisible
-            ? `relative overflow-hidden rounded-2xl bg-white p-1 shadow-xl shadow-black/40 ring-1 ring-white/10 sm:p-2 ${state.kind === "starting" ? "min-h-[420px]" : ""}`
+            ? "rounded-2xl border border-teal-400/30 bg-[#0c1c1b] p-2 shadow-xl shadow-teal-950/50 sm:p-3"
             : "hidden"
         }
       >
-        <div ref={containerRef} />
-        {state.kind === "starting" && (
-          <div className="absolute inset-0 flex flex-col justify-center gap-4 p-6" aria-hidden="true">
-            <div className="mx-auto flex items-center gap-2 text-sm text-gray-500">
-              <Spinner className="h-4 w-4 text-teal-500" />
-              {t("preparing")}
-            </div>
-            <div className="h-11 animate-pulse rounded-lg bg-gray-100" />
-            <div className="grid grid-cols-2 gap-3">
+        <div className={`relative overflow-hidden rounded-xl bg-white ring-1 ring-black/5 ${state.kind === "starting" ? "min-h-[28rem]" : ""}`}>
+          <div ref={containerRef} />
+          {state.kind === "starting" && (
+            <div className="absolute inset-0 z-10 flex flex-col justify-center gap-4 bg-white p-6" aria-hidden="true">
+              <div className="mx-auto flex items-center gap-2 text-sm text-gray-500">
+                <Spinner className="h-4 w-4 text-teal-500" />
+                {t("preparing")}
+              </div>
               <div className="h-11 animate-pulse rounded-lg bg-gray-100" />
-              <div className="h-11 animate-pulse rounded-lg bg-gray-100" />
+              <div className="grid grid-cols-2 gap-3">
+                <div className="h-11 animate-pulse rounded-lg bg-gray-100" />
+                <div className="h-11 animate-pulse rounded-lg bg-gray-100" />
+              </div>
+              <div className="h-12 animate-pulse rounded-lg bg-teal-500/20" />
             </div>
-            <div className="h-12 animate-pulse rounded-lg bg-teal-500/20" />
-          </div>
-        )}
+          )}
+        </div>
       </div>
       {state.kind === "starting" && (
         <p role="status" className="sr-only">
@@ -133,11 +140,11 @@ export function DropInPanel({ state, containerRef, productHref, onContinueHosted
               may not tell this page at all; so the help stays on screen while
               the session can still be paid. */}
           {!state.expired && (
-            <p className="rounded-xl border border-gray-800 bg-[#111111] px-4 py-3 text-sm leading-relaxed text-gray-300">
+            <p className="rounded-xl border border-teal-900/80 bg-[#101918] px-4 py-3 text-sm leading-relaxed text-teal-50/80">
               {t("cardHelp")}
             </p>
           )}
-          <p className="text-center text-xs text-gray-500">
+          <p className="text-center text-xs text-gray-400">
             {t("troublePrompt")}{" "}
             <button type="button" onClick={onRetry} className="font-medium text-teal-400 underline-offset-4 hover:underline">
               {t("reloadForm")}
@@ -147,7 +154,7 @@ export function DropInPanel({ state, containerRef, productHref, onContinueHosted
       )}
 
       {state.kind === "confirming" && (
-        <div role="status" aria-live="polite" className="flex items-center justify-center gap-3 rounded-2xl border border-gray-800 bg-[#111111] p-6 text-sm text-gray-300">
+        <div role="status" aria-live="polite" className="flex items-center justify-center gap-3 rounded-2xl border border-teal-500/25 bg-[#101918] p-6 text-sm text-teal-50/90">
           <Spinner className="h-5 w-5 text-teal-400" />
           {t("confirming")}
         </div>

@@ -101,6 +101,40 @@ describe("only what the storefront sells can reach checkout", () => {
   });
 });
 
+describe("the checkout chrome is SaiFlow's; the payment frame is Geidea's", () => {
+  test("the order summary shows a responsive cover, not a postage-stamp thumbnail", () => {
+    const summary = strip(read("components/checkout/CheckoutSummary.tsx"));
+    assert.match(summary, /aspect-\[4\/3\] w-full/);
+    assert.match(summary, /sizes="\(min-width: 1024px\) 420px, 100vw"/);
+    assert.ok(!/h-24 w-24|sizes="96px"/.test(summary), "the 96px thumbnail is gone");
+  });
+
+  test("the secure frame stays a light surface inside a dark teal bezel", () => {
+    const panel = strip(read("components/checkout/DropInPanel.tsx"));
+    assert.match(panel, /border border-teal-400\/30 bg-\[#0c1c1b\]/);
+    assert.match(panel, /rounded-xl bg-white/);
+    // The veil is opaque and only present while the form is still starting,
+    // so a real failure (stuck, declined, unavailable) is not covered.
+    assert.match(panel, /state\.kind === "starting" && \(\s*<div className="absolute inset-0 z-10 flex flex-col justify-center gap-4 bg-white p-6"/);
+    const stuck = panel.slice(panel.indexOf('state.kind === "stuck" && ('), panel.indexOf('state.kind === "cancelled" && ('));
+    assert.ok(!stuck.includes("absolute inset-0"), "a form that did not load is not hidden behind the veil");
+  });
+
+  test("readiness is the iframe's load event, and the document inside it is never read", () => {
+    const dropin = strip(read("components/checkout/DropInCheckout.tsx"));
+    assert.match(dropin, /frame\.addEventListener\("load", \(\) => finish\(true\), \{ once: true \}\)/);
+    assert.match(dropin, /frame\.addEventListener\("error", \(\) => finish\(false\), \{ once: true \}\)/);
+    assert.match(dropin, /if \(Date\.now\(\) >= deadline\) \{\s*finish\(false\);/, "a frame that never loads still becomes the stuck state");
+    assert.ok(!/contentDocument|contentWindow/.test(dropin), "the hosted document is not inspected");
+    const route = strip(read("app/api/checkout/route.ts"));
+    assert.match(
+      route,
+      /styles: \{ headerColor: "#14b8a6", hideGeideaLogo: true, hppProfile: "compressed" \}/,
+      "session appearance stays the documented header colour, profile and logo flag"
+    );
+  });
+});
+
 describe("the buyer sees one price", () => {
   test("the summary shows the product, its store, the price and the total, from the same value", () => {
     const summary = strip(read("components/checkout/CheckoutSummary.tsx"));
