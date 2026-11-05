@@ -27,7 +27,7 @@ The operating manual for running Saiflow as a business — not just deploying it
 
 ## The three switches to memorize
 
-1. **`PRE_LAUNCH_MODE=true`** + redeploy — stops all payments, site stays up. The money kill switch.
+1. **`PRE_LAUNCH_MODE=true`** + redeploy — stops public checkout, site stays up. With `LIVE_PAYMENTS_MODE=public` it stops founders too. The money kill switch.
 2. **`Shop.isActive=false`** — one seller's entire catalog off the air instantly.
 3. **Vercel → promote previous deployment** — the whole app, back to the last good state, in seconds.
 

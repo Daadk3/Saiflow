@@ -62,16 +62,17 @@ test("reading the mode only reads configuration: no request, no database", () =>
   assert.match(client, /export function isGeideaConfigured\(\): boolean \{\s*return REQUIRED_VARS\.every\(isSet\);\s*\}/);
 });
 
-test("every mode the route can charge in gets the banner", () => {
-  // For the public the route charges only in "test" mode while
-  // LIVE_PUBLIC_ALLOWED is false (pinned below), and a configured "test" mode
-  // is never live. A founder test on the live account gets its own banner.
+test("a test account is never described as live", () => {
+  // A configured "test" mode charges nothing, so the banner applies. A
+  // production account is live; who may use it is accountAllowed, not this banner.
   assert.equal(isLiveCheckout(true, "test"), false);
 });
 
-test("the checkout route's gates are unchanged", () => {
+test("the checkout route still decides the account itself", () => {
   const route = strip(read("app/api/checkout/route.ts"));
-  assert.match(read("lib/payments/live-mode.ts"), /export const LIVE_PUBLIC_ALLOWED = false;/);
+  const live = read("lib/payments/live-mode.ts");
+  assert.match(live, /export const LIVE_PUBLIC_ALLOWED = true;/);
+  assert.match(live, /access\.kind === "public" && LIVE_PUBLIC_ALLOWED && mode === "public"/);
   assert.match(route, /!accountAllowed\(access, livePaymentsMode, configuredMode\) \|\|\s*\(configuredMode === "production" && !productionAccountHere\(process\.env\.VERCEL_ENV\)\)/);
   assert.ok(!route.includes("checkout-mode"), "the route does not take its rule from the banner");
 });

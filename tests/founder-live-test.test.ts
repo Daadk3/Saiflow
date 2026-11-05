@@ -11,10 +11,14 @@
  *   else, signed in or not, gets the same 503 pre_launch as before.
  * - A founder test may use the production Geidea account, only for a price
  *   of at most 50 SAR, and its attempt is marked founderTest. Every other gate
- *   still runs (product, moderation, file safety).
- * - Public stays locked: with PRE_LAUNCH_MODE off, a production account is
- *   refused whatever LIVE_PAYMENTS_MODE says, and a test account works for
- *   everyone as before, unmarked.
+ *   still runs (product, moderation, file safety). The cap applies only there.
+ * - Public live checkout is the reviewed release (LIVE_PUBLIC_ALLOWED). With
+ *   PRE_LAUNCH_MODE off and LIVE_PAYMENTS_MODE exactly "public", an ordinary
+ *   buyer — signed out, or signed in and not a founder — may use the
+ *   production account on the production deployment. The attempt is not a
+ *   founder test, and a price above 50 SAR is allowed. Any other mode still
+ *   refuses that production account. A test account works for everyone once
+ *   pre-launch is off, unmarked. Unapproved and unsafe products stay refused.
  * - The mark follows the money: the callback copies it onto the Order, and
  *   payouts, seller totals and revenue leave founder tests out.
  *
@@ -85,13 +89,16 @@ describe("the rules", () => {
     );
   });
 
-  test("which account: test always; production only for a founder test while the public release is locked", () => {
-    assert.equal(LIVE_PUBLIC_ALLOWED, false);
+  test("which account: test always; production for a founder test, or for the public only in public mode", () => {
+    assert.equal(LIVE_PUBLIC_ALLOWED, true);
     for (const mode of ["off", "founder_only", "public"] as const) {
       assert.equal(accountAllowed({ kind: "public" }, mode, "test"), true);
-      assert.equal(accountAllowed({ kind: "public" }, mode, "production"), false, `public, ${mode}`);
       assert.equal(accountAllowed({ kind: "founder_test" }, mode, "production"), true);
+      assert.equal(accountAllowed({ kind: "closed" }, mode, "production"), false, `closed, ${mode}`);
     }
+    assert.equal(accountAllowed({ kind: "public" }, "public", "production"), true);
+    assert.equal(accountAllowed({ kind: "public" }, "off", "production"), false);
+    assert.equal(accountAllowed({ kind: "public" }, "founder_only", "production"), false);
   });
 
   test("a production account is used only by the production deployment", () => {
@@ -378,14 +385,88 @@ describe("the checkout route", () => {
     assertNothingStarted();
   });
 
-  test("public is still locked: with pre-launch off, a production account is refused whatever the mode", async () => {
+  test("a production account stays refused for an ordinary buyer unless the mode is exactly public", async () => {
     state.preLaunch = false;
     state.account = "production";
-    for (const mode of [undefined, "founder_only", "public"]) {
+    state.session = null;
+    for (const mode of [undefined, "", "off", "founder_only", "PUBLIC", "true"]) {
       state.livePaymentsMode = mode;
-      state.session = { user: { email: FOUNDER } };
-      const res = await checkout();
+      const res = await checkout({ productId: "prod_1", buyerEmail: "buyer@example.com" });
       assert.equal(res.status, 503, String(mode));
+      assert.equal(res.body.error, "pre_launch");
+    }
+    assertNothingStarted();
+  });
+
+  test("public mode: a signed-out buyer gets a live production session, not a founder test, above the old cap", async () => {
+    state.preLaunch = false;
+    state.livePaymentsMode = "public";
+    state.account = "production";
+    state.session = null;
+    state.price = "120.00";
+    state.product = product();
+    const res = await checkout({ productId: "prod_1", buyerEmail: "buyer@example.com" });
+    assert.equal(res.status, 200);
+    assert.equal(attempts.length, 1);
+    assert.equal(attempts[0].environment, "PRODUCTION");
+    assert.equal(attempts[0].founderTest, false);
+    assert.equal(String(attempts[0].amount), "120.00");
+    assert.equal(sessionCalls.length, 1);
+    assert.equal(sessionCalls[0].amount, "120.00");
+    assert.equal(sessionCalls[0].callbackUrl, "https://www.saiflow.test/api/webhooks/geidea");
+    assert.equal(state.sessionReads, 0, "public checkout does not read the founder list");
+  });
+
+  test("public mode: a signed-in buyer who is not a founder is the same ordinary sale", async () => {
+    state.preLaunch = false;
+    state.livePaymentsMode = "public";
+    state.account = "production";
+    state.session = { user: { email: "buyer@example.com" } };
+    state.price = "75.50";
+    state.product = product();
+    const res = await checkout({ productId: "prod_1", buyerEmail: "buyer@example.com", founder: true, email: FOUNDER });
+    assert.equal(res.status, 200);
+    assert.equal(attempts[0].founderTest, false);
+    assert.equal(sessionCalls[0].amount, "75.50");
+    assert.equal(state.sessionReads, 0, "the request body cannot make a public sale a founder test");
+  });
+
+  test("public mode still refuses products that are unapproved, inactive, or not file-safe", async () => {
+    state.preLaunch = false;
+    state.livePaymentsMode = "public";
+    state.account = "production";
+    state.price = "120.00";
+    for (const over of [
+      { moderationStatus: "PENDING" },
+      { moderationStatus: "REJECTED" },
+      { isActive: false },
+      { shop: { isActive: false, slug: "my-shop" } },
+      { fileUrl: null },
+      { fileScanStatus: "PENDING_SCAN" },
+      { fileScanStatus: "UNSAFE" },
+      { fileScanKey: "other-key" },
+      { fileKey: null },
+    ]) {
+      attempts.length = 0;
+      sessionCalls.length = 0;
+      state.product = product(over);
+      const res = await checkout({ productId: "prod_1", buyerEmail: "buyer@example.com" });
+      assert.equal(res.status, 400, JSON.stringify(over));
+      assertNothingStarted();
+    }
+  });
+
+  test("a public buyer cannot use the production account off the production deployment", async () => {
+    state.preLaunch = false;
+    state.livePaymentsMode = "public";
+    state.account = "production";
+    state.price = "120.00";
+    state.product = product();
+    for (const where of [undefined, "preview", "development"]) {
+      if (where === undefined) delete process.env.VERCEL_ENV;
+      else process.env.VERCEL_ENV = where;
+      const res = await checkout({ productId: "prod_1", buyerEmail: "buyer@example.com" });
+      assert.equal(res.status, 503, String(where));
       assert.equal(res.body.error, "pre_launch");
     }
     assertNothingStarted();
@@ -453,6 +534,7 @@ describe("the checkout page mirrors the route", () => {
   test("it asks the same decision, and says a founder test is real money", () => {
     assert.match(page, /const \{ access \} = await currentCheckoutAccess\(\);/);
     assert.match(page, /const founderTest = access\.kind === "founder_test";/);
+    assert.match(page, /const overFounderCap = founderTest && !withinFounderCap\(/);
     assert.match(page, /\{founderTest && \([\s\S]*?founderTestBodyLive[\s\S]*?founderTestBodyTest/);
     const en = JSON.parse(read("messages/en.json")).checkout;
     const ar = JSON.parse(read("messages/ar.json")).checkout;

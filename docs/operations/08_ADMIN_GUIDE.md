@@ -36,10 +36,10 @@ Rules of conduct in [`06_MODERATION_RUNBOOK.md`](06_MODERATION_RUNBOOK.md). Two 
 Daad's assistants can open stores and upload products through `/api/founder-bot`, documented in [`docs/FOUNDER_BOT_API.md`](../FOUNDER_BOT_API.md). Uploads stay pending; the bot cannot approve them or touch payments. **Turn it off** by deleting `FOUNDER_BOT_API_TOKEN` in Vercel and redeploying. The URLs then answer 404.
 
 ## Emergency shutdown (in escalating order)
-1. **Payments only:** set `PRE_LAUNCH_MODE=true` → redeploy. Checkout returns 503; site stays fully up. *This is the switch you'll actually use.*
+1. **Payments only:** set `PRE_LAUNCH_MODE=true` → redeploy. Checkout returns 503; site stays fully up. While `LIVE_PAYMENTS_MODE` is `public`, that stops every buyer, including founders. *This is the switch you'll actually use.*
 2. **One seller:** `Shop.isActive=false` — everything they have disappears from public view instantly.
 3. **Whole site:** Vercel → Deployments → promote a known-safe deployment; or Vercel → project → Pause (hard stop, use only for active harm).
 4. **Data emergency:** rotate `DATABASE_URL` password at Neon — severs all app access to the DB while you think.
 
 ## The one-page mental model
-Vercel runs the app. Neon holds the truth. UploadThing holds the files. Resend sends the mail. `PRE_LAUNCH_MODE` guards the money. `ADMIN_EMAILS` guards the gate. The audit log remembers everything. Backups are a rumor until you've restored one this month.
+Vercel runs the app. Neon holds the truth. UploadThing holds the files. Resend sends the mail. `PRE_LAUNCH_MODE` plus `LIVE_PAYMENTS_MODE` guard the money. `ADMIN_EMAILS` guards the gate. The audit log remembers everything. Backups are a rumor until you've restored one this month.

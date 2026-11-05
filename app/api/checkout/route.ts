@@ -66,10 +66,12 @@ import { currentCheckoutAccess } from "@/lib/payments/request-access";
  * founder test may use the deployment's production Geidea account, only for
  * a product priced at most FOUNDER_TEST_MAX_SAR, and its attempt is marked
  * `founderTest` (never revenue, never paid out). With PRE_LAUNCH_MODE off,
- * checkout is what it always was: a test account for everyone, and a
- * production account refused while LIVE_PUBLIC_ALLOWED is false, whatever
- * LIVE_PAYMENTS_MODE says. So a credentials swap alone still cannot start
- * taking the public's money.
+ * a test account works for everyone. A production account is allowed for
+ * that public checkout only when LIVE_PUBLIC_ALLOWED is set and
+ * LIVE_PAYMENTS_MODE is exactly "public", and only on the production
+ * deployment. So neither a credentials swap nor this release alone can
+ * start taking the public's money. The founder cap does not apply to an
+ * ordinary buyer. Product approval and file safety still run first.
  *
  * TWO PRESENTATIONS, ONE PURCHASE. By default Geidea's form opens on its own
  * hosted page and the reply is `{ url }`, exactly as before. SaiFlow's own
@@ -508,9 +510,10 @@ export async function POST(req: Request) {
       );
     }
 
-    // A production Geidea account only for a founder test (and, later, a
-    // reviewed public release): a credentials swap alone can never start
-    // taking the public's money.
+    // A production Geidea account only for a founder test, or for the public
+    // once this release is allowed and LIVE_PAYMENTS_MODE is exactly
+    // "public". A credentials swap alone can never start taking the
+    // public's money.
     if (
       !accountAllowed(access, livePaymentsMode, configuredMode) ||
       (configuredMode === "production" && !productionAccountHere(process.env.VERCEL_ENV))

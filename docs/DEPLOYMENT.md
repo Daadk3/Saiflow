@@ -14,7 +14,9 @@
 | `NEXTAUTH_SECRET` | ✅ | `openssl rand -base64 32` — never reuse between environments |
 | `UPLOADTHING_TOKEN` | ✅ | UploadThing dashboard |
 | `RESEND_API_KEY` | ✅ | starts `re_` — sender domain `saiflow.io` must be verified in Resend |
-| `PRE_LAUNCH_MODE` | ✅ | **`true` until payments are live.** Only the literal string `false` opens checkout |
+| `PRE_LAUNCH_MODE` | ✅ | **`true` until public checkout is intentionally opened.** Only the literal string `false` lets non-founders reach checkout. It does not, by itself, charge the production Geidea account |
+| `LIVE_PAYMENTS_MODE` | when taking public cards | `off` (missing or anything unrecognised), `founder_only`, or `public`. Ordinary buyers are charged on the production Geidea account only when this is exactly `public`, `PRE_LAUNCH_MODE` is `false`, and the deployed release has `LIVE_PUBLIC_ALLOWED`. Set `public` on the **Production** scope only, in the same change as `PRE_LAUNCH_MODE=false`. Leave Preview at `off` or `founder_only` |
+| `FOUNDER_TEST_EMAILS` | founder tests | Comma-separated addresses that may pay while `LIVE_PAYMENTS_MODE=founder_only` and pre-launch is on, at most 50 SAR, marked as tests and never paid out. Not a public buyer list |
 | `ADMIN_EMAILS` | ✅ | Comma-separated moderation admins (the founder's own address) — without it, nothing can be approved |
 | `FOUNDER_BOT_API_TOKEN` | optional | Founder-only bot API. Unset, blank, or shorter than 16 characters: the API answers 404. Generate with `openssl rand -hex 32`. Never log it. See [`FOUNDER_BOT_API.md`](FOUNDER_BOT_API.md) |
 | `FOUNDER_BOT_OWNER_EMAIL` | optional | The one account the bot may act as. Must also appear in `ADMIN_EMAILS` and `FOUNDER_TEST_EMAILS`, and must already be a registered user |
@@ -41,7 +43,7 @@ Validation is enforced at boot by `lib/env.ts` — a misconfigured deploy fails 
 - **App rollback:** Vercel → Deployments → previous good deployment → *Promote to Production*. Instant; no build.
 - **Migration note:** `add_moderation` is additive (new columns/tables only) — old app code runs fine against the migrated schema, so app-level rollback is safe without a DB rollback.
 - **DB restore (disaster only):** Neon → Branches/Restore → point-in-time restore, then repoint `DATABASE_URL`. Only needed for data corruption, not for app bugs.
-- **Kill switch:** if payments ever misbehave post-launch, set `PRE_LAUNCH_MODE=true` and redeploy — checkout returns 503 instantly, site stays up.
+- **Kill switch:** set `PRE_LAUNCH_MODE=true` and redeploy. While `LIVE_PAYMENTS_MODE` is `public`, that returns 503 to every buyer, including founders, and the site stays up. To keep founder tests instead, set `LIVE_PAYMENTS_MODE=founder_only` in the same change. Setting `LIVE_PAYMENTS_MODE` to anything other than `public` also stops production charges for ordinary buyers.
 
 ## 4. Smoke test checklist (on Preview, with real DB)
 
