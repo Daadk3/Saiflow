@@ -22,6 +22,7 @@ export const SCAN_EXPLANATION_KEYS = [
   "archive",
   "format",
   "html",
+  "unattributed",
 ] as const;
 
 export type ScanExplanationKey = (typeof SCAN_EXPLANATION_KEYS)[number];
@@ -60,6 +61,7 @@ const TABLE: Record<string, ScanExplanationKey> = {
   malformed_file: "format",
   format_not_verified: "format",
   html_content: "html",
+  not_clean_unattributed: "unattributed",
 };
 
 /**

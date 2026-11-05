@@ -439,7 +439,8 @@ describe("provider findings are reconciled with policy", () => {
   });
 
   const rejections: [keyof ScanFindings | "clean", unknown, string][] = [
-    ["clean", false, "malware"],
+    ["clean", false, "not_clean_unattributed"],
+    ["virusNames", ["Eicar-Test-Signature"], "malware"],
     ["containsExecutable", true, "executable"],
     ["containsScript", true, "script"],
     ["containsMacros", true, "macros"],
@@ -452,6 +453,67 @@ describe("provider findings are reconciled with policy", () => {
     ["containsRestrictedFileFormat", true, "format_mismatch"],
     ["containsHtml", true, "html_content"],
   ];
+
+  describe("not clean is always rejected, and the reason says only what is known", () => {
+    const zipPolicy = { kind: "zip" as const, restrictToExtensions: [".zip"], allowHtml: false };
+    const verdictFor = (over: Partial<ScanFindings>, policy: Parameters<typeof verdictFromFindings>[1] = zipPolicy) =>
+      verdictFromFindings(cleanFindings({ clean: false, verifiedFileFormat: ".zip", ...over }), policy);
+
+    test("a named virus is malware, whatever else was flagged", () => {
+      assert.deepEqual(
+        verdictFor({ virusNames: ["Eicar-Test-Signature"], containsRestrictedFileFormat: true }),
+        { outcome: "REJECT", reason: "malware" }
+      );
+    });
+
+    test("a named virus is malware even if the provider also said clean", () => {
+      assert.deepEqual(
+        verdictFor({ clean: true, virusNames: ["Eicar-Test-Signature"] }),
+        { outcome: "REJECT", reason: "malware" }
+      );
+    });
+
+    test("a type failure is reported as one, not as malware", () => {
+      assert.deepEqual(verdictFor({ containsRestrictedFileFormat: true }), {
+        outcome: "REJECT",
+        reason: "format_mismatch",
+      });
+    });
+
+    const flagged: [keyof ScanFindings, string][] = [
+      ["containsExecutable", "executable"],
+      ["containsScript", "script"],
+      ["containsMacros", "macros"],
+      ["containsPasswordProtectedFile", "password_protected"],
+      ["containsUnsafeArchive", "unsafe_archive"],
+      ["containsOleEmbeddedObject", "ole_embedded_object"],
+      ["containsInvalidFile", "malformed_file"],
+      ["containsHtml", "html_content"],
+    ];
+    for (const [field, reason] of flagged) {
+      test(`not clean with ${String(field)} -> ${reason}`, () => {
+        assert.deepEqual(verdictFor({ [field]: true }), { outcome: "REJECT", reason });
+      });
+    }
+
+    test("nothing named and nothing flagged stays a rejection", () => {
+      assert.deepEqual(verdictFor({}), { outcome: "REJECT", reason: "not_clean_unattributed" });
+    });
+
+    test("a null format cannot soften not clean into UNVERIFIABLE", () => {
+      assert.deepEqual(verdictFor({ verifiedFileFormat: null }), {
+        outcome: "REJECT",
+        reason: "not_clean_unattributed",
+      });
+    });
+
+    test("the EPUB HTML exemption cannot carry a not-clean file through", () => {
+      assert.deepEqual(
+        verdictFor({ containsHtml: true, verifiedFileFormat: ".epub" }, epubPolicy),
+        { outcome: "REJECT", reason: "not_clean_unattributed" }
+      );
+    });
+  });
 
   for (const [field, value, reason] of rejections) {
     test(`${String(field)} -> ${reason}`, () => {
@@ -1699,7 +1761,7 @@ describe("the real Cloudmersive clean response parses", () => {
         allowHtml: false,
       });
       assert.equal(verdict.outcome, "REJECT");
-      assert.equal((verdict as { reason: string }).reason, "malware");
+      assert.equal((verdict as { reason: string }).reason, "not_clean_unattributed");
     }
   });
 

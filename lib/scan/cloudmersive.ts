@@ -113,9 +113,10 @@ function parseFindings(payload: unknown): ScanFindings | null {
   // the first real scan in Preview.
   //
   // Accepting null cannot weaken the verdict. FoundViruses supplies virus
-  // NAMES for the audit trail only; the malware decision is CleanResult, still
-  // required above as a strict boolean, and verdictFromFindings rejects on
-  // !clean before it reads anything else. A wrong-typed value is still refused.
+  // NAMES only; whether the file is rejected is CleanResult, still required
+  // above as a strict boolean, and verdictFromFindings rejects every !clean
+  // with or without a name. A name only decides that the recorded reason is
+  // malware. A wrong-typed value is still refused.
   if (
     raw.FoundViruses !== undefined &&
     raw.FoundViruses !== null &&

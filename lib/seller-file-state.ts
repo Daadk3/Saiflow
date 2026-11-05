@@ -74,6 +74,7 @@ export interface SellerProductView extends DeliverableSafety {
 
 const UNSAFE_REASONS = new Set([
   "malware",
+  "not_clean_unattributed",
   "executable",
   "script",
   "macros",

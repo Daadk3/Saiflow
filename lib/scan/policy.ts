@@ -210,7 +210,11 @@ export function verdictFromFindings(
   findings: ScanFindings,
   policy: ContentPolicy
 ): PolicyVerdict {
-  if (!findings.clean) return { outcome: "REJECT", reason: "malware" };
+  // A named detection is the only thing that earns the word malware.
+  // CleanResult alone cannot: Cloudmersive also returns it false for a file
+  // that fails restrictFileTypes, so reading it first recorded format failures
+  // as malware and hid every specific reason below.
+  if (findings.virusNames.length > 0) return { outcome: "REJECT", reason: "malware" };
   if (findings.containsExecutable) return { outcome: "REJECT", reason: "executable" };
   if (findings.containsScript) return { outcome: "REJECT", reason: "script" };
   if (findings.containsMacros) return { outcome: "REJECT", reason: "macros" };
@@ -234,6 +238,11 @@ export function verdictFromFindings(
   if (findings.containsHtml && !policy.allowHtml) {
     return { outcome: "REJECT", reason: "html_content" };
   }
+
+  // Not clean, with nothing named and no flag raised. Still a rejection, and
+  // deliberately before the format checks below, so `!clean` can never reach
+  // UNVERIFIABLE or ALLOW. It only stops claiming to know why.
+  if (!findings.clean) return { outcome: "REJECT", reason: "not_clean_unattributed" };
 
   // Reached only after every threat check above has passed, so a file that is
   // both unverifiable AND carries a threat is still REJECTED on the threat —
