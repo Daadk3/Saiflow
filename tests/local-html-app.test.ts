@@ -505,6 +505,149 @@ describe("provider findings stay strict apart from the named exceptions", () => 
   });
 });
 
+describe("Cloudmersive HTML, script, and ZIP-whitelist flags on a local HTML app", () => {
+  /** The provider shape for inner HTML/CSS/JS against restrictFileTypes=.zip. */
+  const providerShape = (over: Partial<ScanFindings> = {}): ScanFindings =>
+    findings({
+      clean: false,
+      verifiedFileFormat: ".zip",
+      containsHtml: true,
+      containsScript: true,
+      containsRestrictedFileFormat: true,
+      ...over,
+    });
+
+  function passedPolicy() {
+    const zip = makeZip(app());
+    const policy = resolveContentPolicy(zip)!;
+    assert.equal(policy.kind, "local_html_app");
+    assert.deepEqual(structuralVerdict(zip, policy), { outcome: "ALLOW" });
+    return policy;
+  }
+
+  test("a structurally safe app is not rejected for the whitelist or for CleanResult false", () => {
+    const policy = passedPolicy();
+    assert.deepEqual(verdictFromFindings(providerShape(), policy), { outcome: "ALLOW" });
+    assert.deepEqual(
+      verdictFromFindings(providerShape({ clean: true }), policy),
+      { outcome: "ALLOW" }
+    );
+    assert.deepEqual(
+      verdictFromFindings(providerShape({ verifiedFileFormat: "zip" }), policy),
+      { outcome: "ALLOW" }
+    );
+  });
+
+  test("each allowed flag on its own explains CleanResult false when the container is a ZIP", () => {
+    const policy = passedPolicy();
+    for (const over of [
+      { containsHtml: true, containsScript: false, containsRestrictedFileFormat: false },
+      { containsHtml: false, containsScript: true, containsRestrictedFileFormat: false },
+      { containsHtml: false, containsScript: false, containsRestrictedFileFormat: true },
+    ]) {
+      assert.deepEqual(verdictFromFindings(providerShape(over), policy), { outcome: "ALLOW" }, JSON.stringify(over));
+    }
+  });
+
+  test("a bare CleanResult false, with none of those flags, stays unattributed", () => {
+    const policy = passedPolicy();
+    const verdict = verdictFromFindings(
+      providerShape({
+        containsHtml: false,
+        containsScript: false,
+        containsRestrictedFileFormat: false,
+        verifiedFileFormat: ".zip",
+      }),
+      policy
+    );
+    assert.deepEqual(verdict, { outcome: "REJECT", reason: "not_clean_unattributed" });
+    const unverified = verdictFromFindings(
+      providerShape({
+        containsHtml: false,
+        containsScript: false,
+        containsRestrictedFileFormat: false,
+        verifiedFileFormat: null,
+      }),
+      policy
+    );
+    assert.deepEqual(unverified, { outcome: "REJECT", reason: "not_clean_unattributed" });
+  });
+
+  test("a restricted-format flag is still a mismatch when the container is not a ZIP", () => {
+    const policy = passedPolicy();
+    for (const verifiedFileFormat of [".epub", ".html", ".js", null]) {
+      const verdict = verdictFromFindings(providerShape({ verifiedFileFormat }), policy);
+      assert.equal(verdict.outcome, "REJECT", String(verifiedFileFormat));
+      assert.equal(verdict.outcome === "REJECT" && verdict.reason, "format_mismatch");
+    }
+  });
+
+  const namedThreats: [string, Partial<ScanFindings>, string][] = [
+    ["malware", { virusNames: ["Eicar-Test-Signature"] }, "malware"],
+    ["executable", { containsExecutable: true }, "executable"],
+    ["macros", { containsMacros: true }, "macros"],
+    ["unsafe archive", { containsUnsafeArchive: true }, "unsafe_archive"],
+    ["password protected", { containsPasswordProtectedFile: true }, "password_protected"],
+    ["insecure deserialization", { containsInsecureDeserialization: true }, "insecure_deserialization"],
+    ["xxe", { containsXmlExternalEntities: true }, "xxe"],
+    ["embedded object", { containsOleEmbeddedObject: true }, "ole_embedded_object"],
+    ["invalid file", { containsInvalidFile: true }, "malformed_file"],
+  ];
+
+  for (const [label, over, expected] of namedThreats) {
+    test(`${label} is still rejected when the whitelist flags are also set`, () => {
+      const verdict = verdictFromFindings(providerShape(over), passedPolicy());
+      assert.deepEqual(verdict, { outcome: "REJECT", reason: expected });
+    });
+  }
+
+  test("the same provider shape does not pass a plain ZIP, an EPUB, or a PDF", () => {
+    const shape = providerShape();
+    const plain = resolveContentPolicy(makeZip([{ name: "readme.txt", data: "hi" }]))!;
+    assert.equal(plain.kind, "zip");
+    assert.deepEqual(verdictFromFindings(shape, plain), { outcome: "REJECT", reason: "script" });
+    const epub = { kind: "epub" as const, restrictToExtensions: [".epub"], allowHtml: true };
+    assert.equal(verdictFromFindings(shape, epub).outcome, "REJECT");
+    assert.deepEqual(
+      verdictFromFindings(providerShape({ containsScript: false }), epub),
+      { outcome: "REJECT", reason: "format_mismatch" }
+    );
+    assert.deepEqual(
+      verdictFromFindings(
+        providerShape({ containsScript: false, containsRestrictedFileFormat: false, verifiedFileFormat: ".epub" }),
+        { kind: "epub", restrictToExtensions: [".epub"], allowHtml: true }
+      ),
+      { outcome: "REJECT", reason: "not_clean_unattributed" }
+    );
+    assert.deepEqual(
+      verdictFromFindings(shape, { kind: "pdf", restrictToExtensions: [".pdf"], allowHtml: false }),
+      { outcome: "REJECT", reason: "script" }
+    );
+    assert.deepEqual(
+      verdictFromFindings(
+        findings({ clean: false, verifiedFileFormat: ".zip", containsRestrictedFileFormat: true }),
+        plain
+      ),
+      { outcome: "REJECT", reason: "format_mismatch" }
+    );
+  });
+
+  test("a structural failure is settled before the provider waiver can apply", () => {
+    const zip = makeZip([
+      marker(),
+      { name: "index.html", data: "<script>alert(1)</script>" },
+    ]);
+    const policy = resolveContentPolicy(zip)!;
+    assert.equal(policy.kind, "local_html_app");
+    assert.deepEqual(structuralVerdict(zip, policy), { outcome: "REJECT", reason: "archive_active_html" });
+    const run = read("lib/scan/run.ts");
+    const structuralAt = run.indexOf('if (structural.outcome === "REJECT")');
+    const providerAt = run.indexOf("result = await provider.scan");
+    const verdictAt = run.indexOf("verdictFromFindings(result.findings, policy)");
+    assert.ok(structuralAt !== -1 && structuralAt < providerAt && providerAt < verdictAt);
+  });
+});
+
 describe("admins see a review label, and delivery is not rewired", () => {
   test("the checklist names the archive and the risk, and a ZIP does not", () => {
     const input = {

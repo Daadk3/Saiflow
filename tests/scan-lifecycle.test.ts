@@ -464,6 +464,23 @@ describe("the seller sees uploaded, scanning, passed or failed — never scannin
     assert.deepEqual(s, { state: "failed", failure: "unsafe_content", canRetry: false });
   });
 
+  test("an unsafe gate uses the scan reason's category and stays not retryable", () => {
+    const unsafe = (scanReason: string | null, assetOver: Record<string, unknown> = {}) =>
+      sellerFileState(
+        p({ fileScanStatus: "UNSAFE", fileScanKey: KEY }),
+        asset({ scanStatus: "UNSAFE", scanReason, ...assetOver }) as never,
+        NOW
+      );
+    assert.deepEqual(unsafe("format_mismatch"), { state: "failed", failure: "unsupported_format", canRetry: false });
+    assert.deepEqual(unsafe("archive_encrypted"), { state: "failed", failure: "password_protected", canRetry: false });
+    assert.deepEqual(unsafe("archive_malformed"), { state: "failed", failure: "archive_problem", canRetry: false });
+    assert.deepEqual(unsafe("not_clean_unattributed"), { state: "failed", failure: "unsafe_content", canRetry: false });
+    assert.deepEqual(unsafe("something_new"), { state: "failed", failure: "unsafe_content", canRetry: false });
+    assert.deepEqual(unsafe(null), { state: "failed", failure: "unsafe_content", canRetry: false });
+    assert.deepEqual(unsafe("format_mismatch", { shopId: "shop_2" }), { state: "failed", failure: "unsafe_content", canRetry: false });
+    assert.deepEqual(sellerFileState(p({ fileScanStatus: "UNSAFE", fileScanKey: KEY }), null, NOW), { state: "failed", failure: "unsafe_content", canRetry: false });
+  });
+
   test("just attached: uploaded, then scanning once an attempt or a claim exists", () => {
     assert.equal(sellerFileState(p(), asset() as never, NOW)?.state, "uploaded");
     assert.equal(sellerFileState(p(), asset({ scanClaimedAt: minutes(1), scanAttempts: 1, scanAt: minutes(1) }) as never, NOW)?.state, "scanning");
@@ -718,6 +735,14 @@ describe("manual retry: who may, what it resets, what it schedules", () => {
     const prod = product({ fileScanStatus: "SCAN_ERROR", fileScanKey: KEY }) as never;
     assert.deepEqual(rescanDecision(prod, failedAsset() as never, NOW), { ok: true });
     assert.deepEqual(rescanDecision(prod, asset({ scanStatus: "UNSAFE" }) as never, NOW), { ok: false, refusal: "unsafe" });
+    assert.deepEqual(
+      rescanDecision(
+        product({ fileScanStatus: "UNSAFE", fileScanKey: KEY }) as never,
+        asset({ scanStatus: "UNSAFE", scanReason: "format_mismatch" }) as never,
+        NOW
+      ),
+      { ok: false, refusal: "unsafe" }
+    );
     assert.deepEqual(rescanDecision(prod, null, NOW), { ok: false, refusal: "no_scan_record" });
     assert.deepEqual(rescanDecision(product({ fileKey: null }) as never, null, NOW), { ok: false, refusal: "no_file" });
     assert.deepEqual(rescanDecision(product() as never, asset() as never, NOW), { ok: false, refusal: "not_failed" });
