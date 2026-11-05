@@ -28,10 +28,15 @@ describe("inspect-file: no deliverable URL reaches the browser", () => {
     // Supersedes the allowlist filter that used to stand here. Stage D2 made
     // this stronger rather than weaker: there is no longer a URL to filter,
     // because none is emitted at all. The row carries only whether the
-    // inspection route would have a key to sign.
+    // inspection route would serve the file. A storage key is not enough —
+    // an UNSAFE file has a key and the route still refuses it.
     assert.ok(
-      /canInspect: p\.fileKey != null/.test(stats),
-      "admin-stats must expose canInspect, keyed on fileKey"
+      /canInspect: inspectProduct\(p, "admin"\)\.decision\.allow/.test(stats),
+      "admin-stats must expose canInspect from the inspection policy"
+    );
+    assert.ok(
+      !/canInspect:\s*p\.fileKey\s*!=\s*null/.test(stats),
+      "a key alone must not offer an inspect link"
     );
     const emitted = stats.slice(stats.indexOf("rows: page.map"));
     assert.ok(

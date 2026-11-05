@@ -171,6 +171,19 @@ function request(url = "https://saiflow.test/api/x"): Request {
   });
 }
 
+/** A browser navigation: address bar, or a click on "Inspect file". */
+function documentRequest(url = "https://saiflow.test/api/x"): Request {
+  ipCounter++;
+  return new Request(url, {
+    headers: {
+      "x-forwarded-for": `10.2.${(ipCounter >> 8) & 255}.${ipCounter & 255}`,
+      "sec-fetch-dest": "document",
+      "sec-fetch-mode": "navigate",
+      accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+    },
+  });
+}
+
 const asAdmin = () => ({ user: { email: ADMIN_EMAIL, id: "admin_1" } });
 const asUser = (email = OTHER_EMAIL) => ({ user: { email, id: "user_1" } });
 
@@ -300,6 +313,86 @@ describe("admin inspection route: scan states", () => {
     state.session = asAdmin();
     state.product = product("UNSAFE");
     await assertRefused(await callAdmin(), 403, "unsafe");
+  });
+
+  test("9c. a browser navigation to UNSAFE is sent to the review page, not the file", async () => {
+    reset();
+    state.session = asAdmin();
+    state.product = product("UNSAFE");
+    const res = await adminGET(documentRequest(), {
+      params: Promise.resolve({ productId: "prod_1" }),
+    });
+    assert.equal(res.status, 303);
+    assert.equal(
+      res.headers.get("location"),
+      "/dashboard/admin/products/prod_1/preview?inspection=unsafe#file-safety"
+    );
+    assert.equal(state.signCalls.length, 0, "a blocked file must not be signed");
+    const body = await res.text();
+    assert.ok(!body.includes("signed.example.test"), "refusal leaked the URL");
+    assert.ok(!body.includes(KEY), "refusal leaked the storage key");
+  });
+
+  test("9d. dressing up a browser navigation still does not open an unsafe file", async () => {
+    reset();
+    state.session = asAdmin();
+    state.product = product("UNSAFE");
+    const res = await adminGET(
+      documentRequest("https://saiflow.test/api/x?unsafe=allow&ack=1"),
+      { params: Promise.resolve({ productId: "prod_1" }) }
+    );
+    assert.equal(res.status, 303);
+    assert.equal(state.signCalls.length, 0);
+    const location = res.headers.get("location") ?? "";
+    assert.ok(location.startsWith("/dashboard/admin/products/"));
+    assert.ok(!location.includes("signed.example.test"));
+    assert.ok(!location.includes(KEY));
+  });
+
+  test("9e. a browser navigation to a SAFE file still redirects to the signed URL", async () => {
+    reset();
+    state.session = asAdmin();
+    state.product = product("SAFE");
+    const res = await adminGET(documentRequest(), {
+      params: Promise.resolve({ productId: "prod_1" }),
+    });
+    assert.equal(res.status, 302);
+    assert.equal(res.headers.get("location"), SIGNED_URL);
+    assert.equal(state.signCalls.length, 1);
+  });
+
+  test("9g. a product id that is not a single path segment keeps the JSON refusal", async () => {
+    reset();
+    state.session = asAdmin();
+    state.product = { ...product("UNSAFE"), id: "../evil" };
+    const res = await adminGET(documentRequest(), {
+      params: Promise.resolve({ productId: "prod_1" }),
+    });
+    assert.equal(res.status, 403);
+    assert.equal(res.headers.get("location"), null, "must not redirect to a crafted id");
+    assert.equal((await res.json()).error, "unsafe");
+    assert.equal(state.signCalls.length, 0);
+  });
+
+  test("9f. an API client that prefers JSON still receives the unsafe refusal", async () => {
+    reset();
+    state.session = asAdmin();
+    state.product = product("UNSAFE");
+    ipCounter++;
+    const res = await adminGET(
+      new Request("https://saiflow.test/api/x", {
+        headers: {
+          "x-forwarded-for": `10.3.0.${ipCounter & 255}`,
+          accept: "application/json, text/html;q=0.8",
+          "sec-fetch-dest": "empty",
+        },
+      }),
+      { params: Promise.resolve({ productId: "prod_1" }) }
+    );
+    assert.equal(res.status, 403);
+    assert.equal(res.headers.get("location"), null);
+    assert.equal((await res.json()).error, "unsafe");
+    assert.equal(state.signCalls.length, 0);
   });
 
   test("9b. UNSAFE stays refused however the request is dressed up", async () => {

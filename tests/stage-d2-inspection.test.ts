@@ -400,7 +400,8 @@ describe("no surface links a private deliverable directly", () => {
   test("the moderation queue points at the admin route", () => {
     const src = read("../app/dashboard/moderation/page.tsx");
     assert.ok(src.includes("href={`/api/admin/inspect/${p.id}`}"));
-    assert.ok(src.includes("{p.canInspect && ("), "gated on canInspect");
+    assert.ok(src.includes("p.canInspect ? ("), "gated on canInspect");
+    assert.ok(src.includes("p.scanBlocked"), "a blocked file is explained, not linked");
     assert.ok(!/fileUrl/.test(src), "no fileUrl left in the queue at all");
   });
 
@@ -408,7 +409,16 @@ describe("no surface links a private deliverable directly", () => {
     const api = read("../app/api/admin/moderation/route.ts");
     assert.ok(!/fileUrl: true/.test(api), "fileUrl must not be selected");
     assert.ok(/fileKey: true/.test(api));
-    assert.ok(/canInspect: fileKey != null/.test(api));
+    assert.ok(/fileScanStatus: true/.test(api));
+    assert.ok(/inspectProduct\(row, "admin"\)/.test(api));
+    assert.ok(/canInspect: decision\.allow/.test(api));
+    assert.ok(
+      !/canInspect:\s*fileKey\s*!=\s*null/.test(api),
+      "a key alone must not offer an inspect link"
+    );
+    // The scan columns are read to ask the policy and then stripped. They
+    // must not ride out on the rest spread.
+    assert.ok(/fileScanStatus,\s*fileScanKey/.test(api));
   });
 
   test("the seller edit page points at the seller route", () => {

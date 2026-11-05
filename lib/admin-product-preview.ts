@@ -1,6 +1,10 @@
 import type { ModerationStatus } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { inspectDecision } from "@/lib/inspect";
+import { inspectProduct } from "@/lib/inspect";
+import {
+  explainScanReason,
+  type ScanExplanationKey,
+} from "@/lib/scan-explanation";
 import { isAllowedAssetUrl } from "@/lib/validations";
 import { unsellableReason, type UnsellableReason } from "@/lib/sellable";
 import { isDeliverableSafe } from "@/lib/file-safety";
@@ -71,15 +75,20 @@ export interface AdminProductPreview {
     name: string;
     slug: string;
   };
-  /** A reason and a boolean. Never the columns it was derived from. */
-  fileSafety: ModeratorFileSafety;
+  /**
+   * A reason and a boolean, plus an allowlisted explanation when the file is
+   * blocked. Never the columns it was derived from, and never the raw
+   * `scanReason` string: `blockedBecause` is null when the stored token is
+   * missing or not one this build knows.
+   */
+  fileSafety: ModeratorFileSafety & { blockedBecause: ScanExplanationKey | null };
   /**
    * Whether /api/admin/inspect/[productId] would actually serve this file.
    *
-   * Read from the same policy table the route enforces rather than from
-   * "there is a key", so the preview never renders a link that can only 403 —
-   * an UNSAFE file has no inspection path in D2 by design, and offering one
-   * would misdescribe the product's state to the person deciding on it.
+   * `inspectProduct` is the function the route calls, including its refusal
+   * of a scan status this build does not recognise. A key is not enough: an
+   * UNSAFE file has no inspection path, and offering one would misdescribe
+   * the product to the person deciding on it.
    *
    * This is a display hint. The route re-derives the decision itself and does
    * not trust anything computed here.
@@ -158,7 +167,21 @@ export async function getAdminProductPreview(
 
   if (!product) return null;
 
-  const fileSafety = moderatorFileSafety(product);
+  const gate = moderatorFileSafety(product);
+
+  // The specific category lives on the upload, not on the product. Read only
+  // for a file the gate has already called unsafe, and only the reason
+  // column. `explainScanReason` drops anything it does not recognise, so the
+  // value that leaves this function is a key from a fixed list or null.
+  let blockedBecause: ScanExplanationKey | null = null;
+  if (gate.reason === "unsafe" && product.fileKey) {
+    const asset = await prisma.fileAsset.findUnique({
+      where: { key: product.fileKey },
+      select: { scanReason: true },
+    });
+    blockedBecause = explainScanReason(asset?.scanReason);
+  }
+  const fileSafety = { ...gate, blockedBecause };
 
   // Rebuilt field by field rather than spread, so a column added to the
   // select above cannot reach the page by accident.
@@ -179,7 +202,7 @@ export async function getAdminProductPreview(
     createdAt: product.createdAt,
     shop: { name: product.shop.name, slug: product.shop.slug },
     fileSafety,
-    canInspect: inspectDecision(fileSafety.reason, "admin").allow,
+    canInspect: inspectProduct(product, "admin").decision.allow,
     notSellableReason:
       product.moderationStatus === "APPROVED" && unsellableReason(product) !== "sellable"
         ? unsellableReason(product)

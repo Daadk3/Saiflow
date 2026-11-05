@@ -10,6 +10,7 @@
  */
 
 import { prisma } from "@/lib/prisma";
+import { inspectProduct } from "@/lib/inspect";
 import {
   moderatorFileSafety,
   type ModeratorFileSafety,
@@ -269,10 +270,10 @@ export interface DirectoryRow {
    * mints a short-lived signed URL server-side. No deliverable URL — private
    * or legacy-public — is serialised into an admin page any more.
    *
-   * Keyed on `fileKey`, not `fileUrl`, because the key is what the inspection
-   * route can actually sign. A legacy row carrying a URL but no key reports
-   * `hasFile: true` and `canInspect: false` — accurate on both counts, and it
-   * renders no link that could only fail.
+   * The same decision the route enforces (`inspectProduct`). A key is not
+   * enough: an UNSAFE file has a key and is still refused, and a link that
+   * can only answer 403 is a raw JSON page, not an inspection. A legacy row
+   * carrying a URL but no key reports `hasFile: false` and `canInspect: false`.
    */
   canInspect: boolean;
   /**
@@ -420,7 +421,7 @@ export async function getProductsDirectory(opts: {
         humanReviewed: latest != null && latest.newStatus === p.moderationStatus,
         hasFile: p.fileKey != null,
         fileSafety: moderatorFileSafety(p),
-        canInspect: p.fileKey != null,
+        canInspect: inspectProduct(p, "admin").decision.allow,
         notSellableReason:
           p.moderationStatus === "APPROVED" && unsellableReason(p) !== "sellable" ? unsellableReason(p) : null,
         rejectionReason:
