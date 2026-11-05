@@ -59,10 +59,12 @@ export const env = createEnv({
     // Who may pay on a production Geidea account (lib/payments/live-mode).
     // Read leniently on purpose: missing, empty or any unrecognised value
     // means "off", and never fails a build or a request.
-    //   off          nobody (the default)
+    //   off          nobody on a production account (the default)
     //   founder_only only signed-in FOUNDER_TEST_EMAILS, at most
-    //                FOUNDER_TEST_MAX_SAR, marked as founder tests
-    //   public       reserved; still refused in this release
+    //                FOUNDER_TEST_MAX_SAR, marked as founder tests,
+    //                and only while PRE_LAUNCH_MODE is on
+    //   public       ordinary buyers on the production account, only when
+    //                PRE_LAUNCH_MODE is off and LIVE_PUBLIC_ALLOWED is set
     LIVE_PAYMENTS_MODE: z.string().optional(),
     // Comma-separated emails allowed to make founder test payments.
     FOUNDER_TEST_EMAILS: z.string().optional(),

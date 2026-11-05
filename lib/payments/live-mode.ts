@@ -17,17 +17,26 @@
  * FOUNDER_TEST_MAX_SAR. The attempt and its Order are marked `founderTest`
  * and are never revenue and never paid out. Everyone else is answered
  * exactly as before: the pre-launch notice. Every other checkout gate still
- * runs.
+ * runs. The cap applies only to that founder test.
  *
- * PUBLIC STAYS LOCKED. With PRE_LAUNCH_MODE off, checkout behaves exactly as
- * before this switch existed: a test Geidea account works for everyone, and
- * a production account is refused. "public" does not change that yet:
- * opening real payments to everyone stays a separate, reviewed release
- * (LIVE_PUBLIC_ALLOWED below).
+ * PUBLIC LIVE CHECKOUT. LIVE_PUBLIC_ALLOWED is the reviewed release. It does
+ * not, by itself, charge anyone. An ordinary buyer (not a founder test) may
+ * use the production Geidea account only when all of these hold:
+ *   - PRE_LAUNCH_MODE is off, so access is "public",
+ *   - LIVE_PAYMENTS_MODE is exactly "public",
+ *   - LIVE_PUBLIC_ALLOWED is true,
+ *   - this process is the production deployment (productionAccountHere).
+ * That attempt is not marked founderTest, and the founder price cap does
+ * not apply. A test Geidea account still works for everyone once pre-launch
+ * is off, whatever the mode. Product approval, shop visibility and file
+ * safety are separate gates and are not decided here.
  */
 
-/** Opening real payments to the public is a reviewed release, not an env value. */
-export const LIVE_PUBLIC_ALLOWED = false;
+/**
+ * The reviewed public release. Production still charges ordinary buyers only
+ * when LIVE_PAYMENTS_MODE is exactly "public" and pre-launch is off.
+ */
+export const LIVE_PUBLIC_ALLOWED = true;
 
 /**
  * The most a founder test may charge, in riyals. Geidea requires real-payment
@@ -84,9 +93,9 @@ export function checkoutAccess(input: AccessInput): CheckoutAccess {
 
 /**
  * Whether this checkout may use the Geidea account the deployment is
- * configured for. A test account: always (as before). A production account:
- * only for a founder test, or for the public once LIVE_PUBLIC_ALLOWED and
- * "public" are both set.
+ * configured for. A test account: always. A production account: a founder
+ * test, or a public checkout when LIVE_PUBLIC_ALLOWED is set and
+ * LIVE_PAYMENTS_MODE is exactly "public".
  */
 export function accountAllowed(access: CheckoutAccess, mode: LivePaymentsMode, account: "test" | "production"): boolean {
   if (account === "test") return true;

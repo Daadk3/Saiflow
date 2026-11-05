@@ -662,11 +662,13 @@ describe("the pre-existing gates and the safety authority are unchanged", () => 
     assert.ok(!src.includes("stripe"), "Stripe is gone from checkout");
   });
 
-  test("the live-money guard is present and off, and the mode is read once, explicitly", () => {
-    // The public's live-money guard lives in lib/payments/live-mode and is off;
-    // a production account is allowed only through accountAllowed (a founder
-    // test, or a later reviewed public release). tests/founder-live-test.
-    assert.ok(readFileSync(new URL("../lib/payments/live-mode.ts", import.meta.url), "utf8").includes("export const LIVE_PUBLIC_ALLOWED = false;"));
+  test("the live-money guard is the reviewed release, and the mode is read once, explicitly", () => {
+    // The public's live-money guard lives in lib/payments/live-mode. The
+    // release is allowed in code; a production account is still only reached
+    // through accountAllowed, which also requires LIVE_PAYMENTS_MODE "public"
+    // (tests/founder-live-test). A test account, which these route tests use,
+    // does not depend on that mode.
+    assert.ok(readFileSync(new URL("../lib/payments/live-mode.ts", import.meta.url), "utf8").includes("export const LIVE_PUBLIC_ALLOWED = true;"));
     assert.ok(src.includes("!accountAllowed(access, livePaymentsMode, configuredMode) ||"));
     // A production account is used only by the production deployment.
     assert.ok(src.includes('(configuredMode === "production" && !productionAccountHere(process.env.VERCEL_ENV))'));

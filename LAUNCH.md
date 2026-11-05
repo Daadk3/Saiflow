@@ -34,7 +34,7 @@ One objective: **FIRST RIYAL.** Then the next hundred.
 | 4 | **Payment integration** | Real SAR can move | Moyasar account approved → checkout+webhook built → 1 SAR test purchase succeeds and settles | M3 (KYC needs M3 complete) | ~1 week code, after KYC clears |
 | 5 | **First seller** | You, onboarded through the real flow | Shop created through the product like any stranger would | M2 | 1 hour |
 | 6 | **First published product** | One real product, certified, reviewed, live | Uploaded with certification → approved in moderation queue → public URL shareable | M5 | 1 evening |
-| 7 | **First successful purchase** | The full loop works with real money | Test buyer pays real SAR → order created → download works → receipt lands | M4 + M6; `PRE_LAUNCH_MODE=false` | 1 day incl. verification |
+| 7 | **First successful purchase** | The full loop works with real money | Test buyer pays real SAR → order created → download works → receipt lands | M4 + M6; Production `PRE_LAUNCH_MODE=false` and `LIVE_PAYMENTS_MODE=public` together, after the reviewed release is deployed | 1 day incl. verification |
 | 8 | **🏁 FIRST RIYAL** | A *stranger* pays for your product | Someone you didn't recruit personally completes a purchase | M7 + one marketing channel activated | Unknown — this one is earned, not built |
 
 **Critical path: M3 is the bottleneck. Start it today; everything else can proceed in parallel behind it.**

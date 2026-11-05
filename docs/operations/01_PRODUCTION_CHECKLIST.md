@@ -4,7 +4,7 @@ Run top to bottom before **every** production deployment. Full deploy mechanics:
 
 ## Environment
 - [ ] All 7 required env vars set in Vercel (Production scope): `DATABASE_URL`, `NEXTAUTH_URL`, `NEXTAUTH_SECRET`, `UPLOADTHING_TOKEN`, `RESEND_API_KEY`, `PRE_LAUNCH_MODE`, `ADMIN_EMAILS`
-- [ ] `PRE_LAUNCH_MODE` is the value you intend (`true` = checkout off). Verify — this flag is the money switch.
+- [ ] `PRE_LAUNCH_MODE` is the value you intend (`true` = public checkout off). Public live cards also require Production `LIVE_PAYMENTS_MODE=public`. Verify both — together they are the money switch. Do not set `public` on Preview.
 - [ ] No secrets in code, logs, or commit history (spot-check the diff)
 
 ## Database
@@ -38,11 +38,13 @@ Run top to bottom before **every** production deployment. Full deploy mechanics:
 - [ ] `/dashboard/moderation` loads for admin; 403 for non-admin
 - [ ] Test product submission lands as PENDING, not public
 
-## Payments (when Moyasar is live — future)
-- [ ] Moyasar keys set (live, not test); webhook URL registered and signature-verified
-- [ ] 1 SAR end-to-end test purchase → order created → download works → refund the riyal
-- [ ] `PRE_LAUNCH_MODE=false` only after the line above passes
+## Payments (Geidea public checkout)
+- [ ] This deploy includes the reviewed release (`LIVE_PUBLIC_ALLOWED` in `lib/payments/live-mode.ts`)
+- [ ] Production only, in one change: `PRE_LAUNCH_MODE=false` and `LIVE_PAYMENTS_MODE=public`, then redeploy. Leave `GEIDEA_ENV=production`. Do not set `public` on Preview
+- [ ] Admin dashboard payment line reads "Payments are enabled with real cards." before any customer is sent to buy
+- [ ] Product approval and file safety are unchanged: a pending, rejected, or unscanned product still cannot be bought
+- [ ] `PRE_LAUNCH_MODE=false` alone does not charge the production account
 
 ## Rollback readiness
 - [ ] Previous good deployment identified in Vercel (know which one you'd promote back)
-- [ ] Kill switch understood: `PRE_LAUNCH_MODE=true` + redeploy stops all payments without downtime
+- [ ] Kill switch understood: `PRE_LAUNCH_MODE=true` + redeploy stops public checkout without downtime. With `LIVE_PAYMENTS_MODE=public` it also stops founder tests
