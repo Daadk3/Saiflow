@@ -62,10 +62,14 @@ export const env = createEnv({
     //   off          nobody (the default)
     //   founder_only only signed-in FOUNDER_TEST_EMAILS, at most
     //                FOUNDER_TEST_MAX_SAR, marked as founder tests
+    //   own_store    anyone, but only for stores on LIVE_STORE_SLUGS
+    //                (the platform owner's own stores); real sales
     //   public       reserved; still refused in this release
     LIVE_PAYMENTS_MODE: z.string().optional(),
     // Comma-separated emails allowed to make founder test payments.
     FOUNDER_TEST_EMAILS: z.string().optional(),
+    // Comma-separated store slugs allowed to sell in own_store mode.
+    LIVE_STORE_SLUGS: z.string().optional(),
   },
 
   /**
@@ -106,6 +110,7 @@ export const env = createEnv({
     GEIDEA_ENV: process.env.GEIDEA_ENV,
     LIVE_PAYMENTS_MODE: process.env.LIVE_PAYMENTS_MODE,
     FOUNDER_TEST_EMAILS: process.env.FOUNDER_TEST_EMAILS,
+    LIVE_STORE_SLUGS: process.env.LIVE_STORE_SLUGS,
     NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY:
       process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY,
   },

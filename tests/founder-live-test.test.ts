@@ -451,7 +451,7 @@ describe("the checkout page mirrors the route", () => {
   const page = strip(read("app/checkout/[slug]/[productSlug]/page.tsx"));
 
   test("it asks the same decision, and says a founder test is real money", () => {
-    assert.match(page, /const \{ access \} = await currentCheckoutAccess\(\);/);
+    assert.match(page, /const \{ access \} = await currentCheckoutAccess\(product\.shop\.slug\);/);
     assert.match(page, /const founderTest = access\.kind === "founder_test";/);
     assert.match(page, /\{founderTest && \([\s\S]*?founderTestBodyLive[\s\S]*?founderTestBodyTest/);
     const en = JSON.parse(read("messages/en.json")).checkout;

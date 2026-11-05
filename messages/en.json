@@ -1069,6 +1069,8 @@
       "enabledTest": "Payments are enabled in test mode: only test cards work, and no real money moves.",
       "founderOnlyLive": "Closed to the public. Founder tests only, on Geidea's live account: real cards, up to {max} SAR, for {count, plural, one {# allowed email} other {# allowed emails}}. Refund each test in Geidea.",
       "founderOnlyTest": "Closed to the public. Founder tests only, on Geidea's test account (no real money), for {count, plural, one {# allowed email} other {# allowed emails}}.",
+      "ownStoreLive": "Live for your own stores only ({stores}), on Geidea's live account: real sales. Every other store stays closed.",
+      "ownStoreTest": "Open for your own stores only ({stores}), on Geidea's test account (no real money). Every other store stays closed.",
       "revenue": "Real revenue:",
       "liveOrders": "Live orders:",
       "gross": "Real gross sales:",
