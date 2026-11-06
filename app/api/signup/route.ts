@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import bcrypt from "bcrypt";
+import { hashPassword } from "@/lib/auth/password";
 import { rateLimiters, getClientIp } from "@/lib/rate-limit";
 import { signupSchema, formatZodError } from "@/lib/validations";
 import { issueVerificationToken, verificationUrl } from "@/lib/auth/email-verification";
@@ -59,7 +59,7 @@ export async function POST(req: Request) {
       );
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
+    const hashedPassword = await hashPassword(password);
 
     // Store email as lowercase. The account starts unverified and cannot sign
     // in until its owner confirms the address from the emailed link.

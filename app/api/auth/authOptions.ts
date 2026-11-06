@@ -3,11 +3,12 @@ import GoogleProvider from "next-auth/providers/google";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcrypt";
-import { rateLimiters } from "@/lib/rate-limit";
+import { loginFailures, rateLimiters } from "@/lib/rate-limit";
 import { isAdminEmail } from "@/lib/admin";
 import { isAiAssistantEnabled } from "@/lib/ai/flag";
 import { EMAIL_NOT_VERIFIED } from "@/lib/auth/errors";
 import { credentialFingerprint, unusablePasswordHash } from "@/lib/auth/email-verification";
+import { burnPasswordCheck } from "@/lib/auth/password";
 import { assertSessionStillValid, SessionRevokedError } from "@/lib/auth/session-guard";
 import { postSignInUrl } from "@/lib/safe-callback";
 
@@ -41,14 +42,26 @@ export const authOptions: NextAuthOptions = {
           throw new Error("Too many attempts. Please try again in a minute.");
         }
 
+        // A second throttle on FAILED attempts per account (lib/rate-limit
+        // loginFailures): guessing one account is stopped, from one address
+        // or spread over many, without a correct password ever counting.
+        if (loginFailures.blocked(credentials.email, ip)) {
+          throw new Error("Too many attempts. Please try again in a minute.");
+        }
+
         const user = await prisma.user.findFirst({
           where: { email: { equals: credentials.email, mode: "insensitive" } },
         });
         if (!user || !user.password) {
+          // Same work as a real check, so timing does not reveal which
+          // addresses have accounts.
+          await burnPasswordCheck(credentials.password);
+          loginFailures.record(credentials.email, ip);
           throw new Error(GENERIC);
         }
         const valid = await bcrypt.compare(credentials.password, user.password);
         if (!valid) {
+          loginFailures.record(credentials.email, ip);
           throw new Error(GENERIC);
         }
         // Only after the password matched, so this reveals nothing to a

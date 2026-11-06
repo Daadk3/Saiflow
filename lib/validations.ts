@@ -120,6 +120,8 @@ export const signupSchema = z.object({
     .string()
     .min(8, "Password must be at least 8 characters")
     .max(128, "Password must be less than 128 characters")
+    // bcrypt ignores everything past 72 bytes (lib/auth/password).
+    .refine((p) => new TextEncoder().encode(p).length <= 72, "Password is too long")
     .regex(
       /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/,
       "Password must contain at least one uppercase letter, one lowercase letter, and one number"
@@ -151,6 +153,8 @@ export const resetPasswordSchema = z.object({
     .string()
     .min(8, "Password must be at least 8 characters")
     .max(128, "Password must be less than 128 characters")
+    // bcrypt ignores everything past 72 bytes (lib/auth/password).
+    .refine((p) => new TextEncoder().encode(p).length <= 72, "Password is too long")
     .regex(
       /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/,
       "Password must contain at least one uppercase letter, one lowercase letter, and one number"

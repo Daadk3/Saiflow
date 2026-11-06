@@ -256,7 +256,8 @@ describe("the preview is admin-only and never indexable", () => {
     // The layout redirects non-admins for the whole segment; the path IS the
     // inherited guarantee, so it is asserted rather than assumed.
     assert.ok(PREVIEW_PAGE.startsWith("app/dashboard/admin/"));
-    assert.ok(strip(read("app/dashboard/admin/layout.tsx")).includes("isAdminEmail"));
+    assert.ok(strip(read("app/dashboard/admin/layout.tsx")).includes("requireAdminPage()"));
+    assert.ok(strip(read("lib/admin-page-guard.ts")).includes("isAdminEmail(email)"));
   });
 
   test("it re-checks admin authorization itself", () => {

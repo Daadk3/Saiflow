@@ -92,6 +92,16 @@ const prismaMock = {
       Object.assign(row, data);
       return { ...row };
     },
+    // The reset route's one-use write: id, the stored token hash, and an unexpired expiry.
+    updateMany: async ({ where, data }: { where: { id: string; resetToken: string; resetTokenExpiry: { gt: Date } }; data: Partial<UserRow> }) => {
+      db.queries++;
+      const row = db.users.get(where.id);
+      if (!row || row.resetToken !== where.resetToken || !row.resetTokenExpiry || row.resetTokenExpiry <= where.resetTokenExpiry.gt) {
+        return { count: 0 };
+      }
+      Object.assign(row, data);
+      return { count: 1 };
+    },
   },
   verificationToken: {
     findUnique: async ({ where }: { where: { token: string } }) => {
@@ -156,6 +166,7 @@ function rateLimitFake(identifier: string, config: { windowMs: number; maxReques
 }
 const rateLimitMock = {
   rateLimit: rateLimitFake,
+  loginFailures: { blocked: () => false, record: () => {} },
   getClientIp: (req: Request) => req.headers.get("x-forwarded-for")?.split(",")[0].trim() ?? "unknown",
   rateLimiters: {
     auth: (ip: string) => rateLimitFake(`auth:${ip}`, { windowMs: 60_000, maxRequests: 5 }),
@@ -742,7 +753,8 @@ describe("password reset", () => {
     const oldSession = await signInToken(user);
     Object.assign(db.users.get(user.id)!, {
       emailVerified: null,
-      resetToken: "r".repeat(64),
+      // Only the hash is stored (app/api/auth/forgot-password).
+      resetToken: verification.hashToken("r".repeat(64)),
       resetTokenExpiry: new Date(Date.now() + 60_000),
     });
 
@@ -758,9 +770,31 @@ describe("password reset", () => {
   test("an already-verified date is kept", async () => {
     const user = await addUser("maha@example.com", "Secret123", true);
     const original = db.users.get(user.id)!.emailVerified;
-    Object.assign(db.users.get(user.id)!, { resetToken: "s".repeat(64), resetTokenExpiry: new Date(Date.now() + 60_000) });
+    Object.assign(db.users.get(user.id)!, { resetToken: verification.hashToken("s".repeat(64)), resetTokenExpiry: new Date(Date.now() + 60_000) });
 
     await resetRoute.POST(post("/api/auth/reset-password", { token: "s".repeat(64), password: "NewSecret9" }));
     assert.equal(db.users.get(user.id)!.emailVerified, original);
+  });
+
+  test("a link works once; a stored raw token (from before tokens were hashed) does not work at all", async () => {
+    const user = await addUser("noura@example.com", "Secret123", true);
+    Object.assign(db.users.get(user.id)!, { resetToken: verification.hashToken("t".repeat(64)), resetTokenExpiry: new Date(Date.now() + 60_000) });
+    const first = await resetRoute.POST(post("/api/auth/reset-password", { token: "t".repeat(64), password: "FirstNew99" }));
+    assert.equal(first.status, 200);
+    const again = await resetRoute.POST(post("/api/auth/reset-password", { token: "t".repeat(64), password: "SecondNew99" }));
+    assert.equal(again.status, 400);
+    assert.equal(await bcrypt.compare("FirstNew99", db.users.get(user.id)!.password), true);
+
+    Object.assign(db.users.get(user.id)!, { resetToken: "u".repeat(64), resetTokenExpiry: new Date(Date.now() + 60_000) });
+    const raw = await resetRoute.POST(post("/api/auth/reset-password", { token: "u".repeat(64), password: "ThirdNew99" }));
+    assert.equal(raw.status, 400, "the database copy of a token is not itself a working link");
+  });
+
+  test("an expired link is refused and changes nothing", async () => {
+    const user = await addUser("reem@example.com", "Secret123", true);
+    Object.assign(db.users.get(user.id)!, { resetToken: verification.hashToken("v".repeat(64)), resetTokenExpiry: new Date(Date.now() - 1) });
+    const res = await resetRoute.POST(post("/api/auth/reset-password", { token: "v".repeat(64), password: "LateNew999" }));
+    assert.equal(res.status, 400);
+    assert.equal(await bcrypt.compare("Secret123", db.users.get(user.id)!.password), true);
   });
 });
