@@ -466,6 +466,12 @@ export async function POST(req: Request) {
     // and after, applies to it unchanged. A FILE product skips this block
     // and meets the file gates exactly as before.
     const hosted = product.deliveryType === "HOSTED_ACCESS";
+    if (hosted && (!Array.isArray(product.deliverables) || product.deliverables.length > 0)) {
+      return NextResponse.json(
+        { error: "not_available", message: "This product is not available for purchase." },
+        { status: 400 }
+      );
+    }
     if (hosted && !hostedAccessReady(product.hostedAccess)) {
       return NextResponse.json(
         { error: "not_available", message: "This product is not available for purchase." },

@@ -10,7 +10,7 @@ import { SAFE_DELIVERABLE_WHERE, deliverableGateReason, isDeliverableSafe } from
 import { isChecklistPointId } from "@/lib/review-checklist";
 import { hostedAccessReady } from "@/lib/hosted-access/validate";
 import { HOSTED_ACCESS_READY_WHERE } from "@/lib/sellable";
-import { extrasAreSafe, noUnsafeExtrasWhere } from "@/lib/product-deliverables";
+import { extrasAreSafe, noUnsafeExtrasWhere, reviewedExtraKeysWhere } from "@/lib/product-deliverables";
 
 /** Approval refused inside the transaction: the file changed after the check. */
 class NotApprovable extends Error {}
@@ -95,6 +95,12 @@ export async function POST(
         { status: 409 }
       );
     }
+    if (action === "APPROVED" && hosted && (!Array.isArray(product.deliverables) || product.deliverables.length > 0)) {
+      return NextResponse.json(
+        { error: "not_approvable", reason: "hosted_has_files" },
+        { status: 409 }
+      );
+    }
     if (action === "APPROVED" && !hosted && !isDeliverableSafe(product)) {
       return NextResponse.json(
         { error: "not_approvable", reason: deliverableGateReason(product) },
@@ -118,15 +124,11 @@ export async function POST(
         // For a hosted product: still hosted, access record still present,
         // and still the status that was read, so a seller edit committed in
         // between (which reopens to PENDING) is not silently approved past.
+        const reviewedKeys = reviewedExtraKeysWhere(product.deliverables.map((row) => row.fileKey));
         const approved = await tx.product.updateMany({
           where: hosted
             ? { id: productId, moderationStatus: product.moderationStatus, ...HOSTED_ACCESS_READY_WHERE }
-            : {
-                id: productId,
-                moderationStatus: product.moderationStatus,
-                ...SAFE_DELIVERABLE_WHERE,
-                ...noUnsafeExtrasWhere(),
-              },
+            : { id: productId, moderationStatus: product.moderationStatus, ...SAFE_DELIVERABLE_WHERE, AND: [{ fileKey: product.fileKey }, noUnsafeExtrasWhere(), reviewedKeys] },
           data: { moderationStatus: "APPROVED" },
         });
         if (approved.count !== 1) throw new NotApprovable();

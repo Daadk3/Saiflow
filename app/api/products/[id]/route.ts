@@ -23,9 +23,11 @@ import { withoutReviewChecks } from "@/lib/review-checklist";
 import { redactId } from "@/lib/redact-id";
 import { priceProblemMessage, validatePrice } from "@/lib/pricing";
 import {
-  commitExtraDeliverables,
+  commitDeliverableChange,
+  replaceExtraDeliverables,
   resolveExtraDeliverables,
   sameKeySet,
+  type PrimaryFileWrite,
 } from "@/lib/product-deliverables";
 import { updateHostedProduct } from "@/lib/products/hosted-product";
 
@@ -228,8 +230,18 @@ export async function PUT(
 
     // A hosted-access product has no file and its own edit rules
     // (lib/products/hosted-product). Everything below is the file path,
-    // unchanged.
+    // unchanged. A non-empty extra list is refused. An empty list deletes
+    // stray rows so a hosted product can return to having no files.
     if (product.deliveryType === "HOSTED_ACCESS") {
+      if (body.fileUrls !== undefined && !(Array.isArray(body.fileUrls) && body.fileUrls.length === 0)) {
+        return NextResponse.json(
+          { error: "This product gives buyers hosted access, so it has no file.", code: "hosted_no_file" },
+          { status: 400 }
+        );
+      }
+      if (Array.isArray(body.fileUrls) && body.fileUrls.length === 0) {
+        await replaceExtraDeliverables(product.id, []);
+      }
       return await updateHostedProduct(user, product, body);
     }
 
@@ -372,9 +384,11 @@ export async function PUT(
         extras.rows.map((row) => row.fileKey)
       );
     // A suspended shop cannot return a decided product to review, so it
-    // cannot publish a new kit either. Refused before the product row changes.
+    // cannot publish a new file or a new kit either. Refused before the
+    // product row changes.
+    const filesAreChanging = fileChanged || extrasChanged;
     if (
-      extrasChanged &&
+      filesAreChanging &&
       !product.shop.isActive &&
       (product.moderationStatus === "APPROVED" || product.moderationStatus === "REJECTED")
     ) {
@@ -384,6 +398,9 @@ export async function PUT(
       );
     }
 
+    // A new primary key is not written here. It is written below, in the
+    // same locked transaction as the return to review, so an already-scanned
+    // replacement is never on sale under the old approval.
     const updatedProduct = await prisma.product.update({
       where: { id },
       data: {
@@ -391,11 +408,14 @@ export async function PUT(
         description: description !== undefined ? description : product.description,
         price: nextPrice !== undefined ? nextPrice : product.price,
         category: category !== undefined ? (category || null) : product.category,
-        fileUrl: fileUrl !== undefined ? fileUrl || null : product.fileUrl,
         thumbnailUrl:
           thumbnailUrl !== undefined ? thumbnailUrl || null : product.thumbnailUrl,
-        ...(nextFileKey !== undefined ? { fileKey: nextFileKey } : {}),
-        ...(fileChanged && replacementScanFields ? replacementScanFields : {}),
+        ...(fileChanged
+          ? {}
+          : {
+              fileUrl: fileUrl !== undefined ? fileUrl || null : product.fileUrl,
+              ...(nextFileKey !== undefined ? { fileKey: nextFileKey } : {}),
+            }),
       },
     });
 
@@ -416,6 +436,64 @@ export async function PUT(
      */
     let resubmitted = false;
     let extrasWritten = !extrasChanged;
+    if (filesAreChanging) {
+      if (fileChanged && (!nextFileKey || !replacementScanFields)) {
+        return NextResponse.json({ error: "Could not save the product files." }, { status: 500 });
+      }
+      const scan = replacementScanFields as {
+        fileScanStatus: PrimaryFileWrite["fileScanStatus"];
+        fileScanKey: string | null;
+        fileScanSha256: string | null;
+        fileScanAt: Date | null;
+        fileScanAttempts: number;
+      } | null;
+      try {
+        const committed = await commitDeliverableChange({
+          productId: id,
+          actor: `seller:${user.id}`,
+          shopActive: product.shop.isActive,
+          ...(fileChanged && replacementScanFields && nextFileKey && scan
+            ? {
+                file: {
+                  fileUrl: typeof fileUrl === "string" ? fileUrl : product.fileUrl,
+                  fileKey: nextFileKey,
+                  fileScanStatus: scan.fileScanStatus,
+                  fileScanKey: scan.fileScanKey,
+                  fileScanSha256: scan.fileScanSha256,
+                  fileScanAt: scan.fileScanAt,
+                  fileScanAttempts: scan.fileScanAttempts,
+                },
+              }
+            : {}),
+          ...(extrasChanged && !extras.skipped ? { extras: extras.rows } : {}),
+        });
+        if (!committed.written) {
+          return NextResponse.json(
+            { error: "This shop cannot change its files right now." },
+            { status: 409 }
+          );
+        }
+        if (fileChanged && nextFileKey && scan) {
+          Object.assign(updatedProduct, {
+            fileUrl: typeof fileUrl === "string" ? fileUrl : product.fileUrl,
+            fileKey: nextFileKey,
+            fileScanStatus: scan.fileScanStatus,
+            fileScanKey: scan.fileScanKey,
+            fileScanSha256: scan.fileScanSha256,
+            fileScanAt: scan.fileScanAt,
+            fileScanAttempts: scan.fileScanAttempts,
+          });
+        }
+        extrasWritten = extrasChanged;
+        if (committed.resubmitted) {
+          resubmitted = true;
+          updatedProduct.moderationStatus = "PENDING";
+        }
+      } catch (error) {
+        console.error("[moderation] deliverable replace failed", (error as Error)?.name);
+        return NextResponse.json({ error: "Could not save the product files." }, { status: 500 });
+      }
+    }
     // An APPROVED product whose file is replaced goes back to review too: an
     // approval was a decision about the file that was looked at, and a
     // seller must not be able to swap in a different one after it. (The new
@@ -426,30 +504,6 @@ export async function PUT(
       (product.moderationStatus === "APPROVED" && extrasChanged)
         ? product.moderationStatus
         : null;
-    // A changed extra set is stored under a lock, and a decided product
-    // returns to review in that same transaction. Identical lists are left
-    // alone so a title edit does not rotate download ids or reopen review.
-    if (extrasChanged && !extras.skipped) {
-      try {
-        const committed = await commitExtraDeliverables({
-          productId: id,
-          rows: extras.rows,
-          actor: `seller:${user.id}`,
-          shopActive: product.shop.isActive,
-        });
-        if (!committed.written) {
-          return NextResponse.json(
-            { error: "This shop cannot change its files right now." },
-            { status: 409 }
-          );
-        }
-        extrasWritten = true;
-        if (committed.resubmitted) resubmitted = true;
-      } catch (error) {
-        console.error("[moderation] extra replace failed", (error as Error)?.name);
-        return NextResponse.json({ error: "Could not save the extra files." }, { status: 500 });
-      }
-    }
     // A suspended shop (isActive false, the runbook's suspension) cannot reopen
     // anything: its rejections stand until an admin restores the shop.
     // Skipped when the extra-file transaction already returned the product
@@ -520,7 +574,10 @@ export async function PUT(
     // REJECTED, so it sent nothing; this is the one that can. If the file is
     // SAFE the founder hears now; if it is still being scanned, the scan that
     // settles it announces, since the product is PENDING again.
-    if (resubmitted) {
+    // A file replacement already announced above, after the locked write
+    // had put the new key and PENDING on the row. Announcing again here
+    // would email the founder twice for one save.
+    if (resubmitted && !fileChanged) {
       try {
         await announceReadyAtAttach({ ...updatedProduct, moderationStatus: "PENDING" });
       } catch (error) {

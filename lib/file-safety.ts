@@ -330,7 +330,13 @@ export async function reconcileProductScanState(
 
     const product = await tx.product.findUnique({
       where: { id: productId },
-      select: { moderationStatus: true },
+      select: {
+        moderationStatus: true,
+        fileKey: true,
+        fileScanStatus: true,
+        fileScanKey: true,
+        deliverables: { select: { fileKey: true, fileScanStatus: true, fileScanKey: true } },
+      },
     });
     if (!product) return null;
 
@@ -349,26 +355,13 @@ export async function reconcileProductScanState(
         newStatus: product.moderationStatus,
       },
     });
-    // An extra file settling does not by itself mean the kit is reviewable.
-    // Announce only when the primary is safe and every extra now is too.
-    let kitReady = false;
-    if (extraMoved && updated.count !== 1 && asset.scanStatus === "SAFE") {
-      const kit = await tx.product.findUnique({
-        where: { id: productId },
-        select: {
-          fileKey: true,
-          fileScanStatus: true,
-          fileScanKey: true,
-          deliverables: { select: { fileKey: true, fileScanStatus: true, fileScanKey: true } },
-        },
-      });
-      kitReady =
-        product.moderationStatus === "PENDING" &&
-        !!kit &&
-        isDeliverableSafe(kit) &&
-        Array.isArray(kit.deliverables) &&
-        kit.deliverables.every((row) => isDeliverableSafe(row));
-    }
+    // Announce only when the primary and every extra are safe together.
+    // A safe primary with an unsafe extra is audited and stays quiet.
+    const kitReady =
+      product.moderationStatus === "PENDING" &&
+      isDeliverableSafe(product) &&
+      Array.isArray(product.deliverables) &&
+      product.deliverables.every((row) => isDeliverableSafe(row));
     return { moderationStatus: product.moderationStatus, primaryMoved: updated.count === 1, kitReady };
   });
   if (moderationStatus === null) return NOT_RECONCILED;
@@ -381,11 +374,7 @@ export async function reconcileProductScanState(
   // After the commit, after the response, and unable to fail the caller.
   // A primary move keeps the previous rule. An extra-only move announces
   // only when primary and every extra are safe together.
-  const readyForReview =
-    (asset.scanStatus === "SAFE" &&
-      moderationStatus.moderationStatus === "PENDING" &&
-      moderationStatus.primaryMoved) ||
-    moderationStatus.kitReady;
+  const readyForReview = asset.scanStatus === "SAFE" && moderationStatus.kitReady;
   if (readyForReview) {
     await runAfterResponse(() => notifyAdminsProductReadyForReview([productId], fileKey));
   }

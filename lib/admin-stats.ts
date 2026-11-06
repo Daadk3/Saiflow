@@ -147,6 +147,7 @@ export async function getFounderStats(): Promise<FounderStats> {
         fileKey: true,
         fileScanStatus: true,
         fileScanKey: true,
+        deliverables: { select: { fileKey: true, fileScanStatus: true, fileScanKey: true } },
         shop: { select: { slug: true, isActive: true } },
       },
       take: 5,
@@ -375,6 +376,7 @@ export async function getProductsDirectory(opts: {
         // private record exists. Never the link.
         deliveryType: true,
         hostedAccess: { select: { productId: true } },
+        deliverables: { select: { fileKey: true, fileScanStatus: true, fileScanKey: true } },
         shop: {
           select: {
             name: true,

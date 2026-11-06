@@ -22,9 +22,24 @@ import { extractOwnAssetKey } from "@/lib/validations";
 /** Primary file plus extras. Eight is the cap so a kit cannot fan out scans without bound. */
 export const MAX_PRODUCT_FILES = 8;
 
+/**
+ * Every extra is SAFE for its own key. An empty array is a single-file
+ * product whose relation was loaded and has no rows. Null or undefined is
+ * not that: the caller did not retrieve the relation, so the answer is no.
+ */
 export function extrasAreSafe(extras: DeliverableSafety[] | null | undefined): boolean {
-  if (!extras || extras.length === 0) return true;
+  if (!Array.isArray(extras)) return false;
   return extras.every((row) => isDeliverableSafe(row));
+}
+
+/**
+ * The extra keys a reviewer actually saw. A later save may only remove
+ * keys from this set. Adding or replacing one makes the approval match
+ * nothing, so a concurrent decision cannot publish a file it did not read.
+ * An empty list means the product had no extras: any row fails the match.
+ */
+export function reviewedExtraKeysWhere(fileKeys: readonly string[]): Prisma.ProductWhereInput {
+  return { deliverables: { none: { fileKey: { notIn: [...fileKeys] } } } };
 }
 
 /**
@@ -122,19 +137,35 @@ export async function replaceExtraDeliverables(
   });
 }
 
+export interface PrimaryFileWrite {
+  fileUrl: string | null;
+  fileKey: string;
+  fileScanStatus: DeliverableSafety["fileScanStatus"];
+  fileScanKey: string | null;
+  fileScanSha256: string | null;
+  fileScanAt: Date | null;
+  fileScanAttempts: number;
+}
+
 /**
- * Replace extras under a row lock on the product.
+ * Write a new primary file, a new extra set, or both, under a row lock.
  *
- * If the product is approved or rejected when the lock is taken, the same
- * transaction returns it to review. A concurrent approval waits, then sees
- * PENDING. A suspended shop cannot reopen, so a decided product refuses the
- * write and keeps the previous kit. A pending product just stores the rows.
+ * Two saves of the same product serialize on the lock. The later commit
+ * wins; the earlier one is not merged. That is deliberate.
+ *
+ * An approved or rejected product returns to review in this same
+ * transaction as the new bytes. A concurrent approval waits on the lock,
+ * then sees PENDING, or it committed first and this write reopens the
+ * product it just approved. A suspended shop cannot reopen, so a decided
+ * product refuses the write and keeps the previous files. A pending
+ * product stores the files and leaves the status alone.
  */
-export async function commitExtraDeliverables(input: {
+export async function commitDeliverableChange(input: {
   productId: string;
-  rows: readonly ExtraDeliverableWrite[];
   actor: string;
   shopActive: boolean;
+  file?: PrimaryFileWrite;
+  extras?: readonly ExtraDeliverableWrite[];
 }): Promise<{ written: true; resubmitted: boolean } | { written: false }> {
   return prisma.$transaction(async (tx) => {
     await tx.$queryRaw(Prisma.sql`SELECT "id" FROM "Product" WHERE "id" = ${input.productId} FOR UPDATE`);
@@ -145,13 +176,26 @@ export async function commitExtraDeliverables(input: {
     if (!current) return { written: false };
     const decided = current.moderationStatus === "APPROVED" || current.moderationStatus === "REJECTED";
     if (decided && !input.shopActive) return { written: false };
-    await writeExtraRows(tx, input.productId, input.rows);
+    const data: Prisma.ProductUpdateManyMutationInput = {};
+    if (input.file) {
+      data.fileUrl = input.file.fileUrl;
+      data.fileKey = input.file.fileKey;
+      data.fileScanStatus = input.file.fileScanStatus;
+      data.fileScanKey = input.file.fileScanKey;
+      data.fileScanSha256 = input.file.fileScanSha256;
+      data.fileScanAt = input.file.fileScanAt;
+      data.fileScanAttempts = input.file.fileScanAttempts;
+    }
+    if (decided) data.moderationStatus = "PENDING";
+    if (Object.keys(data).length > 0) {
+      const updated = await tx.product.updateMany({
+        where: { id: input.productId, moderationStatus: current.moderationStatus },
+        data,
+      });
+      if (updated.count !== 1) throw new Error("deliverable-reopen-conflict");
+    }
+    if (input.extras) await writeExtraRows(tx, input.productId, input.extras);
     if (!decided) return { written: true, resubmitted: false };
-    const reopened = await tx.product.updateMany({
-      where: { id: input.productId, moderationStatus: current.moderationStatus },
-      data: { moderationStatus: "PENDING" },
-    });
-    if (reopened.count !== 1) throw new Error("deliverable-reopen-conflict");
     await tx.moderationEvent.create({
       data: {
         productId: input.productId,

@@ -56,6 +56,9 @@ export const SELLABLE_SHOP_WHERE = { isActive: true } satisfies Prisma.ShopWhere
 export const HOSTED_ACCESS_READY_WHERE = {
   deliveryType: "HOSTED_ACCESS",
   hostedAccess: { isNot: null },
+  // A hosted product has no deliverable files. Any extra row, scanned or
+  // not, keeps it off sale until those rows are gone.
+  deliverables: { none: {} },
 } satisfies Prisma.ProductWhereInput;
 
 export const SELLABLE_PRODUCT_WHERE = {
@@ -119,9 +122,9 @@ export interface SellableFacts extends DeliverableSafety {
   /** Only its presence is read; select an id, never the link. */
   hostedAccess?: object | null;
   /**
-   * Extra files. Omitted means the caller did not load them: treated as none,
-   * which is every product written before extras existed. A query that sells
-   * must load the relation or use SELLABLE_PRODUCT_WHERE.
+   * Extra files. An empty array is a loaded single-file product. Omitting
+   * the field is not that: the relation was not retrieved, and the product
+   * is not sellable until a query includes it.
    */
   deliverables?: DeliverableSafety[] | null;
 }
@@ -132,16 +135,22 @@ export type UnsellableReason =
   | "not_approved"
   | "shop_inactive"
   | "hosted_access_missing"
+  | "hosted_has_files"
   | Exclude<DeliverableGateReason, "safe">;
 
 /** Condition 4 in memory, per delivery type. */
-function deliveryReason(product: SellableFacts): "sellable" | "hosted_access_missing" | Exclude<DeliverableGateReason, "safe"> {
+function deliveryReason(
+  product: SellableFacts
+): "sellable" | "hosted_access_missing" | "hosted_has_files" | Exclude<DeliverableGateReason, "safe"> {
   if (product.deliveryType === "HOSTED_ACCESS") {
-    return product.hostedAccess ? "sellable" : "hosted_access_missing";
+    if (!product.hostedAccess) return "hosted_access_missing";
+    if (!Array.isArray(product.deliverables) || product.deliverables.length > 0) return "hosted_has_files";
+    return "sellable";
   }
   const file = deliverableGateReason(product);
   if (file !== "safe") return file;
-  for (const extra of product.deliverables ?? []) {
+  if (!Array.isArray(product.deliverables)) return "pending_scan";
+  for (const extra of product.deliverables) {
     const reason = deliverableGateReason(extra);
     if (reason !== "safe") return reason;
   }
@@ -167,7 +176,9 @@ export function isSellable(product: SellableFacts): boolean {
     product.moderationStatus === "APPROVED" &&
     product.shop.isActive &&
     (product.deliveryType === "HOSTED_ACCESS"
-      ? Boolean(product.hostedAccess)
+      ? Boolean(product.hostedAccess) &&
+        Array.isArray(product.deliverables) &&
+        product.deliverables.length === 0
       : isDeliverableSafe(product) && extrasAreSafe(product.deliverables))
   );
 }

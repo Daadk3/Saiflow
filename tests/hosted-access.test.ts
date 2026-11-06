@@ -377,7 +377,7 @@ describe("the storefront rule per delivery type", () => {
   const base = { isActive: true, moderationStatus: "APPROVED" as const, shop: { isActive: true }, fileKey: null, fileScanStatus: "PENDING_SCAN" as const, fileScanKey: null };
 
   test("a hosted product is sellable only approved, active, shop active, with its access record", () => {
-    const hosted = { ...base, deliveryType: "HOSTED_ACCESS" as const, hostedAccess: { productId: "p" } };
+    const hosted = { ...base, deliveryType: "HOSTED_ACCESS" as const, hostedAccess: { productId: "p" }, deliverables: [] as [] };
     assert.equal(sellable.isSellable(hosted), true);
     assert.equal(sellable.unsellableReason(hosted), "sellable");
     assert.equal(sellable.unsellableReason({ ...hosted, hostedAccess: null }), "hosted_access_missing");
@@ -385,6 +385,15 @@ describe("the storefront rule per delivery type", () => {
     assert.equal(sellable.unsellableReason({ ...hosted, moderationStatus: "REJECTED" }), "not_approved");
     assert.equal(sellable.unsellableReason({ ...hosted, isActive: false }), "inactive");
     assert.equal(sellable.unsellableReason({ ...hosted, shop: { isActive: false } }), "shop_inactive");
+    assert.equal(
+      sellable.isSellable({ ...hosted, deliverables: [{ fileKey: "x", fileScanStatus: "SAFE" as const, fileScanKey: "x" }] }),
+      false
+    );
+    assert.equal(
+      sellable.unsellableReason({ ...hosted, deliverables: [{ fileKey: "x", fileScanStatus: "SAFE" as const, fileScanKey: "x" }] }),
+      "hosted_has_files"
+    );
+    assert.equal(sellable.isSellable({ ...hosted, deliverables: undefined }), false);
   });
 
   test("a row loaded without deliveryType is a FILE row: a fileless hosted row fails closed", () => {
@@ -396,7 +405,8 @@ describe("the storefront rule per delivery type", () => {
   test("a FILE product is decided by the file alone, as before, even if an access record somehow existed", () => {
     const file = { ...base, deliveryType: "FILE" as const, hostedAccess: { productId: "p" } };
     assert.equal(sellable.isSellable(file), false);
-    assert.equal(sellable.isSellable({ ...file, fileKey: "k", fileScanStatus: "SAFE", fileScanKey: "k" }), true);
+    assert.equal(sellable.isSellable({ ...file, fileKey: "k", fileScanStatus: "SAFE", fileScanKey: "k", deliverables: [] }), true);
+    assert.equal(sellable.isSellable({ ...file, fileKey: "k", fileScanStatus: "SAFE", fileScanKey: "k" }), false);
   });
 
   test("the approved-but-not-sellable list is file products only", () => {
@@ -432,7 +442,10 @@ describe("checkout and approval (structural)", () => {
     assert.ok(moderation.includes("? { id: productId, moderationStatus: product.moderationStatus, ...HOSTED_ACCESS_READY_WHERE }"));
     assert.ok(moderation.includes("moderationStatus: product.moderationStatus,"));
     assert.ok(moderation.includes("...SAFE_DELIVERABLE_WHERE,"));
-    assert.ok(moderation.includes("...noUnsafeExtrasWhere(),"));
+    assert.ok(moderation.includes("{ fileKey: product.fileKey }"));
+    assert.ok(moderation.includes("noUnsafeExtrasWhere(),"));
+    assert.ok(moderation.includes("reviewedExtraKeysWhere(product.deliverables.map((row) => row.fileKey))"));
+    assert.ok(moderation.includes('reason: "hosted_has_files"'));
   });
 
   test("the download route is untouched: a hosted product has no file, so it is refused there", () => {

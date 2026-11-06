@@ -1022,6 +1022,7 @@
       "short": {
         "missing_file_key": "No product file",
         "hosted_access_missing": "No access link",
+        "hosted_has_files": "Hosted product still has files",
         "pending_scan": "File still being checked",
         "scan_key_mismatch": "New file being checked",
         "scan_error": "File check didn't finish",
@@ -1037,6 +1038,7 @@
       "reason": {
         "missing_file_key": "Approved but not on sale: there is no product file. Buyers can't see or buy it. Ask the seller to upload the file, or reject it.",
         "hosted_access_missing": "Approved but not on sale: the hosted access link is missing. Ask the seller to add it.",
+        "hosted_has_files": "Approved but not on sale: this hosted product still has files attached. Buyers can't see or buy it until those files are removed.",
         "pending_scan": "Approved but not on sale yet: its file is still being checked. It goes on sale by itself once the check passes.",
         "scan_key_mismatch": "Approved but not on sale: the seller replaced the file, and the new one is still being checked.",
         "scan_error": "Approved but not on sale: the file's safety check didn't finish. Open it and press Retry check.",
@@ -1151,6 +1153,7 @@
       "approveBlocked": {
         "missing_file_key": "Can't approve: there is no product file. Ask the seller to upload one.",
         "hosted_access_missing": "Can't approve: the hosted access link is missing or fails the link rules.",
+        "hosted_has_files": "Can't approve: this hosted product still has files attached. Remove them first.",
         "pending_scan": "Can't approve yet: the file's safety check is still running (usually a few minutes).",
         "scan_error": "Can't approve: the file's safety check didn't finish. Press Retry check, then try again.",
         "unsafe": "Can't approve: the file failed its safety check.",

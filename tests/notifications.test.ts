@@ -36,6 +36,7 @@ const state = {
     name: string;
     fileKey?: string | null;
     fileScanKey?: string | null;
+    deliverables?: Array<{ fileKey: string; fileScanStatus: string; fileScanKey: string | null }>;
     shop: { name: string; slug: string };
   }>,
   findManyArgs: [] as Array<{ where: Record<string, unknown> }>,
@@ -284,6 +285,7 @@ describe("a product's file is SAFE and it awaits a decision", () => {
     name: "قالب تخطيط",
     fileKey: "key_1",
     fileScanKey: "key_1",
+    deliverables: [] as Array<{ fileKey: string; fileScanStatus: string; fileScanKey: string | null }>,
     shop: { name: "متجر داد", slug: "daad-s-store" },
   };
 
@@ -305,6 +307,11 @@ describe("a product's file is SAFE and it awaits a decision", () => {
       id: { in: ["prod_abcdefghij", "prod_second"] },
       moderationStatus: "PENDING",
       fileScanStatus: "SAFE",
+      deliverables: {
+        none: {
+          OR: [{ fileScanStatus: { not: "SAFE" } }, { fileScanKey: null }],
+        },
+      },
     });
   });
 
@@ -322,6 +329,23 @@ describe("a product's file is SAFE and it awaits a decision", () => {
     assert.equal(sent.length, 0);
     assert.deepEqual(await notify.notifyAdminsProductReadyForReview(["prod_abcdefghij"], "key_2"), [{ ok: true, recipients: 2 }]);
     assert.equal(sent.length, 1);
+  });
+
+  test("an extra that is not safe for its own key suppresses the email, and a safe extra key still matches", async () => {
+    state.pending = [{
+      ...ready,
+      fileKey: "key_2",
+      fileScanKey: "key_2",
+      deliverables: [{ fileKey: "key_extra", fileScanStatus: "PENDING_SCAN", fileScanKey: null }],
+    }];
+    assert.deepEqual(await notify.notifyAdminsProductReadyForReview(["prod_abcdefghij"], "key_2"), [{ ok: false, reason: "nothing_to_send" }]);
+    state.pending = [{
+      ...ready,
+      fileKey: "key_2",
+      fileScanKey: "key_2",
+      deliverables: [{ fileKey: "key_extra", fileScanStatus: "SAFE", fileScanKey: "key_extra" }],
+    }];
+    assert.deepEqual(await notify.notifyAdminsProductReadyForReview(["prod_abcdefghij"], "key_extra"), [{ ok: true, recipients: 2 }]);
   });
 
   test("nothing named, or nothing left to announce, sends nothing", async () => {

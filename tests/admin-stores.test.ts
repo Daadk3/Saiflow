@@ -103,7 +103,7 @@ describe("the store directory data", () => {
     assert.equal(branches[0].deliveryType, "FILE");
     assert.equal(branches[0].fileScanStatus, "SAFE");
     assert.deepEqual(branches[0].fileKey, { not: null });
-    assert.deepEqual(branches[1], { deliveryType: "HOSTED_ACCESS", hostedAccess: { isNot: null } });
+    assert.deepEqual(branches[1], { deliveryType: "HOSTED_ACCESS", hostedAccess: { isNot: null }, deliverables: { none: {} } });
     assert.deepEqual(where.shopId, { in: ["shop_new", "shop_old"] });
   });
 

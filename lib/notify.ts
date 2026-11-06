@@ -317,16 +317,31 @@ export async function notifyAdminsProductReadyForReview(
     name: string;
     fileKey: string | null;
     fileScanKey: string | null;
+    deliverables: Array<{ fileKey: string; fileScanStatus: string; fileScanKey: string | null }>;
     shop: { name: string; slug: string };
   }>;
   try {
     rows = await prisma.product.findMany({
-      where: { id: { in: ids }, moderationStatus: "PENDING", fileScanStatus: "SAFE" },
+      where: {
+        id: { in: ids },
+        moderationStatus: "PENDING",
+        fileScanStatus: "SAFE",
+        // An extra that is not SAFE for its own key keeps the email back.
+        // A mismatched extra key is excluded again below; this clause is
+        // what the database can decide without a column-to-column compare
+        // on the extra row's own key.
+        deliverables: {
+          none: {
+            OR: [{ fileScanStatus: { not: "SAFE" } }, { fileScanKey: null }],
+          },
+        },
+      },
       select: {
         id: true,
         name: true,
         fileKey: true,
         fileScanKey: true,
+        deliverables: { select: { fileKey: true, fileScanStatus: true, fileScanKey: true } },
         shop: { select: { name: true, slug: true } },
       },
     });
@@ -336,14 +351,20 @@ export async function notifyAdminsProductReadyForReview(
     );
     return [{ ok: false, reason: "threw" }];
   }
-  // SAFE must be SAFE for the file the product currently sells — and, when
-  // the caller said which file it meant, for that file.
-  const products = rows.filter(
-    (row) =>
-      row.fileKey !== null &&
-      row.fileScanKey === row.fileKey &&
-      (boundTo === undefined || row.fileKey === boundTo)
-  );
+  // SAFE must be SAFE for the file the product currently sells, and every
+  // extra must be SAFE for its own key. A missing extra list is not "no
+  // extras". When the caller named the file it scanned, that file must
+  // still be the primary or one of the extras.
+  const products = rows.filter((row) => {
+    if (row.fileKey === null || row.fileScanKey !== row.fileKey) return false;
+    if (!Array.isArray(row.deliverables)) return false;
+    const extrasSafe = row.deliverables.every(
+      (extra) => extra.fileKey !== null && extra.fileScanStatus === "SAFE" && extra.fileScanKey === extra.fileKey
+    );
+    if (!extrasSafe) return false;
+    if (boundTo === undefined) return true;
+    return row.fileKey === boundTo || row.deliverables.some((extra) => extra.fileKey === boundTo);
+  });
   if (products.length === 0) {
     console.log(`[notify] event=ready_for_review outcome=failed:nothing_to_send ref=${ref}`);
     return [{ ok: false, reason: "nothing_to_send" }];

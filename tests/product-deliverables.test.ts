@@ -7,7 +7,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
-import { extrasAreSafe, extrasCommitWithReopen, escapeHtml, sameKeySet, MAX_PRODUCT_FILES } from "@/lib/product-deliverables";
+import { extrasAreSafe, extrasCommitWithReopen, escapeHtml, reviewedExtraKeysWhere, sameKeySet, MAX_PRODUCT_FILES } from "@/lib/product-deliverables";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const read = (p: string) => readFileSync(resolve(ROOT, p), "utf8");
@@ -15,8 +15,8 @@ const safe = { fileKey: "k", fileScanStatus: "SAFE" as const, fileScanKey: "k" }
 
 describe("extra deliverables stay fail-closed", () => {
   test("no extras is safe, which is every current single-file product", () => {
-    assert.equal(extrasAreSafe(undefined), true);
-    assert.equal(extrasAreSafe(null), true);
+    assert.equal(extrasAreSafe(undefined), false);
+    assert.equal(extrasAreSafe(null), false);
     assert.equal(extrasAreSafe([]), true);
   });
 
@@ -65,8 +65,13 @@ describe("extra deliverables stay fail-closed", () => {
     const scan = read("lib/scan/run.ts");
     assert.ok(download.includes("if (!isDeliverableSafe(product))"));
     assert.ok(download.includes("!Array.isArray(product.deliverables) || !extrasAreSafe(product.deliverables)"));
-    assert.ok(read("app/api/products/[id]/route.ts").includes("commitExtraDeliverables"));
+    assert.ok(read("app/api/products/[id]/route.ts").includes("commitDeliverableChange"));
     assert.ok(read("lib/product-deliverables.ts").includes("FOR UPDATE"));
+    assert.ok(read("lib/product-deliverables.ts").includes("The later commit"));
+    assert.ok(moderation.includes("{ fileKey: product.fileKey }"));
+    assert.ok(moderation.includes("reviewedExtraKeysWhere(product.deliverables.map((row) => row.fileKey))"));
+    assert.deepEqual(reviewedExtraKeysWhere(["a"]), { deliverables: { none: { fileKey: { notIn: ["a"] } } } });
+    assert.deepEqual(reviewedExtraKeysWhere([]), { deliverables: { none: { fileKey: { notIn: [] } } } });
     assert.ok(download.includes("deliverables:"));
     assert.ok(!download.includes("fileUrl: true"));
     assert.ok(checkout.includes("if (!isDeliverableSafe(product))"));
