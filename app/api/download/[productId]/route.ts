@@ -6,6 +6,7 @@ import { authOptions } from "../../auth/authOptions";
 import { verifyReceiptToken, withinReceiptWindow } from "@/lib/download-links";
 import { rateLimiters, getClientIp } from "@/lib/rate-limit";
 import { isDeliverableSafe } from "@/lib/file-safety";
+import { escapeHtml, extrasAreSafe } from "@/lib/product-deliverables";
 import { isMerchantReference } from "@/lib/payments/payment-status";
 import { redactId } from "@/lib/redact-id";
 import { createDeliveryUrl, MAX_DELIVERY_TTL_SECONDS } from "@/lib/storage/provider";
@@ -218,6 +219,10 @@ export async function GET(
         fileKey: true,
         fileScanStatus: true,
         fileScanKey: true,
+        deliverables: {
+          orderBy: { position: "asc" },
+          select: { id: true, name: true, fileKey: true, fileScanStatus: true, fileScanKey: true },
+        },
       },
     });
 
@@ -252,6 +257,76 @@ export async function GET(
         },
         { status: 409 }
       );
+    }
+
+    const extras = Array.isArray(product.deliverables) ? product.deliverables : [];
+    // One unsafe or unscanned extra refuses the whole kit. A product with no
+    // extra rows is the single-file path below, unchanged.
+    if (!extrasAreSafe(extras)) {
+      return NextResponse.json(
+        {
+          error: "file_not_available",
+          message:
+            "This file is not available for download. Please contact support.",
+        },
+        { status: 409 }
+      );
+    }
+
+    const part = searchParams.get("part");
+    if (extras.length > 0) {
+      const credential =
+        channel === "geidea"
+          ? `ref=${encodeURIComponent(ref ?? "")}`
+          : channel === "stripe"
+            ? ""
+            : channel === "receipt"
+              ? `t=${encodeURIComponent(token ?? "")}`
+              : `purchase=${encodeURIComponent(actualOrderId)}`;
+      const withPart = (id: string) => {
+        const base = `/api/download/${encodeURIComponent(productId)}`;
+        const query = [credential, `part=${encodeURIComponent(id)}`].filter(Boolean).join("&");
+        return `${base}?${query}`;
+      };
+      const kit = [
+        { id: "primary", name: product.name },
+        ...extras.map((row) => ({ id: row.id, name: row.name })),
+      ];
+      if (part !== null) {
+        const chosen =
+          part === "primary"
+            ? { fileKey: product.fileKey as string }
+            : extras.find((row) => row.id === part);
+        if (!chosen || !("fileKey" in chosen) || !chosen.fileKey) {
+          return NextResponse.json({ error: "Not authorized to download this product" }, { status: 404 });
+        }
+        const delivery = await createDeliveryUrl(chosen.fileKey, { ttlSeconds: DOWNLOAD_TTL_SECONDS });
+        if (!delivery.ok) {
+          return NextResponse.json({ error: "delivery_unavailable", reason: delivery.reason }, { status: 503 });
+        }
+        const res = NextResponse.redirect(delivery.url, 302);
+        res.headers.set("Cache-Control", "no-store, must-revalidate");
+        res.headers.set("Referrer-Policy", "no-referrer");
+        return res;
+      }
+      if (format === "json") {
+        return NextResponse.json({
+          productName: product.name,
+          downloadUrl: withPart("primary").replace(/&?part=[^&]+/, "").replace(/\?$/, ""),
+          files: kit.map((file) => ({ name: file.name, downloadUrl: withPart(file.id) })),
+        });
+      }
+      const items = kit
+        .map(
+          (file) =>
+            `<li><a href="${escapeHtml(withPart(file.id))}">${escapeHtml(file.name)}</a></li>`
+        )
+        .join("");
+      const html = `<!doctype html><meta charset="utf-8"><title>${escapeHtml(product.name)}</title><h1>${escapeHtml(product.name)}</h1><ul>${items}</ul>`;
+      return new NextResponse(html, {
+        status: 200,
+        headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store", "Referrer-Policy": "no-referrer" },
+      });
     }
 
     // Identifiers only — never the key, never a URL, and never a bearer in

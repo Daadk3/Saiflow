@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto";
 import { prisma } from "@/lib/prisma";
 import { env } from "@/lib/env";
 import { isDeliverableSafe } from "@/lib/file-safety";
+import { extrasAreSafe } from "@/lib/product-deliverables";
 import { hostedAccessReady } from "@/lib/hosted-access/validate";
 import { rateLimiters, getClientIp } from "@/lib/rate-limit";
 import { redactId } from "@/lib/redact-id";
@@ -428,7 +429,14 @@ export async function POST(req: Request) {
       where: { id: productId },
       // hostedAccess: a hosted product's private link, loaded only so the
       // hosted gate below can re-validate it. Never logged or returned.
-      include: { shop: true, hostedAccess: { select: { accessUrl: true, instructions: true } } },
+      include: {
+        shop: true,
+        hostedAccess: { select: { accessUrl: true, instructions: true } },
+        deliverables: {
+          orderBy: { position: "asc" },
+          select: { fileKey: true, fileScanStatus: true, fileScanKey: true },
+        },
+      },
     });
 
     if (!product) {
@@ -508,6 +516,16 @@ export async function POST(req: Request) {
         // `pre_launch` convention already used above. Deliberately says nothing
         // about WHICH state failed: a buyer has no business learning whether a
         // seller's file is unscanned or was rejected as malware.
+        return NextResponse.json(
+          {
+            error: "file_not_ready",
+            message:
+              "This product is not available for purchase. Its file has not completed safety checks.",
+          },
+          { status: 400 }
+        );
+      }
+      if (!extrasAreSafe(product.deliverables)) {
         return NextResponse.json(
           {
             error: "file_not_ready",

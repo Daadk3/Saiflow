@@ -7,6 +7,9 @@ import {
   type DeliverableGateReason,
   type DeliverableSafety,
 } from "@/lib/file-safety";
+import { extrasAreSafe, noUnsafeExtrasWhere, unsafeExtraFilter } from "@/lib/product-deliverables";
+
+export { noUnsafeExtrasWhere };
 
 /**
  * What "a buyer can see and buy this product" means, in one place.
@@ -59,18 +62,21 @@ export const SELLABLE_PRODUCT_WHERE = {
   isActive: true,
   moderationStatus: "APPROVED",
   shop: SELLABLE_SHOP_WHERE,
-  AND: [
-    {
-      OR: [
-        // Condition 4 for a FILE product: the reviewed safety clause, unchanged.
+      AND: [
         {
-          deliveryType: "FILE",
-          ...SAFE_DELIVERABLE_WHERE,
+          OR: [
+            // Condition 4 for a FILE product: the reviewed safety clause, unchanged.
+            {
+              deliveryType: "FILE",
+              ...SAFE_DELIVERABLE_WHERE,
+            },
+            HOSTED_ACCESS_READY_WHERE,
+          ],
         },
-        HOSTED_ACCESS_READY_WHERE,
+        // Extra files, if any, must each be SAFE for their own key. No rows
+        // means a single-file product, which passes.
+        noUnsafeExtrasWhere(),
       ],
-    },
-  ],
 } satisfies Prisma.ProductWhereInput;
 
 /**
@@ -100,6 +106,7 @@ export const APPROVED_NOT_SELLABLE_WHERE = {
     { fileScanStatus: { not: "SAFE" } },
     { fileScanKey: null },
     { NOT: { fileScanKey: { equals: prisma.product.fields.fileKey } } },
+    { deliverables: { some: unsafeExtraFilter() } },
   ],
 } satisfies Prisma.ProductWhereInput;
 
@@ -111,6 +118,12 @@ export interface SellableFacts extends DeliverableSafety {
   deliveryType?: ProductDeliveryType;
   /** Only its presence is read; select an id, never the link. */
   hostedAccess?: object | null;
+  /**
+   * Extra files. Omitted means the caller did not load them: treated as none,
+   * which is every product written before extras existed. A query that sells
+   * must load the relation or use SELLABLE_PRODUCT_WHERE.
+   */
+  deliverables?: DeliverableSafety[] | null;
 }
 
 export type UnsellableReason =
@@ -127,7 +140,12 @@ function deliveryReason(product: SellableFacts): "sellable" | "hosted_access_mis
     return product.hostedAccess ? "sellable" : "hosted_access_missing";
   }
   const file = deliverableGateReason(product);
-  return file === "safe" ? "sellable" : file;
+  if (file !== "safe") return file;
+  for (const extra of product.deliverables ?? []) {
+    const reason = deliverableGateReason(extra);
+    if (reason !== "safe") return reason;
+  }
+  return "sellable";
 }
 
 /**
@@ -148,6 +166,8 @@ export function isSellable(product: SellableFacts): boolean {
     product.isActive &&
     product.moderationStatus === "APPROVED" &&
     product.shop.isActive &&
-    (product.deliveryType === "HOSTED_ACCESS" ? Boolean(product.hostedAccess) : isDeliverableSafe(product))
+    (product.deliveryType === "HOSTED_ACCESS"
+      ? Boolean(product.hostedAccess)
+      : isDeliverableSafe(product) && extrasAreSafe(product.deliverables))
   );
 }

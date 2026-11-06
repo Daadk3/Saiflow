@@ -349,6 +349,8 @@
       "thumbnailUploadFailed": "فشل رفع صورة العرض: {message}",
       "productFileLabel": "ملف المنتج",
       "productFileHelp": "ارفع ملف منتجك الرقمي",
+      "extraFilesLabel": "ملفات إضافية",
+      "extraFilesHelp": "اختياري. كل ملف يُحفظ بشكل خاص ويُفحص وحده. المشتري يستلم كل الملفات التي تجتاز الفحص. ملف واحد لم يُفحص بعد، أو لم يجتز الفحص، يُبقي المنتج كله خارج البيع.",
       "dragDropInstruction": "اسحب وأفلت ملفك هنا، أو",
       "fileUploadFailed": "فشل الرفع: {message}",
       "fileUploadedBadge": "تم رفع الملف!",

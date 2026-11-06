@@ -26,6 +26,7 @@ export default function AddProductPage() {
   const [category, setCategory] = useState("");
   const [fileUrl, setFileUrl] = useState("");
   const [fileName, setFileName] = useState("");
+  const [extraFiles, setExtraFiles] = useState<{ url: string; name: string }[]>([]);
   const [thumbnailUrl, setThumbnailUrl] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -117,6 +118,7 @@ export default function AddProductPage() {
                 category: category || null,
                 shopId,
                 fileUrl,
+                fileUrls: extraFiles.map((file) => file.url),
                 thumbnailUrl,
                 certified,
               }
@@ -509,6 +511,38 @@ export default function AddProductPage() {
                     }
                   }}
                 />
+              )}
+
+              {!hosted && fileUrl && (
+                <div className="space-y-3">
+                  <p className="text-sm font-medium text-gray-300">{t("dashboard.product.extraFilesLabel")}</p>
+                  <p className="text-xs text-gray-500">{t("dashboard.product.extraFilesHelp")}</p>
+                  {extraFiles.map((file) => (
+                    <div key={file.url} className="flex items-center justify-between gap-3 rounded-xl border border-gray-800 px-4 py-3">
+                      <span className="truncate text-sm text-gray-200"><bdi>{file.name}</bdi></span>
+                      <button type="button" aria-label={t("upload.removeFile")} className="text-xs text-gray-400 hover:text-red-400" onClick={() => setExtraFiles((current) => current.filter((item) => item.url !== file.url))}>
+                        {t("upload.removeFile")}
+                      </button>
+                    </div>
+                  ))}
+                  {extraFiles.length < 7 && shopId && (
+                    <UploadButton
+                      endpoint="productFile"
+                      content={fileUploadContent}
+                      input={{ shopId }}
+                      onClientUploadComplete={(res) => {
+                        const uploaded = res?.[0];
+                        const url = uploaded?.ufsUrl || uploaded?.url;
+                        if (!url || url === fileUrl || extraFiles.some((file) => file.url === url)) return;
+                        setExtraFiles((current) => [...current, { url, name: uploaded?.name || url }]);
+                      }}
+                      appearance={{
+                        button: "bg-gray-700 hover:bg-gray-600 text-white font-medium px-4 py-2 rounded-lg text-sm",
+                        allowedContent: "text-gray-500 text-xs mt-2",
+                      }}
+                    />
+                  )}
+                </div>
               )}
 
               <ListingStandards ar={locale.startsWith("ar")} variant="seller" />

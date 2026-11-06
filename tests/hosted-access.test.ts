@@ -34,7 +34,14 @@ let sellable: Sellable;
 let links: Links;
 
 before(async () => {
-  mock.module("@/lib/prisma", { namedExports: { prisma: { product: { fields: { fileKey: { _toFieldRef: "Product.fileKey" } } } } } });
+  mock.module("@/lib/prisma", {
+    namedExports: {
+      prisma: {
+        product: { fields: { fileKey: { _toFieldRef: "Product.fileKey" } } },
+        productDeliverable: { fields: { fileKey: { _toFieldRef: "ProductDeliverable.fileKey" } } },
+      },
+    },
+  });
   mock.module("@/lib/notify", { namedExports: { notifyAdminsProductReadyForReview: async () => [] } });
   v = await import("../lib/hosted-access/validate.ts");
   a = await import("../lib/hosted-access/authorize.ts");
@@ -423,7 +430,7 @@ describe("checkout and approval (structural)", () => {
     assert.ok(moderation.includes('if (action === "APPROVED" && hosted && !hostedAccessReady(product.hostedAccess)) {'));
     assert.ok(moderation.includes('if (action === "APPROVED" && !hosted && !isDeliverableSafe(product)) {'));
     assert.ok(moderation.includes("? { id: productId, moderationStatus: product.moderationStatus, ...HOSTED_ACCESS_READY_WHERE }"));
-    assert.ok(moderation.includes(": { id: productId, ...SAFE_DELIVERABLE_WHERE },"));
+    assert.ok(moderation.includes(": { id: productId, ...SAFE_DELIVERABLE_WHERE, ...noUnsafeExtrasWhere() },"));
   });
 
   test("the download route is untouched: a hosted product has no file, so it is refused there", () => {

@@ -27,7 +27,14 @@ let preview: typeof import("../lib/admin-product-preview.ts");
 let standards: typeof import("../lib/listing-standards.ts");
 
 before(async () => {
-  mock.module("@/lib/prisma", { namedExports: { prisma: { product: { fields: { fileKey: { _toFieldRef: "Product.fileKey" } } } } } });
+  mock.module("@/lib/prisma", {
+    namedExports: {
+      prisma: {
+        product: { fields: { fileKey: { _toFieldRef: "Product.fileKey" } } },
+        productDeliverable: { fields: { fileKey: { _toFieldRef: "ProductDeliverable.fileKey" } } },
+      },
+    },
+  });
   mock.module("@/lib/notify", { namedExports: { notifyAdminsProductReadyForReview: async () => [] } });
   preview = await import("../lib/admin-product-preview.ts");
   standards = await import("../lib/listing-standards.ts");

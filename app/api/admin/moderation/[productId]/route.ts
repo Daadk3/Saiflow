@@ -10,6 +10,7 @@ import { SAFE_DELIVERABLE_WHERE, deliverableGateReason, isDeliverableSafe } from
 import { isChecklistPointId } from "@/lib/review-checklist";
 import { hostedAccessReady } from "@/lib/hosted-access/validate";
 import { HOSTED_ACCESS_READY_WHERE } from "@/lib/sellable";
+import { extrasAreSafe, noUnsafeExtrasWhere } from "@/lib/product-deliverables";
 
 /** Approval refused inside the transaction: the file changed after the check. */
 class NotApprovable extends Error {}
@@ -72,6 +73,7 @@ export async function POST(
         fileScanKey: true,
         deliveryType: true,
         hostedAccess: { select: { accessUrl: true, instructions: true } },
+        deliverables: { select: { fileKey: true, fileScanStatus: true, fileScanKey: true } },
       },
     });
     if (!product) {
@@ -99,6 +101,13 @@ export async function POST(
         { status: 409 }
       );
     }
+    if (action === "APPROVED" && !hosted && !extrasAreSafe(product.deliverables)) {
+      const failing = (product.deliverables ?? []).find((row) => deliverableGateReason(row) !== "safe");
+      return NextResponse.json(
+        { error: "not_approvable", reason: failing ? deliverableGateReason(failing) : "pending_scan" },
+        { status: 409 }
+      );
+    }
 
     const updated = await prisma.$transaction(async (tx) => {
       let p: { id: string; moderationStatus: string };
@@ -112,7 +121,7 @@ export async function POST(
         const approved = await tx.product.updateMany({
           where: hosted
             ? { id: productId, moderationStatus: product.moderationStatus, ...HOSTED_ACCESS_READY_WHERE }
-            : { id: productId, ...SAFE_DELIVERABLE_WHERE },
+            : { id: productId, ...SAFE_DELIVERABLE_WHERE, ...noUnsafeExtrasWhere() },
           data: { moderationStatus: "APPROVED" },
         });
         if (approved.count !== 1) throw new NotApprovable();

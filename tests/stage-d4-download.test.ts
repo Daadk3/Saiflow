@@ -526,7 +526,7 @@ describe("delivery: the buyer controls nothing but the identifiers", () => {
     const reads = s.match(/searchParams\.get\("([^"]+)"\)/g) ?? [];
     assert.deepEqual(
       reads.sort(),
-      ['searchParams.get("format")', 'searchParams.get("orderId")',
+      ['searchParams.get("format")', 'searchParams.get("orderId")', 'searchParams.get("part")',
       // The Geidea success-page channel, added with delivery after payment.
       'searchParams.get("purchase")', 'searchParams.get("ref")', 'searchParams.get("t")'],
       "no other request parameter may be read"
