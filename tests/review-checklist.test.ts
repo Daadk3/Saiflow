@@ -356,6 +356,32 @@ describe("file facts from the bytes", () => {
     assert.doesNotMatch(checks.points[3].reason, /لا يفتح/);
   });
 
+  test("pages that exist only inside a compressed stream are still counted", () => {
+    // The reported 24-page kit has no /Type /Page in the raw file. Those
+    // objects sit in Flate streams. A reader that only searches the raw
+    // bytes, or that stops at the first word "stream", reports the file as
+    // unopenable. This fixture keeps the page objects out of the raw body.
+    const inner = Array.from({ length: 24 }, () => "<< /Type /Page >>").join("\n")
+      + "\nBT (A long enough line of ordinary planner text for the checklist.) Tj ET\n";
+    const stream = deflateSync(Buffer.from(inner, "latin1"));
+    const file = Buffer.concat([
+      Buffer.from("%PDF-1.7\nstream\nnot-a-dictionary\n"),
+      Buffer.from(`9 0 obj << /Length ${stream.length} /Filter /FlateDecode >>\nstream\n`),
+      stream,
+      Buffer.from("\nendstream\nendobj\ntrailer << /Root 1 0 R >>\n%%EOF\n"),
+    ]);
+    assert.equal(file.toString("latin1").includes("/Type /Page"), false);
+    const facts = extractFileFacts(new Uint8Array(file));
+    assert.equal(facts.opens, true);
+    assert.equal(facts.pageCount, 24);
+    assert.equal(facts.pdfRead, "ok");
+    assert.equal(facts.textChecked, true);
+    const checks = computeReviewChecks({ ...base, facts });
+    assert.equal(checks.points[3].state, "ok");
+    assert.match(checks.points[3].reason, /24 صفحة/);
+    assert.doesNotMatch(checks.points[3].reason, /لا يفتح/);
+  });
+
   test("pages without extractable text are unknown, not proof the file is corrupt", () => {
     const facts = extractFileFacts(pdf(2, "q 1 0 0 1 0 0 cm Q"));
     assert.equal(facts.opens, true);
