@@ -46,3 +46,21 @@ SaiFlow does not host or execute the app. Delivery stays a private ZIP
 attachment, behind the existing paid-order and admin-approval gates. The type
 is not read from the product description. It is not listed in
 `PUBLICLY_SUPPORTED` until a Preview run proves the whole path.
+
+## Ordinary ZIP members
+
+A ZIP without the local-HTML marker stays `kind: "zip"`. Structural policy
+still rejects encryption, traversal, symlinks, nested archives, executables,
+and scripts (including `.py` and `.js`). It does not allow HTML.
+
+The provider request for that kind lists `.zip` plus the member types SaiFlow
+already accepts inside it: `.pdf`, `.md`, `.txt`, `.csv`, and the same raster
+image extensions as a standalone image. Sending only `.zip` made Cloudmersive's
+member whitelist report `ContainsRestrictedFileFormat`, which SaiFlow records
+as `format_mismatch` — the admin sentence "The file format is not one SaiFlow
+can sell, or it does not match its contents." Listing the member types is not
+a waiver: that flag is still a rejection, and so are malware, scripts,
+executables, and active PDF content. The container must still verify as
+`.zip`. A local HTML app is not this list; its request stays `.zip` only, with
+the existing reviewed waiver for its own members. ZIP is still not proven
+end-to-end on Preview, so it is not in `PUBLICLY_SUPPORTED`.
