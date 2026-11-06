@@ -302,6 +302,16 @@ export async function reconcileProductScanState(
   if (!asset || asset.scanStatus === "PENDING_SCAN") return NOT_RECONCILED;
 
   const moderationStatus = await prisma.$transaction(async (tx) => {
+    await tx.productDeliverable?.updateMany({
+      where: { productId, fileKey, fileScanStatus: "PENDING_SCAN" },
+      data: {
+        fileScanStatus: asset.scanStatus,
+        fileScanKey: fileKey,
+        fileScanSha256: asset.scanSha256,
+        fileScanAt: asset.scanAt,
+      },
+    });
+
     const updated = await tx.product.updateMany({
       where: { id: productId, fileKey, fileScanStatus: "PENDING_SCAN" },
       data: {

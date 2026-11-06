@@ -143,8 +143,8 @@ describe("C15: upload buttons speak the page's language and list types cleanly",
 
   test("all six upload buttons use the translated words", () => {
     for (const [file, count] of [
-      ["app/dashboard/shop/[slug]/add-product/page.tsx", 2],
-      ["app/dashboard/shop/[slug]/product/[productSlug]/edit/page.tsx", 2],
+      ["app/dashboard/shop/[slug]/add-product/page.tsx", 3],
+      ["app/dashboard/shop/[slug]/product/[productSlug]/edit/page.tsx", 3],
       ["app/dashboard/shop/[slug]/edit/page.tsx", 2],
     ] as const) {
       const src = read(file);

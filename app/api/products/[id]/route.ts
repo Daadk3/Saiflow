@@ -22,6 +22,11 @@ import { refreshReviewChecks } from "@/lib/review-checks-store";
 import { withoutReviewChecks } from "@/lib/review-checklist";
 import { redactId } from "@/lib/redact-id";
 import { priceProblemMessage, validatePrice } from "@/lib/pricing";
+import {
+  replaceExtraDeliverables,
+  resolveExtraDeliverables,
+  sameKeySet,
+} from "@/lib/product-deliverables";
 import { updateHostedProduct } from "@/lib/products/hosted-product";
 
 // A replacement file schedules its scan to run after the response is sent;
@@ -74,6 +79,10 @@ export async function GET(
         // The private delivery details of a hosted product. Returned below
         // only after membership is proven; this route is members-only.
         hostedAccess: { select: { accessUrl: true, instructions: true } },
+        deliverables: {
+          orderBy: { position: "asc" },
+          select: { id: true, position: true, name: true, fileUrl: true, fileScanStatus: true, fileScanKey: true },
+        },
       },
     });
 
@@ -198,6 +207,7 @@ export async function PUT(
             },
           },
         },
+        deliverables: { select: { fileKey: true } },
       },
     });
 
@@ -353,6 +363,14 @@ export async function PUT(
      */
     const fileChanged =
       nextFileKey !== undefined && nextFileKey !== product.fileKey;
+    const extras = await resolveExtraDeliverables(product.shopId, body.fileUrls, resultingFileKey);
+    if (!extras.ok) return NextResponse.json({ error: extras.error }, { status: 400 });
+    const extrasChanged =
+      !extras.skipped &&
+      !sameKeySet(
+        (product.deliverables ?? []).map((row) => row.fileKey),
+        extras.rows.map((row) => row.fileKey)
+      );
 
     const updatedProduct = await prisma.product.update({
       where: { id },
@@ -390,7 +408,9 @@ export async function PUT(
     // seller must not be able to swap in a different one after it. (The new
     // file is scanned either way; this is about what it contains.)
     const reopenFrom =
-      product.moderationStatus === "REJECTED" || (product.moderationStatus === "APPROVED" && fileChanged)
+      product.moderationStatus === "REJECTED" ||
+      (product.moderationStatus === "APPROVED" && fileChanged) ||
+      (product.moderationStatus === "APPROVED" && extrasChanged)
         ? product.moderationStatus
         : null;
     // A suspended shop (isActive false, the runbook's suspension) cannot reopen
@@ -441,6 +461,17 @@ export async function PUT(
       }
       // The file changed: scan the new bytes now rather than at the next sweep.
       scheduleScan(nextFileKey);
+    }
+    if (!extras.skipped) {
+      await replaceExtraDeliverables(updatedProduct.id, extras.rows);
+      for (const row of extras.rows) {
+        if (row.fileScanStatus === "PENDING_SCAN") scheduleScan(row.fileKey);
+        try {
+          await reconcileProductScanState(updatedProduct.id, row.fileKey);
+        } catch (error) {
+          console.error("[scan] reconcile extra after edit failed", (error as Error)?.name);
+        }
+      }
     }
 
     // The title, description or file may have changed: recompute the
@@ -517,6 +548,7 @@ export async function DELETE(
             },
           },
         },
+        deliverables: { select: { fileKey: true } },
       },
     });
 

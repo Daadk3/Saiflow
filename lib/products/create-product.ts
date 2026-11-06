@@ -16,6 +16,7 @@ import { announceReadyAtAttach } from "@/lib/scan/announce";
 import { refreshReviewChecks } from "@/lib/review-checks-store";
 import { withoutReviewChecks } from "@/lib/review-checklist";
 import { priceProblemMessage, validatePrice } from "@/lib/pricing";
+import { resolveExtraDeliverables } from "@/lib/product-deliverables";
 
 /**
  * Shared product create for the dashboard and the founder bot.
@@ -38,6 +39,7 @@ export async function createProductForSeller(
     thumbnailUrl: unknown;
     currency: unknown;
     certified: unknown;
+    fileUrls?: unknown;
   },
   audit?: { actor: string; reason: string }
 ): Promise<NextResponse> {
@@ -157,6 +159,9 @@ export async function createProductForSeller(
       );
     }
     const scanFields = attachedScanFields(provenance.asset);
+    const extras = await resolveExtraDeliverables(shopId, input.fileUrls, fileKey);
+    if (!extras.ok) return NextResponse.json({ error: extras.error }, { status: 400 });
+    const extraRows = extras.skipped ? [] : extras.rows;
 
     // The thumbnail, likewise: uploaded through the thumbnail route, for
     // this shop (lib/image-provenance).
@@ -201,6 +206,21 @@ export async function createProductForSeller(
               actor: `seller:${user.id}`,
               reason: "Seller certified ownership, legality, and responsibility at upload.",
             };
+      if (extraRows.length > 0) {
+        await tx.productDeliverable.createMany({
+          data: extraRows.map((row, index) => ({
+            productId: created.id,
+            position: index + 1,
+            fileUrl: row.fileUrl,
+            fileKey: row.fileKey,
+            name: row.name,
+            fileScanStatus: row.fileScanStatus,
+            fileScanKey: row.fileScanKey,
+            fileScanSha256: row.fileScanSha256,
+            fileScanAt: row.fileScanAt,
+          })),
+        });
+      }
       await tx.moderationEvent.create({
         data: {
           productId: created.id,
@@ -243,6 +263,16 @@ export async function createProductForSeller(
       await refreshReviewChecks(product.id);
       // The file is attached: scan it now rather than at the next sweep.
       scheduleScan(fileKey);
+      if (extraRows.length > 0) {
+        for (const row of extraRows) {
+          scheduleScan(row.fileKey);
+          try {
+            await reconcileProductScanState(product.id, row.fileKey);
+          } catch (error) {
+            console.error("[scan] reconcile extra after create failed", (error as Error)?.name);
+          }
+        }
+      }
     }
 
     // Never the founder's review flags (admin-only).

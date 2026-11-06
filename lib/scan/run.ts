@@ -239,6 +239,18 @@ async function finalizeVerdict(params: {
       },
     });
 
+    // The same verdict, bound to the same key, on any extra file that uses it.
+    // A product whose primary file is a different key is not updated above.
+    await tx.productDeliverable?.updateMany({
+      where: { fileKey: key },
+      data: {
+        fileScanStatus: status,
+        fileScanKey: key,
+        fileScanSha256: sha256,
+        fileScanAt: now,
+      },
+    });
+
     if (affected.length > 0) {
       await tx.moderationEvent.createMany({
         data: affected.map((product) => ({
@@ -521,11 +533,20 @@ export async function findScannableKeys(
         fa."scanAt" IS NULL
         OR fa."scanAt" + (interval '1 minute' * power(2, fa."scanAttempts")) <= ${now}
       )
-      AND EXISTS (
-        SELECT 1
-        FROM "Product" p
-        WHERE p."fileKey" = fa."key"
-          AND p."shopId" = fa."shopId"
+      AND (
+        EXISTS (
+          SELECT 1
+          FROM "Product" p
+          WHERE p."fileKey" = fa."key"
+            AND p."shopId" = fa."shopId"
+        )
+        OR EXISTS (
+          SELECT 1
+          FROM "ProductDeliverable" d
+          JOIN "Product" p ON p."id" = d."productId"
+          WHERE d."fileKey" = fa."key"
+            AND p."shopId" = fa."shopId"
+        )
       )
     ORDER BY fa."createdAt" ASC
     LIMIT ${limit}

@@ -249,6 +249,9 @@ model Product {
   /// Private delivery details of a HOSTED_ACCESS product. Its own table so
   /// that no product query, public or not, can return it without naming it.
   hostedAccess     HostedAccess?
+  /// Extra deliverables beyond Product.fileKey. Empty for every product that
+  /// sells a single file. Each row is scanned on its own key.
+  deliverables     ProductDeliverable[]
 
   @@unique([shopId, slug])
   @@index([shopId])
@@ -274,6 +277,35 @@ enum ProductDeliveryType {
 ///
 /// Not a secret store. The seller certifies, and validation checks, that
 /// neither field carries a password, API key, payment detail or patient data.
+/// An additional private file sold with Product.fileKey.
+///
+/// The primary file stays on Product so existing purchases, scans, and
+/// downloads are unchanged when this table is empty. A buyer of a multi-file
+/// product receives every row, and the product is unsellable while any row
+/// is not SAFE for its own key.
+model ProductDeliverable {
+  id             String         @id @default(cuid())
+  productId      String
+  /// 1-based order among extras. The primary file is not stored here.
+  position       Int
+  fileKey        String
+  fileUrl        String
+  /// Buyer-facing name copied from the upload. Not a URL and not file bytes.
+  name           String
+  fileScanStatus FileScanStatus @default(PENDING_SCAN)
+  fileScanKey    String?
+  fileScanSha256 String?
+  fileScanAt     DateTime?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, position])
+  @@unique([productId, fileKey])
+  @@index([fileKey])
+}
+
 model HostedAccess {
   productId    String   @id
   /// https only, validated by lib/hosted-access/validate on every write and

@@ -110,6 +110,10 @@ before(async () => {
       findMany: async () => [],
       updateMany: async () => ({ count: 0 }),
     },
+    productDeliverable: {
+      updateMany: async () => ({ count: 0 }),
+      findMany: async () => [],
+    },
     moderationEvent: { createMany: async () => ({ count: 0 }) },
   };
 

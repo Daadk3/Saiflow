@@ -82,6 +82,7 @@ export async function POST(req: Request) {
       category,
       shopId,
       fileUrl,
+      fileUrls: body.fileUrls,
       thumbnailUrl,
       currency,
       certified,

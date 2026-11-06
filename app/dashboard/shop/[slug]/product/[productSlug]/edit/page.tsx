@@ -35,6 +35,7 @@ interface Product {
   price: number;
   category: string | null;
   fileUrl: string | null;
+  deliverables?: { id: string; name: string; fileUrl: string }[];
   /** From GET /api/products/[id], which returns the whole row. */
   moderationStatus?: "PENDING" | "APPROVED" | "REJECTED";
   /** Why it was rejected, while it is; null when no reason was recorded. */
@@ -74,6 +75,7 @@ export default function EditProductPage() {
   const [category, setCategory] = useState("");
   const [fileUrl, setFileUrl] = useState("");
   const [fileName, setFileName] = useState("");
+  const [extraFiles, setExtraFiles] = useState<{ url: string; name: string }[]>([]);
   const [thumbnailUrl, setThumbnailUrl] = useState("");
   const [fileSafety, setFileSafety] = useState<CreatorFileStatus>(null);
   const [fileState, setFileState] = useState<FileScanStateView | null>(null);
@@ -168,6 +170,12 @@ export default function EditProductPage() {
       setPrice(String(productData.price));
       setCategory(productData.category || "");
       setFileUrl(productData.fileUrl || "");
+      setExtraFiles(
+        (productData.deliverables ?? []).map((file: { fileUrl: string; name: string }) => ({
+          url: file.fileUrl,
+          name: file.name,
+        }))
+      );
       setThumbnailUrl(productData.thumbnailUrl || "");
       setAccessUrl(productData.hostedAccess?.accessUrl || "");
       setAccessInstructions(productData.hostedAccess?.instructions || "");
@@ -230,6 +238,7 @@ export default function EditProductPage() {
                 price: parseFloat(price),
                 category: category || null,
                 fileUrl: fileUrl || null,
+                fileUrls: extraFiles.map((file) => file.url),
                 thumbnailUrl: thumbnailUrl || null,
               }
         ),
@@ -724,6 +733,38 @@ export default function EditProductPage() {
               {success && (
                 <div className="p-4 bg-teal-500/10 border border-teal-500/20 rounded-xl">
                   <p className="text-teal-400 text-sm">{success}</p>
+                </div>
+              )}
+
+              {!hosted && fileUrl && (
+                <div className="space-y-3">
+                  <p className="text-sm font-medium text-gray-300">{t("dashboard.product.extraFilesLabel")}</p>
+                  <p className="text-xs text-gray-500">{t("dashboard.product.extraFilesHelp")}</p>
+                  {extraFiles.map((file) => (
+                    <div key={file.url} className="flex items-center justify-between gap-3 rounded-xl border border-gray-800 px-4 py-3">
+                      <span className="truncate text-sm text-gray-200"><bdi>{file.name}</bdi></span>
+                      <button type="button" aria-label={t("upload.removeFile")} className="text-xs text-gray-400 hover:text-red-400" onClick={() => setExtraFiles((current) => current.filter((item) => item.url !== file.url))}>
+                        {t("upload.removeFile")}
+                      </button>
+                    </div>
+                  ))}
+                  {extraFiles.length < 7 && product?.shop.id && (
+                    <UploadButton
+                      endpoint="productFile"
+                      content={fileUploadContent}
+                      input={{ shopId: product.shop.id }}
+                      onClientUploadComplete={(res) => {
+                        const uploaded = res?.[0];
+                        const url = uploaded?.ufsUrl || uploaded?.url;
+                        if (!url || url === fileUrl || extraFiles.some((item) => item.url === url)) return;
+                        setExtraFiles((current) => [...current, { url, name: uploaded?.name || url }]);
+                      }}
+                      appearance={{
+                        button: "bg-gray-700 hover:bg-gray-600 text-white font-medium px-4 py-2 rounded-lg text-sm",
+                        allowedContent: "text-gray-500 text-xs mt-2",
+                      }}
+                    />
+                  )}
                 </div>
               )}
 

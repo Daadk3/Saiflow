@@ -108,6 +108,10 @@ const tx = {
       return { count: 1 };
     },
   },
+  productDeliverable: {
+    updateMany: async () => ({ count: 0 }),
+    findMany: async () => [],
+  },
 };
 
 let shopsPOST: (req: Request) => Promise<Response>;
@@ -191,6 +195,11 @@ before(async () => {
           fields: { fileKey: { _toFieldRef: "Product.fileKey" } },
           findUnique: async () => state.product,
           findFirst: async () => ({ id: "prod_1" }),
+        },
+        productDeliverable: {
+          fields: { fileKey: { _toFieldRef: "ProductDeliverable.fileKey" } },
+          updateMany: async () => ({ count: 0 }),
+          findMany: async () => [],
         },
         fileAsset: {
           findUnique: async () => state.asset,

@@ -349,6 +349,8 @@
       "thumbnailUploadFailed": "Thumbnail upload failed: {message}",
       "productFileLabel": "Product File",
       "productFileHelp": "Upload your digital product file",
+      "extraFilesLabel": "Additional files",
+      "extraFilesHelp": "Optional. Each file is stored privately and scanned on its own. The buyer receives every file that passes. One file that is still scanning, or that fails, keeps the whole product off sale.",
       "dragDropInstruction": "Drag and drop your file here, or",
       "fileUploadFailed": "Upload failed: {message}",
       "fileUploadedBadge": "File uploaded!",

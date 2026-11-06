@@ -101,6 +101,7 @@ type Args = { select?: Row; include?: Row; where?: Row };
 
 function relation(table: string, row: Row, name: string, sub: unknown): unknown {
   const args = (sub === true ? {} : sub) as Args;
+  if (table === "product" && name === "deliverables") return [];
   if (table === "product" && name === "shop") {
     const shop = db.shops.find((s) => s.id === row.shopId);
     return shop ? project("shop", shop, args) : null;
@@ -115,7 +116,7 @@ function relation(table: string, row: Row, name: string, sub: unknown): unknown 
   throw new Error(`stand-in: unknown relation ${table}.${name}`);
 }
 
-const RELATIONS: Record<string, string[]> = { product: ["shop"], shop: ["shopUsers"], shopUser: ["user"] };
+const RELATIONS: Record<string, string[]> = { product: ["shop", "deliverables"], shop: ["shopUsers"], shopUser: ["user"] };
 
 function project(table: string, row: Row, args: Args): Row {
   const rel = RELATIONS[table] ?? [];

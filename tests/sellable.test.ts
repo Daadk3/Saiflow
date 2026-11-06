@@ -22,7 +22,14 @@ let sellable: Mod;
 let safety: Safety;
 
 before(async () => {
-  mock.module("@/lib/prisma", { namedExports: { prisma: { product: { fields: { fileKey: FIELD_REF } } } } });
+  mock.module("@/lib/prisma", {
+    namedExports: {
+      prisma: {
+        product: { fields: { fileKey: FIELD_REF } },
+        productDeliverable: { fields: { fileKey: { _toFieldRef: "ProductDeliverable.fileKey" } } },
+      },
+    },
+  });
   // lib/file-safety's scan announcements import the notifier; never called here.
   mock.module("@/lib/notify", { namedExports: { notifyAdminsProductReadyForReview: async () => [] } });
   sellable = await import("../lib/sellable.ts");
@@ -105,6 +112,7 @@ describe("the where-clauses", () => {
             { deliveryType: "HOSTED_ACCESS", hostedAccess: { isNot: null } },
           ],
         },
+        sellable.noUnsafeExtrasWhere(),
       ],
     });
     assert.deepEqual(safety.SAFE_DELIVERABLE_WHERE, {
@@ -124,6 +132,17 @@ describe("the where-clauses", () => {
       { fileScanStatus: { not: "SAFE" } },
       { fileScanKey: null },
       { NOT: { fileScanKey: { equals: FIELD_REF } } },
+      {
+        deliverables: {
+          some: {
+            OR: [
+              { fileScanStatus: { not: "SAFE" } },
+              { fileScanKey: null },
+              { NOT: { fileScanKey: { equals: { _toFieldRef: "ProductDeliverable.fileKey" } } } },
+            ],
+          },
+        },
+      },
     ]);
     assert.equal(where.NOT, undefined, "a top-level NOT would drop the fileless rows (SQL NULL)");
   });
