@@ -22,7 +22,9 @@ import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { MAX_SCANNABLE_BYTES, readPrivateObject } from "@/lib/storage/provider";
 import { notifyAdminsProductReadyForReview } from "@/lib/notify";
+import { SAFE_DELIVERABLE_WHERE } from "@/lib/file-safety";
 import { extractFileFacts } from "@/lib/file-facts";
+import { noUnsafeExtrasWhere } from "@/lib/product-deliverables";
 import type { FileContentFacts } from "@/lib/review-checklist";
 import { refreshReviewChecks } from "@/lib/review-checks-store";
 import { cloudmersiveProvider } from "./cloudmersive";
@@ -252,9 +254,46 @@ async function finalizeVerdict(params: {
       },
     });
 
-    if (affected.length > 0) {
+    // Products that sell this key only as an extra. Primary matches are
+    // already in `affected` and are not listed twice. The audit row is
+    // written for every such product. The founder is told only when this
+    // verdict is SAFE and the whole kit is safe: primary safe, and no extra
+    // short of SAFE for its own key. That second read happens after the
+    // write above, so it sees this verdict.
+    const seen = new Set(affected.map((product) => product.id));
+    const extraHolders = (
+      await tx.product.findMany({
+        where: {
+          ...(affected.length > 0 ? { id: { notIn: [...seen] } } : {}),
+          deliverables: { some: { fileKey: key } },
+        },
+        select: { id: true, moderationStatus: true },
+      })
+    ).filter((product) => !seen.has(product.id));
+    const pendingExtraIds = extraHolders
+      .filter((product) => product.moderationStatus === "PENDING")
+      .map((product) => product.id);
+    const extraReady =
+      status === "SAFE" && pendingExtraIds.length > 0
+        ? (
+            await tx.product.findMany({
+              where: {
+                id: { in: pendingExtraIds },
+                moderationStatus: "PENDING",
+                ...SAFE_DELIVERABLE_WHERE,
+                ...noUnsafeExtrasWhere(),
+              },
+              select: { id: true },
+            })
+          )
+            .map((product) => product.id)
+            .filter((id) => pendingExtraIds.includes(id))
+        : [];
+
+    const scanned = [...affected, ...extraHolders];
+    if (scanned.length > 0) {
       await tx.moderationEvent.createMany({
-        data: affected.map((product) => ({
+        data: scanned.map((product) => ({
           productId: product.id,
           action: "SCANNED" as const,
           actor: `scanner:${providerId}`,
@@ -270,13 +309,14 @@ async function finalizeVerdict(params: {
       });
     }
 
+    const primaryReady =
+      status === "SAFE"
+        ? affected.filter((product) => product.moderationStatus === "PENDING").map((product) => product.id)
+        : [];
     return {
       written: true,
-      productIds: affected.map((product) => product.id),
-      readyForReview:
-        status === "SAFE"
-          ? affected.filter((product) => product.moderationStatus === "PENDING").map((product) => product.id)
-          : [],
+      productIds: scanned.map((product) => product.id),
+      readyForReview: [...primaryReady, ...extraReady],
     };
   });
 }

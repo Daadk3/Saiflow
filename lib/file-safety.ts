@@ -302,7 +302,7 @@ export async function reconcileProductScanState(
   if (!asset || asset.scanStatus === "PENDING_SCAN") return NOT_RECONCILED;
 
   const moderationStatus = await prisma.$transaction(async (tx) => {
-    await tx.productDeliverable?.updateMany({
+    const extrasUpdated = await tx.productDeliverable?.updateMany({
       where: { productId, fileKey, fileScanStatus: "PENDING_SCAN" },
       data: {
         fileScanStatus: asset.scanStatus,
@@ -322,9 +322,11 @@ export async function reconcileProductScanState(
       },
     });
 
-    // Someone else settled it first, or the file changed again. Either way
-    // this reconciliation is stale and writes no audit event.
-    if (updated.count !== 1) return null;
+    // Someone else settled the primary first, or the file changed again.
+    // An extra row that this call did move still needs its audit event:
+    // the primary key is a different file, so the update above matches nothing.
+    const extraMoved = (extrasUpdated?.count ?? 0) > 0;
+    if (updated.count !== 1 && !extraMoved) return null;
 
     const product = await tx.product.findUnique({
       where: { id: productId },
@@ -347,7 +349,27 @@ export async function reconcileProductScanState(
         newStatus: product.moderationStatus,
       },
     });
-    return product.moderationStatus;
+    // An extra file settling does not by itself mean the kit is reviewable.
+    // Announce only when the primary is safe and every extra now is too.
+    let kitReady = false;
+    if (extraMoved && updated.count !== 1 && asset.scanStatus === "SAFE") {
+      const kit = await tx.product.findUnique({
+        where: { id: productId },
+        select: {
+          fileKey: true,
+          fileScanStatus: true,
+          fileScanKey: true,
+          deliverables: { select: { fileKey: true, fileScanStatus: true, fileScanKey: true } },
+        },
+      });
+      kitReady =
+        product.moderationStatus === "PENDING" &&
+        !!kit &&
+        isDeliverableSafe(kit) &&
+        Array.isArray(kit.deliverables) &&
+        kit.deliverables.every((row) => isDeliverableSafe(row));
+    }
+    return { moderationStatus: product.moderationStatus, primaryMoved: updated.count === 1, kitReady };
   });
   if (moderationStatus === null) return NOT_RECONCILED;
 
@@ -357,7 +379,13 @@ export async function reconcileProductScanState(
   // products its own verdict transaction moved, and both moves require the
   // product to still be PENDING_SCAN, so one attachment is announced once.
   // After the commit, after the response, and unable to fail the caller.
-  const readyForReview = asset.scanStatus === "SAFE" && moderationStatus === "PENDING";
+  // A primary move keeps the previous rule. An extra-only move announces
+  // only when primary and every extra are safe together.
+  const readyForReview =
+    (asset.scanStatus === "SAFE" &&
+      moderationStatus.moderationStatus === "PENDING" &&
+      moderationStatus.primaryMoved) ||
+    moderationStatus.kitReady;
   if (readyForReview) {
     await runAfterResponse(() => notifyAdminsProductReadyForReview([productId], fileKey));
   }

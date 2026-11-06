@@ -476,7 +476,7 @@ before(async () => {
           count: async () => 0,
           findUnique: async (args: Record<string, unknown>) => {
             calls.findUnique = args;
-            return state.product;
+            return state.product ? { deliverables: [], ...state.product } : state.product;
           },
           findMany: async (args: Record<string, unknown>) => {
             calls.findMany.push(args);

@@ -46,6 +46,14 @@ const state = {
   affected: [] as Array<{ id: string; moderationStatus: string }>,
   /** What a product-bound conditional update matches (1: still PENDING_SCAN; 0: already settled). */
   productUpdateCount: 1,
+  /** Extra rows this key moved out of PENDING_SCAN. 0 unless a test says so. */
+  extraUpdateCount: 0,
+  /** Products whose only attachment of this key is an extra file. */
+  extraHolders: [] as Array<{ id: string; moderationStatus: string }>,
+  /** Subset of those holders whose whole kit is safe. */
+  extraReady: [] as Array<{ id: string }>,
+  /** Loaded when reconciliation asks for the kit, not only the status. */
+  kit: null as Record<string, unknown> | null,
   moderation: "PENDING",
 };
 
@@ -86,8 +94,13 @@ const tx = {
       state.updates.push(data);
       return { id: "prod_1", moderationStatus: data.moderationStatus };
     },
-    findMany: async () => state.affected,
-    findUnique: async () => ({ moderationStatus: state.moderation }),
+    findMany: async (args?: { where?: { deliverables?: unknown; fileScanStatus?: unknown } }) => {
+      if (args?.where?.fileScanStatus) return state.extraReady;
+      if (args?.where?.deliverables) return state.extraHolders;
+      return state.affected;
+    },
+    findUnique: async (args?: { select?: { deliverables?: unknown } }) =>
+      args?.select?.deliverables ? state.kit : { moderationStatus: state.moderation },
     updateMany: async ({ data }: { data: Record<string, unknown> }) => {
       state.updates.push(data);
       return { count: state.productUpdateCount };
@@ -109,7 +122,7 @@ const tx = {
     },
   },
   productDeliverable: {
-    updateMany: async () => ({ count: 0 }),
+    updateMany: async () => ({ count: state.extraUpdateCount }),
     findMany: async () => [],
   },
 };
@@ -193,7 +206,7 @@ before(async () => {
         },
         product: {
           fields: { fileKey: { _toFieldRef: "Product.fileKey" } },
-          findUnique: async () => state.product,
+          findUnique: async () => (state.product ? { deliverables: [], ...state.product } : state.product),
           findFirst: async () => ({ id: "prod_1" }),
         },
         productDeliverable: {
@@ -255,6 +268,10 @@ beforeEach(() => {
   state.written = null;
   state.affected = [{ id: "prod_1", moderationStatus: "PENDING" }];
   state.productUpdateCount = 1;
+  state.extraUpdateCount = 0;
+  state.extraHolders = [];
+  state.extraReady = [];
+  state.kit = null;
   state.moderation = "PENDING";
   process.env.ADMIN_EMAILS = account;
 });
@@ -453,6 +470,19 @@ describe("a file passes its check (worker path)", () => {
     await scanFileAsset("key_1", { provider: provider({}) });
     assert.deepEqual(calls.readyForReview, [["prod_1", "prod_3"]]);
   });
+
+  test("an extra file that completes a pending kit is announced, and one that does not is not", async () => {
+    state.affected = [];
+    state.extraHolders = [{ id: "prod_9", moderationStatus: "PENDING" }];
+    state.extraReady = [{ id: "prod_9" }];
+    assert.equal((await scanFileAsset("key_extra", { provider: provider({}) })).outcome, "SAFE");
+    assert.deepEqual(calls.readyForReview, [["prod_9"]]);
+    state.asset!.scanStatus = "PENDING_SCAN";
+    calls.readyForReview.length = 0;
+    state.extraReady = [];
+    assert.equal((await scanFileAsset("key_extra", { provider: provider({}) })).outcome, "SAFE");
+    assert.deepEqual(calls.readyForReview, []);
+  });
 });
 
 /* ------------------------------------------------------------------ */
@@ -529,6 +559,40 @@ describe("a product attaches to a file with a verdict (reconciliation path)", ()
     await drain();
     assert.equal((await scanFileAsset("key_1", { provider: provider({}) })).outcome, "SKIPPED_SETTLED");
     assert.equal(calls.readyForReview.length, 1, "still exactly one");
+  });
+
+  test("an extra file copied onto a product whose primary is already safe announces the kit", async () => {
+    state.asset!.scanStatus = "SAFE";
+    state.productUpdateCount = 0;
+    state.extraUpdateCount = 1;
+    state.kit = {
+      fileKey: "primary",
+      fileScanStatus: "SAFE",
+      fileScanKey: "primary",
+      deliverables: [{ fileKey: "key_1", fileScanStatus: "SAFE", fileScanKey: "key_1" }],
+    };
+    const result = await reconcileProductScanState("prod_1", "key_1");
+    assert.deepEqual(result, { reconciled: true, scanStatus: "SAFE", readyForReview: true });
+    assert.equal(state.events[0].action, "SCANNED");
+    await drain();
+    assert.deepEqual(calls.readyForReview, [["prod_1"]]);
+  });
+
+  test("an extra file copied while the primary is not safe is audited and not announced", async () => {
+    state.asset!.scanStatus = "SAFE";
+    state.productUpdateCount = 0;
+    state.extraUpdateCount = 1;
+    state.kit = {
+      fileKey: "primary",
+      fileScanStatus: "PENDING_SCAN",
+      fileScanKey: null,
+      deliverables: [{ fileKey: "key_1", fileScanStatus: "SAFE", fileScanKey: "key_1" }],
+    };
+    const result = await reconcileProductScanState("prod_1", "key_1");
+    assert.deepEqual(result, { reconciled: true, scanStatus: "SAFE", readyForReview: false });
+    assert.equal(state.events.length, 1);
+    await drain();
+    assert.equal(calls.readyForReview.length, 0);
   });
 
   test("a notifier failure cannot fail the reconciliation", async () => {
@@ -611,16 +675,21 @@ describe("the remaining call sites (structural)", () => {
     const finalize = src.slice(src.indexOf("async function finalizeVerdict"), src.indexOf("export async function scanFileAsset"));
     assert.match(finalize, /affected\.filter\(\(product\) => product\.moderationStatus === "PENDING"\)\.map\(\(product\) => product\.id\)/);
     assert.match(finalize, /status === "SAFE"/);
+    assert.match(finalize, /deliverables: \{ some: \{ fileKey: key \} \}/);
+    assert.match(finalize, /\.\.\.SAFE_DELIVERABLE_WHERE/);
+    assert.match(finalize, /\.\.\.noUnsafeExtrasWhere\(\)/);
   });
 
   test("the reconciliation announces only a SAFE copy onto a PENDING product, after its transaction", () => {
     const src = read("lib/file-safety.ts");
     const fn = src.slice(src.indexOf("export async function reconcileProductScanState"));
-    const txEnd = fn.indexOf("return product.moderationStatus;");
-    const decision = fn.indexOf('const readyForReview = asset.scanStatus === "SAFE" && moderationStatus === "PENDING";');
+    const txEnd = fn.indexOf("return { moderationStatus: product.moderationStatus, primaryMoved: updated.count === 1, kitReady };");
+    const decision = fn.indexOf("const readyForReview =");
     const call = fn.indexOf("await runAfterResponse(() => notifyAdminsProductReadyForReview([productId], fileKey));");
     assert.ok(txEnd > 0 && decision > txEnd && call > decision, "decided and sent after the transaction");
-    assert.ok(fn.includes("if (updated.count !== 1) return null;"), "a stale reconciliation names nobody");
+    assert.ok(fn.includes("if (updated.count !== 1 && !extraMoved) return null;"), "a stale reconciliation names nobody");
+    assert.ok(fn.includes('asset.scanStatus === "SAFE"'));
+    assert.ok(fn.includes('moderationStatus.moderationStatus === "PENDING"'));
   });
 
   test("a product written already SAFE is announced from the route, after the write and before reconcile", () => {

@@ -430,7 +430,9 @@ describe("checkout and approval (structural)", () => {
     assert.ok(moderation.includes('if (action === "APPROVED" && hosted && !hostedAccessReady(product.hostedAccess)) {'));
     assert.ok(moderation.includes('if (action === "APPROVED" && !hosted && !isDeliverableSafe(product)) {'));
     assert.ok(moderation.includes("? { id: productId, moderationStatus: product.moderationStatus, ...HOSTED_ACCESS_READY_WHERE }"));
-    assert.ok(moderation.includes(": { id: productId, ...SAFE_DELIVERABLE_WHERE, ...noUnsafeExtrasWhere() },"));
+    assert.ok(moderation.includes("moderationStatus: product.moderationStatus,"));
+    assert.ok(moderation.includes("...SAFE_DELIVERABLE_WHERE,"));
+    assert.ok(moderation.includes("...noUnsafeExtrasWhere(),"));
   });
 
   test("the download route is untouched: a hosted product has no file, so it is refused there", () => {

@@ -75,7 +75,7 @@ before(async () => {
         user: { findFirst: async () => ({ id: "admin_1" }) },
         product: {
           fields: { fileKey: { _toFieldRef: "Product.fileKey" } },
-          findUnique: async () => (state.product ? { ...state.product } : null),
+          findUnique: async () => (state.product ? { deliverables: [], ...state.product } : null),
         },
         // Committed only if the callback returns: a throw discards the staged writes.
         $transaction: async <T>(fn: (t: typeof tx) => Promise<T>) => {

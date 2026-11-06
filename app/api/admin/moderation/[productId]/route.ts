@@ -101,7 +101,7 @@ export async function POST(
         { status: 409 }
       );
     }
-    if (action === "APPROVED" && !hosted && !extrasAreSafe(product.deliverables)) {
+    if (action === "APPROVED" && !hosted && (!Array.isArray(product.deliverables) || !extrasAreSafe(product.deliverables))) {
       const failing = (product.deliverables ?? []).find((row) => deliverableGateReason(row) !== "safe");
       return NextResponse.json(
         { error: "not_approvable", reason: failing ? deliverableGateReason(failing) : "pending_scan" },
@@ -121,7 +121,12 @@ export async function POST(
         const approved = await tx.product.updateMany({
           where: hosted
             ? { id: productId, moderationStatus: product.moderationStatus, ...HOSTED_ACCESS_READY_WHERE }
-            : { id: productId, ...SAFE_DELIVERABLE_WHERE, ...noUnsafeExtrasWhere() },
+            : {
+                id: productId,
+                moderationStatus: product.moderationStatus,
+                ...SAFE_DELIVERABLE_WHERE,
+                ...noUnsafeExtrasWhere(),
+              },
           data: { moderationStatus: "APPROVED" },
         });
         if (approved.count !== 1) throw new NotApprovable();
