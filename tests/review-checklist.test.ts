@@ -22,6 +22,7 @@ import {
   buildRejectionMessage,
   checklistRows,
   computeReviewChecks,
+  findAmbiguousPlatform,
   findBannedTypes,
   findContactInfo,
   type FileContentFacts,
@@ -80,8 +81,8 @@ describe("point 6: contact and ads", () => {
     ["تابعني @my_store", "handle"],
     ["على الواتساب", "social"],
     ["Snapchat: me", "social"],
-    ["انستقرام المتجر", "social"],
-    ["تيليجرام", "social"],
+    ["تابعوني على انستقرام", "social"],
+    ["DM me on Instagram", "social"],
     ["تَواصَل معنا للمزيد", "phrase"],
     ["اطلب عبر الخاص", "phrase"],
     ["راسلنا", "phrase"],
@@ -94,6 +95,44 @@ describe("point 6: contact and ads", () => {
   test("an email is not also a link or a handle; a price is not a phone", () => {
     assert.deepEqual(findContactInfo("seller@example.com"), ["email"]);
     assert.deepEqual(findContactInfo("السعر 49 ريال، 12 صفحة"), []);
+  });
+
+  test("a bare or instructional platform name is not an established contact", () => {
+    for (const text of [
+      "Instagram caption",
+      "قالب كابشن انستقرام",
+      "WhatsApp status ideas",
+      "دليل سناب",
+      "تيليجرام",
+      "انستقرام المتجر",
+    ]) {
+      assert.deepEqual(findContactInfo(text), [], text);
+    }
+    assert.equal(findAmbiguousPlatform("Instagram caption"), false);
+    assert.equal(findAmbiguousPlatform("قالب كابشن انستقرام"), false);
+    assert.equal(findAmbiguousPlatform("تيليجرام"), true);
+    assert.equal(findAmbiguousPlatform("انستقرام المتجر"), true);
+    const guide = computeReviewChecks({ ...base, description: "Instagram caption examples for a content kit." });
+    assert.equal(guide.points[6].state, "ok");
+    const bare = computeReviewChecks({ ...base, name: "تيليجرام" });
+    assert.equal(bare.points[6].state, "warn");
+    assert.match(bare.points[6].reason, /مراجعة يدوية/);
+    assert.match(bare.points[6].reason, /ليست مخالفة مؤكدة/);
+    assert.doesNotMatch(bare.points[6].reason, /وُجد/);
+  });
+
+  test("a link or invitation in the description or the file is still an established contact", () => {
+    const described = computeReviewChecks({
+      ...base,
+      description: "See instagram.com/shop and follow me on Instagram",
+    });
+    assert.equal(described.points[6].state, "warn");
+    assert.match(described.points[6].reason, /وُجد/);
+    const fromFile = computeReviewChecks({
+      ...base,
+      facts: { ...CLEAN_FACTS, contact: ["url"], ambiguousPlatform: false },
+    });
+    assert.match(fromFile.points[6].reason, /رابط \(الملف\)/);
   });
 
   test("a hit in the title shows ⚠️ with where it was found", () => {
@@ -112,7 +151,8 @@ describe("point 6: contact and ads", () => {
     assert.equal(computeReviewChecks(base).points[6].state, "ok");
     const unread = computeReviewChecks({ ...base, facts: { ...CLEAN_FACTS, textChecked: false } });
     assert.equal(unread.points[6].state, "warn");
-    assert.match(unread.points[6].reason, /تعذر استخراج نص الملف/);
+    assert.match(unread.points[6].reason, /نص الملف غير معروف — مراجعة يدوية/);
+    assert.doesNotMatch(unread.points[6].reason, /لا يفتح/);
     const noFacts = computeReviewChecks({ ...base, facts: null });
     assert.match(noFacts.points[6].reason, /لم يُفحص نص الملف بعد/);
   });
@@ -292,7 +332,56 @@ describe("file facts from the bytes", () => {
 
   test("a truncated PDF does not open", () => {
     const bytes = pdf(2, "BT (x) Tj ET");
-    assert.equal(extractFileFacts(bytes.subarray(0, bytes.length - 8)).opens, false);
+    const facts = extractFileFacts(bytes.subarray(0, bytes.length - 8));
+    assert.equal(facts.opens, false);
+    assert.equal(facts.pdfRead, "truncated");
+    const checks = computeReviewChecks({ ...base, facts });
+    assert.match(checks.points[3].reason, /لا يفتح بشكل سليم/);
+  });
+
+  test("a decoy stream word does not hide a real PDF's pages", () => {
+    const real = pdf(4, "BT (A readable Arabic-ready planner with enough ordinary text to count.) Tj ET");
+    const decoy = new TextEncoder().encode("%PDF-1.7\nstream\nnot-a-dictionary\n");
+    const glued = new Uint8Array(decoy.length + real.length - 9);
+    glued.set(decoy, 0);
+    glued.set(real.subarray(9), decoy.length);
+    const facts = extractFileFacts(glued);
+    assert.equal(facts.kind, "pdf");
+    assert.equal(facts.opens, true);
+    assert.equal(facts.pageCount, 4);
+    assert.equal(facts.pdfRead, "ok");
+    const checks = computeReviewChecks({ ...base, facts });
+    assert.equal(checks.points[3].state, "ok");
+    assert.match(checks.points[3].reason, /4 صفحات/);
+    assert.doesNotMatch(checks.points[3].reason, /لا يفتح/);
+  });
+
+  test("pages without extractable text are unknown, not proof the file is corrupt", () => {
+    const facts = extractFileFacts(pdf(2, "q 1 0 0 1 0 0 cm Q"));
+    assert.equal(facts.opens, true);
+    assert.equal(facts.pdfRead, "ok");
+    assert.equal(facts.textChecked, false);
+    const checks = computeReviewChecks({ ...base, facts });
+    assert.equal(checks.points[3].state, "ok");
+    assert.match(checks.points[6].reason, /غير معروف — مراجعة يدوية/);
+    assert.doesNotMatch(checks.points[6].reason, /لا يفتح/);
+    assert.doesNotMatch(checks.points[3].reason, /لا يفتح/);
+  });
+
+  test("UTF-16 Arabic in a PDF is text, and a contact phrase is still found", () => {
+    const phrase = "تواصل معنا على الرقم 0551234567 وهذا نص طويل يكفي للفحص";
+    const utf16 = Buffer.from(`\uFEFF${phrase}`, "utf16le");
+    // PDF hex strings are big-endian. Swap the UTF-16LE bytes.
+    const be = Buffer.alloc(utf16.length);
+    for (let i = 0; i + 1 < utf16.length; i += 2) {
+      be[i] = utf16[i + 1];
+      be[i + 1] = utf16[i];
+    }
+    const hex = be.toString("hex");
+    const facts = extractFileFacts(pdf(1, `BT <${hex}> Tj ET`));
+    assert.equal(facts.opens, true);
+    assert.equal(facts.textChecked, true);
+    assert.ok(facts.contact.includes("phone") || facts.contact.includes("phrase"));
   });
 
   test("unrecognised bytes do not open and are not text-checked", () => {

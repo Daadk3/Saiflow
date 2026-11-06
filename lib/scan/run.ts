@@ -27,6 +27,7 @@ import type { FileContentFacts } from "@/lib/review-checklist";
 import { refreshReviewChecks } from "@/lib/review-checks-store";
 import { cloudmersiveProvider } from "./cloudmersive";
 import {
+  providerRestrictToExtensions,
   resolveContentPolicy,
   structuralVerdict,
   verdictFromFindings,
@@ -405,7 +406,10 @@ export async function scanFileAsset(
     result = await provider.scan({
       bytes,
       fileName: asset.name,
-      restrictToExtensions: policy.restrictToExtensions,
+      // Ordinary ZIP: container `.zip` plus accepted members (.md, .pdf, …).
+      // The container check still uses policy.restrictToExtensions, which
+      // stays [".zip"]. A restricted-format flag is still a rejection.
+      restrictToExtensions: providerRestrictToExtensions(policy),
       allowHtml: policy.allowHtml,
       allowScripts: policy.allowScripts === true,
     });

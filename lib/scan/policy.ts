@@ -84,6 +84,52 @@ export interface ContentPolicy {
   allowScripts?: boolean;
 }
 
+/**
+ * Members an ordinary ZIP may contain.
+ *
+ * The provider whitelist is the container extension. Cloudmersive applies
+ * that list to archive members as well, so sending only `.zip` makes a
+ * Markdown or PDF member look like a format mismatch (`ContainsRestrictedFileFormat`)
+ * even though our structural policy already allowed it. These extensions are
+ * added to the provider request for an ordinary ZIP and nowhere else.
+ *
+ * They are not a pass. The container must still verify as `.zip`
+ * (`restrictToExtensions` stays `[".zip"]`). Malware, scripts, executables,
+ * active PDF content, HTML, and every structural archive rejection are
+ * unchanged. A member outside this list still sets the restricted-format
+ * flag, and that flag is still a rejection.
+ *
+ * Images here are the same raster types a product file may be on its own.
+ * Scripts (`.py`, `.js`, `.sh`, …) and executables are absent on purpose.
+ */
+export const ORDINARY_ZIP_MEMBER_EXTENSIONS = [
+  ".pdf",
+  ".md",
+  ".txt",
+  ".csv",
+  ".jpg",
+  ".jpeg",
+  ".png",
+  ".gif",
+  ".webp",
+  ".avif",
+  ".heic",
+  ".heif",
+] as const;
+
+/**
+ * What `restrictFileTypes` sends for this policy.
+ *
+ * For an ordinary ZIP, the container plus the member types above. Every
+ * other policy sends its own container list unchanged, so a PDF is still
+ * only `.pdf` and a local HTML app is still only `.zip` (its members are
+ * a separate, already-reviewed waiver).
+ */
+export function providerRestrictToExtensions(policy: ContentPolicy): string[] {
+  if (policy.kind !== "zip") return policy.restrictToExtensions;
+  return [".zip", ...ORDINARY_ZIP_MEMBER_EXTENSIONS];
+}
+
 const IMAGE_EXTENSIONS: Record<string, string[]> = {
   jpeg: [".jpg", ".jpeg"],
   png: [".png"],

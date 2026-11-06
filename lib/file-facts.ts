@@ -14,6 +14,7 @@
  */
 import { inflateRawSync, inflateSync } from "node:zlib";
 import {
+  findAmbiguousPlatform,
   findBannedTypes,
   findContactInfo,
   type FileContentFacts,
@@ -60,6 +61,7 @@ function withText(kind: string, opens: boolean, pageCount: number | null, text: 
     textChecked: meaningful,
     contact: meaningful ? findContactInfo(text) : [],
     banned: meaningful ? findBannedTypes(withReversedArabic(text)) : [],
+    ambiguousPlatform: findAmbiguousPlatform(text),
   };
 }
 
@@ -102,28 +104,49 @@ function inflate(data: Uint8Array, budget: Budget): Uint8Array | null {
   return null;
 }
 
-/** Every stream's body, decompressed when it is Flate and readable. */
+/**
+ * Every stream's body, decompressed when it is Flate and readable.
+ *
+ * A stream in a real PDF follows its dictionary (`>>` then `stream`).
+ * Searching the whole file for the word `stream` also matches compressed
+ * bytes. The Arabic prompt pack does that: the first hit is inside a font
+ * stream, inflation fails, and the object stream that holds the pages is
+ * never read — so a file that opens in a viewer is reported as not opening.
+ * Only a dictionary stream is accepted here. When the dictionary gives
+ * `/Length`, that many bytes are the body, so a `stream` inside them cannot
+ * start another one.
+ */
 function pdfStreams(raw: string, bytes: Uint8Array, budget: Budget): string[] {
   const out: string[] = [];
-  const re = /stream\r?\n/g;
+  const re = />>\s*stream\r?\n/g;
   let match: RegExpExecArray | null;
   let count = 0;
   while ((match = re.exec(raw)) && count < MAX_STREAMS) {
-    const start = match.index + match[0].length;
-    const end = raw.indexOf("endstream", start);
-    if (end < 0) break;
+    const dataStart = match.index + match[0].length;
+    const dictStart = raw.lastIndexOf("<<", match.index);
+    const header = dictStart >= 0 ? raw.slice(dictStart, match.index + 2) : "";
+    const lengthMatch = /\/Length\s+(\d+)/.exec(header);
+    let end: number;
+    if (lengthMatch) {
+      const length = Number(lengthMatch[1]);
+      if (!Number.isFinite(length) || length < 0 || dataStart + length > bytes.byteLength) break;
+      end = dataStart + length;
+    } else {
+      const marker = raw.indexOf("endstream", dataStart);
+      if (marker < 0) break;
+      end = marker;
+      if (end > dataStart && raw.charCodeAt(end - 1) === 0x0a) end--;
+      if (end > dataStart && raw.charCodeAt(end - 1) === 0x0d) end--;
+    }
     count++;
-    const dict = raw.slice(Math.max(0, match.index - 400), match.index);
-    const dictStart = dict.lastIndexOf("<<");
-    const header = dictStart >= 0 ? dict.slice(dictStart) : dict;
-    const body = bytes.subarray(start, end);
-    if (/\/Filter\s*\[?\s*\/FlateDecode/.test(header)) {
+    const body = bytes.subarray(dataStart, end);
+    if (/\/FlateDecode\b/.test(header)) {
       const inflated = inflate(body, budget);
       if (inflated) out.push(latin1(inflated));
-    } else if (!/\/Filter/.test(header)) {
-      out.push(raw.slice(start, end));
+    } else if (!/\/Filter\b/.test(header)) {
+      out.push(raw.slice(dataStart, end));
     }
-    re.lastIndex = end;
+    re.lastIndex = Math.max(re.lastIndex, end);
   }
   return out;
 }
@@ -227,8 +250,13 @@ function pdfFacts(bytes: Uint8Array): FileContentFacts {
   const pages = countPages([raw, ...streams]);
   const eof = raw.lastIndexOf("%%EOF");
   const hasEnd = eof >= 0 && eof > raw.length - 2048;
-  const opens = hasEnd && pages > 0;
-  return withText("pdf", opens, pages > 0 ? pages : null, pdfText(raw, streams));
+  // No %%EOF is a truncated file: it does not open. An EOF with no pages we
+  // could count is unknown, not proof the file is corrupt — the pages may
+  // sit in a structure this reader does not understand, and a viewer may
+  // still open it. Missing text is recorded separately (textChecked).
+  const pdfRead = !hasEnd ? "truncated" : pages > 0 ? "ok" : "unknown";
+  const facts = withText("pdf", pdfRead === "ok", pages > 0 ? pages : null, pdfText(raw, streams));
+  return { ...facts, pdfRead };
 }
 
 /* ------------------------------------------------------------------ */

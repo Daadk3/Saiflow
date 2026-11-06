@@ -133,8 +133,19 @@ const EMAIL = /[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}
 const URL_PATTERN =
   /\bhttps?:\/\/|\bwww\.[a-z0-9-]+|\b[a-z0-9-]+\.(?:com|net|org|sa|io|me|ly|co|app|link|store|shop|info|biz|xyz)\b|\bwa\.me\b|\bt\.me\b|\bbit\.ly\b/i;
 const HANDLE = /(?:^|[^A-Za-z0-9_@.])@[A-Za-z0-9_.]{3,30}/;
-const SOCIAL =
+const PLATFORM =
   /whats\s*app|snap\s*chat|insta\s*gram|\binsta\b|tele\s*gram|\btiktok\b|واتس|وتساب|سناب|انستا|انستقرام|انستغرام|انستجرام|تيليجرام|تيلجرام|تليجرام|تلغرام|تلجرام/i;
+/**
+ * A platform name becomes an established contact only next to an invitation
+ * or an identity ("Snapchat: me", "على الواتساب", "DM me on Instagram").
+ * The name alone is not one: a guide that says "Instagram caption" is teaching
+ * the format, not sending the buyer off-platform.
+ */
+const PLATFORM_INVITE =
+  /تابعني|تابعوني|تابعونا|راسل|تواصل|اضفني|أضفني|كلمني|اتصل\s*بي|dm\s+me|message\s+me|text\s+me|follow\s+me|add\s+me|contact\s+me|على\s+(?:ال)?(?:واتس|وتس|سناب|انست|تلي|تلغ)|(?:snapchat|instagram|whats\s*app|telegram|tiktok)\s*[:：]/i;
+/** The name is the subject of the product (a caption, a template), not a channel. */
+const PLATFORM_INSTRUCTION =
+  /caption|كابشن|قالب|منشور|ستوري|stor(?:y|ies)|status|ريلز|\breels?\b|دليل|مثال|\bposts?\b|prompt|برومبت/i;
 const CONTACT_PHRASES = /تواصل\s*معنا|تواصل\s*معي|عبر\s*الخاص|على\s*الخاص|بالخاص|راسلنا|راسلني/;
 /** A run of digits and separators; counted as a phone when it holds 9–15 digits. */
 const DIGIT_RUN = /\+?\d[\d\s\-().]{6,}\d/g;
@@ -147,7 +158,7 @@ export function findContactInfo(raw: string): ContactFlag[] {
   const rest = text.replace(EMAIL, " ");
   if (URL_PATTERN.test(rest)) found.add("url");
   if (HANDLE.test(rest)) found.add("handle");
-  if (SOCIAL.test(rest)) found.add("social");
+  if (PLATFORM.test(rest) && PLATFORM_INVITE.test(rest)) found.add("social");
   if (CONTACT_PHRASES.test(rest)) found.add("phrase");
   for (const match of rest.match(DIGIT_RUN) ?? []) {
     const digits = match.replace(/\D/g, "").length;
@@ -158,6 +169,26 @@ export function findContactInfo(raw: string): ContactFlag[] {
   }
   return order(found, CONTACT_FLAGS);
 }
+
+/**
+ * A platform name with nothing that makes it a contact channel.
+ *
+ * "Instagram caption" and "قالب كابشن انستقرام" are the product's subject.
+ * "تيليجرام" alone is ambiguous: a person should look, and it is not recorded
+ * as an established contact or ad violation. An invitation, handle, link, or
+ * phone is left to `findContactInfo`.
+ */
+export function findAmbiguousPlatform(raw: string): boolean {
+  const text = normaliseForChecks(raw);
+  if (!PLATFORM.test(text)) return false;
+  if (PLATFORM_INSTRUCTION.test(text)) return false;
+  if (PLATFORM_INVITE.test(text)) return false;
+  if (findContactInfo(raw).length > 0) return false;
+  return true;
+}
+
+const AMBIGUOUS_PLATFORM_REASON =
+  "ذُكر اسم منصة بدون رابط أو حساب أو دعوة للتواصل — مراجعة يدوية، ليست مخالفة مؤكدة";
 
 const BANNED_PATTERNS: Record<BannedTypeFlag, RegExp> = {
   homework: /حل\s*(?:ال)?واجب/,
@@ -199,6 +230,17 @@ export interface FileContentFacts {
   textChecked: boolean;
   contact: ContactFlag[];
   banned: BannedTypeFlag[];
+  /**
+   * PDFs only. `truncated` has no %%EOF. `unknown` has an EOF but no pages
+   * this reader could count — not proof the file is corrupt. `ok` means
+   * pages were counted. Older rows omit it.
+   */
+  pdfRead?: "ok" | "truncated" | "unknown";
+  /**
+   * A platform name (WhatsApp, Instagram, …) with no handle, link, phone, or
+   * invitation to contact. Not an established violation. Older rows omit it.
+   */
+  ambiguousPlatform?: boolean;
 }
 
 export type Source = "title" | "description" | "file";
@@ -260,6 +302,14 @@ function pointThree(input: ReviewCheckInput): StoredCheck {
   }
   const facts = input.facts;
   if (!facts) return { state: "warn", reason: `اجتاز فحص الأمان · لم يُتحقق من فتح الملف بعد` };
+  // A PDF that does not end is truncated. One we could not read is unknown:
+  // failing to count pages or extract text is not proof the file is corrupt.
+  if (facts.kind === "pdf" && facts.pdfRead === "truncated") {
+    return { state: "warn", reason: "اجتاز فحص الأمان · لكن الملف لا يفتح بشكل سليم" };
+  }
+  if (facts.kind === "pdf" && facts.pdfRead === "unknown") {
+    return { state: "warn", reason: "اجتاز فحص الأمان · تعذر التحقق من فتح الملف — غير معروف، مراجعة يدوية" };
+  }
   if (!facts.opens) return { state: "warn", reason: "اجتاز فحص الأمان · لكن الملف لا يفتح بشكل سليم" };
   if (facts.kind === "pdf") {
     if (!facts.pageCount) return { state: "warn", reason: "اجتاز فحص الأمان · تعذر عدّ صفحات PDF" };
@@ -295,10 +345,32 @@ function textPoint<F extends string>(
 
   if (hits.length) return { state: "warn", reason: `وُجد: ${hits.join(" · ")}` };
   if (!fileChecked) {
-    const why = !input.facts ? "لم يُفحص نص الملف بعد" : "تعذر استخراج نص الملف";
+    // No extracted text is unknown, including a PDF whose glyphs a viewer
+    // draws from a font without a ToUnicode map. It is not a corrupt file.
+    const why = !input.facts ? "لم يُفحص نص الملف بعد" : "نص الملف غير معروف — مراجعة يدوية";
     return { state: "warn", reason: `لا شيء في العنوان والوصف · ${why}` };
   }
   return { state: "ok", reason: clean };
+}
+
+function pointSix(input: ReviewCheckInput): StoredCheck {
+  const established = textPoint(
+    input,
+    findContactInfo,
+    input.facts?.contact,
+    CONTACT_FLAGS,
+    "لا أرقام أو روابط أو حسابات في العنوان والوصف والملف"
+  );
+  // An established hit (a real handle, link, phone, or invitation) stands.
+  // A bare platform name does not: it is a manual-review note, not a violation.
+  if (established.reason.startsWith("وُجد")) return established;
+  const ambiguous =
+    findAmbiguousPlatform(input.name) ||
+    findAmbiguousPlatform(input.description ?? "") ||
+    input.facts?.ambiguousPlatform === true;
+  if (!ambiguous) return established;
+  if (established.state === "ok") return { state: "warn", reason: AMBIGUOUS_PLATFORM_REASON };
+  return { state: "warn", reason: `${AMBIGUOUS_PLATFORM_REASON} · ${established.reason}` };
 }
 
 export function computeReviewChecks(input: ReviewCheckInput): StoredReviewChecks {
@@ -308,7 +380,7 @@ export function computeReviewChecks(input: ReviewCheckInput): StoredReviewChecks
     fileKey: input.fileKey,
     points: {
       3: pointThree(input),
-      6: textPoint(input, findContactInfo, input.facts?.contact, CONTACT_FLAGS, "لا أرقام أو روابط أو حسابات في العنوان والوصف والملف"),
+      6: pointSix(input),
       7: textPoint(input, findBannedTypes, input.facts?.banned, BANNED_TYPE_FLAGS, "لا كلمات لنوع غير مسموح في العنوان والوصف والملف"),
     },
   };
