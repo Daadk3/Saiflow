@@ -12,6 +12,8 @@ import { getLocale, getTranslations } from "next-intl/server";
 import { formatPrice } from "@/lib/formatPrice";
 import { env } from "@/lib/env";
 import { checkoutPath } from "@/lib/checkout/embedded";
+import { ProductCoverImage } from "@/components/ProductCoverImage";
+import { PRODUCT_COVER } from "@/lib/product-cover";
 
 const BASE_URL = "https://www.saiflow.io";
 
@@ -177,27 +179,16 @@ export default async function ProductPage({
           {/* Left column */}
           <div>
             {/* Preview */}
-            <div className="rounded-2xl overflow-hidden shadow-lg bg-gray-800 flex items-center justify-center h-[360px] max-h-[480px]">
+            <div className="overflow-hidden rounded-2xl bg-gray-800 shadow-lg">
               {product.thumbnailUrl ? (
-                <Image
-                  src={product.thumbnailUrl}
-                  alt={product.name}
-                  width={1200}
-                  height={800}
-                  className="max-h-full w-auto object-contain"
-                  priority
-                />
+                <ProductCoverImage src={product.thumbnailUrl} alt={product.name} priority />
               ) : product.images && product.images.length > 0 ? (
-                <Image
-                  src={product.images[0]}
-                  alt={product.name}
-                  width={1200}
-                  height={800}
-                  className="max-h-full w-auto object-contain"
-                  priority
-                />
+                <ProductCoverImage src={product.images[0]} alt={product.name} priority />
               ) : (
-                <div className="flex flex-col items-center justify-center text-gray-500">
+                <div
+                  className="flex flex-col items-center justify-center text-gray-500"
+                  style={{ aspectRatio: `${PRODUCT_COVER.width} / ${PRODUCT_COVER.height}` }}
+                >
                   <svg className="w-16 h-16 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path
                       strokeLinecap="round"

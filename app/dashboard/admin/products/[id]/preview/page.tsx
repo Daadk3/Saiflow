@@ -5,7 +5,6 @@ import { ReviewChecklist } from "@/components/admin/ReviewChecklist";
 import { HostedAccessReview } from "@/components/admin/HostedAccessReview";
 import { getHostedAccessForAdmin } from "@/lib/hosted-access/admin";
 import Link from "next/link";
-import Image from "next/image";
 import { notFound, redirect } from "next/navigation";
 import { getServerSession } from "next-auth";
 import { getLocale, getTranslations } from "next-intl/server";
@@ -16,6 +15,8 @@ import { getDecisionHistory, latestRejection, type DecisionEntry } from "@/lib/m
 import type { ModeratorFileSafety } from "@/lib/moderator-file-status";
 import { isInspectionRefusalHint } from "@/lib/inspect-document";
 import type { ScanExplanationKey } from "@/lib/scan-explanation";
+import { ProductCoverImage } from "@/components/ProductCoverImage";
+import { PRODUCT_COVER } from "@/lib/product-cover";
 import { formatPrice } from "@/lib/formatPrice";
 import { formatDate } from "@/lib/formatDate";
 
@@ -126,18 +127,14 @@ export default async function AdminProductPreviewPage({
               {t("preview.listing")}
             </h2>
 
-            <div className="flex h-[280px] items-center justify-center overflow-hidden rounded-lg border border-gray-800 bg-[#1a1a1a]">
+            <div className="overflow-hidden rounded-lg border border-gray-800 bg-[#1a1a1a]">
               {image ? (
-                <Image
-                  src={image}
-                  alt=""
-                  aria-hidden="true"
-                  width={1200}
-                  height={800}
-                  className="max-h-full w-auto object-contain"
-                />
+                <ProductCoverImage src={image} alt="" />
               ) : (
-                <span className="text-sm text-gray-600">
+                <span
+                  className="flex items-center justify-center text-sm text-gray-600"
+                  style={{ aspectRatio: `${PRODUCT_COVER.width} / ${PRODUCT_COVER.height}` }}
+                >
                   {t("preview.noImage")}
                 </span>
               )}

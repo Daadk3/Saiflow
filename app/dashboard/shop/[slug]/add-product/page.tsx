@@ -7,6 +7,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useLocale, useTranslations } from "next-intl";
 import { ListingStandards } from "@/components/ListingStandards";
+import { ProductCoverImage } from "@/components/ProductCoverImage";
 import { UploadButton } from "@/lib/uploadthing";
 import { useUploadContent } from "@/components/upload/useUploadContent";
 import { PRODUCT_CATEGORIES, CATEGORY_LABEL_KEYS, type ProductCategory } from "@/lib/categories";
@@ -216,23 +217,22 @@ export default function AddProductPage() {
                 </p>
 
                 {thumbnailUrl ? (
-                  <div className="relative inline-block">
-                    <Image
-                      src={thumbnailUrl}
-                      // The seller's just-uploaded picture, loaded straight from storage:
-                      // the optimizer can fetch a brand-new upload before it is available
-                      // and show nothing, which looked like a failed upload.
-                      unoptimized
-                      alt={t("dashboard.product.thumbnailAlt")}
-                      width={200}
-                      height={200}
-                      className="rounded-xl border border-gray-800 object-contain"
-                    />
+                  <div className="relative">
+                    <div className="overflow-hidden rounded-xl border border-gray-800">
+                      <ProductCoverImage
+                        src={thumbnailUrl}
+                        // The seller's just-uploaded picture, loaded straight from storage:
+                        // the optimizer can fetch a brand-new upload before it is available
+                        // and show nothing, which looked like a failed upload.
+                        unoptimized
+                        alt={t("dashboard.product.thumbnailAlt")}
+                      />
+                    </div>
                     <button
                       type="button"
                       onClick={() => setThumbnailUrl("")}
                       aria-label={t("upload.removeImage")}
-                      className="absolute -top-2 -end-2 w-6 h-6 bg-red-500 hover:bg-red-400 rounded-full flex items-center justify-center transition-colors"
+                      className="absolute -top-2 -end-2 z-10 w-6 h-6 bg-red-500 hover:bg-red-400 rounded-full flex items-center justify-center transition-colors"
                     >
                       <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
