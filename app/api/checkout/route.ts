@@ -525,7 +525,7 @@ export async function POST(req: Request) {
           { status: 400 }
         );
       }
-      if (!extrasAreSafe(product.deliverables)) {
+      if (!Array.isArray(product.deliverables) || !extrasAreSafe(product.deliverables)) {
         return NextResponse.json(
           {
             error: "file_not_ready",

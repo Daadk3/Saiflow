@@ -91,7 +91,7 @@ before(async () => {
         product: {
           findUnique: async (args: { select?: Record<string, boolean> }) => {
             state.productSelect = args?.select ?? null;
-            return state.product;
+            return state.product ? { deliverables: [], ...state.product } : null;
           },
           fields: { fileKey: { _toFieldRef: "Product.fileKey" } },
         },

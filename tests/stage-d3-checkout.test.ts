@@ -67,7 +67,7 @@ before(async () => {
     namedExports: {
       prisma: {
         product: {
-          findUnique: async () => state.product,
+          findUnique: async () => (state.product ? { deliverables: [], ...state.product } : state.product),
           fields: { fileKey: { _toFieldRef: "Product.fileKey" } },
         },
         // The attempt row checkout records before asking Geidea. Its own

@@ -77,7 +77,7 @@ const fakePrisma = {
   product: {
     findUnique: async ({ where }: { where: { id: string } }) => {
       const product = db.products.get(where.id);
-      return product ? { ...product } : null;
+      return product ? { deliverables: [], ...product } : null;
     },
     fields: { fileKey: { _toFieldRef: "Product.fileKey" } },
   },

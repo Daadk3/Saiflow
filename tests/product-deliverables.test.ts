@@ -7,7 +7,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
-import { extrasAreSafe, escapeHtml, sameKeySet, MAX_PRODUCT_FILES } from "@/lib/product-deliverables";
+import { extrasAreSafe, extrasCommitWithReopen, escapeHtml, sameKeySet, MAX_PRODUCT_FILES } from "@/lib/product-deliverables";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const read = (p: string) => readFileSync(resolve(ROOT, p), "utf8");
@@ -28,6 +28,29 @@ describe("extra deliverables stay fail-closed", () => {
     assert.equal(extrasAreSafe([{ fileKey: null, fileScanStatus: "SAFE", fileScanKey: null }]), false);
   });
 
+  test("a changed extra set on an approved product reopens in the same commit", () => {
+    assert.equal(
+      extrasCommitWithReopen({ extrasChanged: true, moderationStatus: "APPROVED", shopActive: true }),
+      true
+    );
+    assert.equal(
+      extrasCommitWithReopen({ extrasChanged: true, moderationStatus: "REJECTED", shopActive: true }),
+      true
+    );
+    assert.equal(
+      extrasCommitWithReopen({ extrasChanged: true, moderationStatus: "PENDING", shopActive: true }),
+      false
+    );
+    assert.equal(
+      extrasCommitWithReopen({ extrasChanged: false, moderationStatus: "APPROVED", shopActive: true }),
+      false
+    );
+    assert.equal(
+      extrasCommitWithReopen({ extrasChanged: true, moderationStatus: "APPROVED", shopActive: false }),
+      false
+    );
+  });
+
   test("replacing the set is detected, and HTML in a file name cannot break the download page", () => {
     assert.equal(sameKeySet(["a", "b"], ["b", "a"]), true);
     assert.equal(sameKeySet(["a"], ["a", "b"]), false);
@@ -41,11 +64,13 @@ describe("extra deliverables stay fail-closed", () => {
     const moderation = read("app/api/admin/moderation/[productId]/route.ts");
     const scan = read("lib/scan/run.ts");
     assert.ok(download.includes("if (!isDeliverableSafe(product))"));
-    assert.ok(download.includes("extrasAreSafe(extras)"));
+    assert.ok(download.includes("!Array.isArray(product.deliverables) || !extrasAreSafe(product.deliverables)"));
+    assert.ok(read("app/api/products/[id]/route.ts").includes("commitExtraDeliverables"));
+    assert.ok(read("lib/product-deliverables.ts").includes("FOR UPDATE"));
     assert.ok(download.includes("deliverables:"));
     assert.ok(!download.includes("fileUrl: true"));
     assert.ok(checkout.includes("if (!isDeliverableSafe(product))"));
-    assert.ok(checkout.includes("if (!extrasAreSafe(product.deliverables))"));
+    assert.ok(checkout.includes("!Array.isArray(product.deliverables) || !extrasAreSafe(product.deliverables)"));
     assert.ok(checkout.includes("deliverables:"));
     assert.ok(moderation.includes('if (action === "APPROVED" && !hosted && !isDeliverableSafe(product))'));
     assert.ok(moderation.includes("extrasAreSafe(product.deliverables)"));

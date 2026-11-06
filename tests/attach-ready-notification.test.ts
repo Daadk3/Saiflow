@@ -68,6 +68,13 @@ function matches(row: Row, where: Row | undefined): boolean {
     }
     if (typeof cond === "object") {
       const c = cond as Row;
+      if (key === "deliverables") {
+        const rows = Array.isArray(row.deliverables) ? (row.deliverables as Row[]) : [];
+        if ("some" in c && !rows.some((child) => matches(child, c.some as Row))) return false;
+        if ("none" in c && rows.some((child) => matches(child, c.none as Row))) return false;
+        continue;
+      }
+      if ("notIn" in c && (c.notIn as unknown[]).includes(value)) return false;
       if ("equals" in c) {
         if (c.mode === "insensitive" && typeof value === "string" && typeof c.equals === "string") {
           if (value.toLowerCase() !== c.equals.toLowerCase()) return false;

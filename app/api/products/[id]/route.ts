@@ -23,7 +23,7 @@ import { withoutReviewChecks } from "@/lib/review-checklist";
 import { redactId } from "@/lib/redact-id";
 import { priceProblemMessage, validatePrice } from "@/lib/pricing";
 import {
-  replaceExtraDeliverables,
+  commitExtraDeliverables,
   resolveExtraDeliverables,
   sameKeySet,
 } from "@/lib/product-deliverables";
@@ -371,6 +371,18 @@ export async function PUT(
         (product.deliverables ?? []).map((row) => row.fileKey),
         extras.rows.map((row) => row.fileKey)
       );
+    // A suspended shop cannot return a decided product to review, so it
+    // cannot publish a new kit either. Refused before the product row changes.
+    if (
+      extrasChanged &&
+      !product.shop.isActive &&
+      (product.moderationStatus === "APPROVED" || product.moderationStatus === "REJECTED")
+    ) {
+      return NextResponse.json(
+        { error: "This shop cannot change its files right now." },
+        { status: 409 }
+      );
+    }
 
     const updatedProduct = await prisma.product.update({
       where: { id },
@@ -403,6 +415,7 @@ export async function PUT(
      * here can approve or publish anything.
      */
     let resubmitted = false;
+    let extrasWritten = !extrasChanged;
     // An APPROVED product whose file is replaced goes back to review too: an
     // approval was a decision about the file that was looked at, and a
     // seller must not be able to swap in a different one after it. (The new
@@ -413,9 +426,35 @@ export async function PUT(
       (product.moderationStatus === "APPROVED" && extrasChanged)
         ? product.moderationStatus
         : null;
+    // A changed extra set is stored under a lock, and a decided product
+    // returns to review in that same transaction. Identical lists are left
+    // alone so a title edit does not rotate download ids or reopen review.
+    if (extrasChanged && !extras.skipped) {
+      try {
+        const committed = await commitExtraDeliverables({
+          productId: id,
+          rows: extras.rows,
+          actor: `seller:${user.id}`,
+          shopActive: product.shop.isActive,
+        });
+        if (!committed.written) {
+          return NextResponse.json(
+            { error: "This shop cannot change its files right now." },
+            { status: 409 }
+          );
+        }
+        extrasWritten = true;
+        if (committed.resubmitted) resubmitted = true;
+      } catch (error) {
+        console.error("[moderation] extra replace failed", (error as Error)?.name);
+        return NextResponse.json({ error: "Could not save the extra files." }, { status: 500 });
+      }
+    }
     // A suspended shop (isActive false, the runbook's suspension) cannot reopen
     // anything: its rejections stand until an admin restores the shop.
-    if (reopenFrom && product.shop.isActive) {
+    // Skipped when the extra-file transaction already returned the product
+    // to review, so the log does not gain a second RESUBMITTED row.
+    if (!resubmitted && reopenFrom && product.shop.isActive) {
       try {
         resubmitted = await prisma.$transaction(async (tx) => {
           const reopened = await tx.product.updateMany({
@@ -462,8 +501,7 @@ export async function PUT(
       // The file changed: scan the new bytes now rather than at the next sweep.
       scheduleScan(nextFileKey);
     }
-    if (!extras.skipped) {
-      await replaceExtraDeliverables(updatedProduct.id, extras.rows);
+    if (extrasWritten && !extras.skipped) {
       for (const row of extras.rows) {
         if (row.fileScanStatus === "PENDING_SCAN") scheduleScan(row.fileKey);
         try {

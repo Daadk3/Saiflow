@@ -259,10 +259,9 @@ export async function GET(
       );
     }
 
-    const extras = Array.isArray(product.deliverables) ? product.deliverables : [];
-    // One unsafe or unscanned extra refuses the whole kit. A product with no
-    // extra rows is the single-file path below, unchanged.
-    if (!extrasAreSafe(extras)) {
+    // The relation is part of the select above. A missing list is not "no
+    // extras": that would deliver the primary file and hide the rest.
+    if (!Array.isArray(product.deliverables) || !extrasAreSafe(product.deliverables)) {
       return NextResponse.json(
         {
           error: "file_not_available",
@@ -273,8 +272,10 @@ export async function GET(
       );
     }
 
+    const extras = product.deliverables;
     const part = searchParams.get("part");
     if (extras.length > 0) {
+      const basePath = `/api/download/${encodeURIComponent(productId)}`;
       const credential =
         channel === "geidea"
           ? `ref=${encodeURIComponent(ref ?? "")}`
@@ -283,10 +284,10 @@ export async function GET(
             : channel === "receipt"
               ? `t=${encodeURIComponent(token ?? "")}`
               : `purchase=${encodeURIComponent(actualOrderId)}`;
+      const kitIndex = credential ? `${basePath}?${credential}` : basePath;
       const withPart = (id: string) => {
-        const base = `/api/download/${encodeURIComponent(productId)}`;
         const query = [credential, `part=${encodeURIComponent(id)}`].filter(Boolean).join("&");
-        return `${base}?${query}`;
+        return `${basePath}?${query}`;
       };
       const kit = [
         { id: "primary", name: product.name },
@@ -312,7 +313,7 @@ export async function GET(
       if (format === "json") {
         return NextResponse.json({
           productName: product.name,
-          downloadUrl: withPart("primary").replace(/&?part=[^&]+/, "").replace(/\?$/, ""),
+          downloadUrl: kitIndex,
           files: kit.map((file) => ({ name: file.name, downloadUrl: withPart(file.id) })),
         });
       }

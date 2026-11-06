@@ -120,7 +120,7 @@ const fakePrisma = {
   product: {
     findUnique: async () => {
       ops.push("product.findUnique");
-      return db.product;
+      return db.product ? { deliverables: [], ...db.product } : db.product;
     },
     fields: { fileKey: { _toFieldRef: "Product.fileKey" } },
   },
