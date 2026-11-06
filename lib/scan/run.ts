@@ -273,12 +273,21 @@ async function finalizeVerdict(params: {
     const pendingExtraIds = extraHolders
       .filter((product) => product.moderationStatus === "PENDING")
       .map((product) => product.id);
-    const extraReady =
-      status === "SAFE" && pendingExtraIds.length > 0
-        ? (
+    // Primary and extra alike: the founder is told only when this verdict
+    // is SAFE and the whole kit is safe. A safe primary with an unsafe
+    // extra is not ready.
+    const pendingPrimaryIds =
+      status === "SAFE"
+        ? affected.filter((product) => product.moderationStatus === "PENDING").map((product) => product.id)
+        : [];
+    const candidateIds = [...new Set([...pendingPrimaryIds, ...(status === "SAFE" ? pendingExtraIds : [])])];
+    const kitReady =
+      candidateIds.length === 0
+        ? []
+        : (
             await tx.product.findMany({
               where: {
-                id: { in: pendingExtraIds },
+                id: { in: candidateIds },
                 moderationStatus: "PENDING",
                 ...SAFE_DELIVERABLE_WHERE,
                 ...noUnsafeExtrasWhere(),
@@ -287,8 +296,7 @@ async function finalizeVerdict(params: {
             })
           )
             .map((product) => product.id)
-            .filter((id) => pendingExtraIds.includes(id))
-        : [];
+            .filter((id) => candidateIds.includes(id));
 
     const scanned = [...affected, ...extraHolders];
     if (scanned.length > 0) {
@@ -309,14 +317,10 @@ async function finalizeVerdict(params: {
       });
     }
 
-    const primaryReady =
-      status === "SAFE"
-        ? affected.filter((product) => product.moderationStatus === "PENDING").map((product) => product.id)
-        : [];
     return {
       written: true,
       productIds: scanned.map((product) => product.id),
-      readyForReview: [...primaryReady, ...extraReady],
+      readyForReview: kitReady,
     };
   });
 }

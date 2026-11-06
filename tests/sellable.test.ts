@@ -52,7 +52,14 @@ function* everyProduct() {
     for (const moderationStatus of ["APPROVED", "PENDING", "REJECTED"] as const) {
       for (const shopActive of [true, false]) {
         for (const file of FILE_STATES) {
-          yield { isActive, moderationStatus, shop: { isActive: shopActive }, ...file } as Parameters<Mod["isSellable"]>[0];
+          yield {
+            isActive,
+            moderationStatus,
+            shop: { isActive: shopActive },
+            ...file,
+            // Explicit empty list: the relation was loaded and there are no extras.
+            deliverables: [],
+          } as Parameters<Mod["isSellable"]>[0];
         }
       }
     }
@@ -84,7 +91,7 @@ describe("isSellable and unsellableReason", () => {
   });
 
   test("the reason names the first failing condition, then the file's own reason", () => {
-    const ok = { isActive: true, moderationStatus: "APPROVED" as const, shop: { isActive: true }, fileKey: "k", fileScanStatus: "SAFE" as const, fileScanKey: "k" };
+    const ok = { isActive: true, moderationStatus: "APPROVED" as const, shop: { isActive: true }, fileKey: "k", fileScanStatus: "SAFE" as const, fileScanKey: "k", deliverables: [] as [] };
     assert.equal(sellable.unsellableReason(ok), "sellable");
     assert.equal(sellable.unsellableReason({ ...ok, isActive: false, moderationStatus: "REJECTED" }), "inactive");
     assert.equal(sellable.unsellableReason({ ...ok, moderationStatus: "PENDING", shop: { isActive: false } }), "not_approved");
@@ -93,6 +100,15 @@ describe("isSellable and unsellableReason", () => {
     assert.equal(sellable.unsellableReason({ ...ok, fileScanStatus: "UNSAFE" }), "unsafe");
     assert.equal(sellable.unsellableReason({ ...ok, fileScanStatus: "PENDING_SCAN", fileScanKey: null }), "pending_scan");
     assert.equal(sellable.unsellableReason({ ...ok, fileScanKey: "old" }), "scan_key_mismatch");
+    const { deliverables: _loaded, ...omitted } = ok;
+    assert.equal(sellable.isSellable(omitted), false);
+    assert.equal(
+      sellable.isSellable({
+        ...ok,
+        deliverables: [{ fileKey: "e", fileScanStatus: "UNSAFE", fileScanKey: "e" }],
+      }),
+      false
+    );
   });
 });
 
@@ -109,7 +125,7 @@ describe("the where-clauses", () => {
         {
           OR: [
             { deliveryType: "FILE", ...safety.SAFE_DELIVERABLE_WHERE },
-            { deliveryType: "HOSTED_ACCESS", hostedAccess: { isNot: null } },
+            { deliveryType: "HOSTED_ACCESS", hostedAccess: { isNot: null }, deliverables: { none: {} } },
           ],
         },
         sellable.noUnsafeExtrasWhere(),

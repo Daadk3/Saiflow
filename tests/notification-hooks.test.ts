@@ -50,8 +50,11 @@ const state = {
   extraUpdateCount: 0,
   /** Products whose only attachment of this key is an extra file. */
   extraHolders: [] as Array<{ id: string; moderationStatus: string }>,
-  /** Subset of those holders whose whole kit is safe. */
-  extraReady: [] as Array<{ id: string }>,
+  /**
+   * Products the kit query returns. Null means the ids the query asked
+   * about are fully safe. An empty array means the kit is not safe.
+   */
+  kitReadyIds: null as Array<{ id: string }> | null,
   /** Loaded when reconciliation asks for the kit, not only the status. */
   kit: null as Record<string, unknown> | null,
   moderation: "PENDING",
@@ -94,13 +97,24 @@ const tx = {
       state.updates.push(data);
       return { id: "prod_1", moderationStatus: data.moderationStatus };
     },
-    findMany: async (args?: { where?: { deliverables?: unknown; fileScanStatus?: unknown } }) => {
-      if (args?.where?.fileScanStatus) return state.extraReady;
+    findMany: async (args?: { where?: { deliverables?: unknown; fileScanStatus?: unknown; id?: { in?: string[] } } }) => {
+      if (args?.where?.fileScanStatus) {
+        if (state.kitReadyIds !== null) return state.kitReadyIds;
+        return (args.where.id?.in ?? []).map((id) => ({ id }));
+      }
       if (args?.where?.deliverables) return state.extraHolders;
       return state.affected;
     },
     findUnique: async (args?: { select?: { deliverables?: unknown } }) =>
-      args?.select?.deliverables ? state.kit : { moderationStatus: state.moderation },
+      args?.select?.deliverables
+        ? (state.kit ?? {
+            moderationStatus: state.moderation,
+            fileKey: "key_1",
+            fileScanStatus: "SAFE",
+            fileScanKey: "key_1",
+            deliverables: [],
+          })
+        : { moderationStatus: state.moderation },
     updateMany: async ({ data }: { data: Record<string, unknown> }) => {
       state.updates.push(data);
       return { count: state.productUpdateCount };
@@ -270,7 +284,7 @@ beforeEach(() => {
   state.productUpdateCount = 1;
   state.extraUpdateCount = 0;
   state.extraHolders = [];
-  state.extraReady = [];
+  state.kitReadyIds = null;
   state.kit = null;
   state.moderation = "PENDING";
   process.env.ADMIN_EMAILS = account;
@@ -474,13 +488,18 @@ describe("a file passes its check (worker path)", () => {
   test("an extra file that completes a pending kit is announced, and one that does not is not", async () => {
     state.affected = [];
     state.extraHolders = [{ id: "prod_9", moderationStatus: "PENDING" }];
-    state.extraReady = [{ id: "prod_9" }];
     assert.equal((await scanFileAsset("key_extra", { provider: provider({}) })).outcome, "SAFE");
     assert.deepEqual(calls.readyForReview, [["prod_9"]]);
     state.asset!.scanStatus = "PENDING_SCAN";
     calls.readyForReview.length = 0;
-    state.extraReady = [];
+    state.kitReadyIds = [];
     assert.equal((await scanFileAsset("key_extra", { provider: provider({}) })).outcome, "SAFE");
+    assert.deepEqual(calls.readyForReview, []);
+  });
+
+  test("a safe primary is not announced while an extra is still unsafe", async () => {
+    state.kitReadyIds = [];
+    assert.equal((await scanFileAsset("key_1", { provider: provider({}) })).outcome, "SAFE");
     assert.deepEqual(calls.readyForReview, []);
   });
 });
@@ -566,6 +585,7 @@ describe("a product attaches to a file with a verdict (reconciliation path)", ()
     state.productUpdateCount = 0;
     state.extraUpdateCount = 1;
     state.kit = {
+      moderationStatus: "PENDING",
       fileKey: "primary",
       fileScanStatus: "SAFE",
       fileScanKey: "primary",
@@ -576,6 +596,22 @@ describe("a product attaches to a file with a verdict (reconciliation path)", ()
     assert.equal(state.events[0].action, "SCANNED");
     await drain();
     assert.deepEqual(calls.readyForReview, [["prod_1"]]);
+  });
+
+  test("a primary file copied while an extra is unsafe is audited and not announced", async () => {
+    state.asset!.scanStatus = "SAFE";
+    state.kit = {
+      moderationStatus: "PENDING",
+      fileKey: "key_1",
+      fileScanStatus: "SAFE",
+      fileScanKey: "key_1",
+      deliverables: [{ fileKey: "extra", fileScanStatus: "PENDING_SCAN", fileScanKey: null }],
+    };
+    const result = await reconcileProductScanState("prod_1", "key_1");
+    assert.deepEqual(result, { reconciled: true, scanStatus: "SAFE", readyForReview: false });
+    assert.equal(state.events.length, 1);
+    await drain();
+    assert.equal(calls.readyForReview.length, 0);
   });
 
   test("an extra file copied while the primary is not safe is audited and not announced", async () => {
@@ -688,8 +724,8 @@ describe("the remaining call sites (structural)", () => {
     const call = fn.indexOf("await runAfterResponse(() => notifyAdminsProductReadyForReview([productId], fileKey));");
     assert.ok(txEnd > 0 && decision > txEnd && call > decision, "decided and sent after the transaction");
     assert.ok(fn.includes("if (updated.count !== 1 && !extraMoved) return null;"), "a stale reconciliation names nobody");
-    assert.ok(fn.includes('asset.scanStatus === "SAFE"'));
-    assert.ok(fn.includes('moderationStatus.moderationStatus === "PENDING"'));
+    assert.ok(fn.includes('asset.scanStatus === "SAFE" && moderationStatus.kitReady'));
+    assert.ok(fn.includes("product.deliverables.every((row) => isDeliverableSafe(row))"));
   });
 
   test("a product written already SAFE is announced from the route, after the write and before reconcile", () => {

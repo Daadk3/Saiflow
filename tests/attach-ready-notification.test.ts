@@ -76,7 +76,11 @@ function matches(row: Row, where: Row | undefined): boolean {
       }
       if ("notIn" in c && (c.notIn as unknown[]).includes(value)) return false;
       if ("equals" in c) {
-        if (c.mode === "insensitive" && typeof value === "string" && typeof c.equals === "string") {
+        const ref = c.equals as Row | string | null;
+        if (ref && typeof ref === "object" && "_toFieldRef" in ref) {
+          const column = String(ref._toFieldRef).split(".").pop() ?? "";
+          if (row[column] !== value) return false;
+        } else if (c.mode === "insensitive" && typeof value === "string" && typeof c.equals === "string") {
           if (value.toLowerCase() !== c.equals.toLowerCase()) return false;
         } else if (value !== c.equals) return false;
       }
@@ -206,6 +210,12 @@ const prisma = {
     create: async ({ data }: { data: Row }) => { db.events.push({ ...data }); return {}; },
     createMany: async ({ data }: { data: Row[] }) => { db.events.push(...data); return { count: data.length }; },
   },
+  productDeliverable: {
+    deleteMany: async () => ({ count: 0 }),
+    createMany: async () => ({ count: 0 }),
+    updateMany: async () => ({ count: 0 }),
+  },
+  $queryRaw: async () => [],
   $transaction: async (fn: (tx: unknown) => Promise<unknown>) => fn(prisma),
 };
 

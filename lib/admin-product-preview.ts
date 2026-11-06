@@ -169,6 +169,7 @@ export async function getAdminProductPreview(
       // the link itself is loaded separately (lib/hosted-access/admin).
       deliveryType: true,
       hostedAccess: { select: { productId: true } },
+      deliverables: { select: { fileKey: true, fileScanStatus: true, fileScanKey: true } },
       shop: {
         // No logo: the preview does not render one, and a column that is not
         // selected cannot be rendered by a later edit. isActive feeds the

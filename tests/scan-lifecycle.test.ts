@@ -91,12 +91,24 @@ let REPLACE: (req: Request, ctx: { params: Promise<{ id: string }> }) => Promise
 
 function mockTx() {
   return {
+    $queryRaw: async () => [],
     product: {
       create: async ({ data }: { data: Record<string, unknown> }) => {
         const row = { id: "prod_new", ...data };
         state.created.push(row);
         return row;
       },
+      findUnique: async () => ({
+        moderationStatus: (state.existing?.moderationStatus as string | undefined) ?? "PENDING",
+      }),
+      updateMany: async (args: unknown) => {
+        state.productResets.push(args);
+        return { count: 1 };
+      },
+    },
+    productDeliverable: {
+      deleteMany: async () => ({ count: 0 }),
+      createMany: async () => ({ count: 0 }),
     },
     moderationEvent: { create: async () => ({}) },
   };
