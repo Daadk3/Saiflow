@@ -26,6 +26,7 @@ export interface FileScanStateView {
 const FAILURE_KEYS: Record<string, string> = {
   unsafe_content: "failureUnsafeContent",
   unsupported_format: "failureUnsupportedFormat",
+  unsupported_member: "failureUnsupportedMember",
   password_protected: "failurePasswordProtected",
   archive_problem: "failureArchiveProblem",
   check_unavailable: "failureCheckUnavailable",

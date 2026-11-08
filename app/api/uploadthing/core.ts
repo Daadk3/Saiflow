@@ -7,10 +7,12 @@ import { authOptions } from "../auth/authOptions";
 import { prisma } from "@/lib/prisma";
 import {
   PRODUCT_FILE_CONFIG,
+  PRODUCT_FILE_CONFIG_WITH_ILLUSTRATOR,
   PRODUCT_THUMBNAIL_CONFIG,
   SHOP_LOGO_CONFIG,
   SHOP_COVER_CONFIG,
 } from "@/lib/upload-config";
+import { illustratorUploadsEnabled } from "@/lib/scan/illustrator";
 
 const f = createUploadthing();
 
@@ -113,7 +115,12 @@ export const ourFileRouter = {
   // The seller's deliverable. PRIVATE — see lib/upload-config.ts. Completing
   // an upload no longer produces a readable URL for anyone; reads require a
   // short-lived signed URL minted server-side.
-  productFile: f(PRODUCT_FILE_CONFIG)
+  //
+  // Limited Illustrator support: with the server switch on, the route also
+  // lists `application/postscript` so a `.ai` can be uploaded at all. The
+  // scanner still decides from the bytes (lib/scan/illustrator.ts). Read once
+  // at module load, like the rest of this router's configuration.
+  productFile: f(illustratorUploadsEnabled() ? PRODUCT_FILE_CONFIG_WITH_ILLUSTRATOR : PRODUCT_FILE_CONFIG)
     .input(shopScopedUpload)
     .middleware(requireShopMember)
     .onUploadComplete(recordProvenance("PRODUCT_FILE")),

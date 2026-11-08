@@ -23,6 +23,13 @@ export type SniffedFormat =
   | "heic"
   | "audio"
   | "video"
+  /**
+   * PostScript: an EPS, a `.ps`, or a legacy (non-PDF-compatible) Illustrator
+   * file. Recognised so the refusal can be named; never accepted. PostScript
+   * is a programming language executed by whatever opens the file, and
+   * nothing in this pipeline can vouch for a program.
+   */
+  | "postscript"
   | "unknown";
 
 const ascii = (bytes: Uint8Array, start: number, length: number): string => {
@@ -89,7 +96,32 @@ export function sniffFormat(bytes: Uint8Array): SniffedFormat {
   if (ascii(bytes, 0, 4) === "OggS") return "audio";
   if (startsWith(bytes, [0x1a, 0x45, 0xdf, 0xa3])) return "video"; // Matroska / WebM
 
+  // `%!PS` — a PostScript or EPS program, or a legacy Illustrator file.
+  if (startsWith(bytes, [0x25, 0x21, 0x50, 0x53])) return "postscript";
+  // DOS EPS binary header: a PostScript section plus a TIFF or WMF preview.
+  if (startsWith(bytes, [0xc5, 0xd0, 0xd3, 0xc6])) return "postscript";
+
   return "unknown";
+}
+
+/**
+ * Whether a PDF carries Illustrator's private editing data.
+ *
+ * Since Illustrator 9, "Create PDF Compatible File" (on by default) writes a
+ * real PDF whose editable artwork sits in `/AIPrivateData` streams, so a
+ * modern `.ai` and an Illustrator-exported PDF with "Preserve Illustrator
+ * Editing Capabilities" are the same kind of bytes. This is a LABEL for the
+ * reviewer and for tests. It is never a reason to allow anything: a PDF with
+ * these markers is a PDF and goes through the PDF policy unchanged, and a
+ * `.ai` without them is still just a PDF by its bytes.
+ *
+ * Byte-level token search, like findPdfActiveContent: the document is never
+ * parsed, rendered or executed.
+ */
+export function isIllustratorPdf(bytes: Uint8Array): boolean {
+  if (sniffFormat(bytes) !== "pdf") return false;
+  const text = new TextDecoder("latin1").decode(bytes);
+  return /\/AI(PrivateData|MetaData)/.test(text);
 }
 
 /**

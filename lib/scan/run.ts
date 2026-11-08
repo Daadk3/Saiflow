@@ -28,8 +28,10 @@ import { noUnsafeExtrasWhere } from "@/lib/product-deliverables";
 import type { FileContentFacts } from "@/lib/review-checklist";
 import { refreshReviewChecks } from "@/lib/review-checks-store";
 import { cloudmersiveProvider } from "./cloudmersive";
+import { illustratorUploadsEnabled, illustratorVerdict } from "./illustrator";
 import {
   providerRestrictToExtensions,
+  refusalReasonForBytes,
   resolveContentPolicy,
   structuralVerdict,
   verdictFromFindings,
@@ -438,8 +440,10 @@ export async function scanFileAsset(
   const policy = resolveContentPolicy(bytes);
   if (!policy) {
     // The bytes are not one of the families SaiFlow sells. This is the check
-    // that catches an executable uploaded as "application/pdf".
-    return settle("UNSAFE", "unrecognised_format", digest);
+    // that catches an executable uploaded as "application/pdf". PostScript
+    // (EPS, legacy Illustrator) is named as such so the seller is told what
+    // was refused; it is the same UNSAFE, not a weaker one.
+    return settle("UNSAFE", refusalReasonForBytes(bytes), digest);
   }
 
   const structural = structuralVerdict(bytes, policy);
@@ -454,6 +458,18 @@ export async function scanFileAsset(
   // let a provider ALLOW carry the file to SAFE — an unverifiable structural
   // pass silently upgraded to a passing one. Only an explicit ALLOW continues.
   if (structural.outcome !== "ALLOW") {
+    return settle("SCAN_ERROR", "unknown_verdict", digest);
+  }
+
+  // Limited Illustrator support (lib/scan/illustrator.ts). A `.ai`-named PDF
+  // is refused here while the server switch is off; with it on, the file
+  // continues to the same provider checks as any PDF. Same explicit-ALLOW
+  // discipline as the two verdicts around it.
+  const illustrator = illustratorVerdict(asset.name, policy, illustratorUploadsEnabled());
+  if (illustrator.outcome === "REJECT") {
+    return settle("UNSAFE", illustrator.reason, digest);
+  }
+  if (illustrator.outcome !== "ALLOW") {
     return settle("SCAN_ERROR", "unknown_verdict", digest);
   }
 
