@@ -166,7 +166,7 @@ export default function AddProductPage() {
                 className="h-12 w-auto object-contain"
                 priority
               />
-              <span className="text-xl font-bold text-white">Saiflow</span>
+              <span className="text-xl font-bold text-white">SaiFlow</span>
             </Link>
 
             <Link

@@ -100,7 +100,7 @@ export default function CreateShopPage() {
                 height={48}
                 className="h-12 w-auto object-contain"
               />
-              <span className="text-xl font-bold text-white">Saiflow</span>
+              <span className="text-xl font-bold text-white">SaiFlow</span>
             </Link>
 
             <Link
