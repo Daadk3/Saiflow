@@ -125,7 +125,8 @@ on in production is a separate approval.
 
 1. Does Cloudmersive return `VerifiedFileFormat: ".pdf"` for a PDF-compatible
    `.ai` submitted under a `.ai` filename with `restrictFileTypes=.pdf`? Answer
-   by the Preview run above, or by a support question (draft below, not sent).
+   by the Preview run above, or by Cloudmersive's reply to the support
+   question below (submitted, awaiting a reply).
 2. Does `restrictFileTypes` apply to archive members by design? The repository
    observed it does; the documentation does not say. Same support question.
 3. Which MIME string do Chrome, Safari and Firefox on macOS and Windows send for
@@ -136,7 +137,13 @@ on in production is a separate approval.
 5. Should the switch also allow `.ai` members inside a ZIP? No, and not later:
    members are never byte-sniffed, so that would be trusting a filename.
 
-Draft support question for Cloudmersive, for Daad's review before sending:
+Support question submitted to Cloudmersive by Daad through the official form at
+portal.cloudmersive.com/contact-support (Technical Question, Severity 3, Virus
+Scan API), confirmed on 9 November 2026. Cloudmersive publishes no support email
+address. No reply has been received yet; record it here when it arrives, and
+do not treat an answer as a substitute for the Preview run in section 4. The
+text as submitted also noted that this repository has observed the member flag
+itself:
 
 > We use the Advanced Virus Scan endpoint with `restrictFileTypes`. Two
 > questions about content verification. (1) For a modern Adobe Illustrator
