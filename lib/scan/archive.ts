@@ -1,3 +1,5 @@
+import { inflateRawSync } from "node:zlib";
+
 /**
  * Minimal ZIP central-directory reader.
  *
@@ -302,4 +304,55 @@ export function readStoredEntryBytes(
   if (end > bytes.byteLength) return null;
 
   return bytes.subarray(start, end);
+}
+
+export type EntryPayload =
+  | { ok: true; bytes: Uint8Array }
+  | { ok: false; reason: "malformed" | "unsupported" | "too_large" };
+
+/**
+ * Bytes of one entry, stored or deflated.
+ *
+ * `maxBytes` is the most that may be inflated. A declared size above it is
+ * refused before inflate, and zlib is given the same ceiling so a lying
+ * size cannot expand without bound. Methods other than store and deflate
+ * are refused: a workbook does not need them, and we do not implement them.
+ */
+/** Compressed or stored payload after the local header. Does not inflate. */
+function readLocalPayload(file: Uint8Array, entry: ArchiveEntry, maxLen: number): Uint8Array | null {
+  if (entry.encrypted || entry.compressedSize > maxLen) return null;
+  const view = new DataView(file.buffer, file.byteOffset, file.byteLength);
+  const base = entry.localHeaderOffset;
+  if (base + LOCAL_HEADER_MIN > file.byteLength) return null;
+  const nameLen = view.getUint16(base + 26, true);
+  const extraLen = view.getUint16(base + 28, true);
+  const start = base + LOCAL_HEADER_MIN + nameLen + extraLen;
+  const end = start + entry.compressedSize;
+  if (end > file.byteLength) return null;
+  return file.subarray(start, end);
+}
+
+export function readEntryPayload(
+  file: Uint8Array,
+  entry: ArchiveEntry,
+  maxBytes: number
+): EntryPayload {
+  if (entry.encrypted) return { ok: false, reason: "unsupported" };
+  if (entry.uncompressedSize > maxBytes || entry.compressedSize > maxBytes) {
+    return { ok: false, reason: "too_large" };
+  }
+  const raw = readLocalPayload(file, entry, maxBytes);
+  if (!raw) return { ok: false, reason: "malformed" };
+  if (entry.method === 0) {
+    if (raw.byteLength !== entry.uncompressedSize) return { ok: false, reason: "malformed" };
+    return { ok: true, bytes: raw };
+  }
+  if (entry.method !== 8) return { ok: false, reason: "unsupported" };
+  try {
+    const inflated = inflateRawSync(raw, { maxOutputLength: entry.uncompressedSize });
+    if (inflated.byteLength !== entry.uncompressedSize) return { ok: false, reason: "malformed" };
+    return { ok: true, bytes: inflated };
+  } catch {
+    return { ok: false, reason: "malformed" };
+  }
 }

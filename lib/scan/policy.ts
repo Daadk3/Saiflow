@@ -40,12 +40,14 @@ import {
 } from "./local-html-app";
 import type { ScanFindings } from "./provider";
 import { findPdfActiveContent, sniffFormat, type SniffedFormat } from "./sniff";
+import { inspectWorkbook, isSpreadsheetPackage, spreadsheetMemberReason } from "./xlsx";
 
 /** A deliverable family, after ZIP containers are told apart. */
 export type ContentKind =
   | "pdf"
   | "epub"
   | "zip"
+  | "xlsx"
   | "local_html_app"
   | "image"
   | "audio"
@@ -115,6 +117,27 @@ export const ORDINARY_ZIP_MEMBER_EXTENSIONS = [
   ".avif",
   ".heic",
   ".heif",
+  ".xlsx",
+] as const;
+
+/**
+ * Parts an .xlsx may contain when the provider whitelists archive members.
+ * Sent only for a package that already passed `inspectWorkbook`. `.bin` is
+ * here for Excel's printer-settings part; VBA and OLE bins are rejected
+ * before the provider is asked.
+ */
+export const XLSX_MEMBER_EXTENSIONS = [
+  ".xlsx",
+  ".zip",
+  ".xml",
+  ".rels",
+  ".bin",
+  ".png",
+  ".jpeg",
+  ".jpg",
+  ".gif",
+  ".emf",
+  ".wmf",
 ] as const;
 
 /**
@@ -126,6 +149,7 @@ export const ORDINARY_ZIP_MEMBER_EXTENSIONS = [
  * a separate, already-reviewed waiver).
  */
 export function providerRestrictToExtensions(policy: ContentPolicy): string[] {
+  if (policy.kind === "xlsx") return [...XLSX_MEMBER_EXTENSIONS];
   if (policy.kind !== "zip") return policy.restrictToExtensions;
   return [".zip", ...ORDINARY_ZIP_MEMBER_EXTENSIONS];
 }
@@ -200,6 +224,9 @@ export function resolveContentPolicy(bytes: Uint8Array): ContentPolicy | null {
         allowScripts: true,
       };
     }
+    if (dir.ok && isSpreadsheetPackage(dir.entries)) {
+      return { kind: "xlsx", restrictToExtensions: [".xlsx"], allowHtml: false };
+    }
     return { kind: "zip", restrictToExtensions: [".zip"], allowHtml: false };
   }
   if (format === "audio") {
@@ -236,6 +263,12 @@ export function structuralVerdict(
   if (policy.kind === "pdf") {
     const found = findPdfActiveContent(bytes);
     if (found.length > 0) return { outcome: "REJECT", reason: found[0] };
+    return { outcome: "ALLOW" };
+  }
+
+  if (policy.kind === "xlsx") {
+    const workbook = inspectWorkbook(bytes);
+    if (!workbook.ok) return { outcome: "REJECT", reason: workbook.reason };
     return { outcome: "ALLOW" };
   }
 
@@ -285,6 +318,12 @@ export function structuralVerdict(
       }
       const active = inspectLocalHtmlApp(bytes, dir.entries);
       if (active) return { outcome: "REJECT", reason: active };
+    }
+    if (policy.kind === "zip") {
+      for (const entry of dir.entries) {
+        const member = spreadsheetMemberReason(bytes, entry);
+        if (member) return { outcome: "REJECT", reason: member };
+      }
     }
     return { outcome: "ALLOW" };
   }
@@ -455,7 +494,7 @@ function localHtmlCleanIsExplained(findings: ScanFindings, policy: ContentPolicy
  * unrecognised, and unrecognised is a rejection rather than a shrug.
  */
 const RECOGNISED_FORMATS = new Set([
-  ".pdf", ".epub", ".zip",
+  ".pdf", ".epub", ".zip", ".xlsx",
   ".jpg", ".jpeg", ".png", ".webp", ".gif", ".avif", ".heic", ".heif",
   ".mp3", ".wav", ".m4a", ".flac", ".ogg",
   ".mp4", ".mov", ".webm", ".mkv", ".avi",
@@ -478,6 +517,8 @@ const FORMAT_ALIASES: Record<string, string[]> = {
   ".heic": [".heic", ".heif"],
   ".heif": [".heic", ".heif"],
   ".epub": [".epub", ".zip"],
+  // An .xlsx is a ZIP. A verifier may report the container.
+  ".xlsx": [".xlsx", ".zip"],
 };
 
 /** Lowercase, with a leading dot. */

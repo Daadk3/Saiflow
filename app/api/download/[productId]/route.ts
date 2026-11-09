@@ -10,6 +10,7 @@ import { escapeHtml, extrasAreSafe } from "@/lib/product-deliverables";
 import { isMerchantReference } from "@/lib/payments/payment-status";
 import { redactId } from "@/lib/redact-id";
 import { createDeliveryUrl, MAX_DELIVERY_TTL_SECONDS } from "@/lib/storage/provider";
+import { XLSX_DOWNLOAD_TYPE, xlsxContentDisposition, xlsxDownloadName } from "@/lib/xlsx-download";
 
 /**
  * Buyer delivery — the last gate, and the only one where bytes actually move.
@@ -301,7 +302,9 @@ export async function GET(
         if (!chosen || !("fileKey" in chosen) || !chosen.fileKey) {
           return NextResponse.json({ error: "Not authorized to download this product" }, { status: 404 });
         }
-        const delivery = await createDeliveryUrl(chosen.fileKey, { ttlSeconds: DOWNLOAD_TTL_SECONDS });
+        const workbook = await serveXlsx(chosen.fileKey);
+    if (workbook) return workbook;
+    const delivery = await createDeliveryUrl(chosen.fileKey, { ttlSeconds: DOWNLOAD_TTL_SECONDS });
         if (!delivery.ok) {
           return NextResponse.json({ error: "delivery_unavailable", reason: delivery.reason }, { status: 503 });
         }
@@ -367,6 +370,8 @@ export async function GET(
      * `fileUrl` is not even loaded. Signing happens only here, after both
      * gates, so no refusal path can produce a credential.
      */
+    const workbook = await serveXlsx(product.fileKey as string);
+    if (workbook) return workbook;
     const delivery = await createDeliveryUrl(product.fileKey as string, {
       ttlSeconds: DOWNLOAD_TTL_SECONDS,
     });
@@ -395,4 +400,42 @@ export async function GET(
       { status: 500 }
     );
   }
+}
+
+/**
+ * Serve a stored .xlsx with the spreadsheet type and its filename.
+ * Returns null for every other file so the signed-URL redirect stays.
+ * A missing asset lookup (older test doubles) also returns null.
+ */
+async function serveXlsx(key: string): Promise<NextResponse | null> {
+  const lookup = (prisma as unknown as {
+    fileAsset?: { findUnique: (args: { where: { key: string }; select: { name: true } }) => Promise<{ name: string } | null> };
+  }).fileAsset?.findUnique;
+  if (!lookup) return null;
+  let storedName: string | null = null;
+  try {
+    const row = await lookup({ where: { key }, select: { name: true } });
+    storedName = row?.name ?? null;
+  } catch {
+    return null;
+  }
+  const filename = xlsxDownloadName(storedName);
+  if (!filename) return null;
+  // Loaded only for a workbook so test doubles of the signed-URL helper
+  // do not have to export the byte reader.
+  const { readPrivateObject } = await import("@/lib/storage/provider");
+  const read = await readPrivateObject(key);
+  if (!read.ok) {
+    return NextResponse.json({ error: "delivery_unavailable", reason: read.reason }, { status: 503 });
+  }
+  return new NextResponse(Buffer.from(read.bytes), {
+    status: 200,
+    headers: {
+      "Content-Type": XLSX_DOWNLOAD_TYPE,
+      "Content-Disposition": xlsxContentDisposition(filename),
+      "Cache-Control": "no-store, must-revalidate",
+      "Referrer-Policy": "no-referrer",
+      "X-Content-Type-Options": "nosniff",
+    },
+  });
 }

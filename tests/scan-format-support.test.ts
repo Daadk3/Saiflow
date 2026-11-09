@@ -26,7 +26,7 @@ describe("the uploader's list is unchanged in Phase 1", () => {
   test("it accepts exactly the current declared types", () => {
     assert.deepEqual(
       [...UPLOADER_ACCEPTED].sort(),
-      ["application/epub+zip", "application/zip", "audio", "image/avif", "image/gif", "image/heic", "image/heif", "image/jpeg", "image/png", "image/webp", "pdf", "video"].sort()
+      ["application/epub+zip", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "application/zip", "audio", "image/avif", "image/gif", "image/heic", "image/heif", "image/jpeg", "image/png", "image/webp", "pdf", "video"].sort()
     );
     assert.deepEqual(Object.keys(PRODUCT_FILE_CONFIG).sort(), [...UPLOADER_ACCEPTED].sort());
   });

@@ -94,6 +94,13 @@ describe("blocked: active content and RAR", () => {
     ["RAR (vnd.rar)", "bundle.rar", "application/vnd.rar"],
     ["RAR (no declared type)", "bundle.rar", ""],
     ["Windows executable", "setup.exe", "application/x-msdownload"],
+    ["XLSM", "macro.xlsm", "application/vnd.ms-excel.sheet.macroEnabled.12"],
+    ["XLSM (no declared type)", "macro.xlsm", ""],
+    ["XLS", "old.xls", "application/vnd.ms-excel"],
+    ["XLS (no declared type)", "old.xls", ""],
+    ["XLSB", "binary.xlsb", "application/vnd.ms-excel.sheet.binary.macroEnabled.12"],
+    ["XLTM", "template.xltm", ""],
+    ["XLAM", "addin.xlam", ""],
   ];
 
   for (const [label, name, type] of mustReject) {
@@ -148,6 +155,8 @@ describe("preserved: the formats SaiFlow actually sells", () => {
     ["PDF (no declared type)", "guide.pdf", "", "pdf"],
     ["EPUB", "book.epub", "application/epub+zip", "application/epub+zip"],
     ["EPUB (no declared type)", "book.epub", "", "application/epub+zip"],
+    ["XLSX", "prices.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"],
+    ["XLSX (no declared type)", "prices.xlsx", "", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"],
     ["ZIP", "pack.zip", "application/zip", "application/zip"],
     ["ZIP (no declared type)", "pack.zip", "", "application/zip"],
     ["MP3", "track.mp3", "audio/mpeg", "audio"],
