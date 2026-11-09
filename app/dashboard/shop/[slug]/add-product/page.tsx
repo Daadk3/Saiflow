@@ -14,6 +14,7 @@ import { PRODUCT_CATEGORIES, CATEGORY_LABEL_KEYS, type ProductCategory } from "@
 import ListingAssistant from "@/components/ai/ListingAssistant";
 import { PriceBreakdown } from "@/components/PriceBreakdown";
 import { HostedAccessFields } from "@/components/HostedAccessFields";
+import { OutsideSellerNotice } from "@/components/OutsideSellerNotice";
 
 export default function AddProductPage() {
   const t = useTranslations();
@@ -206,6 +207,8 @@ export default function AddProductPage() {
               <h1 className="text-2xl font-bold text-white">{t("dashboard.product.add.heading")}</h1>
               <p className="mt-2 text-gray-500">{t("dashboard.product.add.subtitle")}</p>
             </div>
+
+            <OutsideSellerNotice />
 
             {/* Form */}
             <form onSubmit={handleSubmit} className="space-y-6">

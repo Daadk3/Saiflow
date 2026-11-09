@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { ResendVerification } from "@/components/auth/ResendVerification";
 import { PasswordInput } from "@/components/auth/PasswordInput";
+import { OutsideSellerNotice } from "@/components/OutsideSellerNotice";
 
 export default function SignupPage() {
   const t = useTranslations();
@@ -87,6 +88,8 @@ export default function SignupPage() {
               <h1 className="text-2xl font-bold text-white">{t('auth.signup.heroTitle')}</h1>
               <p className="mt-2 text-gray-500">{t('auth.signup.heroSubtitle')}</p>
             </div>
+
+            <OutsideSellerNotice />
 
             {createdEmail ? (
               /* The account exists but cannot sign in until the address is

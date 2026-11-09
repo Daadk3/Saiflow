@@ -877,6 +877,9 @@
       "checkoutErrorRetry": "Something went wrong. Please try again."
     }
   },
+  "outsideSeller": {
+    "notice": "SaiFlow currently sells only its own products. Accounts for outside sellers, whether they have a Saudi bank account or are based abroad, will open soon. You can create your store and prepare your products now, but they won't be published or sold until we open. We'll let you know as soon as we do."
+  },
   "preLaunch": {
     "banner": "Checkout is being activated. You can browse products and set up your store now.",
     "comingSoon": "Checkout opening soon",

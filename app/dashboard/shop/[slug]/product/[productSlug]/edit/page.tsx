@@ -27,6 +27,7 @@ import { isScanInProgress } from "@/lib/scan-status-polling";
 import { useScanStatusPolling } from "@/lib/use-scan-status-polling";
 import { DashboardSkeleton } from "@/components/ui/DashboardSkeleton";
 import { HostedAccessFields } from "@/components/HostedAccessFields";
+import { OutsideSellerNotice } from "@/components/OutsideSellerNotice";
 
 interface Product {
   id: string;
@@ -378,6 +379,8 @@ export default function EditProductPage() {
                 </div>
               </div>
             )}
+
+            <OutsideSellerNotice />
 
             {/* Form */}
             <form onSubmit={handleSubmit} className="space-y-6">
