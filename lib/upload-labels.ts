@@ -29,6 +29,7 @@ const CONFIGS: Record<UploadEndpoint, Record<string, { maxFileSize: string }>> =
 const LABELS: Record<string, string> = {
   pdf: "PDF",
   "application/epub+zip": "EPUB",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": "XLSX",
   "application/zip": "ZIP",
   audio: "audio",
   video: "video",

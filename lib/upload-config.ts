@@ -90,6 +90,13 @@ export const PRODUCT_FILE_CONFIG = {
   // Documents
   pdf: { maxFileSize: "32MB", ...PRIVATE_DELIVERABLE },
   "application/epub+zip": { maxFileSize: "32MB", ...PRIVATE_DELIVERABLE },
+  // Macro-free Excel workbook. .xlsm, .xls, .xlsb and the other macro or
+  // legacy spreadsheet types are absent on purpose. The scanner, not this
+  // list, proves the bytes are a non-macro workbook.
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": {
+    maxFileSize: "32MB",
+    ...PRIVATE_DELIVERABLE,
+  },
   // Archives — ZIP only
   "application/zip": { maxFileSize: "128MB", ...PRIVATE_DELIVERABLE },
   // Audio

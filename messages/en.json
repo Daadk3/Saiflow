@@ -809,7 +809,7 @@
         },
         "uploadFiles": {
           "question": "How do I upload files?",
-          "answer": "Upload your file in the product form when you create or edit a product. You can sell PDFs, EPUB ebooks, ZIP archives, audio, video and images (JPEG, PNG, WebP, GIF, HEIC and AVIF). Files are stored privately and checked for safety before they can be sold; buyers download them through a secure link after they pay."
+          "answer": "Upload your file in the product form when you create or edit a product. You can sell PDFs, EPUB ebooks, Excel workbooks (.xlsx, no macros), ZIP archives, audio, video and images (JPEG, PNG, WebP, GIF, HEIC and AVIF). Files are stored privately and checked for safety before they can be sold; buyers download them through a secure link after they pay."
         },
         "payouts": {
           "question": "When do I get paid?",
@@ -1413,7 +1413,7 @@
     "seller": {
       "typeLabel": "What does the buyer get?",
       "typeFile": "A file to download",
-      "typeFileHelp": "PDF, ZIP, audio, video or images. We scan it before it goes on sale.",
+      "typeFileHelp": "PDF, Excel (.xlsx, no macros), ZIP, audio, video or images. We scan it before it goes on sale.",
       "typeHosted": "Access to a hosted product",
       "typeHostedHelp": "For example an AI agent you host. Buyers get a private link after paying.",
       "title": "Hosted access details (private)",
