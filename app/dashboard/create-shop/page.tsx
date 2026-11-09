@@ -9,6 +9,7 @@ import { useTranslations } from "next-intl";
 import { slugBase } from "@/lib/slug";
 import { SITE_URL } from "@/lib/site-url";
 import { StoreLocationFields } from "@/components/shop/StoreLocationFields";
+import { OutsideSellerNotice } from "@/components/OutsideSellerNotice";
 
 /** The shop address shown before the shop exists: the real host, no protocol. */
 const SITE_HOST = new URL(SITE_URL).host;
@@ -135,6 +136,8 @@ export default function CreateShopPage() {
               <h1 className="text-2xl font-bold text-white">{t('createShop.title')}</h1>
               <p className="mt-2 text-gray-500">{t('createShop.subtitle')}</p>
             </div>
+
+            <OutsideSellerNotice />
 
             {/* Form */}
             <form onSubmit={handleSubmit} className="space-y-6">
