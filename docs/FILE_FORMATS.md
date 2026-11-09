@@ -15,6 +15,9 @@ pinned by `tests/scan-format-support.test.ts`.
 | MP3, WAV, M4A, FLAC, OGG | yes, via `audio/*`, 128MB | yes | not yet |
 | MP4, MOV, WebM, MKV | yes, via `video/*`, 128MB | yes | not yet |
 | any other `audio/*` or `video/*` (AVI, AIFF, AAC, WMV…) | yes | **no** — settled UNSAFE as `unrecognised_format` | no |
+| Illustrator `.ai`, PDF-compatible (a PDF by its bytes) | only while the server switch `ILLUSTRATOR_PDF_UPLOADS=on` is set, as `application/postscript`, 32MB; refused otherwise | yes, as `pdf`: the PDF policy unchanged. With the switch off a `.ai`-named PDF settles UNSAFE `illustrator_disabled` | not yet — see docs/ILLUSTRATOR_SUPPORT.md |
+| EPS, PostScript, legacy (non-PDF) `.ai` | only under the same switch, and only because `.eps` shares the MIME type | recognised as `postscript` and refused: UNSAFE `postscript_unsupported` | no, by design |
+| AI, EPS, SVG, PSD, PS inside an ordinary ZIP | the ZIP is accepted | refused structurally before any provider call: UNSAFE `archive_member_unsupported` | no, by design |
 
 "Proven" means a real file of that format completed the whole path on Preview:
 upload, scan to SAFE, moderation approval, checkout and download. A format
@@ -24,6 +27,18 @@ Recognised-but-unproven formats can still fail at the provider's
 content-verification step (`format_not_verified`), which the seller now sees
 as "unsupported format" with a retry. PNG, JPG, EPUB and ZIP are next in line
 to be tested before they are listed publicly.
+
+## Unsupported is not unsafe
+
+Two kinds of refusal exist and the seller is told which one happened.
+`unsupported_format` (`unrecognised_format`, `format_mismatch`,
+`format_not_verified`, `postscript_unsupported`, `illustrator_disabled`) and
+`unsupported_member` (`archive_member_unsupported`) mean SaiFlow does not sell
+or cannot check that type. `unsafe_content` means a named threat or active
+content. Both are UNSAFE in the database and both are terminal for that file;
+the difference is only in what is said. The copy for every seller-facing list
+of formats names the ZIP member rule (PDF, Markdown, text, CSV, raster images)
+and says design source files (AI, EPS, PSD, SVG) are not accepted.
 
 ## Local HTML app archives
 

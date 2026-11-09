@@ -68,6 +68,11 @@ export const env = createEnv({
     LIVE_PAYMENTS_MODE: z.string().optional(),
     // Comma-separated emails allowed to make founder test payments.
     FOUNDER_TEST_EMAILS: z.string().optional(),
+    // Limited Illustrator support (lib/scan/illustrator.ts). Off unless the
+    // value is exactly "on". Read directly from process.env by that module
+    // so the scanner and upload route agree without importing this file;
+    // declared here so the switch is documented with the rest.
+    ILLUSTRATOR_PDF_UPLOADS: z.string().optional(),
   },
 
   /**
@@ -108,6 +113,7 @@ export const env = createEnv({
     GEIDEA_ENV: process.env.GEIDEA_ENV,
     LIVE_PAYMENTS_MODE: process.env.LIVE_PAYMENTS_MODE,
     FOUNDER_TEST_EMAILS: process.env.FOUNDER_TEST_EMAILS,
+    ILLUSTRATOR_PDF_UPLOADS: process.env.ILLUSTRATOR_PDF_UPLOADS,
     NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY:
       process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY,
   },

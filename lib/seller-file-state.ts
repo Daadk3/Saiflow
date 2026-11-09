@@ -25,6 +25,8 @@ export type SellerFileStateName = "uploaded" | "scanning" | "passed" | "failed";
 export type SellerFailure =
   | "unsafe_content"
   | "unsupported_format"
+  /** The ZIP itself is fine; a member is a type SaiFlow does not sell (AI, EPS, PSD, SVG…). */
+  | "unsupported_member"
   | "password_protected"
   | "archive_problem"
   | "check_unavailable"
@@ -37,6 +39,7 @@ export type SellerFailure =
 export const SELLER_FAILURES: readonly SellerFailure[] = [
   "unsafe_content",
   "unsupported_format",
+  "unsupported_member",
   "password_protected",
   "archive_problem",
   "check_unavailable",
@@ -93,6 +96,10 @@ const FORMAT_REASONS = new Set([
   "format_mismatch",
   "format_not_verified",
   "malformed_file",
+  // PostScript (EPS, legacy Illustrator): recognised and refused, not a threat.
+  "postscript_unsupported",
+  // A `.ai`-named PDF while the Illustrator switch is off (lib/scan/illustrator.ts).
+  "illustrator_disabled",
 ]);
 const UNAVAILABLE_REASONS = new Set(["hash_failed", "provider_threw", "unknown_verdict"]);
 
@@ -105,6 +112,9 @@ export function failureCategory(reason: string | null): SellerFailure {
   // The marker was valid but the archive has no HTML page, so it is not this
   // product. Said as a format problem rather than a damaged ZIP.
   if (base === "archive_not_html_app") return "unsupported_format";
+  // The archive is readable; one member is a design source file SaiFlow does
+  // not sell. Said as that, not as a damaged ZIP and not as a threat.
+  if (base === "archive_member_unsupported") return "unsupported_member";
   if (base.startsWith("archive_")) return "archive_problem";
   if (FORMAT_REASONS.has(base)) return "unsupported_format";
   if (base.startsWith("provider_") || base.startsWith("storage_") || UNAVAILABLE_REASONS.has(base)) {

@@ -28,6 +28,7 @@ import {
   isExecutableEntry,
   isNestedArchive,
   isScriptEntry,
+  isUnsupportedMemberEntry,
   readStoredEntryBytes,
   readZipCentralDirectory,
   type ArchiveEntry,
@@ -179,7 +180,9 @@ export function isEpubLayout(entries: ArchiveEntry[], bytes: Uint8Array): boolea
 export function resolveContentPolicy(bytes: Uint8Array): ContentPolicy | null {
   const format: SniffedFormat = sniffFormat(bytes);
 
-  if (format === "unknown") return null;
+  // PostScript is recognised only so the refusal can be named
+  // (refusalReasonForBytes); it has no policy and never becomes SAFE.
+  if (format === "unknown" || format === "postscript") return null;
   if (format === "pdf") {
     return { kind: "pdf", restrictToExtensions: [".pdf"], allowHtml: false };
   }
@@ -225,6 +228,19 @@ export function resolveContentPolicy(bytes: Uint8Array): ContentPolicy | null {
 }
 
 /**
+ * The reason recorded when no policy exists for these bytes.
+ *
+ * Both are rejections of the same strength. The difference is what the seller
+ * is told: "we could not tell what this is" versus "this is PostScript, which
+ * SaiFlow does not sell". Neither is a threat report.
+ */
+export function refusalReasonForBytes(
+  bytes: Uint8Array
+): "postscript_unsupported" | "unrecognised_format" {
+  return sniffFormat(bytes) === "postscript" ? "postscript_unsupported" : "unrecognised_format";
+}
+
+/**
  * SaiFlow's own structural policy, evaluated before the provider is called.
  *
  * Running first is deliberate: a file we already refuse never costs a scan.
@@ -262,6 +278,13 @@ export function structuralVerdict(
       // `.js` too.
       if (isScriptEntry(entry) && !(policy.kind === "local_html_app" && isPermittedBrowserScript(entry))) {
         return { outcome: "REJECT", reason: "archive_script" };
+      }
+      // Ordinary ZIP only. A design source file (AI, EPS, SVG, PSD, …) is not
+      // a threat and not something SaiFlow can check, so it is refused here
+      // by name, before a provider call is spent, with a reason the seller
+      // can act on. The provider whitelist still backs this for any name.
+      if (policy.kind === "zip" && isUnsupportedMemberEntry(entry)) {
+        return { outcome: "REJECT", reason: "archive_member_unsupported" };
       }
       if (policy.kind === "local_html_app") {
         const member = localHtmlEntryRejection(entry);
@@ -460,6 +483,9 @@ const RECOGNISED_FORMATS = new Set([
   ".mp3", ".wav", ".m4a", ".flac", ".ogg",
   ".mp4", ".mov", ".webm", ".mkv", ".avi",
 ]);
+
+/** Read-only view for tests: which verified formats can ever match. Not for callers. */
+export const RECOGNISED_FORMATS_FOR_TESTS: ReadonlySet<string> = RECOGNISED_FORMATS;
 
 /**
  * Aliases, stated explicitly rather than guessed at.

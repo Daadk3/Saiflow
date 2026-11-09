@@ -349,10 +349,12 @@
       "thumbnailUploadFailed": "Thumbnail upload failed: {message}",
       "productFileLabel": "Product File",
       "productFileHelp": "Upload your digital product file",
+      "productFileZipHelp": "Inside a ZIP: PDF, Markdown, text, CSV and image files only. No other archives, programs, scripts, HTML or design source files (AI, EPS, PSD, SVG). Export vector artwork as PDF.",
       "extraFilesLabel": "Additional files",
       "extraFilesHelp": "Optional. Each file is stored privately and scanned on its own. The buyer receives every file that passes. One file that is still scanning, or that fails, keeps the whole product off sale.",
       "dragDropInstruction": "Drag and drop your file here, or",
       "fileUploadFailed": "Upload failed: {message}",
+      "fileTypeNotAccepted": "This file type isn’t accepted. Upload a PDF, EPUB, ZIP, audio, video or image file. Design files such as AI, EPS, PSD and SVG aren’t accepted; export the artwork as PDF.",
       "fileUploadedBadge": "File uploaded!",
       "fileReadyBadge": "Ready to go",
       "currencySymbol": "SAR",
@@ -559,7 +561,7 @@
       "q3": "Who can I sell to?",
       "a3": "Saiflow is built for creators in Saudi Arabia first — with local payment methods, SAR pricing, and Arabic-first support tailored to your market.",
       "q4": "What file types can I sell?",
-      "a4": "You can sell PDFs, ebooks, videos, audio files (MP3, WAV), ZIP archives, images, software, templates, and more. If it's digital, you can sell it on Saiflow.",
+      "a4": "PDF, EPUB and ZIP files, audio (MP3, WAV, M4A, FLAC, OGG), video (MP4, MOV, WebM, MKV) and images (JPEG, PNG, WebP, GIF, HEIC, AVIF), up to 128 MB per file. A ZIP may contain PDF, Markdown, text, CSV and image files only, with no other archives, programs, scripts or HTML inside. Design source files such as AI, EPS, PSD and SVG aren't accepted; export vector artwork as PDF. Every file is checked for safety before it can be sold.",
       "q5": "Do I need technical skills?",
       "a5": "Not at all. Saiflow is designed for creators, not developers. Upload your file, set a price, and share your link — that's it.",
       "q6": "Can I cancel anytime?",
@@ -809,7 +811,7 @@
         },
         "uploadFiles": {
           "question": "How do I upload files?",
-          "answer": "Upload your file in the product form when you create or edit a product. You can sell PDFs, EPUB ebooks, ZIP archives, audio, video and images (JPEG, PNG, WebP, GIF, HEIC and AVIF). Files are stored privately and checked for safety before they can be sold; buyers download them through a secure link after they pay."
+          "answer": "Upload your file in the product form when you create or edit a product. You can upload PDF, EPUB and ZIP files, audio, video and images (JPEG, PNG, WebP, GIF, HEIC and AVIF). A ZIP may contain PDF, Markdown, text, CSV and image files only; other archives, programs, scripts, HTML and design source files (AI, EPS, PSD, SVG) inside it are refused. Vector artwork goes in as PDF. Files are stored privately and checked for safety before they can be sold; buyers download them through a secure link after they pay."
         },
         "payouts": {
           "question": "When do I get paid?",
@@ -917,7 +919,8 @@
     "retryLimited": "You’ve reached the retry limit for now. Try again in an hour.",
     "retryRefused": "This file can’t be rechecked.",
     "failureUnsafeContent": "The file contains content that isn’t allowed, such as a program, a script or active elements. Replace the file.",
-    "failureUnsupportedFormat": "The file format isn’t supported or couldn’t be confirmed. Replace it with a PDF.",
+    "failureUnsupportedFormat": "This file type isn’t one SaiFlow can sell, or the file’s contents don’t match its type. This isn’t a report of harmful content; the type is the problem. Upload the product as PDF, EPUB, ZIP, audio, video or an image. Design files (AI, EPS, PSD, SVG) aren’t accepted; export them as PDF.",
+    "failureUnsupportedMember": "The ZIP contains a file type SaiFlow doesn’t sell, such as AI, EPS, PSD or SVG. This isn’t a report of harmful content. Remove that file or export it as PDF, then upload the ZIP again.",
     "failurePasswordProtected": "The file is password-protected. Upload an unprotected copy.",
     "failureArchiveProblem": "The archive couldn’t be read safely. Upload a plain ZIP with no encryption and no archives inside it.",
     "failureCheckUnavailable": "The check couldn’t finish because of a temporary service problem. Try again.",
@@ -956,6 +959,7 @@
         "password_protected": "The file is password-protected, so the safety check could not clear it. It was not opened.",
         "archive": "The archive failed the safety check because of encryption, nesting, or an unsafe layout. It was not opened.",
         "format": "The file format is not one SaiFlow can sell, or it does not match its contents. It was not opened.",
+        "unsupported_member": "The archive contains a file type SaiFlow does not sell, such as AI, EPS, PSD or SVG. No threat was named. It was not opened.",
         "html": "The file contains HTML, which is not allowed for this product. It was not opened.",
         "unattributed": "The safety check did not clear this file, and it named no threat or specific problem. It was not opened."
       },
@@ -1413,7 +1417,7 @@
     "seller": {
       "typeLabel": "What does the buyer get?",
       "typeFile": "A file to download",
-      "typeFileHelp": "PDF, ZIP, audio, video or images. We scan it before it goes on sale.",
+      "typeFileHelp": "PDF, EPUB, ZIP, audio, video or images. Vector artwork goes in as PDF. We check every file before it goes on sale.",
       "typeHosted": "Access to a hosted product",
       "typeHostedHelp": "For example an AI agent you host. Buyers get a private link after paying.",
       "title": "Hosted access details (private)",

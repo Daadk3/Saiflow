@@ -240,6 +240,28 @@ const SCRIPT_EXTENSIONS = [
   ".rb", ".pl", ".php", ".jse", ".wsf", ".hta", ".lnk",
 ];
 
+/**
+ * Design source formats an ORDINARY ZIP may not carry.
+ *
+ * Not threats: formats SaiFlow cannot check. AI, EPS and PS are PostScript or
+ * Illustrator files (see lib/scan/sniff.ts); SVG is script-bearing XML; PSD,
+ * PSB and INDD are large binary application formats nobody here inspects.
+ * Members are never decompressed or sniffed, so this is a NAME test used only
+ * to REFUSE earlier, with a precise reason and without spending a provider
+ * call. It allows nothing: a member outside ORDINARY_ZIP_MEMBER_EXTENSIONS
+ * (lib/scan/policy.ts) still fails the provider whitelist whatever it is
+ * named. EPUB is exempt by policy kind, since an ebook may legitimately hold
+ * SVG images.
+ */
+export const UNSUPPORTED_MEMBER_EXTENSIONS = [
+  ".ai", ".eps", ".epsf", ".epsi", ".ps", ".svg", ".svgz", ".psd", ".psb", ".indd",
+] as const;
+
+export function isUnsupportedMemberEntry(entry: ArchiveEntry): boolean {
+  const lower = entry.name.toLowerCase();
+  return UNSUPPORTED_MEMBER_EXTENSIONS.some((ext) => lower.endsWith(ext));
+}
+
 export function isExecutableEntry(entry: ArchiveEntry): boolean {
   const lower = entry.name.toLowerCase();
   return EXECUTABLE_EXTENSIONS.some((ext) => lower.endsWith(ext));

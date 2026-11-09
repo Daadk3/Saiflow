@@ -105,6 +105,30 @@ export const PRODUCT_FILE_CONFIG = {
 } as const;
 
 /**
+ * The MIME type browsers and the extension fallback assign to `.ai` AND `.eps`
+ * (`@uploadthing/mime-types`: both map to `application/postscript`). The two
+ * cannot be told apart at this layer, which is why it is not the layer that
+ * decides anything: see lib/scan/illustrator.ts.
+ */
+export const ILLUSTRATOR_UPLOAD_TYPE = "application/postscript";
+
+/**
+ * PRODUCT_FILE_CONFIG plus Illustrator, used by the upload route ONLY while the
+ * server switch `ILLUSTRATOR_PDF_UPLOADS=on` is set (app/api/uploadthing/core.ts).
+ *
+ * Admitting `application/postscript` here necessarily admits `.eps` and legacy
+ * `.ai` too; they are then stored privately and settled UNSAFE by the scanner
+ * from their bytes (`postscript_unsupported`). Only a `.ai` whose bytes are a
+ * PDF can continue, and it continues under the PDF policy. The labels sellers
+ * see (lib/upload-labels.ts) are built from PRODUCT_FILE_CONFIG and therefore
+ * never advertise AI: this is a private preview, not a public format.
+ */
+export const PRODUCT_FILE_CONFIG_WITH_ILLUSTRATOR = {
+  ...PRODUCT_FILE_CONFIG,
+  [ILLUSTRATOR_UPLOAD_TYPE]: { maxFileSize: "32MB", ...PRIVATE_DELIVERABLE },
+} as const;
+
+/**
  * Listing artwork. Deliberately left `public-read` — a thumbnail exists to be
  * shown on a public product page, and signing it would break image
  * optimisation for no security gain. Raster-only still applies, which is what

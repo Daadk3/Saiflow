@@ -266,13 +266,20 @@ describe("the router uses the shared config", () => {
 
   test("every route is built from lib/upload-config", () => {
     for (const name of [
-      "PRODUCT_FILE_CONFIG",
       "PRODUCT_THUMBNAIL_CONFIG",
       "SHOP_LOGO_CONFIG",
       "SHOP_COVER_CONFIG",
     ]) {
       assert.ok(core.includes(`f(${name})`), `${name} must be wired into f()`);
     }
+    // The product-file route chooses between two exported configs from the
+    // same module, by the Illustrator server switch (lib/scan/illustrator.ts).
+    // Both operands are lib/upload-config exports; nothing is inline.
+    assert.match(
+      core,
+      /productFile: f\(illustratorUploadsEnabled\(\) \? PRODUCT_FILE_CONFIG_WITH_ILLUSTRATOR : PRODUCT_FILE_CONFIG\)/,
+      "PRODUCT_FILE_CONFIG must be wired into f(), switch-selected"
+    );
   });
 
   test("no inline type config survives in the router", () => {

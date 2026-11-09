@@ -21,6 +21,7 @@ export const SCAN_EXPLANATION_KEYS = [
   "password_protected",
   "archive",
   "format",
+  "unsupported_member",
   "html",
   "unattributed",
 ] as const;
@@ -62,7 +63,10 @@ const TABLE: Record<string, ScanExplanationKey> = {
   archive_member_limit: "archive",
   archive_active_html: "script",
   archive_not_html_app: "format",
+  archive_member_unsupported: "unsupported_member",
   unrecognised_format: "format",
+  postscript_unsupported: "format",
+  illustrator_disabled: "format",
   format_mismatch: "format",
   malformed_file: "format",
   format_not_verified: "format",

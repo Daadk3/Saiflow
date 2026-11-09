@@ -41,6 +41,8 @@ export function extractFileFacts(bytes: Uint8Array): FileContentFacts {
     if (format === "pdf") return pdfFacts(bytes);
     if (format === "zip") return zipFacts(bytes);
     if (format === "unknown") return empty(null, false);
+    // PostScript is recognised only to be refused; it is never opened here.
+    if (format === "postscript") return empty(format, false);
     // Images, audio and video: recognised from their bytes, no text to read.
     return empty(format, true);
   } catch {
