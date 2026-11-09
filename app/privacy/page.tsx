@@ -26,7 +26,7 @@ export default function PrivacyPage() {
             {/* Introduction */}
             <section>
               <p>
-                At Saiflow, we take your privacy seriously. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our digital products marketplace. Saiflow is operated from the Kingdom of Saudi Arabia and processes personal data in accordance with the Saudi Personal Data Protection Law (PDPL).
+                At SaiFlow, we take your privacy seriously. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our digital products marketplace. SaiFlow is operated from the Kingdom of Saudi Arabia and processes personal data in accordance with the Saudi Personal Data Protection Law (PDPL).
               </p>
             </section>
 

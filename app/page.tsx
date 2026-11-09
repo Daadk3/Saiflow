@@ -59,8 +59,26 @@ async function getFeaturedProducts(): Promise<FeaturedProduct[]> {
   }
 }
 
+/**
+ * Live marketplace counts for the hero's proof line, under the same
+ * sellable rule as the featured grid: nothing counted here is unbuyable.
+ * A DB failure yields zeros, and the hero then shows no proof line.
+ */
+async function getMarketplaceCounts(): Promise<{ products: number; shops: number }> {
+  try {
+    const [products, shopGroups] = await Promise.all([
+      prisma.product.count({ where: SELLABLE_PRODUCT_WHERE }),
+      prisma.product.groupBy({ by: ["shopId"], where: SELLABLE_PRODUCT_WHERE }),
+    ]);
+    return { products, shops: shopGroups.length };
+  } catch (error) {
+    console.error("Homepage: failed to load marketplace counts, rendering without them.", error);
+    return { products: 0, shops: 0 };
+  }
+}
+
 export default async function Home() {
-  const products = await getFeaturedProducts();
+  const [products, counts] = await Promise.all([getFeaturedProducts(), getMarketplaceCounts()]);
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-[#0a0a0a] text-white">
@@ -70,7 +88,7 @@ export default async function Home() {
         className="pointer-events-none absolute inset-0 bg-gradient-to-b from-gray-900/60 via-[#0a0a0a] to-[#0a0a0a]"
       />
       <div className="relative z-10">
-        <Hero />
+        <Hero products={counts.products} shops={counts.shops} />
         <TwoPaths />
         <CategoriesGrid />
         <FeaturedProducts products={products} />

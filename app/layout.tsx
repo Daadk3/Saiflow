@@ -21,15 +21,15 @@ export async function generateMetadata(): Promise<Metadata> {
     title,
     description,
     keywords: ["sell digital products", "digital downloads", "online courses platform", "ebook marketplace", "template store", "digital commerce", "creator economy", "Arabic-language creators", "Arabic digital products", "Saudi digital marketplace", "سوق رقمي", "صناع المحتوى بالعربية", "منتجات رقمية بالعربية"],
-    authors: [{ name: "Saiflow" }],
-    creator: "Saiflow",
-    publisher: "Saiflow",
+    authors: [{ name: "SaiFlow" }],
+    creator: "SaiFlow",
+    publisher: "SaiFlow",
     metadataBase: new URL("https://www.saiflow.io"),
     openGraph: {
       title,
       description,
       url: "https://www.saiflow.io",
-      siteName: "Saiflow",
+      siteName: "SaiFlow",
       images: [
         {
           url: "https://www.saiflow.io/og-image.png",

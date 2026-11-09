@@ -173,16 +173,28 @@ export default function PricingPage() {
                   <td className="py-5 px-6 text-center text-gray-500">{t("comparison.themSlow")}</td>
                 </tr>
                 <tr className="border-b border-white/5">
-                  <td className="py-5 px-6 text-gray-300">{t("comparison.rowPayoutSpeed")}</td>
+                  <td className="py-5 px-6 text-gray-300">{t("comparison.rowCurrency")}</td>
                   <td className="py-5 px-6 text-center">
                     <span className="inline-flex items-center gap-1 text-teal-400 font-semibold">
-                      {t("comparison.saiflowInstant")}
+                      {t("comparison.saiflowCurrency")}
                       <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                       </svg>
                     </span>
                   </td>
-                  <td className="py-5 px-6 text-center text-gray-500">{t("comparison.themPayout")}</td>
+                  <td className="py-5 px-6 text-center text-gray-500">{t("comparison.themCurrency")}</td>
+                </tr>
+                <tr className="border-b border-white/5">
+                  <td className="py-5 px-6 text-gray-300">{t("comparison.rowLanguage")}</td>
+                  <td className="py-5 px-6 text-center">
+                    <span className="inline-flex items-center gap-1 text-teal-400 font-semibold">
+                      {t("comparison.saiflowLanguage")}
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                    </span>
+                  </td>
+                  <td className="py-5 px-6 text-center text-gray-500">{t("comparison.themLanguage")}</td>
                 </tr>
                 <tr>
                   <td className="py-5 px-6 text-gray-300">{t("comparison.rowHiddenCosts")}</td>
