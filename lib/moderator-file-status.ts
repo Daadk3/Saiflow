@@ -96,3 +96,25 @@ export function moderatorFileSafety(
       return { reason, publishable: false, tone: "attention" };
   }
 }
+
+/**
+ * The list badge and the Approve button, for a product that may have extras.
+ *
+ * The primary file is reported first. A safe primary with an extra that is
+ * still being checked, failed, or bound to another key is not "File verified"
+ * and does not enable Approve. That matches the moderation route, which
+ * refuses the whole kit. Callers that did not load the relation pass
+ * `undefined` and keep the primary-only answer.
+ */
+export function moderatorListingSafety(
+  product: DeliverableSafety,
+  extras: readonly DeliverableSafety[] | null | undefined
+): ModeratorFileSafety {
+  const primary = moderatorFileSafety(product);
+  if (!primary.publishable || !Array.isArray(extras)) return primary;
+  for (const extra of extras) {
+    const next = moderatorFileSafety(extra);
+    if (!next.publishable) return next;
+  }
+  return primary;
+}
