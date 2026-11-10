@@ -367,12 +367,26 @@ export async function scanFileAsset(
    * spending a Cloudmersive call each time and starving the queue for
    * everyone else. Requiring an attachment in the SAME shop as the upload's
    * provenance also means a key cannot be queued on someone else's behalf.
+   *
+   * An extra file is attached on ProductDeliverable, not on Product.fileKey.
+   * The queue already selects those rows. This check has to agree, or every
+   * extra is reported as unattached and stays PENDING_SCAN forever.
    */
-  const attached = await prisma.product.findFirst({
+  const attachedAsPrimary = await prisma.product.findFirst({
     where: { fileKey: key, shopId: asset.shopId },
     select: { id: true },
   });
-  if (!attached) return { key, outcome: "SKIPPED_NOT_ATTACHED" };
+  // A test double that only models primary files has no extra lookup. No
+  // row means the key is not an extra in this shop.
+  const attachedAsExtra = attachedAsPrimary
+    ? null
+    : await prisma.productDeliverable?.findFirst?.({
+        where: { fileKey: key, product: { shopId: asset.shopId } },
+        select: { id: true },
+      });
+  if (!attachedAsPrimary && !attachedAsExtra) {
+    return { key, outcome: "SKIPPED_NOT_ATTACHED" };
+  }
 
   // Refuse before spending anything if the provider cannot answer. Returning
   // early — rather than recording SCAN_ERROR — keeps an unconfigured

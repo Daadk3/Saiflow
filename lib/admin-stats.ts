@@ -12,7 +12,7 @@
 import { prisma } from "@/lib/prisma";
 import { inspectProduct } from "@/lib/inspect";
 import {
-  moderatorFileSafety,
+  moderatorListingSafety,
   type ModeratorFileSafety,
 } from "@/lib/moderator-file-status";
 import type { ModerationStatus, Prisma } from "@prisma/client";
@@ -258,9 +258,10 @@ export interface DirectoryRow {
   /**
    * What the moderator is told about the file's scan state.
    *
-   * Derived through `deliverableGateReason` in lib/moderator-file-status.ts,
-   * so it cannot disagree with the gate that refuses at checkout. A reason and
-   * two booleans — no scan enum, no key, no hash reaches the browser.
+   * Derived through `moderatorListingSafety`: the primary file, then every
+   * extra. A safe primary with an extra still scanning is not "File verified",
+   * and Approve stays disabled. A reason and two booleans — no scan enum, no
+   * key, no hash reaches the browser.
    */
   fileSafety: ModeratorFileSafety;
   /**
@@ -429,7 +430,7 @@ export async function getProductsDirectory(opts: {
         humanReviewed: latest != null && latest.newStatus === p.moderationStatus,
         hasFile: p.fileKey != null,
         deliveryType: p.deliveryType,
-        fileSafety: moderatorFileSafety(p),
+        fileSafety: moderatorListingSafety(p, p.deliverables),
         canInspect: inspectProduct(p, "admin").decision.allow,
         notSellableReason:
           p.moderationStatus === "APPROVED" && unsellableReason(p) !== "sellable" ? unsellableReason(p) : null,

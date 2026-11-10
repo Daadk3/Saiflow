@@ -17,7 +17,7 @@ import {
 import { checklistRows, hasCoverImage, type ChecklistRow } from "@/lib/review-checklist";
 import { isLocalHtmlAppReview } from "@/lib/local-html-review";
 import {
-  moderatorFileSafety,
+  moderatorListingSafety,
   type ModeratorFileSafety,
 } from "@/lib/moderator-file-status";
 
@@ -181,7 +181,7 @@ export async function getAdminProductPreview(
 
   if (!product) return null;
 
-  const gate = moderatorFileSafety(product);
+  const gate = moderatorListingSafety(product, product.deliverables);
 
   // The specific category lives on the upload, not on the product. Read only
   // for a file the gate has already called unsafe, and only the reason
