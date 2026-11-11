@@ -387,7 +387,7 @@ describe("checkout makes no outbound request of its own", () => {
 /* ------------------------------------------------------------------ */
 
 describe("checkout: existing gates are preserved", () => {
-  test("an inactive product is still refused", async () => {
+  test("a product taken off sale (isActive false) is refused before any payment", async () => {
     reset();
     state.product = product({ isActive: false });
     await assertRefusedBeforePayment(await checkout());

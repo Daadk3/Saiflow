@@ -194,6 +194,10 @@ model Product {
   /// file-safety decision: every upload mints a new key, so a replaced file
   /// cannot inherit the previous file's verdict.
   fileKey      String?
+  /// On sale. Set false when the seller removes a product that already has
+  /// an order or a payment attempt: the row stays so those records and the
+  /// buyer's download keep working. Public visibility already requires this
+  /// to be true. A product with no such records is deleted instead.
   isActive     Boolean  @default(true)
   isDigital    Boolean  @default(true)
   /// What a buyer receives. FILE (the default, and every existing row) is a

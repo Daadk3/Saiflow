@@ -27,15 +27,11 @@ import type { CreatorFileStatus } from "@/lib/creator-file-status";
  * form a second opinion, which is how a display value quietly becomes a
  * competing definition of safety.
  *
- * `isActive` IS DELIBERATELY ABSENT. The schema comment defines public
- * visibility as `isActive && moderationStatus === APPROVED`, so a complete
- * mirror would include it. Nothing in the codebase ever writes
- * `Product.isActive = false` — there is no deactivation workflow in the
- * creator or admin UI, and the column is only ever read as a `where` filter —
- * so including it today would add a payload field to the seller API for a
- * condition that cannot differ. The assumption is pinned by test: if a
- * deactivation path is ever added, that test fails and this mapping must be
- * revisited before the field can silently go stale.
+ * `isActive: false` IS A PRODUCT THE SELLER TOOK OFF SALE. Delete sets it
+ * when the product has an order or a payment record, and the seller list
+ * does not include those rows. If one is passed here anyway, it must not be
+ * described as live: the public page and checkout already refuse it.
+ * Omitted means the caller is looking at a product still on that list.
  */
 export type ProductLinkStatus = "live" | "reserved" | "rejected";
 
@@ -44,11 +40,17 @@ export interface ProductLinkStatusInput {
   moderationStatus?: "PENDING" | "APPROVED" | "REJECTED" | null;
   /** Coarse, server-derived. Never a raw scan enum. */
   fileSafety: CreatorFileStatus;
+  /**
+   * False when the seller has removed the product from sale. Absent on the
+   * rows the seller list still shows.
+   */
+  isActive?: boolean;
 }
 
 export function productLinkStatus({
   moderationStatus,
   fileSafety,
+  isActive,
 }: ProductLinkStatusInput): ProductLinkStatus {
   // REJECTED wins over everything, including a file that passed its check.
   // A rejected product with a SAFE deliverable is the exact case where the
@@ -57,6 +59,11 @@ export function productLinkStatus({
   // bytes. Ordering this first is the whole reason precedence is pinned by a
   // test rather than left to the reader.
   if (moderationStatus === "REJECTED") return "rejected";
+
+  // Taken off sale. Not a public link, even when the file passed and the
+  // listing was approved. The seller list does not render these rows; this
+  // is here so a payload that still carries one cannot call the link live.
+  if (isActive === false) return "reserved";
 
   // Both halves required. Approved-but-unscanned is not public, and
   // scanned-but-unapproved is not public either.

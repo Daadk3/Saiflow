@@ -9,9 +9,12 @@
  * side of that race (a refused attempt insert answers 404) is tested in
  * geidea-checkout.
  *
- * BEHAVIOURAL: the DELETE route against a stand-in Prisma that throws what
- * Prisma throws for that refusal. STRUCTURAL: the schema relations and the
- * migration text, which nothing here runs against a database.
+ * BEHAVIOURAL: the DELETE route against a stand-in Prisma. A product with no
+ * purchase and no payment attempt is deleted. A product the database refuses
+ * to delete (ON DELETE RESTRICT) is taken off sale instead: isActive false,
+ * and the orders and payment rows are not touched. STRUCTURAL: the schema
+ * relations, the migration text, and the public surfaces that already hide
+ * an inactive product. Nothing here runs against a database.
  */
 
 import { test, describe, before, beforeEach, mock } from "node:test";
@@ -63,6 +66,10 @@ before(async () => {
         if (state.deleteError !== null) throw state.deleteError;
         return { id: args.where.id };
       },
+      update: async (args: { where: { id: string }; data: Record<string, unknown> }) => {
+        ops.push(`product.update:${JSON.stringify(args)}`);
+        return { id: args.where.id, ...args.data };
+      },
     },
     user: {
       findFirst: async () => {
@@ -88,9 +95,11 @@ before(async () => {
   DELETE = (await import("../app/api/products/[id]/route.ts")).DELETE as typeof DELETE;
 });
 
-const productRow = (shopUsers: unknown[] = [{ userId: "user_1" }]) => ({
+const productRow = (shopUsers: unknown[] = [{ userId: "user_1", role: "OWNER" }]) => ({
   id: "prod_1",
   name: "My eBook",
+  isActive: true,
+  moderationStatus: "APPROVED",
   shop: { id: "shop_1", slug: "daad-s-store", shopUsers },
 });
 
@@ -111,23 +120,29 @@ async function deleteProduct(id = "prod_1") {
 
 const TRIED_DELETE = ["user.findFirst", "product.findUnique", 'product.delete:{"where":{"id":"prod_1"}}'];
 
-describe("the delete route lets the database decide, and explains a refusal", () => {
-  test("a product that a purchase or payment attempt names is refused with 409, and nothing else is written", async () => {
+describe("the delete route lets the database decide", () => {
+  test("a product that a purchase or payment attempt names is taken off sale, and the records stay", async () => {
     for (const code of ["P2003", "P2014"] as const) {
       ops.length = 0;
       state.deleteError = refusal(code);
       const { status, body } = await deleteProduct();
-      assert.equal(status, 409, code);
-      assert.equal(body.error, "has_payment_records");
-      assert.equal(typeof body.message, "string");
-      assert.deepEqual(ops, TRIED_DELETE, `${code}: one delete, tried once, and nothing else`);
+      assert.equal(status, 200, code);
+      assert.deepEqual(body, { success: true, removedFromSale: true });
+      assert.deepEqual(
+        ops,
+        [
+          ...TRIED_DELETE,
+          'product.update:{"where":{"id":"prod_1"},"data":{"isActive":false}}',
+        ],
+        `${code}: one delete, then isActive false, and nothing else`
+      );
     }
   });
 
   test("a product with no purchase and no attempt is deleted exactly as before", async () => {
     const { status, body } = await deleteProduct();
     assert.equal(status, 200);
-    assert.deepEqual(body, { success: true });
+    assert.deepEqual(body, { success: true, deleted: true });
     assert.deepEqual(ops, TRIED_DELETE);
   });
 
@@ -158,14 +173,39 @@ describe("the delete route lets the database decide, and explains a refusal", ()
     state.product = productRow([]);
     assert.equal((await deleteProduct()).status, 403, "a member of another shop");
 
+    state.product = productRow([{ userId: "user_1", role: "MEMBER" }]);
+    assert.equal((await deleteProduct()).status, 403, "a shop member who is not the owner");
+
+    state.product = productRow([{ userId: "user_1", role: "ADMIN" }]);
+    assert.equal((await deleteProduct()).status, 403, "a shop admin is not the owner");
+
     assert.ok(!ops.some((op) => op.startsWith("product.delete")), "no delete was attempted");
+    assert.ok(!ops.some((op) => op.startsWith("product.update")), "no soft delete was attempted");
+  });
+
+  test("a marketplace admin can take down someone else's product", async () => {
+    const previous = process.env.ADMIN_EMAILS;
+    process.env.ADMIN_EMAILS = "seller@example.com";
+    try {
+      state.product = productRow([]);
+      state.deleteError = refusal("P2003");
+      const { status, body } = await deleteProduct();
+      assert.equal(status, 200);
+      assert.equal(body.removedFromSale, true);
+      assert.ok(ops.some((op) => op.includes('"isActive":false')));
+    } finally {
+      if (previous === undefined) delete process.env.ADMIN_EMAILS;
+      else process.env.ADMIN_EMAILS = previous;
+    }
   });
 
   test("no count or lookup of orders or attempts comes first: a check made before the delete could be stale when it runs", async () => {
     state.deleteError = refusal("P2003");
-    assert.equal((await deleteProduct()).status, 409);
+    assert.equal((await deleteProduct()).status, 200);
+    assert.equal((await deleteProduct()).body.removedFromSale, true);
     state.deleteError = null;
     assert.equal((await deleteProduct()).status, 200);
+    assert.equal((await deleteProduct()).body.deleted, true);
     assert.deepEqual(ops.filter((op) => op.startsWith("touched:")), []);
 
     const src = read("app/api/products/[id]/route.ts");
@@ -282,17 +322,74 @@ describe("the migration only adds, and replaces the two delete rules", () => {
   });
 });
 
-describe("the seller is told why", () => {
-  test("a refused delete keeps the product in the list and explains, in both languages", () => {
+describe("the seller is told what delete does", () => {
+  test("the confirm dialog says the product leaves sale and buyers keep their download, in both languages", () => {
     const page = strip(read("app/dashboard/shop/[slug]/page.tsx"));
+    assert.match(page, /confirm\(t\("deleteConfirm"\)\)/);
+    assert.match(page, /shop\.canRemoveProducts && \(/);
+    const shopRoute = strip(read("app/api/shops/[slug]/route.ts"));
+    assert.match(shopRoute, /canRemoveProducts/);
+    assert.match(shopRoute, /membership\?\.role === "OWNER"/);
+    assert.match(shopRoute, /isAdminEmail\(session\.user\.email\)/);
     assert.match(
       page,
-      /if \(res\.ok\) \{\s*setShop\([\s\S]*?products: prev\.products\.filter\(\(p\) => p\.id !== productId\),[\s\S]*?\} else if \(res\.status === 409\) \{\s*alert\(t\("deleteBlocked"\)\);\s*\}/
+      /if \(res\.ok\) \{\s*setShop\([\s\S]*?products: prev\.products\.filter\(\(p\) => p\.id !== productId\),/
     );
-    const en = JSON.parse(read("messages/en.json")).dashboard.shop.deleteBlocked as string;
-    const ar = JSON.parse(read("messages/ar.json")).dashboard.shop.deleteBlocked as string;
-    assert.match(en, /sales or payment records/);
+    assert.ok(!page.includes("deleteBlocked"), "the old refusal is gone");
+    const en = JSON.parse(read("messages/en.json")).dashboard.shop.deleteConfirm as string;
+    const ar = JSON.parse(read("messages/ar.json")).dashboard.shop.deleteConfirm as string;
+    assert.match(en, /no longer see it/);
+    assert.match(en, /keeps their download/);
+    assert.match(en, /deleted permanently/);
     assert.match(ar, /[؀-ۿ]/);
-    assert.ok(!/has been deleted|was deleted|تم حذف/.test(en + ar), "it never says the product was deleted");
+    assert.match(ar, /يحتفظ بتنزيله/);
+    assert.notEqual(en, ar);
+  });
+});
+
+describe("a product taken off sale is not for sale, and a paid buyer can still download", () => {
+  const PUBLIC = [
+    "app/page.tsx",
+    "app/browse/page.tsx",
+    "app/shop/[slug]/page.tsx",
+    "app/shop/[slug]/product/[productSlug]/page.tsx",
+    "app/checkout/[slug]/[productSlug]/page.tsx",
+    "app/sitemap.ts",
+  ];
+
+  test("every public listing uses the shared rule, which requires the product to be active", () => {
+    const rule = strip(read("lib/sellable.ts"));
+    assert.match(rule, /export const SELLABLE_PRODUCT_WHERE = \{[^}]*isActive: true/s);
+    for (const file of PUBLIC) {
+      assert.ok(strip(read(file)).includes("SELLABLE_PRODUCT_WHERE"), file);
+    }
+    const productPage = strip(read("app/shop/[slug]/product/[productSlug]/page.tsx"));
+    assert.match(productPage, /if \(!product\) \{\s*notFound\(\);/);
+  });
+
+  test("checkout refuses an inactive product before it can start an order", () => {
+    const checkout = strip(read("app/api/checkout/route.ts"));
+    assert.match(checkout, /const availability = unsellableReason\(product\);/);
+    assert.match(checkout, /availability === "inactive"/);
+    assert.match(checkout, /not available for purchase/);
+  });
+
+  test("the download route never reads isActive, so a paid file still delivers", () => {
+    const download = strip(read("app/api/download/[productId]/route.ts"));
+    assert.ok(!/\bisActive\b/.test(download), "download must not refuse a product taken off sale");
+    assert.match(download, /if \(!isDeliverableSafe\(product\)\)/);
+    assert.match(download, /Not authorized to download this product/);
+  });
+
+  test("the seller's own list query hides a product taken off sale", () => {
+    const shop = strip(read("app/api/shops/[slug]/route.ts"));
+    assert.match(shop, /products: \{\s*where: \{ isActive: true \}/);
+    assert.match(shop, /filter\(\(p\) => p\.isActive !== false\)/);
+  });
+
+  test("editing a product cannot turn isActive back on", () => {
+    const src = read("app/api/products/[id]/route.ts");
+    const put = strip(src.slice(src.indexOf("export async function PUT"), src.indexOf("export async function DELETE")));
+    assert.ok(!/isActive\s*:/.test(put), "the edit handler must not assign isActive");
   });
 });

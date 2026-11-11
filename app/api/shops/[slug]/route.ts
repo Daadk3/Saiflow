@@ -8,6 +8,7 @@ import { creatorFileStatus } from "@/lib/creator-file-status";
 import { sellerFileState, type SellerAssetView } from "@/lib/seller-file-state";
 import { IMAGE_NOT_ALLOWED, verifyImageProvenance } from "@/lib/image-provenance";
 import { sessionUserId } from "@/lib/session-account";
+import { isAdminEmail } from "@/lib/admin";
 import { parseStoreLocationPatch } from "@/lib/store-location";
 
 export async function GET(
@@ -49,6 +50,9 @@ export async function GET(
         coverImage: true,
         createdAt: true,
         products: {
+          // Removed from sale (isActive false) stays for buyers who paid.
+          // It is not a product the seller still has listed.
+          where: { isActive: true },
           select: {
             id: true,
             name: true,
@@ -58,6 +62,7 @@ export async function GET(
             currency: true,
             thumbnailUrl: true,
             moderationStatus: true,
+            isActive: true,
             // The latest rejection's reason, so a seller sees what to fix
             // here and not only in their email. Their own product's.
             moderationEvents: {
@@ -86,7 +91,7 @@ export async function GET(
         // (lib/session-account). Never returned: the dashboard does not use
         // shopUsers.
         shopUsers: {
-          select: { userId: true },
+          select: { userId: true, role: true },
         },
       },
     });
@@ -98,10 +103,15 @@ export async function GET(
       );
     }
 
-    // Check if user has access to this shop
-    const userHasAccess = shop.shopUsers.some(
+    // Check if user has access to this shop. The same membership says whether
+    // they own it, which is who may take a product off sale. A marketplace
+    // admin may too. The dashboard shows the button from this flag; the
+    // delete route checks again.
+    const membership = shop.shopUsers.find(
       (su) => userId !== null && su.userId === userId
     );
+    const userHasAccess = membership !== undefined;
+    const canRemoveProducts = membership?.role === "OWNER" || isAdminEmail(session.user.email);
 
     if (!userHasAccess) {
       return NextResponse.json(
@@ -113,8 +123,11 @@ export async function GET(
     // Shape the response deliberately rather than spreading the row. Every
     // field below is one the dashboard renders; the scan columns are consumed
     // by creatorFileStatus and then discarded.
-    const { shopUsers: _members, products, ...shopFields } = shop;
+    const { shopUsers: _members, products: shopProducts, ...shopFields } = shop;
     void _members;
+    // isActive false is a product the seller took off sale. The query above
+    // already excludes it; this keeps a row out if a select ever forgets that.
+    const products = shopProducts.filter((p) => p.isActive !== false);
 
 
     // The FileAsset rows behind the attached files, read here and only here,
@@ -168,6 +181,7 @@ export async function GET(
 
     return NextResponse.json({
       ...shopFields,
+      canRemoveProducts,
       products: products.map((p) => ({
         id: p.id,
         name: p.name,

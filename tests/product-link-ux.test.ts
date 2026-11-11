@@ -423,6 +423,21 @@ describe("productLinkStatus mapping", () => {
     assert.equal(productLinkStatus({ moderationStatus: null, fileSafety: "ready" }), "reserved");
   });
 
+  test("a product taken off sale is not described as live, even when approved and ready", () => {
+    for (const fileSafety of SAFETIES) {
+      assert.equal(
+        productLinkStatus({ moderationStatus: "APPROVED", fileSafety, isActive: false }),
+        "reserved",
+        `inactive + APPROVED + ${fileSafety} was called live`,
+      );
+    }
+    assert.equal(
+      productLinkStatus({ moderationStatus: "REJECTED", fileSafety: "ready", isActive: false }),
+      "rejected",
+      "a rejection is still said before the removed-from-sale sentence",
+    );
+  });
+
   test("REJECTED takes precedence over every file state, including ready", () => {
     // The case that makes precedence matter: moderation rejects a listing on
     // its CONTENT, which says nothing about the bytes — so a rejected product
