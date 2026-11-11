@@ -70,6 +70,8 @@ interface Shop {
   logo: string | null;
   coverImage: string | null;
   createdAt: string;
+  /** True for the shop owner and for a marketplace admin. */
+  canRemoveProducts?: boolean;
   products: Product[];
 }
 
@@ -161,13 +163,14 @@ export default function ShopDashboard() {
       });
 
       if (res.ok) {
+        // Hard-deleted, or taken off sale because it has purchases. Either
+        // way it leaves this list. Buyers who already paid keep their download.
         setShop((prev) => prev ? {
           ...prev,
           products: prev.products.filter((p) => p.id !== productId),
         } : null);
-      } else if (res.status === 409) {
-        // Sales or payment records keep a product: the database refused the delete.
-        alert(t("deleteBlocked"));
+      } else {
+        alert(t("somethingWrong"));
       }
     } catch (err) {
       console.error("Error deleting product:", err);
@@ -526,6 +529,7 @@ export default function ShopDashboard() {
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                         </svg>
                       </Link>
+                      {shop.canRemoveProducts && (
                       <button
                         onClick={() => handleDeleteProduct(product.id)}
                         disabled={deletingProductId === product.id}
@@ -543,6 +547,7 @@ export default function ShopDashboard() {
                           </svg>
                         )}
                       </button>
+                      )}
                     </div>
                   </div>
                 </div>

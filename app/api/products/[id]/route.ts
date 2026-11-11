@@ -18,6 +18,7 @@ import { scheduleScan } from "@/lib/scan/schedule";
 import { IMAGE_NOT_ALLOWED, verifyImageProvenance } from "@/lib/image-provenance";
 import { FILE_REQUIRED } from "@/lib/product-file-required";
 import { announceReadyAtAttach } from "@/lib/scan/announce";
+import { isAdminEmail } from "@/lib/admin";
 import { refreshReviewChecks } from "@/lib/review-checks-store";
 import { withoutReviewChecks } from "@/lib/review-checklist";
 import { redactId } from "@/lib/redact-id";
@@ -654,37 +655,46 @@ export async function DELETE(
       );
     }
 
-    // Check if user has access to this shop
-    if (product.shop.shopUsers.length === 0) {
+    // The shop's owner, or a marketplace admin. Another member of the shop
+    // can see the product and still cannot take it down: the dashboard button
+    // is not the authorization.
+    const isOwner = product.shop.shopUsers.some((member) => member.role === "OWNER");
+    if (!isOwner && !isAdminEmail(session.user.email)) {
       return NextResponse.json(
         { error: "You don't have permission to delete this product" },
         { status: 403 }
       );
     }
 
-    // Delete the product. The database decides whether it may go: Order and
+    // Delete the row when nothing has been bought or paid for. Order and
     // PaymentSession refer to it with ON DELETE RESTRICT, so a product with
-    // any purchase or payment attempt is refused there, atomically, even if a
-    // checkout starts at this very moment. No count is taken here first: a
+    // any purchase or payment attempt is refused there, atomically, even if
+    // a checkout starts at this very moment. No count is taken first: a
     // check made before the delete could be stale by the time it runs.
+    //
+    // That refusal is the soft delete. isActive is the existing public
+    // switch (lib/sellable): false hides the product from the store, search,
+    // the product page, the sitemap and checkout, and checkout refuses to
+    // start a payment. The row, its orders, payment attempts and payouts
+    // stay, and the download route does not read isActive, so a buyer who
+    // already paid keeps the file. Moderation status is not touched, so
+    // this is not an approval and not a way around one.
     try {
       await prisma.product.delete({
         where: { id },
       });
     } catch (error) {
       if (isRestrictedByPaymentRecords(error)) {
-        return NextResponse.json(
-          {
-            error: "has_payment_records",
-            message: "This product has sales or payment records, so it can't be deleted.",
-          },
-          { status: 409 }
-        );
+        await prisma.product.update({
+          where: { id },
+          data: { isActive: false },
+        });
+        return NextResponse.json({ success: true, removedFromSale: true });
       }
       throw error;
     }
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true, deleted: true });
   } catch (error) {
     console.error("Error deleting product:", error);
     return NextResponse.json(

@@ -232,6 +232,18 @@ describe("delivery: paying does not entitle a buyer to unsafe bytes", () => {
     state.order = { id: "order_1", productId: "prod_1" };
   };
 
+  test("a product taken off sale still delivers to the buyer who paid", async () => {
+    reset();
+    authorized();
+    state.product = { ...product("SAFE", KEY, KEY), isActive: false };
+
+    const res = await byOrder();
+    assert.equal(res.status, 302);
+    assert.equal(res.headers.get("location"), SIGNED_URL);
+    assert.equal(state.signCalls.length, 1);
+    assert.equal(state.signCalls[0].key, KEY);
+  });
+
   test("SAFE with a matching key delivers, exactly once", async () => {
     reset();
     authorized();

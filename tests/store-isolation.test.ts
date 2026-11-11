@@ -92,7 +92,7 @@ const ROUTE_POLICY: Record<string, RouteDecision> = {
   },
   "GET /api/products/[id]": { policy: "shop-member" },
   "PUT /api/products/[id]": { policy: "shop-member" },
-  "DELETE /api/products/[id]": { policy: "shop-member" },
+  "DELETE /api/products/[id]": { policy: "shop-owner", mustContain: ["isAdminEmail("] },
   "GET /api/products/[id]/inspect": { policy: "shop-member" },
   // A member, or an admin (both checked before anything else happens).
   "POST /api/products/[id]/rescan": { policy: "shop-member", mustContain: ["isAdminEmail("] },
@@ -678,6 +678,9 @@ function product(id: string, shopId: string, key: string, moderationStatus: stri
     fileScanAttempts: 1,
     thumbnailUrl: null,
     moderationStatus,
+    // Still on sale. A soft-deleted product is isActive false and drops out
+    // of the seller's list.
+    isActive: true,
     deliverables: [],
     certifiedAt: T0,
     createdAt: T0,
