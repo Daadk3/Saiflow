@@ -72,6 +72,7 @@ import type { GeideaOrder } from "@/lib/payments/geidea/client";
 import { verifyCallbackSignature } from "@/lib/payments/geidea/signature";
 import { redactId } from "@/lib/redact-id";
 import { receiptDownloadUrl, receiptAccessUrl } from "@/lib/download-links";
+import { reviewPageUrl } from "@/lib/review-links";
 import {
   MAX_CALLBACK_BYTES,
   canonicalAmount,
@@ -549,6 +550,16 @@ async function sendReceipt(session: Session, orderId: string, productName: strin
     // links to the secure access page with the same signed, dated token.
     // The email never carries the seller's link itself; the page re-checks
     // the Order on every open.
+    let reviewUrl: string | undefined;
+    try {
+      reviewUrl = reviewPageUrl(
+        base,
+        { orderId, productId: session.productId, customerEmail: session.buyerEmail },
+        env.NEXTAUTH_SECRET
+      );
+    } catch {
+      reviewUrl = undefined;
+    }
     if (hosted) {
       await sendPurchaseEmail({
         customerEmail: session.buyerEmail,
@@ -556,6 +567,7 @@ async function sendReceipt(session: Session, orderId: string, productName: strin
         downloadUrl: receiptAccessUrl(base, { orderId, productId: session.productId }, env.NEXTAUTH_SECRET),
         amountPaid: { amount: session.amount, currency: session.currency },
         deliveryType: "HOSTED_ACCESS",
+        reviewUrl,
       });
       return;
     }
@@ -564,6 +576,7 @@ async function sendReceipt(session: Session, orderId: string, productName: strin
       productName,
       downloadUrl: receiptDownloadUrl(base, { orderId, productId: session.productId }, env.NEXTAUTH_SECRET),
       amountPaid: { amount: session.amount, currency: session.currency },
+      reviewUrl,
     });
   } catch (error) {
     log("warn", "receipt_failed", { error: errorName(error), order: redactId(orderId) });

@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { rateLimiters, getClientIp } from "@/lib/rate-limit";
 import { isMerchantReference, statusFor } from "@/lib/payments/payment-status";
 import { hostedAccessPath } from "@/lib/hosted-access/authorize";
+import { reviewPagePath } from "@/lib/review-links";
 
 /**
  * Payment status for the success page.
@@ -25,6 +26,23 @@ import { hostedAccessPath } from "@/lib/hosted-access/authorize";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+
+/**
+ * A signed review path for a confirmed order, or null when it cannot be
+ * signed. The email is an input to the signature and is not placed in the
+ * path. A missing secret omits the link; the paid answer itself still stands.
+ */
+function paidReviewPath(order: { id: string; productId: string; customerEmail: string | null } | null): string | null {
+  if (!order?.customerEmail) return null;
+  try {
+    return reviewPagePath(
+      { orderId: order.id, productId: order.productId, customerEmail: order.customerEmail },
+      process.env.NEXTAUTH_SECRET
+    );
+  } catch {
+    return null;
+  }
+}
 
 function reply(status: number, body: Record<string, unknown>) {
   return NextResponse.json(body, {
@@ -51,7 +69,7 @@ export async function GET(req: Request) {
       // deliveryType decides which path a paid answer carries: a download
       // for a file product, the secure access page for a hosted one.
       product: { select: { name: true, deliveryType: true } },
-      order: { select: { productId: true } },
+      order: { select: { id: true, productId: true, customerEmail: true } },
     },
   });
   if (!attempt) {
@@ -60,6 +78,7 @@ export async function GET(req: Request) {
 
   const orderExists = attempt.order !== null;
   const status = statusFor(attempt, orderExists, new Date());
+  const reviewPath = attempt.order !== null && status === "paid" ? paidReviewPath(attempt.order) : null;
   return reply(200, {
     status,
     productName: attempt.product.name,
@@ -72,11 +91,14 @@ export async function GET(req: Request) {
     // A hosted-access product has no file, so it gets the delivery page's
     // path instead, built the same way; that page re-checks the Order too.
     ...(attempt.order !== null && status === "paid"
-      ? attempt.product.deliveryType === "HOSTED_ACCESS"
-        ? { accessPath: hostedAccessPath(attempt.order.productId, { ref }) }
-        : {
-            downloadUrl: `/api/download/${encodeURIComponent(attempt.order.productId)}?ref=${encodeURIComponent(ref)}`,
-          }
+      ? {
+          ...(attempt.product.deliveryType === "HOSTED_ACCESS"
+            ? { accessPath: hostedAccessPath(attempt.order.productId, { ref }) }
+            : {
+                downloadUrl: `/api/download/${encodeURIComponent(attempt.order.productId)}?ref=${encodeURIComponent(ref)}`,
+              }),
+          ...(reviewPath ? { reviewPath } : {}),
+        }
       : {}),
   });
 }

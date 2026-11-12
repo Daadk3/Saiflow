@@ -48,6 +48,16 @@ export default async function PurchasesPage() {
       product: { select: { slug: true, deliveryType: true, shop: { select: { name: true, slug: true } } } },
     },
   });
+  const reviewed = new Set(
+    orders.length === 0
+      ? []
+      : (
+          await prisma.productReview.findMany({
+            where: { buyerEmail: email, productId: { in: orders.map((order) => order.productId) } },
+            select: { productId: true },
+          })
+        ).map((review) => review.productId)
+  );
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white">
@@ -76,21 +86,29 @@ export default async function PurchasesPage() {
                 {/* A hosted-access product (e.g. an AI agent) opens its secure
                     access page, which re-checks this Order on every visit;
                     a file product downloads exactly as before. */}
-                {order.product.deliveryType === "HOSTED_ACCESS" ? (
+                <div className="flex flex-wrap items-center gap-2">
                   <a
-                    href={hostedAccessPath(order.productId, { purchase: order.id })}
-                    className="rounded-lg bg-teal-500 px-4 py-2 text-sm font-medium text-white hover:bg-teal-400"
+                    href={`/review/${encodeURIComponent(order.productId)}?purchase=${encodeURIComponent(order.id)}`}
+                    className="rounded-lg border border-gray-700 px-4 py-2 text-sm font-medium text-gray-100 hover:border-gray-500"
                   >
-                    {tHosted("purchasesCta")}
+                    {reviewed.has(order.productId) ? t("editReview") : t("writeReview")}
                   </a>
-                ) : (
-                  <a
-                    href={`/api/download/${encodeURIComponent(order.productId)}?purchase=${encodeURIComponent(order.id)}`}
-                    className="rounded-lg bg-teal-500 px-4 py-2 text-sm font-medium text-white hover:bg-teal-400"
-                  >
-                    {t("download")}
-                  </a>
-                )}
+                  {order.product.deliveryType === "HOSTED_ACCESS" ? (
+                    <a
+                      href={hostedAccessPath(order.productId, { purchase: order.id })}
+                      className="rounded-lg bg-teal-500 px-4 py-2 text-sm font-medium text-white hover:bg-teal-400"
+                    >
+                      {tHosted("purchasesCta")}
+                    </a>
+                  ) : (
+                    <a
+                      href={`/api/download/${encodeURIComponent(order.productId)}?purchase=${encodeURIComponent(order.id)}`}
+                      className="rounded-lg bg-teal-500 px-4 py-2 text-sm font-medium text-white hover:bg-teal-400"
+                    >
+                      {t("download")}
+                    </a>
+                  )}
+                </div>
               </li>
             ))}
           </ul>

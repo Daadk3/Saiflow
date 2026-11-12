@@ -748,7 +748,8 @@
     "continueShopping": "Continue Shopping",
     "suspenseFallback": "Loading...",
     "downloadCta": "Download your file",
-    "paidNoLink": "Your download is not available yet. Refresh this page in a moment, or contact support with your reference."
+    "paidNoLink": "Your download is not available yet. Refresh this page in a moment, or contact support with your reference.",
+    "reviewCta": "Write a review"
   },
   "support": {
     "hero": {
@@ -1118,7 +1119,8 @@
       "products": "Products",
       "queue": "Moderation queue",
       "payouts": "Seller payouts",
-      "stores": "Stores"
+      "stores": "Stores",
+      "buyerReviews": "Buyer reviews"
     },
     "firstVisit": {
       "title": "Why do products say “Not yet reviewed”?",
@@ -1339,6 +1341,8 @@
     "back": "Back to your dashboard",
     "empty": "No purchases with this email address yet. If you bought with a different address, sign in with that one.",
     "download": "Download",
+    "writeReview": "Write a review",
+    "editReview": "Edit your review",
     "test": "Test purchase",
     "help": "Purchases are linked to the email address used at checkout. Can't find one? Contact support@saiflow.io."
   },
@@ -1448,5 +1452,52 @@
       "check2": "Nothing here is a password, key, payment detail or patient data.",
       "check3": "The listing describes access honestly (who hosts it, what the buyer gets)."
     }
+  },
+  "reviews": {
+    "title": "Reviews",
+    "averageLabel": "{average} out of 5",
+    "count": "{count, plural, one {# review} other {# reviews}}",
+    "verified": "Verified purchase",
+    "buyer": "Buyer {mask}",
+    "showingLatest": "Showing the latest {count}",
+    "formTitle": "Review your purchase",
+    "formEditTitle": "Update your review",
+    "productLabel": "Product",
+    "starsLabel": "Your rating",
+    "starOption": "{n, plural, one {# star} other {# stars}}",
+    "bodyLabel": "Review (optional)",
+    "bodyHint": "Plain text, up to 500 characters. No links, phone numbers or advertisements.",
+    "submit": "Publish review",
+    "update": "Save changes",
+    "saved": "Your review is published.",
+    "hiddenNote": "This review is hidden from the product page until SaiFlow restores it. You can still edit it.",
+    "invalidLink": "This review link isn't valid. Open the link from your receipt, or sign in and use My purchases.",
+    "expired": "This review link has expired. Sign in with the email you bought with and open My purchases.",
+    "notAllowed": "Only a verified paid purchase can be reviewed.",
+    "signIn": "Sign in",
+    "signInBody": "Sign in with the email you bought with to review this purchase.",
+    "purchasesLink": "My purchases",
+    "contact": "Remove links, phone numbers and contact details, then try again.",
+    "tooLong": "Keep the review under 500 characters.",
+    "invalidStars": "Choose a rating from 1 to 5.",
+    "markup": "Reviews are plain text.",
+    "rateLimited": "Too many attempts. Please wait and try again.",
+    "error": "Something went wrong. Please try again.",
+    "report": "Report",
+    "reportReason": "What should SaiFlow look at?",
+    "reportSubmit": "Send report",
+    "reportSent": "Reported. You can't edit or delete a buyer's review.",
+    "reportHint": "Reporting sends this review to SaiFlow. It stays visible until a reviewer hides it.",
+    "adminTitle": "Buyer reviews",
+    "adminSubtitle": "Reviews sellers reported, and reviews you have hidden. Hiding keeps the row and removes it from the product's average.",
+    "adminEmpty": "No reported or hidden reviews.",
+    "adminBack": "Founder dashboard",
+    "hide": "Hide review",
+    "unhide": "Show again",
+    "hidden": "Hidden",
+    "visible": "Visible",
+    "hideReason": "Reason kept with the review",
+    "reportedBySeller": "Seller report",
+    "noReport": "Hidden without a seller report"
   }
 }

@@ -141,6 +141,21 @@ export const rateLimiters = {
   report: (ip: string) =>
     rateLimit(`report:${ip}`, { windowMs: 60 * 60 * 1000, maxRequests: 5 }),
 
+  // Buyer reviews: a person writes one review, then maybe edits it. Ten an
+  // hour per address is enough for mistakes and not enough to stuff a page.
+  review: (ip: string) =>
+    rateLimit(`review:${ip}`, { windowMs: 60 * 60 * 1000, maxRequests: 10 }),
+
+  // The same cap per buyer, so a shared network cannot be the only limit
+  // and one buyer cannot spend the IP budget of everyone behind it.
+  reviewAccount: (account: string) =>
+    rateLimit(`review-account:${account}`, { windowMs: 60 * 60 * 1000, maxRequests: 10 }),
+
+  // A seller reporting a review on their own product. Separate from product
+  // reports so the two queues do not eat each other's allowance.
+  reviewReport: (ip: string) =>
+    rateLimit(`review-report:${ip}`, { windowMs: 60 * 60 * 1000, maxRequests: 5 }),
+
   // Checkout: 15 per 10 minutes. A real buyer clicks once, or a handful of
   // times across a cancelled hosted page and a retry. Every call past the
   // gates writes an attempt row and asks the payment provider for a session,

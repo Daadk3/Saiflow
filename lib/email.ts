@@ -97,6 +97,7 @@ export async function sendPurchaseEmail({
   downloadUrl,
   amountPaid,
   deliveryType,
+  reviewUrl,
 }: {
   customerEmail: string;
   productName: string;
@@ -106,9 +107,12 @@ export async function sendPurchaseEmail({
   deliveryType?: "FILE" | "HOSTED_ACCESS";
   /** The price the order recorded. Omitted, or unreadable, the receipt simply leaves the line out. */
   amountPaid?: { amount: unknown; currency: string };
+  /** Signed review link. Omitted, the receipt is only the download. */
+  reviewUrl?: string;
 }) {
   const name = escapeHtml(productName);
   const href = escapeHtml(downloadUrl);
+  const reviewHref = reviewUrl ? escapeHtml(reviewUrl) : "";
   const hosted = deliveryType === "HOSTED_ACCESS";
   const ctaLabel = hosted ? 'افتح وصولك · Open your access' : 'تحميل المنتج · Download your product';
   const noteAr = hosted
@@ -147,6 +151,7 @@ export async function sendPurchaseEmail({
             <a href="${href}" style="display: inline-block; background: #14b8a6; color: white; padding: 16px 32px; text-decoration: none; border-radius: 12px; font-weight: bold;">
               ${ctaLabel}
             </a>
+            ${reviewHref ? `<p style="margin-top: 16px;"><a href="${reviewHref}" style="color: #14b8a6;">قيّم مشترياتك · Review your purchase</a></p>` : ""}
           </div>
           <div dir="ltr" lang="en" style="text-align: left;">
             <h2 style="color: #14b8a6; text-align: center; font-size: 20px;">Thank you for your purchase!</h2>

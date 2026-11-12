@@ -82,6 +82,7 @@ const ROUTE_POLICY: Record<string, RouteDecision> = {
   "POST /api/admin/moderation/[productId]": { policy: "admin" },
   "GET /api/admin/payouts": { policy: "admin" },
   "POST /api/admin/payouts": { policy: "admin" },
+  "POST /api/admin/reviews": { policy: "admin" },
 
   // A member of the shop the request acts on.
   "POST /api/ai/listing": { policy: "shop-member" },
@@ -135,6 +136,17 @@ const ROUTE_POLICY: Record<string, RouteDecision> = {
     reason: "abuse report: writes an audit row, never changes the product",
     mustContain: ["rateLimiters.report("],
     mustNotContain: ["prisma.product.update", "prisma.product.delete", "prisma.shop.update"],
+  },
+  "POST /api/reviews": {
+    policy: "public",
+    reason: "verified buyer review: signed purchase token or the signed-in buyer's own paid order",
+    mustContain: ["rateLimiters.review(", "authorizeReviewWrite("],
+    mustNotContain: ["prisma.productReview.delete"],
+  },
+  "POST /api/reviews/[id]/report": {
+    policy: "shop-owner",
+    mustContain: ["rateLimiters.reviewReport("],
+    mustNotContain: ["prisma.productReview.update", "prisma.productReview.delete"],
   },
 
   // Provider callbacks, authenticated by signature.
@@ -836,7 +848,7 @@ before(async () => {
     namedExports: {
       rateLimit: allow,
       rateLimiters: Object.fromEntries(
-        ["auth", "signup", "passwordReset", "payoutAccount", "api", "report", "checkout", "createShop", "createProduct"].map((k) => [k, allow])
+        ["auth", "signup", "passwordReset", "payoutAccount", "api", "report", "review", "reviewAccount", "reviewReport", "checkout", "createShop", "createProduct"].map((k) => [k, allow])
       ),
       getClientIp: () => "test-ip",
       accountKey: (email: string) => `acct:${email.toLowerCase()}`,
@@ -960,6 +972,7 @@ before(async () => {
   const adminPayouts = await import("../app/api/admin/payouts/route.ts");
   H.adminPayoutsGET = adminPayouts.GET;
   H.adminPayoutsPOST = adminPayouts.POST;
+  H.adminReviewsPOST = (await import("../app/api/admin/reviews/route.ts")).POST;
   const scan = await import("../app/api/internal/scan/route.ts");
   H.scanGET = scan.GET;
   H.scanPOST = scan.POST;
@@ -1283,6 +1296,8 @@ const ADMIN_CALLS: Record<string, () => Promise<Response>> = {
         expectedAccountUpdatedAt: T0.toISOString(),
       })
     ),
+  "POST /api/admin/reviews": () =>
+    H.adminReviewsPOST(req("POST", "/api/admin/reviews", { reviewId: "rev_1", action: "hide", reason: "Off topic abuse." })),
 };
 
 describe("admin routes: refused to sellers and to the signed-out", () => {

@@ -28,6 +28,8 @@ export interface StatusResponse {
   downloadUrl: string | null;
   /** For a hosted-access product instead: the same-origin delivery page path. */
   accessPath?: string;
+  /** Signed review link, only on a paid answer. Same-origin path. */
+  reviewPath?: string;
 }
 
 export type PollOutcome =
@@ -38,6 +40,8 @@ export type PollOutcome =
       downloadUrl: string | null;
       /** Present only for a paid hosted-access order. */
       accessPath?: string;
+      /** Present only when the server signed a review link for this purchase. */
+      reviewPath?: string;
     }
   | { kind: "processing"; productName: string | null }
   | { kind: "unknown" }
@@ -71,10 +75,12 @@ function defaultSleep(ms: number, signal?: AbortSignal): Promise<void> {
 const DOWNLOAD_PATH = /^\/api\/download\/[^/?#]+\?ref=[0-9a-f-]{36}$/i;
 /** An access path is accepted only as SaiFlow's own delivery page, relative. */
 const ACCESS_PATH = /^\/access\/[A-Za-z0-9_-]{1,64}\?ref=[0-9a-f-]{36}$/i;
+/** A review path is accepted only as SaiFlow's own review form, relative. */
+const REVIEW_PATH = /^\/review\/[A-Za-z0-9_-]{1,64}\?t=[A-Za-z0-9_.-]{10,300}$/;
 
 function decode(body: unknown): StatusResponse | null {
   if (typeof body !== "object" || body === null) return null;
-  const { status, productName, orderExists, downloadUrl, accessPath } = body as Record<string, unknown>;
+  const { status, productName, orderExists, downloadUrl, accessPath, reviewPath } = body as Record<string, unknown>;
   if (typeof status !== "string" || !(PAYMENT_STATUSES as readonly string[]).includes(status)) {
     return null;
   }
@@ -82,12 +88,14 @@ function decode(body: unknown): StatusResponse | null {
   const path =
     typeof downloadUrl === "string" && DOWNLOAD_PATH.test(downloadUrl) ? downloadUrl : null;
   const access = typeof accessPath === "string" && ACCESS_PATH.test(accessPath) ? accessPath : null;
+  const review = typeof reviewPath === "string" && REVIEW_PATH.test(reviewPath) ? reviewPath : null;
   return {
     status: status as PaymentStatus,
     productName,
     orderExists,
     downloadUrl: path,
     ...(access !== null ? { accessPath: access } : {}),
+    ...(review !== null ? { reviewPath: review } : {}),
   };
 }
 
@@ -144,6 +152,7 @@ export async function pollPaymentStatus(options: PollOptions): Promise<PollOutco
               // Only a paid answer may carry a download path; anything else is dropped.
               downloadUrl: decoded.status === "paid" ? decoded.downloadUrl : null,
               ...(decoded.status === "paid" && decoded.accessPath ? { accessPath: decoded.accessPath } : {}),
+              ...(decoded.status === "paid" && decoded.reviewPath ? { reviewPath: decoded.reviewPath } : {}),
             };
           }
         }

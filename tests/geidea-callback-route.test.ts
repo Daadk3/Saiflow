@@ -27,6 +27,7 @@ import { readFileSync } from "node:fs";
 import { signCallback } from "../lib/payments/geidea/signature.ts";
 import { COMMISSION_VERSION, fromHalalas, saleBreakdown } from "../lib/pricing.ts";
 import { verifyReceiptToken } from "../lib/download-links.ts";
+import { verifyReviewToken } from "../lib/review-links.ts";
 
 const RECEIPT_SECRET = "test-only-receipt-secret";
 
@@ -560,12 +561,19 @@ describe("the captured paid callback fulfils exactly once", () => {
     await post(callback());
     assert.equal(db.orders[0].customerEmail, BUYER_EMAIL);
     assert.equal(emails.length, 1);
-    const { downloadUrl, ...rest } = emails[0] as { downloadUrl: string } & Record<string, unknown>;
+    const { downloadUrl, reviewUrl, ...rest } = emails[0] as { downloadUrl: string; reviewUrl?: string } & Record<string, unknown>;
     assert.deepEqual(rest, {
       customerEmail: BUYER_EMAIL,
       productName: "Arabic Templates Pack",
       amountPaid: { amount: db.sessions[0].amount, currency: "SAR" },
     });
+    const reviewLink = new URL(reviewUrl!);
+    assert.equal(reviewLink.pathname, `/review/${PRODUCT_ID}`);
+    assert.deepEqual(verifyReviewToken(reviewLink.searchParams.get("t")!, PRODUCT_ID, BUYER_EMAIL, RECEIPT_SECRET), {
+      ok: true,
+      orderId: "order_1",
+    });
+    assert.ok(!reviewUrl!.includes(BUYER_EMAIL), "the review link does not carry the email");
     // A signed, dated link for this order and product, never the bare order id.
     const link = new URL(downloadUrl);
     assert.equal(`${link.origin}${link.pathname}`, `https://saiflow.test/api/download/${PRODUCT_ID}`);
