@@ -21,7 +21,7 @@ function currentTheme(): ThemeChoice {
   const root = document.documentElement;
   if (root.classList.contains("light")) return "light";
   if (root.classList.contains("dark")) return "dark";
-  return themeFromPreference(null, window.matchMedia("(prefers-color-scheme: light)").matches);
+  return themeFromPreference(null);
 }
 
 function SunIcon() {
