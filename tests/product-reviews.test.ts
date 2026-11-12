@@ -122,12 +122,18 @@ describe("what may be written", () => {
 
 describe("the migration and the page", () => {
   test("the migration only adds the two tables, checks the stars, and writes no rows", () => {
-    const sql = read("prisma/migrations/20261112120000_product_reviews/migration.sql");
+    const name = "20261112130000_product_reviews";
+    const sql = read(`prisma/migrations/${name}/migration.sql`);
+    // Later than the production migration that already owns 20261112120000, so
+    // `prisma migrate deploy` sorts this folder strictly after it.
+    assert.ok(name > "20261112120000_product_landing_and_compare_at");
     assert.match(sql, /CHECK \("stars" >= 1 AND "stars" <= 5\)/);
     assert.match(sql, /ProductReview_buyerEmail_productId_key/);
     assert.match(sql, /ProductReview_orderId_productId_key/);
-    assert.ok(!/^\s*(INSERT|UPDATE|DELETE)\b/im.test(sql));
-    assert.ok(!/ALTER TABLE "Rating"/i.test(sql));
+    assert.ok(!/^\s*(INSERT|UPDATE|DELETE|DROP)\b/im.test(sql));
+    for (const table of ["Rating", "Product", "Order"]) {
+      assert.ok(!new RegExp(`ALTER TABLE "${table}"`, "i").test(sql), table);
+    }
   });
 
   test("the public section shows nothing when there are no reviews, and does not inject HTML", () => {

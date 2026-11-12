@@ -1,5 +1,9 @@
 -- Verified-buyer product reviews.
 --
+-- Timestamp 20261112130000, after 20261112120000_product_landing_and_compare_at.
+-- Prisma applies folders in lexicographic order, so this cannot tie with that
+-- migration or run before it.
+--
 -- Additive. Creates ProductReview and ProductReviewReport only.
 -- The legacy Rating table is untouched. No rows are inserted, updated
 -- or backfilled: a product with no reviews shows nothing.
