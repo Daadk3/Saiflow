@@ -36,6 +36,23 @@ interface PendingProduct {
   localHtmlApp?: boolean;
 }
 
+/** A 409 from the moderation route. Hosted products are not missing a file. */
+function notApprovableMessage(reason: unknown, ar: boolean): string {
+  if (reason === "hosted_access_missing") {
+    return ar
+      ? "لا يمكن الاعتماد: رابط الوصول المستضاف مفقود أو لا يجتاز قواعد الروابط."
+      : "Can't approve: the hosted access link is missing or fails the link rules.";
+  }
+  if (reason === "hosted_has_files") {
+    return ar
+      ? "لا يمكن الاعتماد: هذا المنتج المستضاف ما زالت عليه ملفات. أزلها أولًا."
+      : "Can't approve: this hosted product still has files attached. Remove them first.";
+  }
+  return ar
+    ? "لا يمكن اعتماد منتج قبل أن يجتاز ملفه فحص الأمان. افتح المنتج لمعرفة السبب."
+    : "A product can't be approved until its file passes the safety check. Open the product to see why.";
+}
+
 export default function ModerationQueuePage() {
   const locale = useLocale();
   const ar = locale.startsWith("ar");
@@ -88,9 +105,7 @@ export default function ModerationQueuePage() {
         const data = await res.json().catch(() => ({}));
         const message =
           data.error === "not_approvable"
-            ? ar
-              ? "لا يمكن اعتماد منتج قبل أن يجتاز ملفه فحص الأمان. افتح المنتج لمعرفة السبب."
-              : "A product can't be approved until its file passes the safety check. Open the product to see why."
+            ? notApprovableMessage(data.reason, ar)
             : data.error || (ar ? "فشل تسجيل القرار" : "Failed to record the decision");
         // A refused rejection keeps its dialog open with the error inside.
         if (action === "REJECTED") setRejectError(message);

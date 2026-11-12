@@ -226,6 +226,18 @@ export interface DirectoryRow {
   slug: string;
   /** FILE, or HOSTED_ACCESS (no file by design). */
   deliveryType?: "FILE" | "HOSTED_ACCESS";
+  /**
+   * The private access record, so the directory page can run
+   * approveBlockedReason. Set only for HOSTED_ACCESS. Do not render it and
+   * do not pass it to a client component: it is the seller's link.
+   */
+  hostedAccessGate: { accessUrl: string; instructions: string | null } | null;
+  /**
+   * How many ProductDeliverable rows are attached. -1 means the relation was
+   * not loaded; the approve helper then treats a hosted product as still
+   * having files. The rows themselves are not on this object: they carry storage keys.
+   */
+  deliverableCount: number;
   thumbnailUrl: string | null;
   price: number;
   currency: string;
@@ -379,10 +391,11 @@ export async function getProductsDirectory(opts: {
         fileKey: true,
         fileScanStatus: true,
         fileScanKey: true,
-        // Hosted access (no file by design): its type, and only whether its
-        // private record exists. Never the link.
+        // Hosted access has no file. The link and instructions are read so
+        // Approve can use the same rules as the moderation route. They are
+        // copied onto hostedAccessGate for that server-side check only.
         deliveryType: true,
-        hostedAccess: { select: { productId: true } },
+        hostedAccess: { select: { accessUrl: true, instructions: true } },
         deliverables: { select: { fileKey: true, fileScanStatus: true, fileScanKey: true } },
         shop: {
           select: {
@@ -437,6 +450,8 @@ export async function getProductsDirectory(opts: {
         humanReviewed: latest != null && latest.newStatus === p.moderationStatus,
         hasFile: p.fileKey != null,
         deliveryType: p.deliveryType,
+        hostedAccessGate: p.deliveryType === "HOSTED_ACCESS" ? p.hostedAccess : null,
+        deliverableCount: Array.isArray(p.deliverables) ? p.deliverables.length : -1,
         fileSafety: moderatorListingSafety(p, p.deliverables),
         canInspect: inspectProduct(p, "admin").decision.allow,
         notSellableReason:
