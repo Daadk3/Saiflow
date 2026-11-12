@@ -56,7 +56,8 @@
       "primaryAria": "Start selling — create your store for free",
       "secondaryCta": "Browse products",
       "secondaryAria": "Browse all digital products",
-      "trustLine": "Free to start · Secure payment · Direct digital delivery"
+      "trustLine": "Free to start · 7% per sale, nothing monthly · Secure payment in SAR",
+      "proof": "Products available: {products} · Stores: {shops} · 7% per sale, nothing monthly"
     },
     "paths": {
       "title": "What would you like to do today?",
@@ -156,9 +157,9 @@
     }
   },
   "footer": {
-    "tagline": "Sell digital products, courses, and memberships with a clean, modern checkout experience. Keep more of what you earn with Saiflow.",
-    "newsletter": "Get the Arabic-language creator playbook",
-    "newsletterDesc": "Weekly tips on selling digital products, growing your audience, and making money from what you know. In Arabic and English.",
+    "tagline": "Sell digital products, courses, and memberships with a clean, modern checkout experience. Keep more of what you earn with SaiFlow.",
+    "newsletter": "Be the first to know the launch date",
+    "newsletterDesc": "One email on launch day, plus a short weekly tip on selling digital products. No noise.",
     "emailPlaceholder": "you@example.com",
     "subscribe": "Subscribe",
     "about": "About",
@@ -168,7 +169,7 @@
     "terms": "Terms",
     "privacy": "Privacy",
     "refunds": "Refund Policy",
-    "copyright": "© 2026 Saiflow. All rights reserved.",
+    "copyright": "© 2026 SaiFlow. All rights reserved.",
     "ariaFooter": "Site footer",
     "newsletterEmailAria": "Email address for newsletter",
     "newsletterComingSoon": "Newsletter coming soon — thanks for your interest!",
@@ -242,7 +243,7 @@
       "creating": "Creating...",
       "loading": "Loading...",
       "helpText": "You can edit your shop details later from the dashboard",
-      "mascotAlt": "Saiflow mascot logo"
+      "mascotAlt": "SaiFlow mascot logo"
     },
     "viewShop": "View shop",
     "viewSales": "View sales",
@@ -417,7 +418,7 @@
     "forgotPassword": "Forgot password?",
     "continueWithGoogle": "Continue with Google",
     "orContinueWithEmail": "or continue with email",
-    "noAccount": "New to Saiflow? <link>Sign up</link>",
+    "noAccount": "New to SaiFlow? <link>Sign up</link>",
     "createAccount": "Create an account",
     "alreadyHaveAccount": "Already have an account?",
     "welcomeBack": "Welcome back",
@@ -519,7 +520,7 @@
     }
   },
   "meta": {
-    "title": "Saiflow — The Arabic-Language Digital Products Marketplace",
+    "title": "SaiFlow — The Arabic-Language Digital Products Marketplace",
     "description": "The marketplace where creators sell their knowledge in Arabic. Sell ebooks, courses, templates and more. SaiFlow commission: 7%. Start free."
   },
   "trustBadges": {
@@ -547,7 +548,7 @@
       "feature1": "Unlimited products",
       "feature2": "Unlimited sales",
       "feature3": "Secure file hosting",
-      "feature4": "Payouts (activating with launch)",
+      "feature4": "Payments and payouts, activating at launch",
       "feature5": "Sales dashboard & analytics",
       "feature6": "Email notifications",
       "feature7": "Custom product links",
@@ -559,44 +560,47 @@
       "heading": "How we compare",
       "subheading": "Side-by-side with leading alternatives",
       "headerFeature": "Feature",
-      "headerYou": "Saiflow",
+      "headerYou": "SaiFlow",
       "headerThem": "Other platforms",
       "rowMonthlyFee": "Monthly fee",
       "rowTransactionFee": "Transaction fee",
       "rowSetupTime": "Time to launch",
-      "rowPayoutSpeed": "Payout speed",
+      "rowCurrency": "Currency and payment",
+      "rowLanguage": "Language",
       "rowHiddenCosts": "Hidden costs",
       "saiflowFree": "None",
       "saiflowRate": "7%",
       "saiflowFast": "Minutes",
-      "saiflowInstant": "TBA",
-      "saiflowNone": "TBA",
-      "themTransaction": "5-10% + monthly",
+      "saiflowCurrency": "SAR, for buyers in Saudi Arabia",
+      "saiflowLanguage": "Arabic first",
+      "saiflowNone": "None",
+      "themTransaction": "5% to 10% plus a monthly plan",
       "themSlow": "Days or weeks",
-      "themPayout": "Weekly/Monthly",
+      "themCurrency": "Usually USD",
+      "themLanguage": "English first",
       "themHidden": "Often yes"
     },
     "faq": {
       "heading": "Common questions",
       "subheading": "Everything you might wonder before signing up",
       "q1": "When do I get paid?",
-      "a1": "SaiFlow is in pre-launch. Payout systems are currently in development, and payout details will be announced before launch.",
+      "a1": "Your earnings, the sale price minus our 7% fee, are sent by bank transfer to a Saudi bank account (IBAN) in your name, which you add on your store's Payouts page. Payments and payouts activate at launch, and every seller will be notified by email.",
       "q2": "Are there any hidden fees?",
-      "a2": "SaiFlow's commission is 7% of each sale. There is no monthly fee or subscription.",
+      "a2": "No. SaiFlow's fee is 7% per sale. No monthly fee, no subscription, and no fee to upload products.",
       "q3": "Who can I sell to?",
-      "a3": "Saiflow is built for creators in Saudi Arabia first — with local payment methods, SAR pricing, and Arabic-first support tailored to your market.",
+      "a3": "Anyone who pays in Saudi riyals. SaiFlow is built for creators based in Saudi Arabia first, with local payment methods and Arabic support. Expansion outside Saudi Arabia comes after launch.",
       "q4": "What file types can I sell?",
-      "a4": "You can sell PDFs, ebooks, videos, audio files (MP3, WAV), ZIP archives, images, software, templates, and more. If it's digital, you can sell it on Saiflow.",
+      "a4": "PDF, EPUB and ZIP files, audio (MP3, WAV), video, images (JPEG, PNG, WebP, GIF, HEIC, AVIF), templates and software. If it's digital, you can sell it on SaiFlow.",
       "q5": "Do I need technical skills?",
-      "a5": "Not at all. Saiflow is designed for creators, not developers. Upload your file, set a price, and share your link — that's it.",
+      "a5": "No. Upload your file, set a price, and share your link. That's it.",
       "q6": "Can I cancel anytime?",
-      "a6": "There's nothing to cancel. Since there are no monthly fees or subscriptions, you can stop using Saiflow whenever you want, with no penalties."
+      "a6": "There is no subscription to cancel. Stop using SaiFlow whenever you like, with no penalties."
     },
     "cta": {
       "title": "Start selling in minutes",
-      "subtitle": "SaiFlow is in pre-launch. Our commission is 7% of each sale, with no monthly fee.",
-      "primary": "Get started",
-      "note": "Free to start • No credit card required"
+      "subtitle": "SaiFlow is in pre-launch. Open your store and upload your products for free today. Our fee is 7% per sale, with no monthly fee and no card to start. Payments and payouts activate at launch, and every seller will be notified by email.",
+      "primary": "Start selling for free",
+      "note": "No card to start"
     }
   },
   "features": {
@@ -633,8 +637,8 @@
         ]
       },
       "payouts": {
-        "title": "Creator payouts — activating with launch",
-        "description": "Secure payouts for creators activate with launch.",
+        "title": "Payments and payouts, activating at launch",
+        "description": "Payments and payouts activate at launch, and every seller will be notified by email.",
         "items": [
           "Activating with launch"
         ]
@@ -695,7 +699,7 @@
     },
     "cta": {
       "title": "Start selling in minutes",
-      "subtitle": "Pre-launch. Build your store today; start earning when we launch.",
+      "subtitle": "SaiFlow is in pre-launch. Open your store for free today; payments activate at launch.",
       "primary": "Start Selling — It's Free",
       "note": "Free to start • No credit card required"
     }
@@ -787,7 +791,7 @@
     "contact": {
       "email": {
         "title": "Email us",
-        "body": "Get a response within 24 hours",
+        "body": "We reply within one business day",
         "cta": "Send email"
       },
       "faq": {
@@ -823,7 +827,7 @@
     },
     "success": {
       "heading": "Message Sent!",
-      "subtitle": "Thank you for reaching out. We'll get back to you within 24 hours.",
+      "subtitle": "Thank you for reaching out. We reply within one business day.",
       "backToHome": "Back to Home",
       "sendAnother": "Send another message"
     },
@@ -841,7 +845,7 @@
         },
         "payouts": {
           "question": "When do I get paid?",
-          "answer": "Your earnings (each sale minus SaiFlow's 7% commission) are sent by bank transfer to a Saudi bank account (IBAN) in your name, which you add on your store's Payouts page. For now, selling and payouts are for creators based in Saudi Arabia; international is coming soon. The exact payout schedule will be announced when sales open."
+          "answer": "Your earnings, the sale price minus our 7% fee, are sent by bank transfer to a Saudi bank account (IBAN) in your name, which you add on your store's Payouts page. Payments and payouts activate at launch, and every seller will be notified by email. For now, selling and payouts are for creators based in Saudi Arabia; international is coming soon. The exact payout schedule will be announced when sales open."
         },
         "delivery": {
           "question": "How do customers receive their files?",
@@ -916,16 +920,16 @@
     "notice": "SaiFlow currently sells only its own products. Accounts for outside sellers, whether they have a Saudi bank account or are based abroad, will open soon. You can create your store and prepare your products now, but they won't be published or sold until we open. We'll let you know as soon as we do."
   },
   "preLaunch": {
-    "banner": "Checkout is being activated. You can browse products and set up your store now.",
-    "comingSoon": "Checkout opening soon",
-    "checkoutDisabled": "Checkout is being activated.",
+    "banner": "SaiFlow is in pre-launch. Browse products and open your store for free today; payments activate at launch.",
+    "comingSoon": "Payments activate at launch",
+    "checkoutDisabled": "Payments and payouts activate at launch.",
     "payoutsCard": {
-      "title": "Creator payouts — activating with launch",
-      "body": "Secure payouts for creators activate with launch."
+      "title": "Payments and payouts, activating at launch",
+      "body": "Payments and payouts activate at launch, and every seller will be notified by email."
     }
   },
   "moderation": {
-    "certLabel": "I certify that I own this content or hold a valid license to sell it; that it does not infringe any copyright, trademark, or other intellectual-property rights; that it complies with the laws and regulations of the Kingdom of Saudi Arabia and with Saiflow's Content Policy, including its prohibited-content rules; that it contains no malware or harmful code; and that I accept full legal responsibility for this content and its sale.",
+    "certLabel": "I certify that I own this content or hold a valid license to sell it; that it does not infringe any copyright, trademark, or other intellectual-property rights; that it complies with the laws and regulations of the Kingdom of Saudi Arabia and with SaiFlow's Content Policy, including its prohibited-content rules; that it contains no malware or harmful code; and that I accept full legal responsibility for this content and its sale.",
     "certPolicyLink": "Read the Content Policy",
     "pendingBadge": "Under review",
     "approvedBadge": "Approved",
@@ -1072,7 +1076,7 @@
       "payments": "Enable payments.",
       "calm": "No urgent work today.",
       "cta": "Start",
-      "ctaCalm": "Focus on growing Saiflow"
+      "ctaCalm": "Focus on growing SaiFlow"
     },
     "notSellable": {
       "badge": "Not on sale",

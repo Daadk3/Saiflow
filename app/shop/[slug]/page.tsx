@@ -67,9 +67,9 @@ export async function generateMetadata({
   if (!shop) return {};
 
   const url = `${BASE_URL}/shop/${slug}`;
-  const title = `${shop.name} | Saiflow`;
+  const title = `${shop.name} | SaiFlow`;
   const description =
-    shop.description?.slice(0, 160) || `${shop.name} — digital products on Saiflow`;
+    shop.description?.slice(0, 160) || `${shop.name} — digital products on SaiFlow`;
   const image = shop.coverImage || shop.logo || `${BASE_URL}/og-image.png`;
 
   return {
@@ -80,7 +80,7 @@ export async function generateMetadata({
       title,
       description,
       url,
-      siteName: "Saiflow",
+      siteName: "SaiFlow",
       type: "website",
       images: [{ url: image }],
     },

@@ -9,11 +9,11 @@ interface DocContent {
 
 const docs: Record<string, DocContent> = {
   "getting-started": {
-    title: "Welcome to Saiflow",
+    title: "Welcome to SaiFlow",
     category: "Getting Started",
     content: `
-      <h2>What is Saiflow?</h2>
-      <p>Saiflow is a platform that makes it easy to sell digital products online. Whether you're selling ebooks, courses, templates, or any other digital content, Saiflow provides the tools you need to succeed.</p>
+      <h2>What is SaiFlow?</h2>
+      <p>SaiFlow is a platform that makes it easy to sell digital products online. Whether you're selling ebooks, courses, templates, or any other digital content, SaiFlow provides the tools you need to succeed.</p>
       
       <h2>Key Features</h2>
       <ul>
@@ -33,7 +33,7 @@ const docs: Record<string, DocContent> = {
     category: "Getting Started",
     content: `
       <h2>Sign Up Process</h2>
-      <p>Creating a Saiflow account is quick and easy:</p>
+      <p>Creating a SaiFlow account is quick and easy:</p>
       <ol>
         <li>Click the "Sign Up" button in the top right corner</li>
         <li>Enter your email address and create a password</li>
@@ -42,7 +42,7 @@ const docs: Record<string, DocContent> = {
       </ol>
       
       <h2>Account Types</h2>
-      <p>Saiflow supports both seller and buyer accounts. You can switch between roles or use both features with a single account.</p>
+      <p>SaiFlow supports both seller and buyer accounts. You can switch between roles or use both features with a single account.</p>
     `,
   },
   "first-shop": {
@@ -80,7 +80,7 @@ const docs: Record<string, DocContent> = {
       </ol>
       
       <h2>Product Types</h2>
-      <p>Saiflow supports various digital product types including ebooks, courses, templates, software, and more.</p>
+      <p>SaiFlow supports various digital product types including ebooks, courses, templates, software, and more.</p>
     `,
   },
   "pricing-strategy": {
@@ -97,7 +97,7 @@ const docs: Record<string, DocContent> = {
       </ul>
       
       <h2>Pricing Tools</h2>
-      <p>Use Saiflow's analytics to track how different prices affect your sales and revenue.</p>
+      <p>Use SaiFlow's analytics to track how different prices affect your sales and revenue.</p>
     `,
   },
   "managing-orders": {
@@ -116,10 +116,10 @@ const docs: Record<string, DocContent> = {
     category: "For Sellers",
     content: `
       <h2>How Payouts Work</h2>
-      <p>Payout systems are currently in development. We will announce details before launch.</p>
+      <p>SaiFlow is in pre-launch. Open your store and upload your products for free today. Our fee is 7% per sale, with no monthly fee and no card to start. Payments and payouts activate at launch, and every seller will be notified by email.</p>
       
       <h2>Payout Schedule</h2>
-      <p>Payouts are processed according to your account settings. Standard processing time is 2-5 business days.</p>
+      <p>The payout schedule (how often, the minimum amount and processing time) will be published here on launch day.</p>
     `,
   },
   "analytics": {
@@ -127,7 +127,7 @@ const docs: Record<string, DocContent> = {
     category: "For Sellers",
     content: `
       <h2>Analytics Dashboard</h2>
-      <p>Saiflow provides comprehensive analytics to help you understand your sales performance:</p>
+      <p>SaiFlow provides comprehensive analytics to help you understand your sales performance:</p>
       <ul>
         <li>Revenue trends</li>
         <li>Product performance</li>
@@ -172,7 +172,7 @@ const docs: Record<string, DocContent> = {
       <p>After purchase, you'll receive an email with a download link. For your security it works for 7 days.</p>
       
       <h2>Downloading Again</h2>
-      <p>Sign in to Saiflow with the email address you used to buy (or create an account with it), then open "My purchases" from your dashboard. You can download from there as often as you need.</p>
+      <p>Sign in to SaiFlow with the email address you used to buy (or create an account with it), then open "My purchases" from your dashboard. You can download from there as often as you need.</p>
     `,
   },
   "refunds": {
@@ -190,11 +190,11 @@ const docs: Record<string, DocContent> = {
     title: "General Questions",
     category: "FAQ",
     content: `
-      <h2>What is Saiflow?</h2>
-      <p>Saiflow is a platform for selling and buying digital products online.</p>
+      <h2>What is SaiFlow?</h2>
+      <p>SaiFlow is a platform for selling and buying digital products online.</p>
       
-      <h2>Is Saiflow free to use?</h2>
-      <p>Creating an account is free during pre-launch. Pricing and payment terms will be announced before launch.</p>
+      <h2>Is SaiFlow free to use?</h2>
+      <p>Yes. Creating an account and opening a store are free. Our fee is 7% per sale, with no monthly fee and no card to start.</p>
       
       <h2>What types of products can I sell?</h2>
       <p>You can sell any digital product including ebooks, courses, templates, software, and more.</p>
@@ -205,10 +205,10 @@ const docs: Record<string, DocContent> = {
     category: "FAQ",
     content: `
       <h2>How do I get paid?</h2>
-      <p>Saiflow is in pre-launch. Payout features will be available at launch.</p>
+      <p>By bank transfer to a Saudi bank account (IBAN) in your name, which you add on your store's Payouts page. Payments and payouts activate at launch, and every seller will be notified by email.</p>
       
       <h2>What are the fees?</h2>
-      <p>Pricing and payment terms will be announced before launch.</p>
+      <p>7% per sale. No monthly fee, no subscription, and no fee to upload products.</p>
       
       <h2>Can I customize my shop?</h2>
       <p>Yes! You can customize colors, fonts, and layout to match your brand.</p>
@@ -236,10 +236,10 @@ const docs: Record<string, DocContent> = {
       <p>Contact our support team through the support page or email support@saiflow.io</p>
       
       <h2>Browser Requirements</h2>
-      <p>Saiflow works best on modern browsers like Chrome, Firefox, Safari, and Edge.</p>
+      <p>SaiFlow works best on modern browsers like Chrome, Firefox, Safari, and Edge.</p>
       
       <h2>Mobile Access</h2>
-      <p>Yes, Saiflow is fully responsive and works on mobile devices.</p>
+      <p>Yes, SaiFlow is fully responsive and works on mobile devices.</p>
     `,
   },
 };
@@ -248,7 +248,7 @@ const sidebarLinks = [
   {
     category: "Getting Started",
     links: [
-      { slug: "getting-started", title: "Welcome to Saiflow" },
+      { slug: "getting-started", title: "Welcome to SaiFlow" },
       { slug: "creating-account", title: "Creating Your Account" },
       { slug: "first-shop", title: "Setting Up Your First Shop" },
     ],

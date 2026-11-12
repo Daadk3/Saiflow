@@ -5,9 +5,9 @@ import Image from "next/image";
 const blogPosts = [
   {
     slug: "introducing-saiflow",
-    title: "Introducing Saiflow: The Future of Digital Product Sales",
-    excerpt: "We're excited to launch Saiflow, a platform designed to help creators sell digital products with ease. Learn about our mission and what makes us different.",
-    author: "Saiflow Team",
+    title: "Introducing SaiFlow: The Future of Digital Product Sales",
+    excerpt: "We're excited to launch SaiFlow, a platform designed to help creators sell digital products with ease. Learn about our mission and what makes us different.",
+    author: "SaiFlow Team",
     date: "2026-07-01",
     category: "Product",
     featuredImage: "/mascot.png",
@@ -25,7 +25,7 @@ export default function BlogPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center">
             <h1 className="text-4xl sm:text-5xl font-bold text-white mb-4">
-              Saiflow Blog
+              SaiFlow Blog
             </h1>
             <p className="text-xl text-gray-400 max-w-2xl mx-auto">
               Tips, updates, and insights for digital creators and entrepreneurs

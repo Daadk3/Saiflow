@@ -2,7 +2,7 @@ export default function StructuredData() {
   const structuredData = {
     "@context": "https://schema.org",
     "@type": "WebApplication",
-    "name": "Saiflow",
+    "name": "SaiFlow",
     "url": "https://www.saiflow.io",
     "description": "Platform for selling digital products, courses, and memberships",
     "applicationCategory": "BusinessApplication",

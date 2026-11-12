@@ -28,7 +28,7 @@ export default function TermsPage() {
             <section>
               <h2 className="text-2xl font-bold text-white mb-4">1. Acceptance of Terms</h2>
               <p>
-                By accessing and using Saiflow (&quot;the Service&quot;), you accept and agree to be bound by the terms and provision of this agreement. If you do not agree to abide by the above, please do not use this service.
+                By accessing and using SaiFlow (&quot;the Service&quot;), you accept and agree to be bound by the terms and provision of this agreement. If you do not agree to abide by the above, please do not use this service.
               </p>
             </section>
 
@@ -36,7 +36,7 @@ export default function TermsPage() {
             <section>
               <h2 className="text-2xl font-bold text-white mb-4">2. Description of Service</h2>
               <p className="mb-3">
-                Saiflow is a digital products marketplace that enables creators to sell digital products, courses, and memberships. We provide the platform and payment processing infrastructure, but we are not a party to transactions between buyers and sellers.
+                SaiFlow is a digital products marketplace that enables creators to sell digital products, courses, and memberships. We provide the platform and payment processing infrastructure, but we are not a party to transactions between buyers and sellers.
               </p>
               <p>
                 {LEGAL.storeNameEn} (<bdi>{LEGAL.storeNameAr}</bdi>) is operated by{" "}
@@ -58,7 +58,7 @@ export default function TermsPage() {
             <section>
               <h2 className="text-2xl font-bold text-white mb-4">4. Seller Responsibilities</h2>
               <p className="mb-3">
-                As a seller on Saiflow, you agree to:
+                As a seller on SaiFlow, you agree to:
               </p>
               <ul className="list-disc pl-6 space-y-2 mb-3">
                 <li>Provide accurate product descriptions and pricing</li>
@@ -68,7 +68,7 @@ export default function TermsPage() {
                 <li>Pay all applicable fees</li>
               </ul>
               <p>
-                You retain ownership of your content and grant Saiflow a license to host, display, and distribute your products through the Service.
+                You retain ownership of your content and grant SaiFlow a license to host, display, and distribute your products through the Service.
               </p>
             </section>
 
@@ -76,7 +76,7 @@ export default function TermsPage() {
             <section>
               <h2 className="text-2xl font-bold text-white mb-4">5. Buyer Rights</h2>
               <p className="mb-3">
-                When you purchase a digital product on Saiflow:
+                When you purchase a digital product on SaiFlow:
               </p>
               <ul className="list-disc pl-6 space-y-2 mb-3">
                 <li>You receive immediate access to download the purchased product</li>
@@ -106,7 +106,7 @@ export default function TermsPage() {
                 <li>Violate privacy rights of others</li>
               </ul>
               <p className="mt-3">
-                Saiflow reserves the right to remove any product that violates these terms without notice.
+                SaiFlow reserves the right to remove any product that violates these terms without notice.
               </p>
             </section>
 
@@ -114,7 +114,7 @@ export default function TermsPage() {
             <section>
               <h2 className="text-2xl font-bold text-white mb-4">7. Payment Processing</h2>
               <p>
-                Saiflow is currently in pre-launch. Payment processing and seller payouts are not yet available. Pricing and payment terms will be finalized before launch. We will notify users of these terms in advance.
+                SaiFlow is in pre-launch. Our fee is 7% per sale, with no monthly fee and no card to start. Payment processing and seller payouts activate at launch, and every seller will be notified by email before they do.
               </p>
             </section>
 
@@ -122,7 +122,7 @@ export default function TermsPage() {
             <section>
               <h2 className="text-2xl font-bold text-white mb-4">8. Intellectual Property</h2>
               <p>
-                The Service, including its original content, features, and functionality, is owned by Saiflow and protected by international copyright, trademark, and other intellectual property laws. You may not reproduce, distribute, or create derivative works from the Service without our express written permission.
+                The Service, including its original content, features, and functionality, is owned by SaiFlow and protected by international copyright, trademark, and other intellectual property laws. You may not reproduce, distribute, or create derivative works from the Service without our express written permission.
               </p>
             </section>
 
@@ -130,7 +130,7 @@ export default function TermsPage() {
             <section>
               <h2 className="text-2xl font-bold text-white mb-4">9. Limitation of Liability</h2>
               <p>
-                Saiflow shall not be liable for any indirect, incidental, special, consequential, or punitive damages resulting from your use of or inability to use the Service. Our total liability shall not exceed the amount you paid us in the 12 months preceding the claim.
+                SaiFlow shall not be liable for any indirect, incidental, special, consequential, or punitive damages resulting from your use of or inability to use the Service. Our total liability shall not exceed the amount you paid us in the 12 months preceding the claim.
               </p>
             </section>
 
