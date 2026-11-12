@@ -19,6 +19,7 @@ import { ProductCoverImage } from "@/components/ProductCoverImage";
 import { PRODUCT_COVER } from "@/lib/product-cover";
 import { formatPrice } from "@/lib/formatPrice";
 import { formatDate } from "@/lib/formatDate";
+import { ProductLandingSections } from "@/components/storefront/ProductLandingSections";
 
 /**
  * The moderator's view of a product.
@@ -145,7 +146,14 @@ export default async function AdminProductPreviewPage({
                 <bdi>{product.shop.name}</bdi>
               </Row>
               <Row label={t("preview.price")}>
-                <bdi>{formatPrice(product.price, product.currency, locale)}</bdi>
+                <span className="inline-flex flex-wrap items-baseline gap-2">
+                  {product.compareAtPrice != null && (
+                    <s className="text-gray-500">
+                      <bdi>{formatPrice(product.compareAtPrice, product.currency, locale)}</bdi>
+                    </s>
+                  )}
+                  <bdi>{formatPrice(product.price, product.currency, locale)}</bdi>
+                </span>
               </Row>
               <Row label={t("directory.col.category")}>
                 {product.category ?? "—"}
@@ -169,6 +177,19 @@ export default async function AdminProductPreviewPage({
                 </bdi>
               </p>
             </div>
+
+            {product.landing && (
+              <ProductLandingSections
+                landing={product.landing}
+                labels={{
+                  audience: tRoot("storefront.productDetail.audienceHeading"),
+                  benefits: tRoot("storefront.productDetail.benefitsHeading"),
+                  included: tRoot("storefront.productDetail.insideHeading"),
+                  faq: tRoot("storefront.productDetail.faqHeading"),
+                  guarantee: tRoot("storefront.productDetail.guaranteeHeading"),
+                }}
+              />
+            )}
           </section>
 
           {/* Moderation facts */}

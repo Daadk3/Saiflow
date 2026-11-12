@@ -72,6 +72,8 @@ export async function POST(req: Request) {
         accessUrl: body.accessUrl,
         accessInstructions: body.accessInstructions,
         hostedAccessCertified: body.hostedAccessCertified,
+        compareAtPrice: body.compareAtPrice,
+        landing: body.landing,
       });
     }
 
@@ -86,6 +88,8 @@ export async function POST(req: Request) {
       thumbnailUrl,
       currency,
       certified,
+      compareAtPrice: body.compareAtPrice,
+      landing: body.landing,
     });
   } catch (error) {
     console.error("Error creating product:", error);
