@@ -10,7 +10,6 @@ import BuyButton from "./BuyButton";
 import ReportProduct from "./ReportProduct";
 import ShareButton from "@/components/ShareButton";
 import { getLocale, getTranslations } from "next-intl/server";
-import { formatPrice } from "@/lib/formatPrice";
 import { env } from "@/lib/env";
 import { checkoutPath } from "@/lib/checkout/embedded";
 import { ProductCoverImage } from "@/components/ProductCoverImage";
@@ -19,6 +18,9 @@ import { authOptions } from "@/app/api/auth/authOptions";
 import { loadPublicReviews } from "@/lib/reviews/store";
 import { isShopOwner } from "@/lib/reviews/owner";
 import { ProductReviewSection, ReviewAverageLine } from "@/components/product-reviews/ProductReviewSection";
+import { ProductPrice } from "@/components/storefront/ProductPrice";
+import { ProductLandingSections } from "@/components/storefront/ProductLandingSections";
+import { hasLandingContent, publicOffer, readLanding, type ProductLanding } from "@/lib/product-landing";
 
 const BASE_URL = "https://www.saiflow.io";
 
@@ -28,6 +30,8 @@ interface Product {
   slug: string;
   description: string | null;
   price: number;
+  compareAtPrice: number | null;
+  landing: ProductLanding | null;
   currency: string;
   images: string[];
   thumbnailUrl: string | null;
@@ -58,6 +62,8 @@ const getProduct = cache(async function getProduct(shopSlug: string, productSlug
       slug: true,
       description: true,
       price: true,
+      compareAtPrice: true,
+      landing: true,
       currency: true,
       images: true,
       thumbnailUrl: true,
@@ -76,6 +82,8 @@ const getProduct = cache(async function getProduct(shopSlug: string, productSlug
   return {
     ...product,
     price: Number(product.price),
+    compareAtPrice: product.compareAtPrice == null ? null : Number(product.compareAtPrice),
+    landing: readLanding(product.landing),
   };
 });
 
@@ -138,6 +146,9 @@ export default async function ProductPage({
     loadPublicReviews(product.id),
   ]);
   const canReport = await isShopOwner(session?.user?.email, product.shop.id);
+  const offer = publicOffer(product.price, product.compareAtPrice);
+  const saveLabel = offer?.percent != null ? t("storefront.productDetail.savePercent", { percent: offer.percent }) : null;
+  const showLanding = hasLandingContent(product.landing);
   // Buying opens SaiFlow's own checkout page; the payment session starts there.
   const checkoutHref = checkoutPath(product.shop.slug, product.slug);
 
@@ -307,11 +318,13 @@ export default async function ProductPage({
           {/* Right column - purchase card */}
           <aside className="lg:ps-4">
             <div className="sticky top-24 bg-[#111111] border border-gray-800 rounded-2xl p-6 shadow-lg">
-              <div className="flex items-baseline gap-2">
-                <span className="text-4xl font-bold text-white">
-                  <bdi>{formatPrice(Number(product.price), product.currency, locale)}</bdi>
-                </span>
-              </div>
+              <ProductPrice
+                price={product.price}
+                compareAtPrice={product.compareAtPrice}
+                currency={product.currency}
+                locale={locale}
+                saveLabel={saveLabel}
+              />
 
               <ReviewAverageLine summary={reviews} />
 
@@ -358,6 +371,21 @@ export default async function ProductPage({
           </aside>
         </div>
 
+        {showLanding && (
+          <ProductLandingSections
+            landing={product.landing}
+            labels={{
+              audience: t("storefront.productDetail.audienceHeading"),
+              benefits: t("storefront.productDetail.benefitsHeading"),
+              included: t("storefront.productDetail.insideHeading"),
+              faq: t("storefront.productDetail.faqHeading"),
+              guarantee: t("storefront.productDetail.guaranteeHeading"),
+            }}
+          >
+            <BuyButton checkoutHref={checkoutHref} sellable preLaunchMode={preLaunchMode} />
+          </ProductLandingSections>
+        )}
+
         {/* Trust & Safety: public reporting — quiet link, human review, never auto-removal */}
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-24 lg:pb-8">
           <ReportProduct productId={product.id} />
@@ -368,9 +396,14 @@ export default async function ProductPage({
       <div className="fixed bottom-0 start-0 end-0 bg-[#111111] border-t border-gray-800 p-4 lg:hidden flex items-center justify-between z-50">
         <div>
           <p className="text-xs text-gray-400">{t("storefront.productDetail.getThisProduct")}</p>
-          <p className="text-lg font-bold text-white">
-            <bdi>{formatPrice(Number(product.price), product.currency, locale)}</bdi>
-          </p>
+          <ProductPrice
+            price={product.price}
+            compareAtPrice={product.compareAtPrice}
+            currency={product.currency}
+            locale={locale}
+            saveLabel={saveLabel}
+            size="bar"
+          />
         </div>
         <div className="flex-1 ps-4">
           <BuyButton checkoutHref={checkoutHref} sellable preLaunchMode={preLaunchMode} />

@@ -1,14 +1,16 @@
 import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { computeReviewChecks, type FileContentFacts } from "@/lib/review-checklist";
+import { landingPlainText, readLanding } from "@/lib/product-landing";
 
 /**
  * Recompute and store a product's review-checklist auto-checks.
  *
  * Called after the seller's save (create and edit) and after the scan
- * settles the product's file. Reads the product's own title, description
- * and scan columns, plus the facts the scan stored on the FileAsset for the
- * product's CURRENT key, so a replaced file never borrows another's facts.
+ * settles the product's file. Reads the product's own title, description,
+ * long-form page and scan columns, plus the facts the scan stored on the
+ * FileAsset for the product's CURRENT key, so a replaced file never borrows
+ * another's facts. A product with no long-form page contributes no page text.
  *
  * Writes Product.reviewChecks and nothing else. It never touches
  * moderationStatus: the checklist flags, the founder decides.
@@ -23,14 +25,25 @@ export async function refreshReviewChecks(
   try {
     const product = await db.product.findUnique({
       where: { id: productId },
-      select: { name: true, description: true, fileKey: true, fileScanStatus: true, fileScanKey: true },
+      select: {
+        name: true,
+        description: true,
+        landing: true,
+        fileKey: true,
+        fileScanStatus: true,
+        fileScanKey: true,
+      },
     });
     if (!product) return false;
     const asset = product.fileKey
       ? await db.fileAsset.findUnique({ where: { key: product.fileKey }, select: { contentFacts: true } })
       : null;
     const facts = (asset?.contentFacts ?? null) as FileContentFacts | null;
-    const checks = computeReviewChecks({ ...product, facts });
+    const checks = computeReviewChecks({
+      ...product,
+      facts,
+      pageText: landingPlainText(readLanding(product.landing)),
+    });
     await db.product.updateMany({
       // Only if the file is still the one the facts were read for.
       where: { id: productId, fileKey: product.fileKey },

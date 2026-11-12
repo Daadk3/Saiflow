@@ -8,6 +8,7 @@ import { isProductCategory } from "@/lib/categories";
 import { refreshReviewChecks } from "@/lib/review-checks-store";
 import { withoutReviewChecks } from "@/lib/review-checklist";
 import { priceProblemMessage, validatePrice } from "@/lib/pricing";
+import { listingWrite } from "@/lib/products/listing-write";
 import { getAdminEmails } from "@/lib/admin";
 import { adminProductReviewUrl } from "@/lib/notification-links";
 import { redactId } from "@/lib/redact-id";
@@ -97,6 +98,8 @@ export async function createHostedProductForSeller(
     accessUrl: unknown;
     accessInstructions: unknown;
     hostedAccessCertified: unknown;
+    compareAtPrice?: unknown;
+    landing?: unknown;
   }
 ): Promise<NextResponse> {
   const { name, description, price, category, shopId, thumbnailUrl, currency, certified } = input;
@@ -129,6 +132,10 @@ export async function createHostedProductForSeller(
     }
     if (description !== undefined && description !== null && (typeof description !== "string" || description.length > 10000)) {
       return NextResponse.json({ error: "Description must be less than 10,000 characters" }, { status: 400 });
+    }
+    const listing = listingWrite(input, priceCheck.price);
+    if (!listing.ok) {
+      return NextResponse.json({ error: listing.error, errorAr: listing.errorAr }, { status: 400 });
     }
     if (thumbnailUrl && !isAllowedAssetUrl(thumbnailUrl)) {
       return NextResponse.json({ error: "Invalid thumbnail URL" }, { status: 400 });
@@ -166,6 +173,7 @@ export async function createHostedProductForSeller(
           slug,
           description: typeof description === "string" ? description : null,
           price: priceCheck.price,
+          ...listing.data,
           category: isProductCategory(category) ? category : null,
           shopId,
           deliveryType: "HOSTED_ACCESS",
@@ -260,6 +268,10 @@ export async function updateHostedProduct(
   if (description !== undefined && description !== null && (typeof description !== "string" || description.length > 10000)) {
     return NextResponse.json({ error: "Description must be less than 10,000 characters" }, { status: 400 });
   }
+  const listing = listingWrite(body, nextPrice !== undefined ? nextPrice : String(product.price));
+  if (!listing.ok) {
+    return NextResponse.json({ error: listing.error, errorAr: listing.errorAr }, { status: 400 });
+  }
   if (thumbnailUrl !== undefined && thumbnailUrl !== null && thumbnailUrl !== "" && !isAllowedAssetUrl(thumbnailUrl)) {
     return NextResponse.json({ error: "Invalid thumbnail URL" }, { status: 400 });
   }
@@ -309,6 +321,7 @@ export async function updateHostedProduct(
           name: typeof name === "string" && name ? name.trim() : product.name,
           description: description !== undefined ? (description as string | null) : product.description,
           price: nextPrice !== undefined ? nextPrice : product.price,
+          ...listing.data,
           category: category !== undefined ? ((category as string) || null) : product.category,
           thumbnailUrl: thumbnailUrl !== undefined ? ((thumbnailUrl as string) || null) : product.thumbnailUrl,
         },

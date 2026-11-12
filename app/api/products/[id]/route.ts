@@ -31,6 +31,7 @@ import {
   type PrimaryFileWrite,
 } from "@/lib/product-deliverables";
 import { updateHostedProduct } from "@/lib/products/hosted-product";
+import { listingWrite } from "@/lib/products/listing-write";
 
 // A replacement file schedules its scan to run after the response is sent;
 // see app/api/products/route.ts for why this route carries the worker's budget.
@@ -402,12 +403,19 @@ export async function PUT(
     // A new primary key is not written here. It is written below, in the
     // same locked transaction as the return to review, so an already-scanned
     // replacement is never on sale under the old approval.
+    // Page sections and the compare-at price are display. The charged amount
+    // remains `price`. An omitted key leaves the stored value alone.
+    const listing = listingWrite(body, nextPrice !== undefined ? nextPrice : String(product.price));
+    if (!listing.ok) {
+      return NextResponse.json({ error: listing.error, errorAr: listing.errorAr }, { status: 400 });
+    }
     const updatedProduct = await prisma.product.update({
       where: { id },
       data: {
         name: name || product.name,
         description: description !== undefined ? description : product.description,
         price: nextPrice !== undefined ? nextPrice : product.price,
+        ...listing.data,
         category: category !== undefined ? (category || null) : product.category,
         thumbnailUrl:
           thumbnailUrl !== undefined ? thumbnailUrl || null : product.thumbnailUrl,

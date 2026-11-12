@@ -18,6 +18,8 @@ import { productUrl } from "@/lib/site-url";
 import { productLinkStatus, productLinkStatusKey } from "@/lib/product-link-status";
 import CopyLinkButton from "@/components/CopyLinkButton";
 import { PriceBreakdown } from "@/components/PriceBreakdown";
+import { ProductListingFields } from "@/components/ProductListingFields";
+import { emptyListingForm, listingFormFromProduct, listingFormToBody, type ListingFormValue } from "@/lib/product-landing";
 // TYPE ONLY — lib/creator-file-status builds a Prisma clause at load and
 // must not enter this bundle. The server sends the derived string.
 import type { CreatorFileStatus } from "@/lib/creator-file-status";
@@ -74,6 +76,7 @@ export default function EditProductPage() {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [price, setPrice] = useState("");
+  const [listing, setListing] = useState<ListingFormValue>(emptyListingForm());
   const [category, setCategory] = useState("");
   const [fileUrl, setFileUrl] = useState("");
   const [fileName, setFileName] = useState("");
@@ -170,6 +173,7 @@ export default function EditProductPage() {
       setName(productData.name);
       setDescription(productData.description || "");
       setPrice(String(productData.price));
+      setListing(listingFormFromProduct(productData));
       setCategory(productData.category || "");
       setFileUrl(productData.fileUrl || "");
       setExtraFiles(
@@ -222,8 +226,8 @@ export default function EditProductPage() {
       const res = await fetch(`/api/products/${product.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(
-          hosted
+        body: JSON.stringify({
+          ...(hosted
             ? {
                 name,
                 description,
@@ -242,8 +246,9 @@ export default function EditProductPage() {
                 fileUrl: fileUrl || null,
                 fileUrls: extraFiles.map((file) => file.url),
                 thumbnailUrl: thumbnailUrl || null,
-              }
-        ),
+              }),
+          ...listingFormToBody(listing),
+        }),
       });
 
       const data = await res.json();
@@ -517,6 +522,8 @@ export default function EditProductPage() {
                     The server snapshots the same split when an order is fulfilled. */}
                 <PriceBreakdown price={price} />
               </div>
+
+              <ProductListingFields price={price} value={listing} onChange={setListing} />
 
               {/* Category */}
               <div>

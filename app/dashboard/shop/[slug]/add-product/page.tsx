@@ -15,6 +15,8 @@ import ListingAssistant from "@/components/ai/ListingAssistant";
 import { PriceBreakdown } from "@/components/PriceBreakdown";
 import { HostedAccessFields } from "@/components/HostedAccessFields";
 import { OutsideSellerNotice } from "@/components/OutsideSellerNotice";
+import { ProductListingFields } from "@/components/ProductListingFields";
+import { emptyListingForm, listingFormToBody, type ListingFormValue } from "@/lib/product-landing";
 
 export default function AddProductPage() {
   const t = useTranslations();
@@ -24,6 +26,7 @@ export default function AddProductPage() {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [price, setPrice] = useState("");
+  const [listing, setListing] = useState<ListingFormValue>(emptyListingForm());
   const [category, setCategory] = useState("");
   const [fileUrl, setFileUrl] = useState("");
   const [fileName, setFileName] = useState("");
@@ -97,8 +100,8 @@ export default function AddProductPage() {
       const res = await fetch("/api/products", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(
-          hosted
+        body: JSON.stringify({
+          ...(hosted
             ? {
                 deliveryType: "HOSTED_ACCESS",
                 name,
@@ -122,8 +125,9 @@ export default function AddProductPage() {
                 fileUrls: extraFiles.map((file) => file.url),
                 thumbnailUrl,
                 certified,
-              }
-        ),
+              }),
+          ...listingFormToBody(listing),
+        }),
       });
 
       const data = await res.json();
@@ -345,6 +349,8 @@ export default function AddProductPage() {
                     The server snapshots the same split when an order is fulfilled. */}
                 <PriceBreakdown price={price} />
               </div>
+
+              <ProductListingFields price={price} value={listing} onChange={setListing} />
 
               {/* Category */}
               <div>
