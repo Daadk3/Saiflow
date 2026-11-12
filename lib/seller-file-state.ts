@@ -51,6 +51,12 @@ export interface SellerFileState {
   state: SellerFileStateName;
   failure: SellerFailure | null;
   canRetry: boolean;
+  /**
+   * A known PDF reason code, present only when `failure` comes from one.
+   * Omitted for every other reason, so a free-form scanReason is never copied
+   * onto the payload the seller's browser receives.
+   */
+  code?: string;
 }
 
 export interface SellerAssetView {
@@ -96,6 +102,31 @@ const FORMAT_REASONS = new Set([
 ]);
 const UNAVAILABLE_REASONS = new Set(["hash_failed", "provider_threw", "unknown_verdict"]);
 
+/** PDF codes the seller may be shown. Anything else stays a coarse category. */
+const PDF_REASON_CODES = new Set([
+  "pdf_javascript",
+  "pdf_launch_action",
+  "pdf_submit_form",
+  "pdf_embedded_file",
+  "pdf_xfa",
+  "pdf_rich_media",
+  "pdf_open_action",
+  "pdf_additional_actions",
+  "pdf_unreadable",
+]);
+
+/**
+ * The stored reason when it is one of the PDF codes above.
+ *
+ * The `_terminal` suffix is the worker's retry marker. A value that is not
+ * an exact code — including one with extra text — is null and is not shown.
+ */
+export function shownScanCode(reason: string | null): string | null {
+  if (!reason) return null;
+  const base = reason.endsWith("_terminal") ? reason.slice(0, -"_terminal".length) : reason;
+  return PDF_REASON_CODES.has(base) ? base : null;
+}
+
 /** Collapse the worker's reason category into something a seller can act on. */
 export function failureCategory(reason: string | null): SellerFailure {
   if (!reason) return "unknown";
@@ -138,6 +169,17 @@ const failed = (failure: SellerFailure, canRetry: boolean): SellerFileState => (
   failure,
   canRetry,
 });
+
+/** Attach the PDF reason code when the stored token is one the seller may see. */
+function failedWithCode(
+  failure: SellerFailure,
+  canRetry: boolean,
+  reason: string | null
+): SellerFileState {
+  const state = failed(failure, canRetry);
+  const code = shownScanCode(reason);
+  return code ? { ...state, code } : state;
+}
 const SCANNING: SellerFileState = { state: "scanning", failure: null, canRetry: false };
 const UPLOADED: SellerFileState = { state: "uploaded", failure: null, canRetry: false };
 const PASSED: SellerFileState = { state: "passed", failure: null, canRetry: false };
@@ -175,14 +217,18 @@ export function sellerFileState(
 
   if (gate === "unsafe") {
     const category = usable ? failureCategory(usable.scanReason) : "unknown";
-    return failed(category === "unknown" ? "unsafe_content" : category, false);
+    return failedWithCode(
+      category === "unknown" ? "unsafe_content" : category,
+      false,
+      usable?.scanReason ?? null
+    );
   }
 
   if (!usable) return failed("no_record", false);
 
   if (usable.scanStatus === "UNSAFE") {
     const category = failureCategory(usable.scanReason);
-    return failed(category === "unknown" ? "unsafe_content" : category, false);
+    return failedWithCode(category === "unknown" ? "unsafe_content" : category, false, usable.scanReason);
   }
   // A verdict exists for these bytes and only the product binding is behind;
   // reconciliation closes that, so it is still scanning as far as the seller

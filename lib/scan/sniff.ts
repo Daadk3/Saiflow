@@ -92,42 +92,4 @@ export function sniffFormat(bytes: Uint8Array): SniffedFormat {
   return "unknown";
 }
 
-/**
- * Active-content indicators inside a PDF.
- *
- * A clean antivirus verdict does not mean a PDF is inert: JavaScript, launch
- * actions and embedded payloads are all legitimate PDF features that a
- * marketplace deliverable has no reason to use. This is a byte-level token
- * search — the document is never parsed, rendered or executed.
- *
- * Deliberately conservative about false positives: it matches the object
- * syntax (`/JavaScript`, `/Launch`), not the words, so a PDF *about*
- * JavaScript does not trip it. Compressed object streams can hide these
- * tokens, so absence is not proof of safety — which is why this runs
- * alongside the provider's own checks rather than instead of them.
- */
-export function findPdfActiveContent(bytes: Uint8Array): string[] {
-  const markers: Record<string, string> = {
-    "/JavaScript": "pdf_javascript",
-    "/JS": "pdf_javascript",
-    "/Launch": "pdf_launch_action",
-    "/OpenAction": "pdf_open_action",
-    "/AA": "pdf_additional_actions",
-    "/EmbeddedFile": "pdf_embedded_file",
-    "/RichMedia": "pdf_rich_media",
-  };
-
-  // Latin-1 keeps a 1:1 byte-to-char mapping, so offsets stay meaningful and
-  // no multi-byte decoding can merge or split a token.
-  const text = new TextDecoder("latin1").decode(bytes);
-  const found = new Set<string>();
-
-  for (const [token, reason] of Object.entries(markers)) {
-    // Preceded by a delimiter and followed by a non-name character, so /JS
-    // does not match /JSON and /AA does not match /AArdvark.
-    const pattern = new RegExp(`${token.replace("/", "\\/")}(?![A-Za-z0-9])`);
-    if (pattern.test(text)) found.add(reason);
-  }
-
-  return [...found];
-}
+export { findPdfActiveContent } from "./pdf-active";

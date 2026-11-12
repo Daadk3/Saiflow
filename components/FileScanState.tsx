@@ -21,6 +21,8 @@ export interface FileScanStateView {
   state: SellerFileStateName;
   failure: string | null;
   canRetry: boolean;
+  /** Allowlisted PDF reason code. Absent unless the server set one. */
+  code?: string;
 }
 
 const FAILURE_KEYS: Record<string, string> = {
@@ -33,6 +35,19 @@ const FAILURE_KEYS: Record<string, string> = {
   not_started: "failureNotStarted",
   attempts_exhausted: "failureAttemptsExhausted",
   no_record: "failureNoRecord",
+};
+
+/** Specific sentences. The code is part of the copy, so a seller can quote it. */
+const CODE_KEYS: Record<string, string> = {
+  pdf_javascript: "failurePdfJavascript",
+  pdf_launch_action: "failurePdfLaunch",
+  pdf_submit_form: "failurePdfSubmit",
+  pdf_embedded_file: "failurePdfEmbedded",
+  pdf_xfa: "failurePdfXfa",
+  pdf_rich_media: "failurePdfRichMedia",
+  pdf_open_action: "failurePdfOpenAction",
+  pdf_additional_actions: "failurePdfAdditional",
+  pdf_unreadable: "failurePdfUnreadable",
 };
 
 const BADGE: Record<SellerFileStateName, string> = {
@@ -83,7 +98,9 @@ export function FileScanState({ productId, value, onRetried }: FileScanStateProp
     }
   }
 
-  const failureKey = value.failure ? FAILURE_KEYS[value.failure] ?? "failureUnknown" : null;
+  const failureKey =
+    (value.code ? CODE_KEYS[value.code] : undefined) ??
+    (value.failure ? FAILURE_KEYS[value.failure] ?? "failureUnknown" : null);
 
   return (
     <div className="flex flex-col gap-1">
