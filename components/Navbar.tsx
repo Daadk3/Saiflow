@@ -7,6 +7,7 @@ import { SignOutButton } from "@/components/auth/SignOutButton";
 import { usePathname } from "next/navigation";
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 import BrandLogo from "@/components/BrandLogo";
+import WhatsAppContactButton from "@/components/WhatsAppContactButton";
 import { useTranslations } from "next-intl";
 
 export default function Navbar() {
@@ -35,7 +36,7 @@ export default function Navbar() {
       }`}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between gap-4 h-16">
+        <div className="flex items-center justify-between gap-2 sm:gap-4 h-16">
           {/* Logo */}
           <BrandLogo />
 
@@ -59,70 +60,75 @@ export default function Navbar() {
             </Link>
           </div>
 
-          {/* Right actions */}
-          <div className="hidden lg:flex items-center gap-4">
-            <LanguageSwitcher />
-            {session ? (
-              // Logged in - show these
-              <div className="flex items-center gap-4">
-                {session.user?.isAdmin && (
-                  <Link href="/dashboard/admin" className="text-teal-400 hover:text-teal-300 font-medium transition-colors">
-                    {t('founderDashboard')}
+          {/* Right actions. WhatsApp stays outside the lg-only group so the
+              contact button is in the bar on a phone as well as a desktop,
+              next to the menu button rather than floating in the middle. */}
+          <div className="flex items-center gap-2 sm:gap-3">
+            <WhatsAppContactButton />
+            <div className="hidden lg:flex items-center gap-4">
+              <LanguageSwitcher />
+              {session ? (
+                // Logged in - show these
+                <div className="flex items-center gap-4">
+                  {session.user?.isAdmin && (
+                    <Link href="/dashboard/admin" className="text-teal-400 hover:text-teal-300 font-medium transition-colors">
+                      {t('founderDashboard')}
+                    </Link>
+                  )}
+                  <Link href="/dashboard" className={navLinkClass}>
+                    {t('dashboard')}
                   </Link>
-                )}
-                <Link href="/dashboard" className={navLinkClass}>
-                  {t('dashboard')}
-                </Link>
-                <SignOutButton className={`${navLinkClass} disabled:opacity-60`} />
-              </div>
-            ) : (
-              // Logged out - show these
-              <div className="flex items-center gap-4">
-                <Link href="/login" className={navLinkClass}>
-                  {t('login')}
-                </Link>
-                <Link 
-                  href="/signup" 
-                  className="btn-primary"
-                >
-                  {t('startSelling')}
-                </Link>
-              </div>
-            )}
-          </div>
+                  <SignOutButton className={`${navLinkClass} disabled:opacity-60`} />
+                </div>
+              ) : (
+                // Logged out - show these
+                <div className="flex items-center gap-4">
+                  <Link href="/login" className={navLinkClass}>
+                    {t('login')}
+                  </Link>
+                  <Link
+                    href="/signup"
+                    className="btn-primary"
+                  >
+                    {t('startSelling')}
+                  </Link>
+                </div>
+              )}
+            </div>
 
-          {/* Mobile menu button */}
-          <button
-            onClick={() => setMenuOpen((prev) => !prev)}
-            className="lg:hidden inline-flex items-center justify-center rounded-md p-2 text-gray-300 hover:text-white hover:bg-gray-800 transition"
-            aria-label={t('toggleMenu')}
-            aria-expanded={menuOpen}
-            aria-controls="mobile-menu"
-          >
-            {menuOpen ? (
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-6 w-6"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth="2"
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            ) : (
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-6 w-6"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth="2"
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
-              </svg>
-            )}
-          </button>
+            {/* Mobile menu button */}
+            <button
+              onClick={() => setMenuOpen((prev) => !prev)}
+              className="lg:hidden inline-flex items-center justify-center rounded-md p-2 text-gray-300 hover:text-white hover:bg-gray-800 transition"
+              aria-label={t('toggleMenu')}
+              aria-expanded={menuOpen}
+              aria-controls="mobile-menu"
+            >
+              {menuOpen ? (
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-6 w-6"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              ) : (
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-6 w-6"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+              )}
+            </button>
+          </div>
         </div>
       </div>
 
@@ -143,6 +149,7 @@ export default function Navbar() {
             <span className="text-xs text-gray-500">{pathname}</span>
           </div>
           <div className="flex flex-col gap-3">
+            <WhatsAppContactButton variant="menu" />
             <Link href="/browse" className={navLinkClass} onClick={() => setMenuOpen(false)}>
               {t('products')}
             </Link>
