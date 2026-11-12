@@ -335,9 +335,9 @@ describe("the Buy button opens SaiFlow's checkout page", () => {
     assert.ok(!btn.includes("window.location"));
   });
 
-  test("the product page builds the path with the shared helper, for both buttons", () => {
+  test("the product page builds the path with the shared helper, for the hero, the mobile bar, and the repeated landing button", () => {
     assert.match(productPage, /const checkoutHref = checkoutPath\(product\.shop\.slug, product\.slug\);/);
-    assert.equal((productPage.match(/<BuyButton checkoutHref=\{checkoutHref\} sellable preLaunchMode=\{preLaunchMode\} \/>/g) ?? []).length, 2);
+    assert.equal((productPage.match(/<BuyButton checkoutHref=\{checkoutHref\} sellable preLaunchMode=\{preLaunchMode\} \/>/g) ?? []).length, 3);
   });
 });
 

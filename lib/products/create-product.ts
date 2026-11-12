@@ -17,6 +17,7 @@ import { refreshReviewChecks } from "@/lib/review-checks-store";
 import { withoutReviewChecks } from "@/lib/review-checklist";
 import { priceProblemMessage, validatePrice } from "@/lib/pricing";
 import { resolveExtraDeliverables } from "@/lib/product-deliverables";
+import { listingWrite } from "@/lib/products/listing-write";
 
 /**
  * Shared product create for the dashboard and the founder bot.
@@ -40,6 +41,8 @@ export async function createProductForSeller(
     currency: unknown;
     certified: unknown;
     fileUrls?: unknown;
+    compareAtPrice?: unknown;
+    landing?: unknown;
   },
   audit?: { actor: string; reason: string }
 ): Promise<NextResponse> {
@@ -80,6 +83,13 @@ export async function createProductForSeller(
         { error: "Description must be less than 10,000 characters" },
         { status: 400 }
       );
+    }
+    // Optional page sections and compare-at price. Absent means neither is
+    // set. A compare-at price must be higher than the selling price; the
+    // amount charged stays priceCheck.price.
+    const listing = listingWrite(input, priceCheck.price);
+    if (!listing.ok) {
+      return NextResponse.json({ error: listing.error, errorAr: listing.errorAr }, { status: 400 });
     }
     // The deliverable's storage key is derived from the URL, never accepted
     // from the client, so `fileUrl` and `fileKey` can never describe different
@@ -183,6 +193,7 @@ export async function createProductForSeller(
           slug,
           description: typeof description === "string" ? description : null,
           price: priceCheck.price,
+          ...listing.data,
           category: isProductCategory(category) ? category : null,
           shopId,
           fileUrl,

@@ -20,6 +20,7 @@ import {
   moderatorListingSafety,
   type ModeratorFileSafety,
 } from "@/lib/moderator-file-status";
+import { publicOffer, readLanding, type ProductLanding } from "@/lib/product-landing";
 
 /**
  * The data behind the admin moderation preview.
@@ -50,6 +51,10 @@ export interface AdminProductPreview {
   slug: string;
   description: string | null;
   price: number;
+  /** Compare-at price when it is higher than `price`; otherwise null. Display only. */
+  compareAtPrice: number | null;
+  /** Long-form page sections, or null when the seller left them blank. */
+  landing: ProductLanding | null;
   currency: string;
   category: string | null;
   /**
@@ -151,6 +156,8 @@ export async function getAdminProductPreview(
       slug: true,
       description: true,
       price: true,
+      compareAtPrice: true,
+      landing: true,
       currency: true,
       category: true,
       images: true,
@@ -207,6 +214,8 @@ export async function getAdminProductPreview(
     slug: product.slug,
     description: product.description,
     price: Number(product.price),
+    compareAtPrice: publicOffer(product.price, product.compareAtPrice)?.compareAt ?? null,
+    landing: readLanding(product.landing),
     currency: product.currency,
     category: product.category,
     images: product.images.filter(isAllowedAssetUrl),

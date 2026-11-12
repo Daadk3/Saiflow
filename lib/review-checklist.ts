@@ -64,7 +64,7 @@ export const REVIEW_CHECKLIST: readonly ChecklistPoint[] = [
   {
     id: 6,
     label: "لا إعلانات أو تواصل خارجي",
-    rejection: "المنتج يحتوي على وسيلة تواصل أو إعلان خارجي (رقم أو بريد أو رابط أو حساب). أزلها من العنوان والوصف والملف؛ التواصل يتم داخل SaiFlow فقط.",
+    rejection: "المنتج يحتوي على وسيلة تواصل أو إعلان خارجي (رقم أو بريد أو رابط أو حساب). أزلها من العنوان والوصف وصفحة المنتج والملف؛ التواصل يتم داخل SaiFlow فقط.",
   },
   {
     id: 7,
@@ -243,11 +243,12 @@ export interface FileContentFacts {
   ambiguousPlatform?: boolean;
 }
 
-export type Source = "title" | "description" | "file";
+export type Source = "title" | "description" | "page" | "file";
 
 export const SOURCE_LABELS: Record<Source, string> = {
   title: "العنوان",
   description: "الوصف",
+  page: "صفحة المنتج",
   file: "الملف",
 };
 
@@ -275,6 +276,12 @@ export interface ReviewCheckInput {
   fileScanKey: string | null;
   /** The facts on the FileAsset for `fileKey`, or null when the scan has not produced them. */
   facts: FileContentFacts | null;
+  /**
+   * Seller text from the optional long-form page (benefits, included items,
+   * FAQ, guarantee, audience). Empty or absent on a product that has none,
+   * and then points 6 and 7 read exactly as they did before that page existed.
+   */
+  pageText?: string | null;
   now?: Date;
 }
 
@@ -340,6 +347,8 @@ function textPoint<F extends string>(
   };
   describe(find(input.name), "title");
   describe(find(input.description ?? ""), "description");
+  const page = (input.pageText ?? "").trim();
+  if (page) describe(find(page), "page");
   const fileChecked = Boolean(input.facts?.textChecked);
   if (fileChecked) describe(fileFlags ?? [], "file");
 
@@ -348,18 +357,22 @@ function textPoint<F extends string>(
     // No extracted text is unknown, including a PDF whose glyphs a viewer
     // draws from a font without a ToUnicode map. It is not a corrupt file.
     const why = !input.facts ? "لم يُفحص نص الملف بعد" : "نص الملف غير معروف — مراجعة يدوية";
-    return { state: "warn", reason: `لا شيء في العنوان والوصف · ${why}` };
+    const where = page ? "لا شيء في العنوان والوصف وصفحة المنتج" : "لا شيء في العنوان والوصف";
+    return { state: "warn", reason: `${where} · ${why}` };
   }
   return { state: "ok", reason: clean };
 }
 
 function pointSix(input: ReviewCheckInput): StoredCheck {
+  const page = (input.pageText ?? "").trim();
   const established = textPoint(
     input,
     findContactInfo,
     input.facts?.contact,
     CONTACT_FLAGS,
-    "لا أرقام أو روابط أو حسابات في العنوان والوصف والملف"
+    page
+      ? "لا أرقام أو روابط أو حسابات في العنوان والوصف وصفحة المنتج والملف"
+      : "لا أرقام أو روابط أو حسابات في العنوان والوصف والملف"
   );
   // An established hit (a real handle, link, phone, or invitation) stands.
   // A bare platform name does not: it is a manual-review note, not a violation.
@@ -367,6 +380,7 @@ function pointSix(input: ReviewCheckInput): StoredCheck {
   const ambiguous =
     findAmbiguousPlatform(input.name) ||
     findAmbiguousPlatform(input.description ?? "") ||
+    findAmbiguousPlatform(input.pageText ?? "") ||
     input.facts?.ambiguousPlatform === true;
   if (!ambiguous) return established;
   if (established.state === "ok") return { state: "warn", reason: AMBIGUOUS_PLATFORM_REASON };
@@ -381,7 +395,15 @@ export function computeReviewChecks(input: ReviewCheckInput): StoredReviewChecks
     points: {
       3: pointThree(input),
       6: pointSix(input),
-      7: textPoint(input, findBannedTypes, input.facts?.banned, BANNED_TYPE_FLAGS, "لا كلمات لنوع غير مسموح في العنوان والوصف والملف"),
+      7: textPoint(
+        input,
+        findBannedTypes,
+        input.facts?.banned,
+        BANNED_TYPE_FLAGS,
+        (input.pageText ?? "").trim()
+          ? "لا كلمات لنوع غير مسموح في العنوان والوصف وصفحة المنتج والملف"
+          : "لا كلمات لنوع غير مسموح في العنوان والوصف والملف"
+      ),
     },
   };
 }

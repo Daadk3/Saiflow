@@ -183,7 +183,18 @@ model Product {
   name         String
   slug         String
   description  String?  @db.Text
+  /// Optional long-form sections the seller writes: benefits, what's inside,
+  /// FAQ, a guarantee note, and who it's for. Null on every product that
+  /// has none, and the public page then renders exactly as before. Shape:
+  /// ProductLanding in lib/product-landing.ts. Seller text only; the same
+  /// contact check as the description runs on it before it is stored.
+  landing      Json?
   price        Decimal  @db.Decimal(10, 2)
+  /// Optional price shown struck through when, and only when, it is greater
+  /// than `price`. A bundle sold as one product uses this to show the saving.
+  /// Checkout, the order, and the commission all read `price` and never this
+  /// column. Null when the seller has not set one.
+  compareAtPrice Decimal? @db.Decimal(10, 2)
   currency     String   @default("SAR")
   category     String?
   thumbnailUrl String?
