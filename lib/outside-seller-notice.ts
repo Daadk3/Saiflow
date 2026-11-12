@@ -10,13 +10,20 @@
  * that address is already an admin, so the founder is covered without
  * sending her address to the browser. While the session is still loading
  * the notice stays off, so it does not flash for her and then disappear.
- * A signed-out visitor, on the signup page, sees it.
+ * A signed-in user who already owns a store with sales turned on does not
+ * see it either: that store is on sale, so the "outside sellers are not
+ * selling yet" disclaimer no longer applies to them. While that ownership
+ * check is still in flight (`null`), the notice stays off so it does not
+ * flash and then disappear. A signed-out visitor, on the signup page, sees it.
  */
 export function shouldShowOutsideSellerNotice(
   status: "loading" | "authenticated" | "unauthenticated",
   isAdmin: boolean | undefined,
+  ownsSalesEnabledShop: boolean | null = false,
 ): boolean {
   if (status === "unauthenticated") return true;
   if (status !== "authenticated") return false;
-  return isAdmin !== true;
+  if (isAdmin === true) return false;
+  if (ownsSalesEnabledShop === null || ownsSalesEnabledShop === true) return false;
+  return true;
 }

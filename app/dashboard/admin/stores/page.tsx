@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getTranslations, getLocale } from "next-intl/server";
 import { getStoresDirectory, STORES_PAGE_SIZE } from "@/lib/admin-stores";
+import { ShopSalesSwitch } from "@/components/admin/ShopSalesSwitch";
 import { formatDate } from "@/lib/formatDate";
 import {
   STORE_COUNTRIES,
@@ -139,13 +140,16 @@ export default async function AdminStoresPage({
                     </p>
                     <p className="mt-0.5 font-mono text-xs text-gray-500" dir="ltr">/shop/{store.slug}</p>
                   </div>
-                  <span
-                    className={`whitespace-nowrap rounded-md px-2 py-0.5 text-[11px] font-medium ${
-                      store.isActive ? "bg-green-500/10 text-green-400" : "bg-gray-500/10 text-gray-400"
-                    }`}
-                  >
-                    {store.isActive ? t("stores.active") : t("stores.suspended")}
-                  </span>
+                  <div className="flex flex-col items-end gap-2">
+                    <span
+                      className={`whitespace-nowrap rounded-md px-2 py-0.5 text-[11px] font-medium ${
+                        store.isActive ? "bg-green-500/10 text-green-400" : "bg-gray-500/10 text-gray-400"
+                      }`}
+                    >
+                      {store.isActive ? t("stores.active") : t("stores.suspended")}
+                    </span>
+                    <ShopSalesSwitch shopId={store.id} enabled={store.salesEnabled} />
+                  </div>
                 </div>
 
                 <dl className="mt-3 grid grid-cols-2 gap-x-6 gap-y-2 text-sm sm:grid-cols-4">

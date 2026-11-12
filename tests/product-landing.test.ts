@@ -224,9 +224,10 @@ describe("rendering", () => {
 
   test("the repeated buy control uses the same checkout path, and only on a page that has sections", () => {
     const repeats = pageSrc.match(/<BuyButton checkoutHref=\{checkoutHref\} sellable preLaunchMode=\{preLaunchMode\} \/>/g) ?? [];
-    assert.equal(repeats.length, 3);
+    assert.equal(repeats.length, 1, "one Buy button, shown only while sales are on");
+    assert.equal((pageSrc.match(/\{purchase\}/g) ?? []).length, 3);
     const block = pageSrc.slice(pageSrc.indexOf("{showLanding && ("));
-    assert.match(block, /<BuyButton checkoutHref=\{checkoutHref\} sellable preLaunchMode=\{preLaunchMode\} \/>/);
+    assert.match(block, /\{purchase\}/);
   });
 
   test("both seller forms submit the fields, and both languages name them", () => {

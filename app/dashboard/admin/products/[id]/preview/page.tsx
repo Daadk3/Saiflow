@@ -233,6 +233,13 @@ export default async function AdminProductPreviewPage({
                     {t("notSellable.badge")} · {t(`notSellable.short.${product.notSellableReason}`)}
                   </span>
                 )}
+                <span
+                  className={`whitespace-nowrap rounded-md px-2 py-0.5 text-[11px] font-medium ${
+                    product.shopSalesEnabled ? "bg-teal-500/10 text-teal-300" : "bg-amber-500/10 text-amber-300"
+                  }`}
+                >
+                  {product.shopSalesEnabled ? t("preview.shopSalesOn") : t("preview.shopSalesOff")}
+                </span>
               </div>
               {product.notSellableReason && (
                 <p className="mt-2 text-xs text-red-300/90">{t(`attention.reason.${product.notSellableReason}`)}</p>

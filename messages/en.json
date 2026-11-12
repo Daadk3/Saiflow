@@ -249,6 +249,11 @@
     "viewPurchases": "My purchases",
     "comingSoon": "Coming soon",
     "mixedCurrency": "Multiple currencies — see breakdown",
+    "manualPayouts": {
+      "note": "Payouts are sent manually by SaiFlow.",
+      "missingIban": "Add your IBAN in payout settings if it is missing.",
+      "settings": "Payout settings"
+    },
     "shop": {
       "loadingShop": "Loading shop...",
       "errorTitle": "Error",
@@ -903,6 +908,7 @@
       "processing": "Processing...",
       "notAvailable": "Not Available",
       "notAvailableForPurchase": "This product is not available for purchase yet",
+      "notAvailableForSale": "This product is not available for sale yet",
       "checkoutErrorRetry": "Something went wrong. Please try again."
     }
   },
@@ -1026,6 +1032,8 @@
       "bySystem": "SaiFlow",
       "byAdmin": "an admin",
       "inactive": "Not published by the seller",
+      "shopSalesOn": "This store's sales are on. Approving a safe product lets buyers purchase it.",
+      "shopSalesOff": "This store's sales are off. Approving this product will not make it sellable until sales are turned on.",
       "shop": "Shop",
       "price": "Price",
       "description": "Description",
@@ -1060,7 +1068,8 @@
         "scan_error": "File check didn't finish",
         "unsafe": "File failed its check",
         "inactive": "Product switched off",
-        "shop_inactive": "Store suspended"
+        "shop_inactive": "Store suspended",
+        "sales_disabled": "Store sales are off"
       },
       "needsReviewNote": "Products no admin has decided on yet. This list doesn't check files.",
       "needsReviewLink": "{count} approved products can't be sold. See them"
@@ -1076,7 +1085,8 @@
         "scan_error": "Approved but not on sale: the file's safety check didn't finish. Open it and press Retry check.",
         "unsafe": "Approved but not on sale: its file failed the safety check. Buyers can't see or buy it. Reject it, or ask the seller for a clean file.",
         "inactive": "Approved but not on sale: the product is switched off.",
-        "shop_inactive": "Approved but not on sale: its store is suspended."
+        "shop_inactive": "Approved but not on sale: its store is suspended.",
+        "sales_disabled": "Approved but not on sale: this store's sales are turned off. Buyers can't see or buy it until sales are turned on. Turning sales on does not approve the product."
       },
       "view": "View product"
     },
@@ -1141,7 +1151,14 @@
       "unknown": "Unknown",
       "countryAll": "All countries",
       "countryFilter": "Filter by country",
-      "byCountry": "Stores by country"
+      "byCountry": "Stores by country",
+      "salesOn": "Sales on",
+      "salesOff": "Sales off",
+      "turnSalesOn": "Turn sales on",
+      "turnSalesOff": "Turn sales off",
+      "salesSaving": "Saving…",
+      "salesError": "Could not update sales. Try again.",
+      "salesHelp": "Approved products can be bought only while sales are on. Turning sales on does not approve any product."
     },
     "actions": {
       "startReview": "Start review",
@@ -1201,6 +1218,8 @@
       "next": "Next page",
       "noFile": "Missing file",
       "hostedAccess": "Hosted access",
+      "shopSalesOn": "Store sales on",
+      "shopSalesOff": "Store sales off",
       "humanReviewed": "Human reviewed",
       "notYetReviewed": "Not yet reviewed",
       "review": "Review",

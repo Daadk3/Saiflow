@@ -157,7 +157,7 @@ function product(over: Record<string, unknown> = {}) {
     fileKey: KEY,
     fileScanStatus: "SAFE",
     fileScanKey: KEY,
-    shop: { isActive: true, slug: "my-shop" },
+    shop: { isActive: true, salesEnabled: true, slug: "my-shop" },
     ...over,
   };
 }
@@ -374,7 +374,7 @@ describe("the checkout route", () => {
     for (const over of [
       { moderationStatus: "PENDING" },
       { isActive: false },
-      { shop: { isActive: false, slug: "my-shop" } },
+      { shop: { isActive: false, salesEnabled: true, slug: "my-shop" } },
       { fileScanStatus: "PENDING_SCAN" },
       { fileScanKey: "other-key" },
     ]) {
@@ -440,7 +440,7 @@ describe("the checkout route", () => {
       { moderationStatus: "PENDING" },
       { moderationStatus: "REJECTED" },
       { isActive: false },
-      { shop: { isActive: false, slug: "my-shop" } },
+      { shop: { isActive: false, salesEnabled: true, slug: "my-shop" } },
       { fileUrl: null },
       { fileScanStatus: "PENDING_SCAN" },
       { fileScanStatus: "UNSAFE" },

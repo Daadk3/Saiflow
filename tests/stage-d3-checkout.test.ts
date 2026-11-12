@@ -42,7 +42,7 @@ interface ProductRow {
   fileKey: string | null;
   fileScanStatus: string;
   fileScanKey: string | null;
-  shop: { isActive: boolean; slug: string };
+  shop: { isActive: boolean; salesEnabled: boolean; slug: string };
 }
 
 const state: {
@@ -168,7 +168,7 @@ const product = (over: Partial<ProductRow> = {}): ProductRow => ({
   fileKey: KEY,
   fileScanStatus: "SAFE",
   fileScanKey: KEY,
-  shop: { isActive: true, slug: "my-shop" },
+  shop: { isActive: true, salesEnabled: true, slug: "my-shop" },
   ...over,
 });
 
@@ -403,7 +403,7 @@ describe("checkout: existing gates are preserved", () => {
 
   test("an inactive shop is still refused", async () => {
     reset();
-    state.product = product({ shop: { isActive: false, slug: "my-shop" } });
+    state.product = product({ shop: { isActive: false, salesEnabled: true, slug: "my-shop" } });
     await assertRefusedBeforePayment(await checkout());
   });
 

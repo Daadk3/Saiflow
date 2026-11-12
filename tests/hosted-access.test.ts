@@ -374,7 +374,7 @@ describe("Preview never honours production orders, production never honours test
 /* ------------------------------------------------------------------ */
 
 describe("the storefront rule per delivery type", () => {
-  const base = { isActive: true, moderationStatus: "APPROVED" as const, shop: { isActive: true }, fileKey: null, fileScanStatus: "PENDING_SCAN" as const, fileScanKey: null };
+  const base = { isActive: true, moderationStatus: "APPROVED" as const, shop: { isActive: true, salesEnabled: true }, fileKey: null, fileScanStatus: "PENDING_SCAN" as const, fileScanKey: null };
 
   test("a hosted product is sellable only approved, active, shop active, with its access record", () => {
     const hosted = { ...base, deliveryType: "HOSTED_ACCESS" as const, hostedAccess: { productId: "p" }, deliverables: [] as [] };
@@ -384,7 +384,8 @@ describe("the storefront rule per delivery type", () => {
     assert.equal(sellable.unsellableReason({ ...hosted, moderationStatus: "PENDING" }), "not_approved");
     assert.equal(sellable.unsellableReason({ ...hosted, moderationStatus: "REJECTED" }), "not_approved");
     assert.equal(sellable.unsellableReason({ ...hosted, isActive: false }), "inactive");
-    assert.equal(sellable.unsellableReason({ ...hosted, shop: { isActive: false } }), "shop_inactive");
+    assert.equal(sellable.unsellableReason({ ...hosted, shop: { isActive: false, salesEnabled: false } }), "shop_inactive");
+    assert.equal(sellable.unsellableReason({ ...hosted, shop: { isActive: true, salesEnabled: false } }), "sales_disabled");
     assert.equal(
       sellable.isSellable({ ...hosted, deliverables: [{ fileKey: "x", fileScanStatus: "SAFE" as const, fileScanKey: "x" }] }),
       false
@@ -419,7 +420,8 @@ describe("checkout and approval (structural)", () => {
   const moderation = read("app/api/admin/moderation/[productId]/route.ts");
 
   test("checkout: approval/shop gate, then the hosted gate or the file gates, all before any payment attempt", () => {
-    const availability = checkout.indexOf('availability === "inactive" || availability === "not_approved" || availability === "shop_inactive"');
+    const availability = checkout.indexOf('availability === "inactive"');
+    assert.ok(checkout.includes('availability === "sales_disabled"'));
     const hosted = checkout.indexOf("if (hosted && !hostedAccessReady(product.hostedAccess)) {");
     const fileBlock = checkout.indexOf("if (!hosted) {");
     const safe = checkout.indexOf("if (!isDeliverableSafe(product)) {");

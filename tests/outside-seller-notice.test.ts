@@ -33,6 +33,13 @@ describe("who sees the notice", () => {
   test("an outside seller sees it", () => {
     assert.equal(shouldShowOutsideSellerNotice("authenticated", false), true);
     assert.equal(shouldShowOutsideSellerNotice("authenticated", undefined), true);
+    assert.equal(shouldShowOutsideSellerNotice("authenticated", false, false), true);
+  });
+
+  test("a signed-in owner of a store with sales on does not see it, including while that check is loading", () => {
+    assert.equal(shouldShowOutsideSellerNotice("authenticated", false, true), false);
+    assert.equal(shouldShowOutsideSellerNotice("authenticated", undefined, true), false);
+    assert.equal(shouldShowOutsideSellerNotice("authenticated", false, null), false);
   });
 
   test("the founder/admin session does not see it, including while the session is loading", () => {
@@ -66,7 +73,8 @@ describe("where it is shown, and that it does not block anything", () => {
     const src = read("components/OutsideSellerNotice.tsx");
     assert.ok(src.includes('role="note"'));
     assert.ok(src.includes('useTranslations("outsideSeller")'));
-    assert.ok(src.includes("shouldShowOutsideSellerNotice(status, session?.user?.isAdmin)"));
+    assert.ok(src.includes("shouldShowOutsideSellerNotice(status, session?.user?.isAdmin, ownership)"));
+    assert.ok(src.includes('fetch("/api/shops")'));
     assert.ok(src.includes("text-start"));
     assert.ok(!src.includes("disabled="));
     assert.ok(!src.includes("<button"));

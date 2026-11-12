@@ -661,6 +661,7 @@ describe("the preview payload carries no internals", () => {
       "notSellableReason",
       "price",
       "shop",
+      "shopSalesEnabled",
       "slug",
       "thumbnailUrl",
     ]);

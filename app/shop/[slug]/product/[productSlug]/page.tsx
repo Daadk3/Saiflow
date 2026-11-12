@@ -43,6 +43,47 @@ interface Product {
     slug: string;
     logo: string | null;
   };
+  /** False when the store exists but the founder has not turned sales on. */
+  salesOpen: boolean;
+}
+
+const productSelect = {
+  id: true,
+  name: true,
+  slug: true,
+  description: true,
+  price: true,
+  compareAtPrice: true,
+  landing: true,
+  currency: true,
+  images: true,
+  thumbnailUrl: true,
+  deliveryType: true,
+  shop: {
+    select: {
+      id: true,
+      name: true,
+      slug: true,
+      logo: true,
+    },
+  },
+} as const;
+
+function presentProduct(
+  product: {
+    price: { toString(): string } | number;
+    compareAtPrice: { toString(): string } | number | null;
+    landing: unknown;
+  },
+  salesOpen: boolean,
+): Product {
+  return {
+    ...(product as unknown as Product),
+    price: Number(product.price),
+    compareAtPrice: product.compareAtPrice == null ? null : Number(product.compareAtPrice),
+    landing: readLanding(product.landing),
+    salesOpen,
+  };
 }
 
 // cache(): deduplicates the query between generateMetadata and the page render
@@ -56,35 +97,24 @@ const getProduct = cache(async function getProduct(shopSlug: string, productSlug
       ...SELLABLE_PRODUCT_WHERE,
       shop: { ...SELLABLE_SHOP_WHERE, slug: shopSlug },
     },
-    select: {
-      id: true,
-      name: true,
-      slug: true,
-      description: true,
-      price: true,
-      compareAtPrice: true,
-      landing: true,
-      currency: true,
-      images: true,
-      thumbnailUrl: true,
-      deliveryType: true,
-      shop: {
-        select: {
-          id: true,
-          name: true,
-          slug: true,
-          logo: true,
-        },
-      },
-    },
+    select: productSelect,
   });
-  if (!product) return null;
-  return {
-    ...product,
-    price: Number(product.price),
-    compareAtPrice: product.compareAtPrice == null ? null : Number(product.compareAtPrice),
-    landing: readLanding(product.landing),
-  };
+  if (product) return presentProduct(product, true);
+
+  // Sales off is the one storefront miss this page still renders. Every
+  // other condition stays in force, so a pending, unsafe, inactive or
+  // suspended-shop product is still a 404. Checkout keeps the full rule
+  // and will not take payment for this row.
+  const closed = await prisma.product.findFirst({
+    where: {
+      slug: productSlug,
+      ...SELLABLE_PRODUCT_WHERE,
+      shop: { isActive: true, salesEnabled: false, slug: shopSlug },
+    },
+    select: productSelect,
+  });
+  if (!closed) return null;
+  return presentProduct(closed, false);
 });
 
 // Per-product social metadata: canonical URL + Open Graph + Twitter card so
@@ -151,6 +181,17 @@ export default async function ProductPage({
   const showLanding = hasLandingContent(product.landing);
   // Buying opens SaiFlow's own checkout page; the payment session starts there.
   const checkoutHref = checkoutPath(product.shop.slug, product.slug);
+  const salesOpen = product.salesOpen;
+  const purchase = salesOpen ? (
+    <BuyButton checkoutHref={checkoutHref} sellable preLaunchMode={preLaunchMode} />
+  ) : (
+    <p
+      role="status"
+      className="w-full rounded-xl border border-amber-400/30 bg-amber-400/10 px-4 py-4 text-center text-sm font-medium text-amber-100"
+    >
+      {t("storefront.productDetail.notAvailableForSale")}
+    </p>
+  );
 
   return (
     <div className="min-h-screen bg-[#0a0a0a]">
@@ -334,9 +375,7 @@ export default async function ProductPage({
                 </p>
               )}
 
-              <div className="mt-6">
-                <BuyButton checkoutHref={checkoutHref} sellable preLaunchMode={preLaunchMode} />
-              </div>
+              <div className="mt-6">{purchase}</div>
 
               <div className="mt-3 flex justify-center">
                 <ShareButton title={product.name} />
@@ -345,7 +384,7 @@ export default async function ProductPage({
               {/* In pre-launch the button already says checkout is being
                   activated; saying it again here was the duplicate. Once
                   payments open, this is the reassurance line. */}
-              {!preLaunchMode && (
+              {salesOpen && !preLaunchMode && (
                 <p className="text-center text-sm text-gray-500 mt-4">
                   {t("storefront.productDetail.secureCheckout")}
                 </p>
@@ -355,7 +394,7 @@ export default async function ProductPage({
                   processed at all. This page only renders for a product whose
                   deliverable already passed the sellable rule, so the
                   legacy fileUrl column is not consulted here. */}
-              {!preLaunchMode && (
+              {salesOpen && !preLaunchMode && (
                 <div className="mt-4 flex items-center gap-2 text-xs text-gray-500 justify-center">
                   <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                     <path
@@ -382,7 +421,7 @@ export default async function ProductPage({
               guarantee: t("storefront.productDetail.guaranteeHeading"),
             }}
           >
-            <BuyButton checkoutHref={checkoutHref} sellable preLaunchMode={preLaunchMode} />
+            {purchase}
           </ProductLandingSections>
         )}
 
@@ -405,9 +444,7 @@ export default async function ProductPage({
             size="bar"
           />
         </div>
-        <div className="flex-1 ps-4">
-          <BuyButton checkoutHref={checkoutHref} sellable preLaunchMode={preLaunchMode} />
-        </div>
+        <div className="flex-1 ps-4">{purchase}</div>
       </div>
     </div>
   );

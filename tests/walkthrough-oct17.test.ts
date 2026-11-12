@@ -90,7 +90,7 @@ describe("B11: signing out takes one click", () => {
 describe("B12: \"checkout is being activated\" appears once on a product page", () => {
   test("the button says it in pre-launch; the page's own line shows only once payments are open, and says something else", () => {
     const page = read("app/shop/[slug]/product/[productSlug]/page.tsx");
-    assert.match(page, /\{!preLaunchMode && \(\s*<p className="text-center text-sm text-gray-500 mt-4">\s*\{t\("storefront\.productDetail\.secureCheckout"\)\}/);
+    assert.match(page, /\{salesOpen && !preLaunchMode && \(\s*<p className="text-center text-sm text-gray-500 mt-4">\s*\{t\("storefront\.productDetail\.secureCheckout"\)\}/);
     assert.ok(read("app/shop/[slug]/product/[productSlug]/BuyButton.tsx").includes('t("preLaunch.checkoutDisabled")'));
     assert.equal(en().storefront.productDetail.secureCheckout, "Secure checkout.");
     assert.notEqual(ar().storefront.productDetail.secureCheckout, ar().preLaunch.checkoutDisabled);
@@ -204,7 +204,7 @@ describe("C19: no purchase promises while checkout is off", () => {
   test("in pre-launch the included list says it applies once payments open, and the secure-payment line is hidden", () => {
     const page = read("app/shop/[slug]/product/[productSlug]/page.tsx");
     assert.match(page, /\{preLaunchMode && \(\s*<p[^>]*>\{t\("storefront\.productDetail\.includedOncePaymentsOpen"\)\}/);
-    assert.match(page, /\{!preLaunchMode && \([\s\S]{0,700}paymentsProcessedSecurely/);
+    assert.match(page, /\{salesOpen && !preLaunchMode && \([\s\S]{0,700}paymentsProcessedSecurely/);
     assert.ok(en().storefront.productDetail.includedOncePaymentsOpen && ar().storefront.productDetail.includedOncePaymentsOpen);
   });
 });

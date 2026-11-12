@@ -191,7 +191,12 @@ export default async function AdminProductsPage({
                           </div>
                         </div>
                       </td>
-                      <td className="px-3 py-3 text-gray-400"><bdi>{p.shopName}</bdi></td>
+                      <td className="px-3 py-3 text-gray-400">
+                        <bdi>{p.shopName}</bdi>
+                        <p className={`mt-0.5 text-[11px] ${p.shopSalesEnabled ? "text-teal-300" : "text-amber-300"}`}>
+                          {p.shopSalesEnabled ? t("directory.shopSalesOn") : t("directory.shopSalesOff")}
+                        </p>
+                      </td>
                       <td className="px-3 py-3 text-gray-500">{p.category ?? "—"}</td>
                       <td className="whitespace-nowrap px-3 py-3 tabular-nums text-gray-300">
                         <bdi>{formatPrice(p.price, p.currency, locale)}</bdi>
@@ -255,6 +260,9 @@ export default async function AdminProductsPage({
                       </p>
                       <p className="truncate text-xs text-gray-500">
                         <bdi>{p.shopName}</bdi> · <bdi>{formatPrice(p.price, p.currency, locale)}</bdi>
+                        <span className={`ms-1 ${p.shopSalesEnabled ? "text-teal-300" : "text-amber-300"}`}>
+                          · {p.shopSalesEnabled ? t("directory.shopSalesOn") : t("directory.shopSalesOff")}
+                        </span>
                       </p>
                       <div className="mt-2 flex flex-wrap items-center gap-1.5">
                         <StatusBadge status={p.moderationStatus} t={t} />

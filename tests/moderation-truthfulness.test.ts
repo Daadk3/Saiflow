@@ -213,7 +213,7 @@ describe("the words", () => {
       assert.deepEqual(keys(en.admin[group]).sort(), keys(ar.admin[group]).sort(), group);
     }
     assert.ok(en.admin.directory.filters.no_safe_file && ar.admin.directory.filters.no_safe_file);
-    for (const reason of ["missing_file_key", "pending_scan", "scan_key_mismatch", "scan_error", "unsafe", "inactive", "shop_inactive", "hosted_has_files"]) {
+    for (const reason of ["missing_file_key", "pending_scan", "scan_key_mismatch", "scan_error", "unsafe", "inactive", "shop_inactive", "sales_disabled", "hosted_has_files"]) {
       assert.ok(en.admin.attention.reason[reason] && ar.admin.attention.reason[reason], reason);
       assert.ok(en.admin.notSellable.short[reason] && ar.admin.notSellable.short[reason], reason);
     }

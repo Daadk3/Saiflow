@@ -51,15 +51,17 @@ function* everyProduct() {
   for (const isActive of [true, false]) {
     for (const moderationStatus of ["APPROVED", "PENDING", "REJECTED"] as const) {
       for (const shopActive of [true, false]) {
-        for (const file of FILE_STATES) {
-          yield {
-            isActive,
-            moderationStatus,
-            shop: { isActive: shopActive },
-            ...file,
-            // Explicit empty list: the relation was loaded and there are no extras.
-            deliverables: [],
-          } as Parameters<Mod["isSellable"]>[0];
+        for (const salesEnabled of [true, false]) {
+          for (const file of FILE_STATES) {
+            yield {
+              isActive,
+              moderationStatus,
+              shop: { isActive: shopActive, salesEnabled },
+              ...file,
+              // Explicit empty list: the relation was loaded and there are no extras.
+              deliverables: [],
+            } as Parameters<Mod["isSellable"]>[0];
+          }
         }
       }
     }
@@ -74,6 +76,7 @@ function matchesApprovedNotSellable(p: ReturnType<typeof everyProduct> extends G
     p.isActive &&
     p.moderationStatus === "APPROVED" &&
     p.shop.isActive &&
+    p.shop.salesEnabled &&
     (p.fileKey === null || p.fileScanStatus !== "SAFE" || p.fileScanKey === null || keysUnequalNonNull)
   );
 }
@@ -82,7 +85,12 @@ describe("isSellable and unsellableReason", () => {
   test("agree with each other and with isDeliverableSafe, across every combination", () => {
     let sellableCount = 0;
     for (const p of everyProduct()) {
-      const expected = p.isActive && p.moderationStatus === "APPROVED" && p.shop.isActive && safety.isDeliverableSafe(p);
+      const expected =
+        p.isActive &&
+        p.moderationStatus === "APPROVED" &&
+        p.shop.isActive &&
+        p.shop.salesEnabled &&
+        safety.isDeliverableSafe(p);
       assert.equal(sellable.isSellable(p), expected, JSON.stringify(p));
       assert.equal(sellable.unsellableReason(p) === "sellable", expected, JSON.stringify(p));
       if (expected) sellableCount++;
@@ -91,11 +99,13 @@ describe("isSellable and unsellableReason", () => {
   });
 
   test("the reason names the first failing condition, then the file's own reason", () => {
-    const ok = { isActive: true, moderationStatus: "APPROVED" as const, shop: { isActive: true }, fileKey: "k", fileScanStatus: "SAFE" as const, fileScanKey: "k", deliverables: [] as [] };
+    const ok = { isActive: true, moderationStatus: "APPROVED" as const, shop: { isActive: true, salesEnabled: true }, fileKey: "k", fileScanStatus: "SAFE" as const, fileScanKey: "k", deliverables: [] as [] };
     assert.equal(sellable.unsellableReason(ok), "sellable");
     assert.equal(sellable.unsellableReason({ ...ok, isActive: false, moderationStatus: "REJECTED" }), "inactive");
-    assert.equal(sellable.unsellableReason({ ...ok, moderationStatus: "PENDING", shop: { isActive: false } }), "not_approved");
-    assert.equal(sellable.unsellableReason({ ...ok, shop: { isActive: false }, fileKey: null }), "shop_inactive");
+    assert.equal(sellable.unsellableReason({ ...ok, moderationStatus: "PENDING", shop: { isActive: false, salesEnabled: false } }), "not_approved");
+    assert.equal(sellable.unsellableReason({ ...ok, shop: { isActive: false, salesEnabled: false }, fileKey: null }), "shop_inactive");
+    assert.equal(sellable.unsellableReason({ ...ok, shop: { isActive: true, salesEnabled: false } }), "sales_disabled");
+    assert.equal(sellable.unsellableReason({ ...ok, shop: { isActive: true, salesEnabled: false }, fileKey: null }), "sales_disabled");
     assert.equal(sellable.unsellableReason({ ...ok, fileKey: null, fileScanKey: null }), "missing_file_key");
     assert.equal(sellable.unsellableReason({ ...ok, fileScanStatus: "UNSAFE" }), "unsafe");
     assert.equal(sellable.unsellableReason({ ...ok, fileScanStatus: "PENDING_SCAN", fileScanKey: null }), "pending_scan");
@@ -120,7 +130,7 @@ describe("the where-clauses", () => {
     assert.deepEqual(sellable.SELLABLE_PRODUCT_WHERE, {
       isActive: true,
       moderationStatus: "APPROVED",
-      shop: { isActive: true },
+      shop: { isActive: true, salesEnabled: true },
       AND: [
         {
           OR: [
@@ -142,7 +152,7 @@ describe("the where-clauses", () => {
     const where = sellable.APPROVED_NOT_SELLABLE_WHERE as unknown as Record<string, unknown>;
     assert.equal(where.isActive, true);
     assert.equal(where.moderationStatus, "APPROVED");
-    assert.deepEqual(where.shop, { isActive: true });
+    assert.deepEqual(where.shop, { isActive: true, salesEnabled: true });
     assert.deepEqual(where.OR, [
       { fileKey: null },
       { fileScanStatus: { not: "SAFE" } },
@@ -165,7 +175,7 @@ describe("the where-clauses", () => {
 
   test("evaluated as Postgres would, it selects exactly the approved, active, active-shop products that are not sellable", () => {
     for (const p of everyProduct()) {
-      const approvedActive = p.isActive && p.moderationStatus === "APPROVED" && p.shop.isActive;
+      const approvedActive = p.isActive && p.moderationStatus === "APPROVED" && p.shop.isActive && p.shop.salesEnabled;
       assert.equal(matchesApprovedNotSellable(p), approvedActive && !sellable.isSellable(p), JSON.stringify(p));
     }
   });
