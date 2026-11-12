@@ -536,7 +536,7 @@ describe("the dashboard renders the server value and nothing else", () => {
     for (const k of ["stateUploaded","stateScanning","statePassed","stateFailed","retryAction","retrying","retryStarted","retryLimited","retryRefused"]) {
       assert.ok(component.includes(`"${k}"`), `component missing key ${k}`);
     }
-    for (const k of ["failureUnsafeContent","failureUnsupportedFormat","failurePasswordProtected","failureArchiveProblem","failureCheckUnavailable","failureTimedOut","failureNotStarted","failureAttemptsExhausted","failureNoRecord","failureUnknown"]) {
+    for (const k of ["failureUnsafeContent","failureUnsupportedFormat","failurePasswordProtected","failureArchiveProblem","failureCheckUnavailable","failureTimedOut","failureNotStarted","failureAttemptsExhausted","failureNoRecord","failureUnknown","failurePdfJavascript","failurePdfLaunch","failurePdfSubmit","failurePdfEmbedded","failurePdfXfa","failurePdfRichMedia","failurePdfOpenAction","failurePdfAdditional","failurePdfUnreadable"]) {
       assert.ok(component.includes(k), `component missing failure key ${k}`);
     }
   });

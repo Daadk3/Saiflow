@@ -23,8 +23,10 @@ const read = (p: string) => readFileSync(new URL(p, import.meta.url), "utf8");
 describe("a stored scan reason becomes a fixed key or nothing", () => {
   test("known categories map, and the raw token is not returned when it is not the key", () => {
     assert.equal(explainScanReason("malware"), "malware");
-    assert.equal(explainScanReason("pdf_javascript"), "script");
-    assert.equal(explainScanReason("pdf_open_action"), "pdf_active");
+    assert.equal(explainScanReason("pdf_javascript"), "pdf_javascript");
+    assert.equal(explainScanReason("pdf_open_action"), "pdf_open_action");
+    assert.equal(explainScanReason("pdf_submit_form"), "pdf_submit_form");
+    assert.equal(explainScanReason("pdf_xfa"), "pdf_xfa");
     assert.equal(explainScanReason("archive_encrypted"), "password_protected");
     assert.equal(explainScanReason("unsafe_archive"), "archive");
     assert.equal(explainScanReason("html_content"), "html");

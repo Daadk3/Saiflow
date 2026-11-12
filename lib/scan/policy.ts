@@ -15,11 +15,13 @@
  *   PROVIDER  — malware signatures, and content-verified format via
  *               VerifiedFileFormat / ContainsRestrictedFileFormat.
  *
- * Unresolved limitation, stated rather than papered over: PDF tokens inside
- * compressed object streams are not visible to a byte-level search, so a clean
- * structural result is not proof of an inert PDF. That is why the provider's
- * allowScripts/allowInvalidFiles run alongside it, and why neither layer is
- * treated as sufficient on its own.
+ * PDF active content is decided from the object graph (lib/scan/pdf-active),
+ * not from a raw byte search. Page streams and font programs are skipped, so
+ * a chance `/JS` inside compressed bytes is not a threat, and an OpenAction
+ * that only opens a page is not one either. Flate object streams are
+ * inflated and parsed. A stream that uses another filter can still hide an
+ * object, so the provider's allowScripts/allowInvalidFiles run alongside
+ * this layer, and neither is treated as sufficient on its own.
  */
 
 import {

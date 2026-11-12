@@ -582,7 +582,7 @@ describe("a PENDING, unscanned product can be previewed", () => {
       fileScanKey: SECRET_KEY,
     });
     const named = await getAdminProductPreview("prod_pending_1");
-    assert.equal((named?.fileSafety as { blockedBecause: string | null }).blockedBecause, "script");
+    assert.equal((named?.fileSafety as { blockedBecause: string | null }).blockedBecause, "pdf_javascript");
 
     const hostile = "pdf_javascript <script>alert(1)</script> SHOULD_NEVER_REACH_BROWSER";
     state.scanReason = hostile;

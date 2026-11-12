@@ -473,7 +473,11 @@ describe("the seller sees uploaded, scanning, passed or failed — never scannin
       assert.deepEqual(s, { state: "failed", failure: "unsafe_content", canRetry: false });
     }
     const s = sellerFileState(p(), asset({ scanStatus: "UNSAFE", scanReason: "pdf_javascript" }) as never, NOW);
-    assert.deepEqual(s, { state: "failed", failure: "unsafe_content", canRetry: false });
+    assert.deepEqual(s, { state: "failed", failure: "unsafe_content", canRetry: false, code: "pdf_javascript" });
+    const hostile = "pdf_javascript <script>alert(1)</script>";
+    const hidden = sellerFileState(p(), asset({ scanStatus: "UNSAFE", scanReason: hostile }) as never, NOW);
+    assert.equal(hidden?.code, undefined);
+    assert.ok(!JSON.stringify(hidden).includes("<script>"));
   });
 
   test("an unsafe gate uses the scan reason's category and stays not retryable", () => {
