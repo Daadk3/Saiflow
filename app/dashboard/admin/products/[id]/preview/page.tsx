@@ -11,6 +11,7 @@ import { getLocale, getTranslations } from "next-intl/server";
 import { authOptions } from "@/app/api/auth/authOptions";
 import { isAdminEmail } from "@/lib/admin";
 import { getAdminProductPreview } from "@/lib/admin-product-preview";
+import { approveBlockedReason } from "@/lib/approve-blocked";
 import { getDecisionHistory, latestRejection, type DecisionEntry } from "@/lib/moderation-history";
 import type { ModeratorFileSafety } from "@/lib/moderator-file-status";
 import { isInspectionRefusalHint } from "@/lib/inspect-document";
@@ -265,7 +266,12 @@ export default async function AdminProductPreviewPage({
                 productName={product.name}
                 status={product.moderationStatus}
                 checklist={product.checklist}
-                approveBlocked={product.fileSafety.publishable ? null : product.fileSafety.reason}
+                approveBlocked={approveBlockedReason({
+                  deliveryType: product.deliveryType,
+                  fileSafety: product.fileSafety,
+                  hostedAccess,
+                  deliverables: Array.from({ length: product.deliverableCount }),
+                })}
               />
             </div>
 

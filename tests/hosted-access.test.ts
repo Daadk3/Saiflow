@@ -481,8 +481,8 @@ describe("the access details never reach a public surface", () => {
     "lib/products/hosted-product.ts", // seller create/edit
     "lib/hosted-access/server.ts", // the verified delivery
     "lib/hosted-access/admin.ts", // admin review
-    "lib/admin-product-preview.ts", // presence only (productId)
-    "lib/admin-stats.ts", // presence only (productId)
+    "lib/admin-product-preview.ts", // presence only (productId); the link is loaded in lib/hosted-access/admin.ts
+    "lib/admin-stats.ts", // link selected for the approve gate, not rendered
   ]);
 
   test("no other file under app/ or lib/ selects or includes hostedAccess, or reads accessUrl from the database", () => {
@@ -496,12 +496,16 @@ describe("the access details never reach a public surface", () => {
     }
   });
 
-  test("the presence-only readers select just the id", () => {
-    for (const rel of ["lib/admin-product-preview.ts", "lib/admin-stats.ts"]) {
-      const src = read(rel);
-      assert.ok(src.includes("hostedAccess: { select: { productId: true } }"), rel);
-      assert.ok(!src.includes("accessUrl"), rel);
-    }
+  test("the preview selects just the id; the directory selects the link for Approve and does not name it on the row", () => {
+    const preview = read("lib/admin-product-preview.ts");
+    assert.ok(preview.includes("hostedAccess: { select: { productId: true } }"));
+    assert.ok(!preview.includes("accessUrl"));
+
+    const stats = read("lib/admin-stats.ts");
+    assert.ok(stats.includes("hostedAccess: { select: { accessUrl: true, instructions: true } }"));
+    const mapped = stats.slice(stats.indexOf("rows: page.map"));
+    assert.ok(mapped.includes("hostedAccessGate:"), "the page needs the record to decide Approve");
+    assert.ok(!mapped.includes("accessUrl"), "the mapped row must not name the link");
   });
 
   test("public pages read the delivery type only, never the details", () => {
