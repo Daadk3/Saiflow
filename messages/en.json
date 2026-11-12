@@ -20,7 +20,9 @@
     "skipToMain": "Skip to main content",
     "founderDashboard": "Founder Dashboard",
     "categories": "Categories",
-    "howToSell": "How to sell"
+    "howToSell": "How to sell",
+    "whatsapp": "WhatsApp",
+    "whatsappAria": "Contact us on WhatsApp"
   },
   "categories": {
     "all": "All",
