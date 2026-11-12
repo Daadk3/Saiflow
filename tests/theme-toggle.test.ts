@@ -49,13 +49,13 @@ function lightVars(css: string): Record<string, string> {
 }
 
 describe("theme preference", () => {
-  test("system preference is the default, and an explicit choice wins", () => {
-    assert.equal(themeFromPreference(null, true), "light");
-    assert.equal(themeFromPreference(undefined, false), "dark");
-    assert.equal(themeFromPreference("", true), "light");
-    assert.equal(themeFromPreference("system", false), "dark");
-    assert.equal(themeFromPreference("light", false), "light");
-    assert.equal(themeFromPreference("dark", true), "dark");
+  test("no saved choice is dark, and an explicit choice wins", () => {
+    assert.equal(themeFromPreference(null), "dark");
+    assert.equal(themeFromPreference(undefined), "dark");
+    assert.equal(themeFromPreference(""), "dark");
+    assert.equal(themeFromPreference("system"), "dark");
+    assert.equal(themeFromPreference("light"), "light");
+    assert.equal(themeFromPreference("dark"), "dark");
     assert.equal(nextTheme("dark"), "light");
     assert.equal(nextTheme("light"), "dark");
     assert.equal(isThemeChoice("light"), true);
@@ -71,11 +71,13 @@ describe("theme preference", () => {
     assert.equal(THEME_STORAGE_KEY, "saiflow-theme");
   });
 
-  test("the blocking script reads localStorage and the system, and does not store a choice", () => {
+  test("the blocking script reads localStorage, defaults to dark, and does not store a choice", () => {
     new Function(themeInitScript);
     assert.match(themeInitScript, /localStorage\.getItem/);
-    assert.match(themeInitScript, /prefers-color-scheme: light/);
+    assert.match(themeInitScript, /return "dark"/);
     assert.match(themeInitScript, /classList\.add\(mode\)/);
+    assert.equal(themeInitScript.includes("prefers-color-scheme"), false);
+    assert.equal(themeInitScript.includes("matchMedia"), false);
     assert.equal(themeInitScript.includes("setItem"), false);
     assert.equal(themeInitScript.includes("</"), false);
   });
@@ -103,6 +105,7 @@ describe("the switch is in the header, in both languages", () => {
     assert.match(button, /switchToDark/);
     assert.match(button, /theme-icon-sun/);
     assert.match(button, /theme-icon-moon/);
+    assert.equal(button.includes("prefers-color-scheme"), false);
 
     const ar = JSON.parse(read("messages/ar.json")).nav;
     const en = JSON.parse(read("messages/en.json")).nav;
@@ -120,6 +123,8 @@ describe("the switch is in the header, in both languages", () => {
     const scriptAt = layout.indexOf("themeInitScript");
     const bodyAt = layout.indexOf("<body");
     assert.ok(scriptAt !== -1 && scriptAt < bodyAt);
+    assert.match(layout, /isThemeChoice\(storedTheme\) \? storedTheme : "dark"/);
+    assert.equal(layout.includes("prefers-color-scheme"), false);
   });
 });
 

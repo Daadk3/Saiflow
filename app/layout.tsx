@@ -70,10 +70,10 @@ export default async function RootLayout({
   const messages = await getMessages();
   const t = await getTranslations("nav");
   const dir = locale.startsWith("ar") ? "rtl" : "ltr";
-  // Only an explicit choice is on the cookie. Otherwise the blocking script
-  // below paints from prefers-color-scheme before the body is shown.
+  // A saved choice on the cookie wins. With none, the page is dark before
+  // paint, and the blocking script applies the same default.
   const storedTheme = (await cookies()).get(THEME_STORAGE_KEY)?.value;
-  const themeClass = isThemeChoice(storedTheme) ? storedTheme : undefined;
+  const themeClass = isThemeChoice(storedTheme) ? storedTheme : "dark";
 
   return (
     <html lang={locale} dir={dir} className={themeClass} suppressHydrationWarning>
