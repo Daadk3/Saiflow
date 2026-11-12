@@ -22,7 +22,9 @@
     "categories": "الفئات",
     "howToSell": "كيف تبيع؟",
     "whatsapp": "واتساب",
-    "whatsappAria": "تواصل معنا عبر واتساب"
+    "whatsappAria": "تواصل معنا عبر واتساب",
+    "switchToLight": "التبديل إلى الوضع الفاتح",
+    "switchToDark": "التبديل إلى الوضع الداكن"
   },
   "categories": {
     "all": "الكل",

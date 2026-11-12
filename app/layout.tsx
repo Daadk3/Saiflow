@@ -1,5 +1,7 @@
+import { cookies } from "next/headers";
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getMessages, getTranslations } from "next-intl/server";
+import { THEME_STORAGE_KEY, isThemeChoice, themeInitScript } from "@/lib/theme";
 import { Providers } from "./provider";
 import "./globals.css";
 import type { Metadata } from "next";
@@ -68,10 +70,15 @@ export default async function RootLayout({
   const messages = await getMessages();
   const t = await getTranslations("nav");
   const dir = locale.startsWith("ar") ? "rtl" : "ltr";
+  // Only an explicit choice is on the cookie. Otherwise the blocking script
+  // below paints from prefers-color-scheme before the body is shown.
+  const storedTheme = (await cookies()).get(THEME_STORAGE_KEY)?.value;
+  const themeClass = isThemeChoice(storedTheme) ? storedTheme : undefined;
 
   return (
-    <html lang={locale} dir={dir}>
+    <html lang={locale} dir={dir} className={themeClass} suppressHydrationWarning>
       <head>
+        <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
         <link rel="icon" href="/favicon.ico" sizes="any" />
         <link rel="icon" href="/icon.png" type="image/png" />
         <link rel="apple-touch-icon" href="/apple-icon.png" />
