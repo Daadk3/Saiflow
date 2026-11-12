@@ -48,7 +48,9 @@ export async function GET(
         city: true,
         logo: true,
         coverImage: true,
+        salesEnabled: true,
         createdAt: true,
+        payoutAccount: { select: { id: true } },
         products: {
           // Removed from sale (isActive false) stays for buyers who paid.
           // It is not a product the seller still has listed.
@@ -123,7 +125,7 @@ export async function GET(
     // Shape the response deliberately rather than spreading the row. Every
     // field below is one the dashboard renders; the scan columns are consumed
     // by creatorFileStatus and then discarded.
-    const { shopUsers: _members, products: shopProducts, ...shopFields } = shop;
+    const { shopUsers: _members, products: shopProducts, payoutAccount, ...shopFields } = shop;
     void _members;
     // isActive false is a product the seller took off sale. The query above
     // already excludes it; this keeps a row out if a select ever forgets that.
@@ -181,6 +183,7 @@ export async function GET(
 
     return NextResponse.json({
       ...shopFields,
+      hasPayoutAccount: payoutAccount != null,
       canRemoveProducts,
       products: products.map((p) => ({
         id: p.id,

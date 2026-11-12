@@ -119,6 +119,9 @@ export async function GET() {
                 _count: {
                   select: { products: true },
                 },
+                // Id only: the dashboard asks whether an IBAN exists. The
+                // number itself stays on the payout-account route.
+                payoutAccount: { select: { id: true } },
               },
             },
           },
@@ -133,10 +136,14 @@ export async function GET() {
       );
     }
 
-    const shops = user.shopUsers.map((su) => ({
-      ...su.shop,
-      role: su.role,
-    }));
+    const shops = user.shopUsers.map((su) => {
+      const { payoutAccount, ...shop } = su.shop;
+      return {
+        ...shop,
+        role: su.role,
+        hasPayoutAccount: payoutAccount != null,
+      };
+    });
 
     return NextResponse.json(shops);
   } catch (error) {

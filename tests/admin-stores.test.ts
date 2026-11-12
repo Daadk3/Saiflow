@@ -27,12 +27,12 @@ const prisma = {
       calls.findMany = args;
       return [
         {
-          id: "shop_new", name: "قصص للأطفال", slug: "shop-8uccus", isActive: true, createdAt: new Date("2026-10-11T18:31:00Z"),
+          id: "shop_new", name: "قصص للأطفال", slug: "shop-8uccus", isActive: true, salesEnabled: false, createdAt: new Date("2026-10-11T18:31:00Z"),
           country: null, city: null,
           shopUsers: [], _count: { products: 0 },
         },
         {
-          id: "shop_old", name: "memo", slug: "memo", isActive: false, createdAt: new Date("2026-09-01T10:00:00Z"),
+          id: "shop_old", name: "memo", slug: "memo", isActive: false, salesEnabled: true, createdAt: new Date("2026-09-01T10:00:00Z"),
           country: "SA", city: "الرياض",
           shopUsers: [{ user: { name: "Maya", email: "maya@example.test" } }], _count: { products: 3 },
         },
@@ -86,6 +86,9 @@ describe("the store directory data", () => {
     const select = calls.findMany!.select as Record<string, unknown>;
     assert.equal(select.country, true);
     assert.equal(select.city, true);
+    assert.equal(select.salesEnabled, true);
+    assert.equal(rows[0].salesEnabled, false);
+    assert.equal(rows[1].salesEnabled, true);
     assert.deepEqual(calls.findMany!.orderBy, { createdAt: "desc" });
     assert.deepEqual((calls.findMany!.select as Record<string, { where?: unknown }>).shopUsers.where, { role: "OWNER" });
   });
@@ -153,10 +156,20 @@ describe("the page", () => {
     for (const lang of ["ar", "en"]) {
       const admin = JSON.parse(read(`messages/${lang}.json`)).admin;
       assert.ok(admin.actions.stores, lang);
-      for (const key of ["title", "subtitle", "search", "searchButton", "count", "showingFirst", "empty", "active", "suspended", "owner", "products", "productCounts", "created", "country", "city", "unknown", "countryAll", "countryFilter", "byCountry"]) {
+      for (const key of ["title", "subtitle", "search", "searchButton", "count", "showingFirst", "empty", "active", "suspended", "owner", "products", "productCounts", "created", "country", "city", "unknown", "countryAll", "countryFilter", "byCountry", "salesOn", "salesOff", "turnSalesOn", "turnSalesOff", "salesHelp"]) {
         assert.ok(admin.stores[key], `${lang} admin.stores.${key}`);
       }
     }
+  });
+
+  test("the founder can turn sales on or off, and the page says that does not approve products", () => {
+    assert.ok(page.includes("<ShopSalesSwitch"));
+    assert.ok(page.includes("enabled={store.salesEnabled}"));
+    const route = read("app/api/admin/shops/[shopId]/sales/route.ts");
+    assert.ok(route.includes("isAdminEmail(session.user.email)"));
+    assert.ok(route.indexOf("isAdminEmail") < route.indexOf("shop.updateMany"));
+    assert.ok(route.includes("shopSalesEvent.create"));
+    assert.ok(!route.includes("moderationStatus"));
   });
 
   test("it shows country and city, filters by country, and summarizes stores per country", () => {

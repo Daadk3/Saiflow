@@ -105,6 +105,11 @@ export interface AdminProductPreview {
   /** Why an APPROVED product is still not on sale (lib/sellable), or null. */
   notSellableReason: UnsellableReason | null;
   /**
+   * Whether the store's sales are on. Independent of this product's
+   * approval: off means approving it will not make it sellable.
+   */
+  shopSalesEnabled: boolean;
+  /**
    * The founder's 8-point review checklist (lib/review-checklist): stored
    * auto-checks for points 3, 6 and 7, manual review for the rest. It
    * replaced the "Before approving" list from listingChecks on this page.
@@ -181,7 +186,7 @@ export async function getAdminProductPreview(
         // No logo: the preview does not render one, and a column that is not
         // selected cannot be rendered by a later edit. isActive feeds the
         // sellable reason only.
-        select: { name: true, slug: true, isActive: true },
+        select: { name: true, slug: true, isActive: true, salesEnabled: true },
       },
     },
   });
@@ -233,6 +238,7 @@ export async function getAdminProductPreview(
       product.moderationStatus === "APPROVED" && unsellableReason(product) !== "sellable"
         ? unsellableReason(product)
         : null,
+    shopSalesEnabled: product.shop.salesEnabled === true,
     // The stored auto-checks, resolved against the file the product has now.
     // Points 2 and 8 carry the old "Before approving" facts as hints, from
     // the same allowlisted images the page shows.

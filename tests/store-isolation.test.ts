@@ -83,6 +83,7 @@ const ROUTE_POLICY: Record<string, RouteDecision> = {
   "GET /api/admin/payouts": { policy: "admin" },
   "POST /api/admin/payouts": { policy: "admin" },
   "POST /api/admin/reviews": { policy: "admin" },
+  "POST /api/admin/shops/[shopId]/sales": { policy: "admin", mustContain: ["shopSalesEvent.create"], mustNotContain: ["moderationStatus"] },
 
   // A member of the shop the request acts on.
   "POST /api/ai/listing": { policy: "shop-member" },
@@ -752,8 +753,8 @@ function seed() {
       { ...ADMIN, name: "Founder", createdAt: T0 },
     ],
     shop: [
-      { id: "shop_a", slug: "shop-a", name: "Shop A", description: "A", logo: null, coverImage: null, country: null, city: null, isActive: true, createdAt: T0, updatedAt: T0 },
-      { id: "shop_b", slug: "shop-b", name: "Shop B", description: "B", logo: null, coverImage: null, country: null, city: null, isActive: true, createdAt: T0, updatedAt: T0 },
+      { id: "shop_a", slug: "shop-a", name: "Shop A", description: "A", logo: null, coverImage: null, country: null, city: null, isActive: true, salesEnabled: false, createdAt: T0, updatedAt: T0 },
+      { id: "shop_b", slug: "shop-b", name: "Shop B", description: "B", logo: null, coverImage: null, country: null, city: null, isActive: true, salesEnabled: true, createdAt: T0, updatedAt: T0 },
     ],
     shopUser: [
       { id: "su_a", userId: "user_a", shopId: "shop_a", role: "OWNER" },
@@ -973,6 +974,7 @@ before(async () => {
   H.adminPayoutsGET = adminPayouts.GET;
   H.adminPayoutsPOST = adminPayouts.POST;
   H.adminReviewsPOST = (await import("../app/api/admin/reviews/route.ts")).POST;
+  H.adminShopSalesPOST = (await import("../app/api/admin/shops/[shopId]/sales/route.ts")).POST;
   const scan = await import("../app/api/internal/scan/route.ts");
   H.scanGET = scan.GET;
   H.scanPOST = scan.POST;
@@ -1298,6 +1300,9 @@ const ADMIN_CALLS: Record<string, () => Promise<Response>> = {
     ),
   "POST /api/admin/reviews": () =>
     H.adminReviewsPOST(req("POST", "/api/admin/reviews", { reviewId: "rev_1", action: "hide", reason: "Off topic abuse." })),
+  // shop_b already has sales on, so this sets the same value and writes nothing.
+  "POST /api/admin/shops/[shopId]/sales": () =>
+    H.adminShopSalesPOST(req("POST", "/api/admin/shops/shop_b/sales", { enabled: true }), ctx({ shopId: "shop_b" })),
 };
 
 describe("admin routes: refused to sellers and to the signed-out", () => {

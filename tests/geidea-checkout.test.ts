@@ -49,7 +49,7 @@ interface ProductRow {
   fileKey: string | null;
   fileScanStatus: string;
   fileScanKey: string | null;
-  shop: { isActive: boolean; slug: string };
+  shop: { isActive: boolean; salesEnabled: boolean; slug: string };
 }
 
 interface AttemptRow extends Record<string, unknown> {
@@ -231,7 +231,7 @@ const product = (over: Partial<ProductRow> = {}): ProductRow => ({
   fileKey: KEY,
   fileScanStatus: "SAFE",
   fileScanKey: KEY,
-  shop: { isActive: true, slug: "my-shop" },
+  shop: { isActive: true, salesEnabled: true, slug: "my-shop" },
   ...over,
 });
 
@@ -478,6 +478,19 @@ describe("refusals record no attempt and ask Geidea nothing", () => {
     }
   });
 
+  test("a shop with sales turned off is refused, and sales turned on still checks out", async () => {
+    db.product = product({ shop: { isActive: true, salesEnabled: false, slug: "my-shop" } });
+    const refused = await checkout();
+    assert.equal(refused.status, 400);
+    assert.match(String(refused.body.error), /not available for purchase/i);
+    assertNoAttemptAndNoGeidea();
+
+    reset();
+    db.product = product();
+    const sold = await checkout();
+    assert.equal(sold.status, 200);
+  });
+
   test("an unsafe or unsellable product still refuses, before payment", async () => {
     const cases: [string, Partial<ProductRow>][] = [
       ["pending scan", { fileScanStatus: "PENDING_SCAN", fileScanKey: null }],
@@ -488,7 +501,8 @@ describe("refusals record no attempt and ask Geidea nothing", () => {
       ["inactive", { isActive: false }],
       ["not approved", { moderationStatus: "PENDING" }],
       ["rejected", { moderationStatus: "REJECTED" }],
-      ["inactive shop", { shop: { isActive: false, slug: "my-shop" } }],
+      ["inactive shop", { shop: { isActive: false, salesEnabled: true, slug: "my-shop" } }],
+      ["sales disabled", { shop: { isActive: true, salesEnabled: false, slug: "my-shop" } }],
       ["no file", { fileUrl: null }],
     ];
     for (const [name, over] of cases) {

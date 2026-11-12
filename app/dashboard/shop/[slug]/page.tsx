@@ -29,6 +29,7 @@ import { productUrl } from "@/lib/site-url";
 import { productLinkStatus, productLinkStatusKey } from "@/lib/product-link-status";
 import CopyLinkButton from "@/components/CopyLinkButton";
 import { DashboardSkeleton } from "@/components/ui/DashboardSkeleton";
+import { ManualPayoutNote } from "@/components/ManualPayoutNote";
 
 interface Product {
   id: string;
@@ -70,6 +71,10 @@ interface Shop {
   logo: string | null;
   coverImage: string | null;
   createdAt: string;
+  /** True when the founder has turned sales on for this store. */
+  salesEnabled?: boolean;
+  /** True when an IBAN is already saved. The number itself is not sent here. */
+  hasPayoutAccount?: boolean;
   /** True for the shop owner and for a marketplace admin. */
   canRemoveProducts?: boolean;
   products: Product[];
@@ -277,6 +282,13 @@ export default function ShopDashboard() {
             </Link>
           </div>
         </div>
+
+        {shop.salesEnabled && (
+          <ManualPayoutNote
+            missingIban={!shop.hasPayoutAccount}
+            settingsHref={`/dashboard/shop/${shop.slug}/payouts`}
+          />
+        )}
 
         {/* Stats cards */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-8">

@@ -8,6 +8,7 @@ import { useLocale, useTranslations } from "next-intl";
 import { formatPrice } from "@/lib/formatPrice";
 import { formatNumber } from "@/lib/formatNumber";
 import { DashboardSkeleton } from "@/components/ui/DashboardSkeleton";
+import { ManualPayoutNote } from "@/components/ManualPayoutNote";
 
 interface Shop {
   id: string;
@@ -15,6 +16,8 @@ interface Shop {
   slug: string;
   description: string | null;
   createdAt: string;
+  salesEnabled?: boolean;
+  hasPayoutAccount?: boolean;
   _count?: {
     products: number;
   };
@@ -118,6 +121,19 @@ export default function Dashboard() {
             {t('dashboard.home.subtitle')}
           </p>
         </div>
+
+        {(() => {
+          const enabledShops = shops.filter((shop) => shop.salesEnabled);
+          const missingIbanShop = enabledShops.find((shop) => !shop.hasPayoutAccount);
+          const target = missingIbanShop ?? enabledShops[0];
+          if (!target) return null;
+          return (
+            <ManualPayoutNote
+              missingIban={Boolean(missingIbanShop)}
+              settingsHref={`/dashboard/shop/${target.slug}/payouts`}
+            />
+          );
+        })()}
 
         {/* Stats cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">

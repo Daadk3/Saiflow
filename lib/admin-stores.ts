@@ -10,6 +10,8 @@ export interface StoreRow {
   name: string;
   slug: string;
   isActive: boolean;
+  /** Founder switch. False until sales are turned on for this store. */
+  salesEnabled: boolean;
   createdAt: Date;
   /** ISO country code, or null when the store was opened before location was asked. */
   country: string | null;
@@ -64,6 +66,7 @@ export async function getStoresDirectory(
         name: true,
         slug: true,
         isActive: true,
+        salesEnabled: true,
         createdAt: true,
         country: true,
         city: true,
@@ -112,6 +115,7 @@ export async function getStoresDirectory(
       name: shop.name,
       slug: shop.slug,
       isActive: shop.isActive,
+      salesEnabled: shop.salesEnabled === true,
       createdAt: shop.createdAt,
       country: shop.country,
       city: shop.city,

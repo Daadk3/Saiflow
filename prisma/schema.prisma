@@ -139,19 +139,44 @@ model Shop {
   /// Optional city, as the seller typed it. Null when left blank.
   city        String?
   isActive    Boolean  @default(true)
+  /// Founder switch. A store does not sell until this is turned on, even
+  /// when a product is approved and its file is safe. New stores stay off.
+  /// The migration that adds the column turns it on only for the founder's
+  /// existing stores, so those products keep selling. It never approves a
+  /// product by itself.
+  salesEnabled Boolean  @default(false)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  shopUsers     ShopUser[]
-  products      Product[]
-  fileAssets    FileAsset[]
-  payoutAccount SellerPayoutAccount?
-  payouts       Payout[]
+  shopUsers       ShopUser[]
+  products        Product[]
+  fileAssets      FileAsset[]
+  payoutAccount   SellerPayoutAccount?
+  payouts         Payout[]
+  shopSalesEvents ShopSalesEvent[]
 
   @@index([slug])
   @@index([isActive])
+  @@index([salesEnabled])
   @@index([createdAt])
   @@index([country])
+}
+
+/// Append-only record of the founder turning a store's sales on or off.
+/// Same shape of audit as ModerationEvent: who, what it became, and when.
+/// Turning sales on does not approve products, and this row does not either.
+model ShopSalesEvent {
+  id        String   @id @default(cuid())
+  shopId    String
+  /// "admin:<userId>", the same actor form as a moderation decision.
+  actor     String
+  enabled   Boolean
+  createdAt DateTime @default(now())
+
+  shop Shop @relation(fields: [shopId], references: [id], onDelete: Cascade)
+
+  @@index([shopId])
+  @@index([createdAt])
 }
 
 model ShopUser {

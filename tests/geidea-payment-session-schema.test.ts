@@ -417,7 +417,12 @@ describe("the migration is additive and matches the schema", () => {
         .map((s) => s.replace(/\s+/g, " ").trim())
         .filter((s) => s.length > 0);
       for (const s of stmts) {
-        assert.ok(!/^(UPDATE|DELETE|TRUNCATE|INSERT)\b/i.test(s), `${later} rewrites rows: ${s}`);
+        // The sales switch backfill sets the new column on two founder
+        // stores only, so their live products keep selling. It does not
+        // touch any other column.
+        const founderSalesBackfill =
+          /^UPDATE "Shop" SET "salesEnabled" = true WHERE "slug" IN \('daad-s-store', 'novasphere-ai'\)$/.test(s);
+        assert.ok(founderSalesBackfill || !/^(UPDATE|DELETE|TRUNCATE|INSERT)\b/i.test(s), `${later} rewrites rows: ${s}`);
         assert.ok(!/\bRENAME\b/i.test(s), `${later} is not additive: ${s}`);
         // NOT NULL only inside a brand-new table: it constrains rows yet to be
         // written. The one exception is a boolean flag with a constant
@@ -427,7 +432,11 @@ describe("the migration is additive and matches the schema", () => {
         // constant default FILE, which is what every existing product is.
         const flagWithDefault =
           /^ALTER TABLE "(PaymentSession|Order)" ADD COLUMN IF NOT EXISTS "founderTest" BOOLEAN NOT NULL DEFAULT false$/.test(s) ||
-          /^ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "deliveryType" "ProductDeliveryType" NOT NULL DEFAULT 'FILE'$/.test(s);
+          /^ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "deliveryType" "ProductDeliveryType" NOT NULL DEFAULT 'FILE'$/.test(s) ||
+          // Shop.salesEnabled defaults off. Postgres fills existing rows with
+          // that constant without a table rewrite. The founder stores are
+          // turned back on by the one UPDATE below.
+          /^ALTER TABLE "Shop" ADD COLUMN IF NOT EXISTS "salesEnabled" BOOLEAN NOT NULL DEFAULT false$/.test(s);
         if (!/^CREATE TABLE\b/i.test(s) && !flagWithDefault) assert.ok(!/\bNOT NULL\b/i.test(s), `${later} is not additive: ${s}`);
         const dropped = /^ALTER TABLE "(\w+)" DROP CONSTRAINT "(\w+_productId_fkey)"$/.exec(s);
         if (dropped === null) {

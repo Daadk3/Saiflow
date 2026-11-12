@@ -148,7 +148,7 @@ export async function getFounderStats(): Promise<FounderStats> {
         fileScanStatus: true,
         fileScanKey: true,
         deliverables: { select: { fileKey: true, fileScanStatus: true, fileScanKey: true } },
-        shop: { select: { slug: true, isActive: true } },
+        shop: { select: { slug: true, isActive: true, salesEnabled: true } },
       },
       take: 5,
       orderBy: { createdAt: "asc" },
@@ -286,6 +286,12 @@ export interface DirectoryRow {
    */
   notSellableReason: UnsellableReason | null;
   /**
+   * Whether this product's store has sales turned on. Shown even before
+   * approval, so the founder can see that approving a product in a store
+   * with sales off will not put it on sale.
+   */
+  shopSalesEnabled: boolean;
+  /**
    * For a rejected product, the reason given with the rejection that put it
    * there, shortened for the row (lib/rejection-reasons shortReason). Null
    * otherwise, or when that rejection carried no reason.
@@ -383,6 +389,7 @@ export async function getProductsDirectory(opts: {
             name: true,
             slug: true,
             isActive: true,
+            salesEnabled: true,
             shopUsers: {
               take: 1,
               orderBy: { joinedAt: "asc" },
@@ -434,6 +441,7 @@ export async function getProductsDirectory(opts: {
         canInspect: inspectProduct(p, "admin").decision.allow,
         notSellableReason:
           p.moderationStatus === "APPROVED" && unsellableReason(p) !== "sellable" ? unsellableReason(p) : null,
+        shopSalesEnabled: p.shop.salesEnabled === true,
         rejectionReason:
           p.moderationStatus === "REJECTED" && latest?.newStatus === "REJECTED" ? shortReason(latest.reason) : null,
       };

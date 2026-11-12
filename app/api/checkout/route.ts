@@ -446,13 +446,18 @@ export async function POST(req: Request) {
       );
     }
 
-    // Unpublished/unapproved products and deactivated shops must not be
-    // purchasable, even by direct API call with a known product id. Read from
-    // the one storefront rule (lib/sellable), whose first three conditions
-    // these are; the file's own condition is refused separately below, with
-    // its own code, by the single safety authority.
+    // Unpublished/unapproved products, deactivated shops, and shops whose
+    // sales are still off must not be purchasable, even by direct API call
+    // with a known product id. Read from the one storefront rule
+    // (lib/sellable); the file's own condition is refused separately below,
+    // with its own code, by the single safety authority.
     const availability = unsellableReason(product);
-    if (availability === "inactive" || availability === "not_approved" || availability === "shop_inactive") {
+    if (
+      availability === "inactive" ||
+      availability === "not_approved" ||
+      availability === "shop_inactive" ||
+      availability === "sales_disabled"
+    ) {
       return NextResponse.json(
         { error: "This product is not available for purchase." },
         { status: 400 }

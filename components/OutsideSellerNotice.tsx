@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useTranslations } from "next-intl";
 import { shouldShowOutsideSellerNotice } from "@/lib/outside-seller-notice";
@@ -13,7 +14,38 @@ import { shouldShowOutsideSellerNotice } from "@/lib/outside-seller-notice";
 export function OutsideSellerNotice() {
   const t = useTranslations("outsideSeller");
   const { data: session, status } = useSession();
-  if (!shouldShowOutsideSellerNotice(status, session?.user?.isAdmin)) return null;
+  // null while we are still asking whether this account owns a store whose
+  // sales are on. The notice stays hidden during that moment.
+  const shouldCheckOwnership = status === "authenticated" && session?.user?.isAdmin !== true;
+  const [ownsSalesEnabledShop, setOwnsSalesEnabledShop] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    if (!shouldCheckOwnership) return;
+    let cancelled = false;
+    fetch("/api/shops")
+      .then((res) => (res.ok ? res.json() : []))
+      .then((shops: unknown) => {
+        if (cancelled) return;
+        const rows = Array.isArray(shops) ? shops : [];
+        setOwnsSalesEnabledShop(
+          rows.some(
+            (shop) =>
+              !!shop &&
+              typeof shop === "object" &&
+              (shop as { salesEnabled?: boolean }).salesEnabled === true,
+          ),
+        );
+      })
+      .catch(() => {
+        if (!cancelled) setOwnsSalesEnabledShop(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [shouldCheckOwnership]);
+
+  const ownership = shouldCheckOwnership ? ownsSalesEnabledShop : false;
+  if (!shouldShowOutsideSellerNotice(status, session?.user?.isAdmin, ownership)) return null;
 
   return (
     <div

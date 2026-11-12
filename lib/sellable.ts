@@ -14,12 +14,17 @@ export { noUnsafeExtrasWhere };
 /**
  * What "a buyer can see and buy this product" means, in one place.
  *
- * Four conditions, ANDed:
+ * Five conditions, ANDed:
  *   1. the product is active,
  *   2. a moderator approved it,
- *   3. its shop is active (not suspended), and
- *   4. its deliverable passed the safety check for the file attached now
+ *   3. its shop is active (not suspended),
+ *   4. the founder has turned sales on for that shop, and
+ *   5. its deliverable passed the safety check for the file attached now
  *      (SAFE_DELIVERABLE_WHERE / isDeliverableSafe, the reviewed authority).
+ *
+ * Sales on is a store switch, not an approval. A product still has to be
+ * approved on its own. A store with sales off is absent from listings and
+ * checkout; its product page can still open to say it is not for sale yet.
  *
  * Every public surface (home, browse, store page, product page, checkout
  * page, sitemap) filters with SELLABLE_PRODUCT_WHERE, and the admin's "live"
@@ -49,8 +54,11 @@ export { noUnsafeExtrasWhere };
  * requires the safety check (isDeliverableSafe) on every download.
  */
 
-/** The shop half of the rule; exported so a query that also filters the shop (by slug) keeps it. */
-export const SELLABLE_SHOP_WHERE = { isActive: true } satisfies Prisma.ShopWhereInput;
+/**
+ * The shop half of the rule; exported so a query that also filters the shop
+ * (by slug) keeps it. Sales stay off until the founder turns them on.
+ */
+export const SELLABLE_SHOP_WHERE = { isActive: true, salesEnabled: true } satisfies Prisma.ShopWhereInput;
 
 /** Condition 4 for a HOSTED_ACCESS product: its private access record exists. */
 export const HOSTED_ACCESS_READY_WHERE = {
@@ -95,7 +103,8 @@ export const SELLABLE_PRODUCT_WHERE = {
  * tests/sellable.test.ts.
  *
  * A suspended shop's products are not listed here: suspension, not the file,
- * is why they are off sale.
+ * is why they are off sale. A shop with sales turned off is left out for the
+ * same reason: the switch, not the file, is why they are off sale.
  */
 export const APPROVED_NOT_SELLABLE_WHERE = {
   // File products only: a hosted product has no file by design, and is never
@@ -116,7 +125,7 @@ export const APPROVED_NOT_SELLABLE_WHERE = {
 export interface SellableFacts extends DeliverableSafety {
   isActive: boolean;
   moderationStatus: ModerationStatus;
-  shop: { isActive: boolean };
+  shop: { isActive: boolean; salesEnabled: boolean };
   /** Missing means FILE: see the note above. */
   deliveryType?: ProductDeliveryType;
   /** Only its presence is read; select an id, never the link. */
@@ -134,6 +143,7 @@ export type UnsellableReason =
   | "inactive"
   | "not_approved"
   | "shop_inactive"
+  | "sales_disabled"
   | "hosted_access_missing"
   | "hosted_has_files"
   | Exclude<DeliverableGateReason, "safe">;
@@ -159,13 +169,14 @@ function deliveryReason(
 
 /**
  * Which condition fails first, in the order a founder would fix them: the
- * listing itself, then the decision, then the shop, then the file (with the
- * file's own reason from deliverableGateReason).
+ * listing itself, then the decision, then the shop (suspended before sales
+ * off), then the file (with the file's own reason from deliverableGateReason).
  */
 export function unsellableReason(product: SellableFacts): UnsellableReason {
   if (!product.isActive) return "inactive";
   if (product.moderationStatus !== "APPROVED") return "not_approved";
   if (!product.shop.isActive) return "shop_inactive";
+  if (!product.shop.salesEnabled) return "sales_disabled";
   return deliveryReason(product);
 }
 
@@ -175,6 +186,7 @@ export function isSellable(product: SellableFacts): boolean {
     product.isActive &&
     product.moderationStatus === "APPROVED" &&
     product.shop.isActive &&
+    product.shop.salesEnabled &&
     (product.deliveryType === "HOSTED_ACCESS"
       ? Boolean(product.hostedAccess) &&
         Array.isArray(product.deliverables) &&
