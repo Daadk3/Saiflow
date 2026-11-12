@@ -8,9 +8,11 @@
 -- sell until the founder turns sales on. Nothing here approves a product,
 -- and no column is dropped or rewritten.
 --
--- Backfill: the two founder stores keep selling. Admin addresses live in
--- process configuration, not in a table, so they cannot be applied in SQL
--- without copying them into this file. Only the known slugs are updated.
+-- Backfill: the founder's stores keep selling. Shop has no ownerId column.
+-- The owner is the ShopUser row with role OWNER. Every shop owned by an
+-- OWNER of daad-s-store is turned on, and these slugs are listed as well:
+-- daad-s-store, novasphere-ai, dakhl-mutaghayyir, interview-ready-ksa,
+-- mawlood-ready. Other stores stay at the default, false.
 -- PostgreSQL runs a migration in one transaction, so those stores never
 -- have a committed window where salesEnabled is false.
 --
@@ -21,7 +23,19 @@ ALTER TABLE "Shop" ADD COLUMN IF NOT EXISTS "salesEnabled" BOOLEAN NOT NULL DEFA
 
 UPDATE "Shop"
 SET "salesEnabled" = true
-WHERE "slug" IN ('daad-s-store', 'novasphere-ai');
+WHERE "slug" IN ('daad-s-store', 'novasphere-ai', 'dakhl-mutaghayyir', 'interview-ready-ksa', 'mawlood-ready')
+OR "id" IN (
+SELECT member."shopId"
+FROM "ShopUser" member
+WHERE member."role" = 'OWNER'
+AND member."userId" IN (
+SELECT founder."userId"
+FROM "ShopUser" founder
+INNER JOIN "Shop" founder_shop ON founder_shop."id" = founder."shopId"
+WHERE founder_shop."slug" = 'daad-s-store'
+AND founder."role" = 'OWNER'
+)
+);
 
 CREATE INDEX IF NOT EXISTS "Shop_salesEnabled_idx" ON "Shop"("salesEnabled");
 

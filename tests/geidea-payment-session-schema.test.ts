@@ -417,11 +417,11 @@ describe("the migration is additive and matches the schema", () => {
         .map((s) => s.replace(/\s+/g, " ").trim())
         .filter((s) => s.length > 0);
       for (const s of stmts) {
-        // The sales switch backfill sets the new column on two founder
-        // stores only, so their live products keep selling. It does not
-        // touch any other column.
+        // The sales switch backfill sets the new column on the founder's
+        // stores: five named slugs, plus every shop owned by an OWNER of
+        // daad-s-store. It does not touch any other column.
         const founderSalesBackfill =
-          /^UPDATE "Shop" SET "salesEnabled" = true WHERE "slug" IN \('daad-s-store', 'novasphere-ai'\)$/.test(s);
+          /^UPDATE "Shop" SET "salesEnabled" = true WHERE "slug" IN \('daad-s-store', 'novasphere-ai', 'dakhl-mutaghayyir', 'interview-ready-ksa', 'mawlood-ready'\) OR "id" IN \( SELECT member\."shopId" FROM "ShopUser" member WHERE member\."role" = 'OWNER' AND member\."userId" IN \( SELECT founder\."userId" FROM "ShopUser" founder INNER JOIN "Shop" founder_shop ON founder_shop\."id" = founder\."shopId" WHERE founder_shop\."slug" = 'daad-s-store' AND founder\."role" = 'OWNER' \) \)$/.test(s);
         assert.ok(founderSalesBackfill || !/^(UPDATE|DELETE|TRUNCATE|INSERT)\b/i.test(s), `${later} rewrites rows: ${s}`);
         assert.ok(!/\bRENAME\b/i.test(s), `${later} is not additive: ${s}`);
         // NOT NULL only inside a brand-new table: it constrains rows yet to be

@@ -18,14 +18,14 @@ const read = (p: string) => readFileSync(resolve(ROOT, p), "utf8");
 describe("the migration", () => {
   const sql = read("prisma/migrations/20261112140000_shop_sales_enabled/migration.sql");
 
-  test("adds the column with default false, and only turns on the two founder slugs", () => {
+  test("adds the column with default false, and turns sales on for the founder's shops", () => {
     assert.match(sql, /ADD COLUMN IF NOT EXISTS "salesEnabled" BOOLEAN NOT NULL DEFAULT false/);
+    const collapsed = sql.replace(/--[^\n]*/g, "").replace(/\s+/g, " ");
     assert.match(
-      sql,
-      /UPDATE "Shop"\s+SET "salesEnabled" = true\s+WHERE "slug" IN \('daad-s-store', 'novasphere-ai'\)/,
+      collapsed,
+      /UPDATE "Shop" SET "salesEnabled" = true WHERE "slug" IN \('daad-s-store', 'novasphere-ai', 'dakhl-mutaghayyir', 'interview-ready-ksa', 'mawlood-ready'\) OR "id" IN \( SELECT member\."shopId" FROM "ShopUser" member WHERE member\."role" = 'OWNER' AND member\."userId" IN \( SELECT founder\."userId" FROM "ShopUser" founder INNER JOIN "Shop" founder_shop ON founder_shop\."id" = founder\."shopId" WHERE founder_shop\."slug" = 'daad-s-store' AND founder\."role" = 'OWNER' \) \)/,
     );
-    // ADMIN_EMAILS is process configuration, not a column, so it is not
-    // copied into SQL. The two slugs are the safe backfill.
+    assert.equal(sql.split(/UPDATE "Shop"/).length - 1, 1);
     assert.ok(!sql.includes("ADMIN_EMAILS"));
     assert.ok(!/DELETE FROM/i.test(sql));
     assert.ok(!/DROP /i.test(sql));
