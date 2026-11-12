@@ -8,6 +8,7 @@ import { usePathname } from "next/navigation";
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 import BrandLogo from "@/components/BrandLogo";
 import WhatsAppContactButton from "@/components/WhatsAppContactButton";
+import ThemeToggle from "@/components/ThemeToggle";
 import { useTranslations } from "next-intl";
 
 export default function Navbar() {
@@ -45,7 +46,7 @@ export default function Navbar() {
           {/* Plain links inside the <nav> landmark: a site navigation is not an
               ARIA menu (role="menu" promises arrow-key menu behaviour and
               requires every child to be a menuitem). */}
-          <div className="hidden lg:flex items-center gap-6 xl:gap-8">
+          <div className="hidden lg:flex items-center gap-4 xl:gap-8">
             <Link href="/browse" className={navLinkClass}>
               {t('products')}
             </Link>
@@ -63,9 +64,10 @@ export default function Navbar() {
           {/* Right actions. WhatsApp stays outside the lg-only group so the
               contact button is in the bar on a phone as well as a desktop,
               next to the menu button rather than floating in the middle. */}
-          <div className="flex items-center gap-2 sm:gap-3">
+          <div className="flex items-center gap-1.5 sm:gap-2 lg:gap-3">
             <WhatsAppContactButton />
-            <div className="hidden lg:flex items-center gap-4">
+            <ThemeToggle />
+            <div className="hidden lg:flex items-center gap-3 xl:gap-4">
               <LanguageSwitcher />
               {session ? (
                 // Logged in - show these
@@ -150,6 +152,7 @@ export default function Navbar() {
           </div>
           <div className="flex flex-col gap-3">
             <WhatsAppContactButton variant="menu" />
+            <ThemeToggle variant="menu" />
             <Link href="/browse" className={navLinkClass} onClick={() => setMenuOpen(false)}>
               {t('products')}
             </Link>

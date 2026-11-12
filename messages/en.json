@@ -22,7 +22,9 @@
     "categories": "Categories",
     "howToSell": "How to sell",
     "whatsapp": "WhatsApp",
-    "whatsappAria": "Contact us on WhatsApp"
+    "whatsappAria": "Contact us on WhatsApp",
+    "switchToLight": "Switch to light theme",
+    "switchToDark": "Switch to dark theme"
   },
   "categories": {
     "all": "All",
