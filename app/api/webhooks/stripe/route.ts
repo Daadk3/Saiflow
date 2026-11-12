@@ -3,6 +3,7 @@ import Stripe from "stripe";
 import { prisma } from "@/lib/prisma";
 import { sendPurchaseEmail } from "@/lib/email";
 import { receiptDownloadUrl } from "@/lib/download-links";
+import { reviewPageUrl } from "@/lib/review-links";
 import { fromHalalas, saleBreakdown } from "@/lib/pricing";
 
 // Lazy init: Stripe env vars are optional in pre-launch, so a module-level
@@ -207,10 +208,21 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
         { orderId: order.id, productId: product.id },
         process.env.NEXTAUTH_SECRET
       );
+      let reviewUrl: string | undefined;
+      try {
+        reviewUrl = reviewPageUrl(
+          process.env.NEXTAUTH_URL,
+          { orderId: order.id, productId: product.id, customerEmail },
+          process.env.NEXTAUTH_SECRET
+        );
+      } catch {
+        reviewUrl = undefined;
+      }
       await sendPurchaseEmail({
         customerEmail,
         productName: product.name,
         downloadUrl,
+        reviewUrl,
       });
     } catch (error) {
       console.error("[Stripe Webhook] Receipt not sent:", (error as Error)?.name);

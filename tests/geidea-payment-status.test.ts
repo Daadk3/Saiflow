@@ -18,6 +18,7 @@ import {
   isMerchantReference,
   statusFor,
 } from "../lib/payments/payment-status.ts";
+import { verifyReviewToken } from "../lib/review-links.ts";
 
 const REF = "5fde430a-4ed5-4876-9929-11871c32ff8b";
 const OTHER_REF = "0f0e0d0c-0b0a-4908-8706-050403020100";
@@ -27,7 +28,7 @@ interface AttemptRow {
   status: string;
   expiresAt: Date | null;
   product: { name: string };
-  order: { id: string; productId?: string } | null;
+  order: { id: string; productId?: string; customerEmail?: string } | null;
   // Fields the endpoint must never surface, present to prove they are not.
   amount: string;
   buyerEmail: string | null;
@@ -273,6 +274,23 @@ describe("GET /api/payment-status", () => {
     assert.deepEqual(res.body, { status: "processing", productName: "Arabic Templates Pack", orderExists: false });
   });
 
+  test("a paid order can carry a signed review path, and the email stays out of it", async () => {
+    process.env.NEXTAUTH_SECRET = "test-only-review-secret";
+    try {
+      seed({ status: "PAID", order: { id: "order_1", productId: "prod_1", customerEmail: "Buyer@Example.test" } });
+      const res = await status(`?ref=${REF}`);
+      const path = String(res.body.reviewPath);
+      const token = new URL(path, "https://saiflow.test").searchParams.get("t")!;
+      assert.deepEqual(verifyReviewToken(token, "prod_1", "buyer@example.test", process.env.NEXTAUTH_SECRET), {
+        ok: true,
+        orderId: "order_1",
+      });
+      assert.ok(!JSON.stringify(res.body).toLowerCase().includes("buyer@example.test"));
+    } finally {
+      delete process.env.NEXTAUTH_SECRET;
+    }
+  });
+
   test("the response carries exactly the expected fields and nothing sensitive", async () => {
     seed();
     let res = await status(`?ref=${REF}`);
@@ -294,7 +312,11 @@ describe("GET /api/payment-status", () => {
     assert.equal(reads.length, 1);
     const select = (reads[0] as { select: Record<string, unknown> }).select;
     assert.deepEqual(Object.keys(select).sort(), ["expiresAt", "order", "product", "status"]);
-    assert.deepEqual(select.order, { select: { productId: true } }, "the Order's id is never even read");
+    assert.deepEqual(
+      select.order,
+      { select: { id: true, productId: true, customerEmail: true } },
+      "id and email are read only to sign the review link"
+    );
     // deliveryType picks a download path or a hosted-access page path.
     assert.deepEqual(select.product, { select: { name: true, deliveryType: true } });
     // Any write would have thrown inside the fake and surfaced as a 500.

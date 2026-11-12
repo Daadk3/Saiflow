@@ -267,6 +267,9 @@ model Product {
   /// Extra deliverables beyond Product.fileKey. Empty for every product that
   /// sells a single file. Each row is scanned on its own key.
   deliverables     ProductDeliverable[]
+  /// Verified-buyer reviews. Empty until a paid buyer writes one. The legacy
+  /// Rating relation is unrelated and unused.
+  reviews          ProductReview[]
 
   @@unique([shopId, slug])
   @@index([shopId])
@@ -544,6 +547,9 @@ model Order {
   /// Restrict: a recorded payout is financial history and is never deleted
   /// out from under the orders it paid for.
   payout         Payout?         @relation(fields: [payoutId], references: [id], onDelete: Restrict)
+  /// Reviews this purchase authorised. At most one, by the unique on
+  /// ProductReview (orderId, productId).
+  reviews        ProductReview[]
 
   @@unique([paymentProvider, providerOrderId])
   @@index([productId])
@@ -687,6 +693,65 @@ model PaymentSession {
   @@index([createdAt])
 }
 
+/// A verified buyer's review of one product they paid for.
+///
+/// An Order row is the only proof of purchase (guest checkout has no buyer
+/// user id). One review per buyer per product, keyed by the normalised
+/// email, and one per order+product. Hidden reviews stay in the table so a
+/// moderator can restore them; they are left out of the public average.
+/// Nothing here is seeded. The legacy Rating table is not this.
+model ProductReview {
+  id           String    @id @default(cuid())
+  productId    String
+  /// The paid order that authorised the review. Later edits keep this row.
+  orderId      String
+  /// Order.customerEmail, trimmed and lower-cased.
+  buyerEmail   String
+  /// 1–5. The migration also CHECK-constrains the column.
+  stars        Int
+  /// Optional plain text. Null when the buyer left stars only.
+  body         String?   @db.VarChar(500)
+  hiddenAt     DateTime?
+  /// Admin email. No foreign key, same convention as ModerationEvent.actor:
+  /// the decision outlives the account.
+  hiddenBy     String?
+  hiddenReason String?   @db.VarChar(500)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  product Product               @relation(fields: [productId], references: [id], onDelete: Cascade)
+  /// Restrict: the purchase that proves the review is not deleted out from
+  /// under it. Orders are not deleted today.
+  order   Order                 @relation(fields: [orderId], references: [id], onDelete: Restrict)
+  reports ProductReviewReport[]
+
+  @@unique([orderId, productId])
+  @@unique([buyerEmail, productId])
+  @@index([productId, hiddenAt, createdAt])
+  @@index([hiddenAt])
+}
+
+/// A shop owner asking SaiFlow to look at a review on their own product.
+/// The seller cannot edit or delete the review; hiding is an admin action
+/// on ProductReview itself.
+model ProductReviewReport {
+  id             String   @id @default(cuid())
+  reviewId       String
+  /// The user id of the shop OWNER who reported. No foreign key, so the
+  /// report survives account deletion.
+  reporterUserId String
+  reason         String   @db.VarChar(500)
+  createdAt      DateTime @default(now())
+
+  review ProductReview @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+
+  @@unique([reviewId, reporterUserId])
+  @@index([createdAt])
+}
+
+/// Legacy and unused: no route or page reads it. Verified buyer reviews are
+/// ProductReview. Safe follow-up, once nothing generated still names this
+/// model: drop the table. Do not backfill it.
 model Rating {
   id         String   @id @default(cuid())
   score      Int

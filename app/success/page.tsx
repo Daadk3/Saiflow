@@ -57,6 +57,7 @@ function SuccessContent() {
   // A hosted-access purchase (e.g. an AI agent): the path to its secure
   // delivery page, supplied by the status endpoint only for a paid Order.
   const [accessPath, setAccessPath] = useState<string | null>(null);
+  const [reviewPath, setReviewPath] = useState<string | null>(null);
 
   useEffect(() => {
     if (!ref) return;
@@ -65,6 +66,7 @@ function SuccessContent() {
       if (!controller.signal.aborted) {
         setView(viewFor(outcome));
         setAccessPath(outcome.kind === "settled" && outcome.status === "paid" ? outcome.accessPath ?? null : null);
+        setReviewPath(outcome.kind === "settled" && outcome.status === "paid" ? outcome.reviewPath ?? null : null);
       }
     });
     return () => controller.abort();
@@ -163,6 +165,12 @@ function SuccessContent() {
               ) : (
                 <p className="text-amber-400 text-sm mb-6">{t("paidNoLink")}</p>
               )
+            )}
+
+            {isPaid && reviewPath && (
+              <a href={reviewPath} className="mb-6 inline-block text-sm font-medium text-teal-400 hover:text-teal-300">
+                {t("reviewCta")}
+              </a>
             )}
 
             {(isTimeout || isEnded || view.kind === "unknown" || view.kind === "error") && ref && (

@@ -319,6 +319,7 @@ describe("the migration only adds, and replaces the two delete rules", () => {
       "20261105120000_hosted_access_products",
       "20261106120000_product_deliverables",
       "20261112120000_product_landing_and_compare_at",
+      "20261112130000_product_reviews",
     ]);
   });
 });

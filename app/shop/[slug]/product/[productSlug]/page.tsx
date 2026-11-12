@@ -1,5 +1,6 @@
 import { cache } from "react";
 import type { Metadata } from "next";
+import { getServerSession } from "next-auth";
 import { prisma } from "@/lib/prisma";
 import { SELLABLE_PRODUCT_WHERE, SELLABLE_SHOP_WHERE } from "@/lib/sellable";
 import { notFound } from "next/navigation";
@@ -13,6 +14,10 @@ import { env } from "@/lib/env";
 import { checkoutPath } from "@/lib/checkout/embedded";
 import { ProductCoverImage } from "@/components/ProductCoverImage";
 import { PRODUCT_COVER } from "@/lib/product-cover";
+import { authOptions } from "@/app/api/auth/authOptions";
+import { loadPublicReviews } from "@/lib/reviews/store";
+import { isShopOwner } from "@/lib/reviews/owner";
+import { ProductReviewSection, ReviewAverageLine } from "@/components/product-reviews/ProductReviewSection";
 import { ProductPrice } from "@/components/storefront/ProductPrice";
 import { ProductLandingSections } from "@/components/storefront/ProductLandingSections";
 import { hasLandingContent, publicOffer, readLanding, type ProductLanding } from "@/lib/product-landing";
@@ -33,6 +38,7 @@ interface Product {
   /** FILE or HOSTED_ACCESS. Public: it only changes the wording. The access details are never selected here. */
   deliveryType: "FILE" | "HOSTED_ACCESS";
   shop: {
+    id: string;
     name: string;
     slug: string;
     logo: string | null;
@@ -64,6 +70,7 @@ const getProduct = cache(async function getProduct(shopSlug: string, productSlug
       deliveryType: true,
       shop: {
         select: {
+          id: true,
           name: true,
           slug: true,
           logo: true,
@@ -134,6 +141,11 @@ export default async function ProductPage({
   const locale = await getLocale();
   const t = await getTranslations();
   const preLaunchMode = env.PRE_LAUNCH_MODE;
+  const [session, reviews] = await Promise.all([
+    getServerSession(authOptions),
+    loadPublicReviews(product.id),
+  ]);
+  const canReport = await isShopOwner(session?.user?.email, product.shop.id);
   const offer = publicOffer(product.price, product.compareAtPrice);
   const saveLabel = offer?.percent != null ? t("storefront.productDetail.savePercent", { percent: offer.percent }) : null;
   const showLanding = hasLandingContent(product.landing);
@@ -299,6 +311,8 @@ export default async function ProductPage({
               </ul>
               )}
             </div>
+
+            <ProductReviewSection summary={reviews} canReport={canReport} />
           </div>
 
           {/* Right column - purchase card */}
@@ -311,6 +325,8 @@ export default async function ProductPage({
                 locale={locale}
                 saveLabel={saveLabel}
               />
+
+              <ReviewAverageLine summary={reviews} />
 
               {product.deliveryType === "HOSTED_ACCESS" && (
                 <p className="mt-3 inline-flex items-center rounded-full border border-cyan-500/20 bg-cyan-500/10 px-3 py-1 text-xs font-medium text-cyan-300">

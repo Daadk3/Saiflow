@@ -183,6 +183,20 @@ describe("the purchase receipt", () => {
     assert.ok(!JSON.stringify(logged).includes("buyer@example.com"));
   });
 
+  test("a review link is a second anchor, escaped, and absent when it was not signed", async () => {
+    const reviewUrl = `https://saiflow.test/review/prod_1?t=order_1.1.sig"><img`;
+    await email.sendPurchaseEmail({
+      customerEmail: "buyer@example.com",
+      productName: "Planner",
+      downloadUrl: DOWNLOAD,
+      reviewUrl,
+    });
+    assert.equal((sent[0].html.match(/<a\b/g) ?? []).length, 2);
+    assert.ok(sent[0].html.includes("&quot;&gt;&lt;img"));
+    assert.ok(!sent[0].html.includes("<img"));
+    assert.match(sent[0].html, /قيّم مشترياتك/);
+  });
+
   test("a refusal reported in the result is logged as a failure, not a send", async () => {
     state.response = { data: null, error: { name: "validation_error", message: "x" } };
     await email.sendPurchaseEmail({ customerEmail: "buyer@example.com", productName: "Planner", downloadUrl: DOWNLOAD });
