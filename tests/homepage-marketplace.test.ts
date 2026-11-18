@@ -112,7 +112,7 @@ describe("copy: one namespace, both locales, nothing fabricated", () => {
     assert.ok(!/role="img"/.test(code) && !/formatPrice|mock\./.test(code), "no visual panel in the hero");
     const images = [...code.matchAll(/<Image[\s\S]*?\/>/g)].map((m) => m[0]);
     assert.equal(images.length, 1, "one illustration only");
-    assert.ok(/src="\/mascot-[a-z]+\.png"/.test(images[0]), "the illustration is the ghost mascot");
+    assert.ok(/src="\/agents\/00-saiflow-plain\.png"/.test(images[0]), "the illustration is the plain ghost, without headphones");
     assert.ok(/alt=""/.test(images[0]) && /aria-hidden="true"/.test(images[0]), "and it is decorative");
     for (const m of [ar, en]) {
       const h = m.home as Record<string, Record<string, unknown>>;

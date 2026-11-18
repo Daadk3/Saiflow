@@ -43,7 +43,7 @@ export async function Hero() {
           <div className="relative order-1 mx-auto w-28 sm:w-36 lg:order-2 lg:w-72 xl:w-80">
             <div aria-hidden="true" className="absolute inset-[15%] rounded-full bg-teal-400/20 blur-3xl" />
             <Image
-              src="/mascot-headphones.png"
+              src="/agents/00-saiflow-plain.png"
               alt=""
               aria-hidden="true"
               width={320}
