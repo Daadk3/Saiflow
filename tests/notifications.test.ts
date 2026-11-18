@@ -468,18 +468,36 @@ describe("a fulfilled purchase", () => {
     assert.ok(admin.html.includes(`href="${ORIGIN}/dashboard/admin"`));
   });
 
-  test("the order id is redacted and the bodies carry no address, no bearer and no payload", async () => {
+  test("the order id is redacted and the bodies carry no bearer and no payload", async () => {
     state.product = withMembers;
     await notify.notifySaleFulfilled(sale);
     for (const message of sent) {
       assert.ok(message.html.includes("order_ab…"), "redacted reference present");
       assert.ok(!message.html.includes(sale.orderId), "full order id absent");
       assert.ok(!message.text.includes(sale.orderId));
-      assert.ok(!message.html.includes("@"), "no address in a body");
+      assert.ok(!message.html.includes("@"), "no address until a buyer email is known");
       for (const word of ["merchantReferenceId", "providerOrderId", "signature", "token", "card"]) {
         assert.ok(!message.html.toLowerCase().includes(word), `${word} in body`);
       }
     }
+    const admin = sent[1];
+    assert.ok(admin.html.includes("المشتري: غير مُجمّع"));
+    assert.ok(admin.html.includes("Buyer: Not collected"));
+    assert.ok(admin.html.includes("Buyer email: Not collected"));
+    assert.ok(!sent[0].html.includes("المشتري"), "the seller's copy still leaves the buyer out");
+  });
+
+  test("the founder email names the buyer; the seller email does not", async () => {
+    state.product = withMembers;
+    await notify.notifySaleFulfilled({ ...sale, buyerName: "نورة العبدالله", buyerEmail: "buyer@example.test" });
+    const [seller, admin] = sent;
+    assert.ok(!seller.html.includes("buyer@example.test"));
+    assert.ok(!seller.html.includes("نورة"));
+    assert.ok(admin.html.includes("المشتري: نورة العبدالله"));
+    assert.ok(admin.html.includes("Buyer: نورة العبدالله"));
+    assert.ok(admin.html.includes("بريد المشتري: buyer@example.test"));
+    assert.ok(admin.html.includes("Buyer email: buyer@example.test"));
+    assert.equal(admin.subject, "[اختبار] عملية بيع: قالب تخطيط");
   });
 
   test("a production sale carries no test marker", async () => {
@@ -546,9 +564,13 @@ describe("the module keeps its promises (structural)", () => {
     assert.ok(read("lib/email.ts").includes("'Saiflow <noreply@saiflow.io>'"));
   });
 
-  test("nothing here reads the buyer, the payload, a signature or a card", () => {
-    for (const word of ["buyerEmail", "customerEmail", "signature", "cardNumber", "GEIDEA_API_PASSWORD", "merchantReferenceId"]) {
+  test("nothing here reads a payload, a signature, a card, or the buyer off an order row", () => {
+    for (const word of ["customerEmail", "signature", "cardNumber", "GEIDEA_API_PASSWORD", "merchantReferenceId"]) {
       assert.ok(!src.includes(word), `${word} in lib/notify.ts`);
     }
+    assert.ok(!src.includes("prisma.order"));
+    assert.ok(!src.includes("prisma.paymentSession"));
+    assert.ok(src.includes("buyerName"));
+    assert.ok(src.includes("buyerEmail"));
   });
 });

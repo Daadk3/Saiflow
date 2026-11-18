@@ -35,6 +35,7 @@ import {
   type Presentation as AttemptPresentation,
 } from "@/lib/checkout/attempt";
 import { normalizeBuyerEmail } from "@/lib/checkout/buyer-email";
+import { normalizeBuyerName } from "@/lib/checkout/buyer-name";
 import { unsellableReason } from "@/lib/sellable";
 import { accountAllowed, productionAccountHere, withinFounderCap } from "@/lib/payments/live-mode";
 import { currentCheckoutAccess } from "@/lib/payments/request-access";
@@ -46,9 +47,11 @@ import { currentCheckoutAccess } from "@/lib/payments/request-access";
  * pre-launch, a real product, moderation and shop visibility, an attached
  * file, and the reviewed deliverable-safety predicate. Only past all of them
  * does money enter the picture, and then nothing the browser sent is used
- * again: the body contributes `productId`, which selects the product, and
- * `buyerEmail`, which is only where the receipt goes (lib/checkout/buyer-email)
- * and decides nothing about money, the attempt or the file. The amount is the
+ * again: the body contributes `productId`, which selects the product,
+ * `buyerEmail`, which is only where the receipt goes (lib/checkout/buyer-email),
+ * and `buyerName`, which is only the name recorded for the founder
+ * (lib/checkout/buyer-name). Neither decides anything about money, the
+ * attempt or the file. The amount is the
  * row's price, the currency is the row's and must be SAR, the environment is
  * the deployment's GEIDEA_ENV, and both Geidea URLs are built from the
  * deployment's own configured origin.
@@ -237,7 +240,12 @@ function isForeignKeyViolation(error: unknown): boolean {
   return errorCode(error) === "P2003";
 }
 
-type HeldAttempt = CurrentAttempt & { id: string; buyerEmail: string | null; providerOrderId: string | null };
+type HeldAttempt = CurrentAttempt & {
+  id: string;
+  buyerEmail: string | null;
+  buyerName: string | null;
+  providerOrderId: string | null;
+};
 
 /** This browser's current attempt for this product, if it has one. */
 async function currentAttempt(key: string): Promise<HeldAttempt | null> {
@@ -260,6 +268,7 @@ async function currentAttempt(key: string): Promise<HeldAttempt | null> {
       expiresAt: true,
       createdAt: true,
       buyerEmail: true,
+      buyerName: true,
       order: { select: { id: true } },
     },
   });
@@ -402,7 +411,7 @@ export async function POST(req: Request) {
   }
 
   try {
-    const { productId, buyerEmail: submittedEmail } = await req.json();
+    const { productId, buyerEmail: submittedEmail, buyerName: submittedName } = await req.json();
 
     if (!productId) {
       return NextResponse.json(
@@ -417,6 +426,13 @@ export async function POST(req: Request) {
     const buyerEmail = normalizeBuyerEmail(submittedEmail);
     if (buyerEmail === null) {
       return NextResponse.json({ error: "invalid_email" }, { status: 400 });
+    }
+    // Who the founder will see bought this. Required, checked with the same
+    // rule the checkout page applied. It labels the attempt and, once paid,
+    // the Order. It never selects a product, an amount, or a right to a file.
+    const buyerName = normalizeBuyerName(submittedName);
+    if (buyerName === null) {
+      return NextResponse.json({ error: "invalid_name" }, { status: 400 });
     }
 
     // Get the product from database.
@@ -667,13 +683,17 @@ export async function POST(req: Request) {
         return answerCurrent(key, expected, presentation, scriptUrl, cookie);
       }
       if (decision.kind !== "replace" && settled === "kept") {
-        if (decision.kind === "resume" && held.buyerEmail !== buyerEmail) {
-          // The buyer corrected their address before paying. Receipt only:
-          // conditional on the attempt still being this browser's current
-          // one and unpaid, and nothing else about it changes.
+        if (decision.kind === "resume" && (held.buyerEmail !== buyerEmail || held.buyerName !== buyerName)) {
+          // The buyer corrected their address or name before paying. Receipt
+          // and the founder's record only: conditional on the attempt still
+          // being this browser's current one and unpaid, and nothing else
+          // about it changes. A field that already matches is left untouched.
+          const data: { buyerEmail?: string; buyerName?: string } = {};
+          if (held.buyerEmail !== buyerEmail) data.buyerEmail = buyerEmail;
+          if (held.buyerName !== buyerName) data.buyerName = buyerName;
           await prisma.paymentSession.updateMany({
             where: { id: held.id, currentAttemptKey: key, status: { not: "PAID" } },
-            data: { buyerEmail },
+            data,
           });
         }
         return answerExisting(held, decision, presentation, scriptUrl, cookie);
@@ -721,10 +741,12 @@ export async function POST(req: Request) {
           currency: CURRENCY,
           environment,
           status: "CREATED",
-          // The receipt address, collected on SaiFlow's checkout page before
-          // the session was asked for. The callback never reads one from
-          // Geidea; fulfilment copies this one onto the Order.
+          // The receipt address and the buyer's name, collected on SaiFlow's
+          // checkout page before the session was asked for. The callback
+          // never reads either from Geidea; fulfilment copies these onto
+          // the Order.
           buyerEmail,
+          buyerName,
           expiresAt: new Date(Date.now() + SESSION_LIFETIME_MS),
           clientTokenHash: tokenHash,
           currentAttemptKey: key,

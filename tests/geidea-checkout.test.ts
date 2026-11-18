@@ -270,6 +270,18 @@ function identified(headers: Record<string, string>): Record<string, string> {
   return { ...headers, cookie: cookie === "" ? identity : `${cookie}; ${identity}` };
 }
 
+const DEFAULT_BUYER_NAME = "Test Buyer";
+
+/**
+ * The name is required now. Callers that already name a buyer are left
+ * alone, including a caller proving an invalid name is refused. Everyone
+ * else, the existing checkout calls, gets one ordinary name.
+ */
+function withBuyerName(body: unknown): unknown {
+  if (body === null || typeof body !== "object" || Array.isArray(body) || "buyerName" in body) return body;
+  return { buyerName: DEFAULT_BUYER_NAME, ...(body as Record<string, unknown>) };
+}
+
 let ipCounter = 0;
 async function checkout(body: unknown = { productId: "prod_1", buyerEmail: "buyer@example.com" }, headers: Record<string, string> = {}) {
   // The real rate limiter is in play: each request gets its own address
@@ -280,7 +292,7 @@ async function checkout(body: unknown = { productId: "prod_1", buyerEmail: "buye
     new Request("https://saiflow.test/api/checkout", {
       method: "POST",
       headers: { "Content-Type": "application/json", "x-forwarded-for": address, ...identified(headers) },
-      body: JSON.stringify(body),
+      body: JSON.stringify(withBuyerName(body)),
     })
   );
   const parsed = (await res.json()) as Record<string, unknown>;
@@ -440,14 +452,17 @@ describe("the browser controls nothing but which product, and where its receipt 
     assert.equal(created.environment, "TEST");
     assert.equal(created.provider, "GEIDEA");
     assert.equal(created.buyerEmail, "receipt@example.test", "the receipt address, trimmed and lower-cased, and nothing else from the body");
+    assert.equal(created.buyerName, DEFAULT_BUYER_NAME, "the name collected beside the address");
     assert.equal(created.currency, "SAR");
   });
 
-  test("the route reads only productId and the receipt address from the body, structurally", () => {
+  test("the route reads only productId, the receipt address and the buyer name from the body, structurally", () => {
     const src = readFileSync(new URL("../app/api/checkout/route.ts", import.meta.url), "utf8");
-    assert.ok(src.includes("const { productId, buyerEmail: submittedEmail } = await req.json();"));
+    assert.ok(src.includes("const { productId, buyerEmail: submittedEmail, buyerName: submittedName } = await req.json();"));
     assert.ok(src.includes("const buyerEmail = normalizeBuyerEmail(submittedEmail);"));
+    assert.ok(src.includes("const buyerName = normalizeBuyerName(submittedName);"));
     assert.equal(src.split("submittedEmail").length - 1, 2, "the submitted address is used only through the shared rule");
+    assert.equal(src.split("submittedName").length - 1, 2, "the submitted name is used only through the shared rule");
     assert.ok(!/req\.json\(\)[\s\S]*?(amount|price|currency|callbackUrl|returnUrl|email)\b\s*[=:]/.test(src.split("await req.json()")[1].slice(0, 80)));
   });
 });
@@ -476,6 +491,25 @@ describe("refusals record no attempt and ask Geidea nothing", () => {
       assert.deepEqual(ops, [], "not even the product is loaded");
       assertNoAttemptAndNoGeidea();
     }
+  });
+
+  test("no usable buyer name: refused before the product is read, nothing recorded, Geidea not asked", async () => {
+    const names: unknown[] = [undefined, null, "", "   ", "123", "<script>", "buyer\nname", 42];
+    for (const buyerName of names) {
+      reset();
+      const res = await checkout({ productId: "prod_1", buyerEmail: "buyer@example.com", buyerName });
+      assert.equal(res.status, 400, JSON.stringify(buyerName));
+      assert.deepEqual(res.body, { error: "invalid_name" });
+      assert.deepEqual(ops, [], "not even the product is loaded");
+      assertNoAttemptAndNoGeidea();
+    }
+  });
+
+  test("an Arabic name is stored as typed, beside the receipt address", async () => {
+    const res = await checkout({ productId: "prod_1", buyerEmail: "buyer@example.com", buyerName: "  نورة  العبدالله " });
+    assert.equal(res.status, 200);
+    assert.equal(writes[0].data.buyerName, "نورة العبدالله");
+    assert.equal(writes[0].data.buyerEmail, "buyer@example.com");
   });
 
   test("a shop with sales turned off is refused, and sales turned on still checks out", async () => {
@@ -795,7 +829,7 @@ async function checkoutWith(query: string, body: unknown = { productId: "prod_1"
     new Request(`https://saiflow.test/api/checkout${query}`, {
       method: "POST",
       headers: { "Content-Type": "application/json", "x-forwarded-for": address, ...identified(headers) },
-      body: JSON.stringify(body),
+      body: JSON.stringify(withBuyerName(body)),
     })
   );
   const parsed = (await res.json()) as Record<string, unknown>;
@@ -992,7 +1026,7 @@ async function send(query: string, cookie?: string, body: unknown = { productId:
         "x-forwarded-for": address,
         ...(cookie === undefined ? {} : { cookie }),
       },
-      body: JSON.stringify(body),
+      body: JSON.stringify(withBuyerName(body)),
     })
   );
   const parsed = (await res.json()) as Record<string, unknown>;

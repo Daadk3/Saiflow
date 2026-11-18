@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import { DropInPanel } from "./DropInPanel";
 import { ATTEMPT_STORAGE_KEY } from "@/lib/checkout/embedded";
 import { MAX_BUYER_EMAIL_LENGTH, normalizeBuyerEmail } from "@/lib/checkout/buyer-email";
+import { MAX_BUYER_NAME_LENGTH, normalizeBuyerName } from "@/lib/checkout/buyer-name";
 import { runLocked } from "@/lib/checkout/tab-lock";
 import {
   createDropInController,
@@ -38,8 +39,9 @@ declare global {
 }
 
 const SCRIPT_TIMEOUT_MS = 12_000;
-/** Per-tab memory of the receipt address; never sent anywhere but checkout. */
+/** Per-tab memory of the receipt address and the buyer's name; never sent anywhere but checkout. */
 const EMAIL_STORAGE_KEY = "saiflow.checkout.email";
+const NAME_STORAGE_KEY = "saiflow.checkout.name";
 const MOUNT_TIMEOUT_MS = 12_000;
 
 let scriptLoad: { url: string; promise: Promise<void> } | null = null;
@@ -191,9 +193,11 @@ export function DropInCheckout({
 }) {
   const t = useTranslations("checkout");
   const [resumeChecked, setResumeChecked] = useState(false);
-  const [buyerEmail, setBuyerEmail] = useState<string | null>(null);
-  const [draft, setDraft] = useState("");
-  const [invalid, setInvalid] = useState(false);
+  const [buyer, setBuyer] = useState<{ email: string; name: string } | null>(null);
+  const [emailDraft, setEmailDraft] = useState("");
+  const [nameDraft, setNameDraft] = useState("");
+  const [emailInvalid, setEmailInvalid] = useState(false);
+  const [nameInvalid, setNameInvalid] = useState(false);
   const [state, setState] = useState<PanelState>({ kind: "starting" });
   const controller = useRef<DropInController | null>(null);
   const container = useRef<HTMLDivElement | null>(null);
@@ -201,21 +205,23 @@ export function DropInCheckout({
   useEffect(() => {
     if (resumeIfReturning(productId, browserHost())) return;
     // This tab's last receipt address, so a reload only asks for a confirmation.
-    const remembered = storage(() => window.sessionStorage.getItem(EMAIL_STORAGE_KEY), null);
+    const rememberedEmail = storage(() => window.sessionStorage.getItem(EMAIL_STORAGE_KEY), null);
+    const rememberedName = storage(() => window.sessionStorage.getItem(NAME_STORAGE_KEY), null);
     const shown = window.setTimeout(() => {
-      if (remembered !== null) setDraft(remembered);
+      if (rememberedEmail !== null) setEmailDraft(rememberedEmail);
+      if (rememberedName !== null) setNameDraft(rememberedName);
       setResumeChecked(true);
     }, 0);
     return () => window.clearTimeout(shown);
   }, [productId]);
 
   useEffect(() => {
-    if (buyerEmail === null) return;
+    if (buyer === null) return;
     // One controller per mounted payment form. Started from a scheduled
     // callback, so React's development double-mount disposes the first
     // before it starts and exactly one session is requested per page, in
     // development and in production alike.
-    const instance = createDropInController(productId, buyerEmail, scriptUrl, browserHost(), setState);
+    const instance = createDropInController(productId, buyer.email, buyer.name, scriptUrl, browserHost(), setState);
     controller.current = instance;
     // This mount's own container. Set here, after mount, rather than
     // rendered, so the server's HTML never carries an id the browser then
@@ -229,57 +235,90 @@ export function DropInCheckout({
       instance.dispose();
       if (controller.current === instance) controller.current = null;
     };
-  }, [productId, buyerEmail, scriptUrl]);
+  }, [productId, buyer, scriptUrl]);
 
-  function submitEmail(event: FormEvent<HTMLFormElement>) {
+  function submitBuyer(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const email = normalizeBuyerEmail(draft);
-    if (email === null) {
-      setInvalid(true);
-      return;
-    }
-    setInvalid(false);
+    const email = normalizeBuyerEmail(emailDraft);
+    const name = normalizeBuyerName(nameDraft);
+    setEmailInvalid(email === null);
+    setNameInvalid(name === null);
+    if (email === null || name === null) return;
     storage(() => window.sessionStorage.setItem(EMAIL_STORAGE_KEY, email), undefined);
-    setBuyerEmail(email);
+    storage(() => window.sessionStorage.setItem(NAME_STORAGE_KEY, name), undefined);
+    setBuyer({ email, name });
   }
 
   if (!resumeChecked) {
     return <div className="h-40 animate-pulse rounded-2xl border border-teal-500/20 bg-[#101918]" aria-hidden="true" />;
   }
 
-  if (buyerEmail === null) {
+  if (buyer === null) {
     return (
-      <form onSubmit={submitEmail} noValidate className="rounded-2xl border border-teal-500/25 bg-[#101918] p-6 shadow-lg shadow-black/30">
-        <label htmlFor="checkout-buyer-email" className="block text-sm font-medium text-white">
-          {t("emailLabel")}
-        </label>
-        <p id="checkout-buyer-email-hint" className="mt-1 text-sm text-gray-400">
-          {t("emailHint")}
-        </p>
-        <input
-          id="checkout-buyer-email"
-          name="email"
-          type="email"
-          inputMode="email"
-          autoComplete="email"
-          dir="ltr"
-          required
-          maxLength={MAX_BUYER_EMAIL_LENGTH}
-          value={draft}
-          onChange={(event) => {
-            setDraft(event.target.value);
-            if (invalid) setInvalid(false);
-          }}
-          aria-invalid={invalid}
-          aria-describedby={invalid ? "checkout-buyer-email-hint checkout-buyer-email-error" : "checkout-buyer-email-hint"}
-          className="mt-3 w-full rounded-xl border border-teal-900 bg-[#071311] px-4 py-3 text-white placeholder-gray-500 focus:border-teal-400 focus:outline-none focus:ring-1 focus:ring-teal-400/50"
-          placeholder="name@example.com"
-        />
-        {invalid && (
-          <p id="checkout-buyer-email-error" role="alert" className="mt-2 text-sm text-amber-400">
-            {t("emailInvalid")}
-          </p>
-        )}
+      <form onSubmit={submitBuyer} noValidate className="rounded-2xl border border-teal-500/25 bg-[#101918] p-6 shadow-lg shadow-black/30">
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div>
+            <label htmlFor="checkout-buyer-name" className="block text-sm font-medium text-white">
+              {t("nameLabel")}
+            </label>
+            <p id="checkout-buyer-name-hint" className="mt-1 text-sm text-gray-400">
+              {t("nameHint")}
+            </p>
+            <input
+              id="checkout-buyer-name"
+              name="name"
+              type="text"
+              autoComplete="name"
+              required
+              maxLength={MAX_BUYER_NAME_LENGTH}
+              value={nameDraft}
+              onChange={(event) => {
+                setNameDraft(event.target.value);
+                if (nameInvalid) setNameInvalid(false);
+              }}
+              aria-invalid={nameInvalid}
+              aria-describedby={nameInvalid ? "checkout-buyer-name-hint checkout-buyer-name-error" : "checkout-buyer-name-hint"}
+              className="mt-3 w-full rounded-xl border border-teal-900 bg-[#071311] px-4 py-3 text-white placeholder-gray-500 focus:border-teal-400 focus:outline-none focus:ring-1 focus:ring-teal-400/50"
+            />
+            {nameInvalid && (
+              <p id="checkout-buyer-name-error" role="alert" className="mt-2 text-sm text-amber-400">
+                {t("nameInvalid")}
+              </p>
+            )}
+          </div>
+          <div>
+            <label htmlFor="checkout-buyer-email" className="block text-sm font-medium text-white">
+              {t("emailLabel")}
+            </label>
+            <p id="checkout-buyer-email-hint" className="mt-1 text-sm text-gray-400">
+              {t("emailHint")}
+            </p>
+            <input
+              id="checkout-buyer-email"
+              name="email"
+              type="email"
+              inputMode="email"
+              autoComplete="email"
+              dir="ltr"
+              required
+              maxLength={MAX_BUYER_EMAIL_LENGTH}
+              value={emailDraft}
+              onChange={(event) => {
+                setEmailDraft(event.target.value);
+                if (emailInvalid) setEmailInvalid(false);
+              }}
+              aria-invalid={emailInvalid}
+              aria-describedby={emailInvalid ? "checkout-buyer-email-hint checkout-buyer-email-error" : "checkout-buyer-email-hint"}
+              className="mt-3 w-full rounded-xl border border-teal-900 bg-[#071311] px-4 py-3 text-white placeholder-gray-500 focus:border-teal-400 focus:outline-none focus:ring-1 focus:ring-teal-400/50"
+              placeholder="name@example.com"
+            />
+            {emailInvalid && (
+              <p id="checkout-buyer-email-error" role="alert" className="mt-2 text-sm text-amber-400">
+                {t("emailInvalid")}
+              </p>
+            )}
+          </div>
+        </div>
         <button
           type="submit"
           className="mt-4 inline-flex w-full items-center justify-center rounded-xl bg-teal-500 px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-teal-400"
