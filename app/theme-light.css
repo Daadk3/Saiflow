@@ -36,10 +36,13 @@ html.light {
   --sf-card: #ffffff;
   --sf-ink: #121417;
   --sf-muted: #455164;
-  --sf-teal-text: #0f766e;
+  /* A step past teal-700. teal-700 is 4.2:1 on a 20% teal fill over the
+     page, so prices, chips and step numbers would miss AA. */
+  --sf-teal-text: #0d6862;
   --sf-teal-text-strong: #115e59;
-  --sf-emerald-text: #047857;
-  --sf-red-text: #b91c1c;
+  /* emerald-800 and red-800: the 700s miss 4.5:1 on a 15–20% tint. */
+  --sf-emerald-text: #065f46;
+  --sf-red-text: #991b1b;
   --sf-amber-text: #92400e;
   --sf-blue-text: #1e40af;
   --sf-purple-text: #6d28d9;
@@ -47,6 +50,7 @@ html.light {
   --sf-green-text: #166534;
   --sf-orange-text: #9a3412;
   --sf-pink-text: #9d174d;
+  --sf-fuchsia-text: #a21caf;
   --sf-input-border: #7d8798;
 }
 
@@ -174,6 +178,7 @@ html.light .group:hover .group-hover\:text-teal-300 {
 
 html.light .text-teal-50,
 html.light .text-teal-100,
+html.light .text-teal-50\/80,
 html.light .text-teal-50\/90,
 html.light .text-teal-100\/70,
 html.light .text-teal-100\/80,
@@ -198,11 +203,15 @@ html.light .hover\:text-red-400:hover {
   color: var(--sf-red-text);
 }
 
+html.light .text-amber-100,
 html.light .text-amber-200,
 html.light .text-amber-300,
 html.light .text-amber-400,
 html.light .text-amber-100\/80,
-html.light .text-amber-300\/90 {
+html.light .text-amber-100\/90,
+html.light .text-amber-200\/90,
+html.light .text-amber-300\/90,
+html.light .text-amber-400\/70 {
   color: var(--sf-amber-text);
 }
 
@@ -218,8 +227,14 @@ html.light .text-purple-400 {
   color: var(--sf-purple-text);
 }
 
+html.light .text-cyan-200,
 html.light .text-cyan-300 {
   color: var(--sf-cyan-text);
+}
+
+html.light .text-fuchsia-200,
+html.light .text-fuchsia-100\/80 {
+  color: var(--sf-fuchsia-text);
 }
 
 html.light .text-green-300,
@@ -234,8 +249,24 @@ html.light .text-orange-400 {
   color: var(--sf-orange-text);
 }
 
-html.light .text-pink-200 {
+html.light .text-pink-200,
+html.light .text-pink-300 {
   color: var(--sf-pink-text);
+}
+
+/* The buyer-path pill is a pale wash with purple-100 text. On a light card
+   that label disappears (about 1:1). Dark mode keeps the wash. Light mode
+   uses a solid purple fill and white text, the same idea as the solid
+   teal primary. */
+html.light .path-buy-cta {
+  background-color: #6d28d9;
+  color: #ffffff;
+  border-color: #5b21b6;
+}
+
+html.light .group:hover .path-buy-cta {
+  background-color: #5b21b6;
+  border-color: #4c1d95;
 }
 
 /* The menu's WhatsApp link is brand green (#25D366), which is about 2:1 on

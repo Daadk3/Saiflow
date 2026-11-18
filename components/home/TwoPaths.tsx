@@ -123,7 +123,7 @@ export async function TwoPaths() {
             <BuyerIllustration />
             <h3 className="mt-6 text-2xl font-bold text-white sm:text-3xl">{t("buy.title")}</h3>
             <p className="mt-3 flex-1 text-base leading-relaxed text-gray-400 sm:text-lg">{t("buy.body")}</p>
-            <span className="mt-7 inline-flex min-h-12 w-fit items-center justify-center gap-2 rounded-full border border-purple-400/40 bg-purple-500/15 px-6 py-3 text-base font-semibold text-purple-100 transition group-hover:bg-purple-500/25">
+            <span className="path-buy-cta mt-7 inline-flex min-h-12 w-fit items-center justify-center gap-2 rounded-full border border-purple-400/40 bg-purple-500/15 px-6 py-3 text-base font-semibold text-purple-100 transition group-hover:bg-purple-500/25">
               {t("buy.cta")}
               <IconArrow className="h-4 w-4 rtl:-scale-x-100" />
             </span>
