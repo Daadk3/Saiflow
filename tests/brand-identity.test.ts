@@ -235,7 +235,7 @@ describe("browser and app icons are the S alone", () => {
 
 describe("the ghost mascot stays SaiFlow's personality", () => {
   test("the mascot artwork still ships", () => {
-    for (const file of ["mascot", "mascot-camera", "mascot-headphones", "mascot-reading", "mascot-shopping", "mascot-tablet"]) {
+    for (const file of ["mascot", "mascot-camera", "mascot-headphones", "mascot-no-headphones", "mascot-reading", "mascot-shopping", "mascot-tablet"]) {
       assert.ok(existsSync(resolve(ROOT, `public/${file}.png`)), file);
     }
   });
@@ -243,7 +243,7 @@ describe("the ghost mascot stays SaiFlow's personality", () => {
   test("its placements outside the logo remain", () => {
     for (const [file, asset] of [
       ["components/home/CreatorValue.tsx", "/mascot-tablet.png"],
-      ["components/home/Hero.tsx", "/mascot-headphones.png"],
+      ["components/home/Hero.tsx", "/mascot-no-headphones.png"],
       ["components/admin/MissionMascot.tsx", "/mascot.png"],
       ["app/dashboard/create-shop/page.tsx", "/mascot.png"],
       ["app/dashboard/shop/[slug]/add-product/page.tsx", "/mascot.png"],

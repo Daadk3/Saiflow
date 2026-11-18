@@ -77,7 +77,7 @@ test("thumbnails are resized when they can be, and only unoptimized when they ca
 
 test("the hero mascot is preloaded and fetched first", () => {
   const hero = read("components/home/Hero.tsx");
-  const image = hero.slice(hero.indexOf('src="/mascot-headphones.png"'), hero.indexOf("/>", hero.indexOf('src="/mascot-headphones.png"')));
+  const image = hero.slice(hero.indexOf('src="/mascot-no-headphones.png"'), hero.indexOf("/>", hero.indexOf('src="/mascot-no-headphones.png"')));
   assert.match(image, /\bpriority\b/);
   assert.match(image, /fetchPriority="high"/);
 });
