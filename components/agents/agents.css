@@ -957,6 +957,14 @@ html.light .agents-card-first .agents-card-btn {
   border-color: #00ffb3;
 }
 
+/* Mint on a 60% black veil is about 4:1 over a light illustration.
+   The same mint pill as the featured badge, with the dark label. */
+html.light .agents-status-soon {
+  background: #00ffb3;
+  color: #04140d;
+  border-color: #00ffb3;
+}
+
 html.light .agents-how {
   background: linear-gradient(180deg, #f3faf8, #ffffff);
   border-color: #d5e6df;

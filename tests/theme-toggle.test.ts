@@ -160,6 +160,21 @@ describe("light text meets WCAG AA and dark colors stay the default", () => {
       [vars["--sf-green-text"], card],
       [vars["--sf-orange-text"], card],
       [vars["--sf-pink-text"], card],
+      [vars["--sf-fuchsia-text"], card],
+      [vars["--sf-fuchsia-text"], "#f3e8f9"],
+      // 20% accent fills over the light page. The 700s miss 4.5:1 here.
+      [vars["--sf-teal-text"], "#c3eae7"],
+      [vars["--sf-teal-text"], "#d0edec"],
+      [vars["--sf-emerald-text"], "#c3ebdf"],
+      [vars["--sf-red-text"], "#f5cdd1"],
+      [vars["--sf-amber-text"], "#f4ecdf"],
+      [vars["--sf-pink-text"], "#f4e2ee"],
+      [vars["--sf-cyan-text"], "#e8f2f6"],
+      // Buyer-path button: white on solid purple, including the hover fill.
+      ["#ffffff", "#6d28d9"],
+      ["#ffffff", "#5b21b6"],
+      // Agents "coming soon" pill in light mode.
+      ["#04140d", "#00ffb3"],
       // Teal buttons keep a dark label in light mode (text-white remaps to ink).
       [ink, "#14b8a6"],
       [ink, "#2dd4bf"],
@@ -175,7 +190,31 @@ describe("light text meets WCAG AA and dark colors stay the default", () => {
     }
 
     assert.ok(contrast(vars["--sf-input-border"], card) >= 3);
-    assert.ok(contrast("#0f766e", card) >= 3, "focus outline against a card");
+    assert.ok(contrast(vars["--sf-teal-text"], card) >= 3, "focus outline against a card");
+
+    for (const cls of [
+      "text-amber-100,",
+      "text-amber-100\\/90",
+      "text-amber-200\\/90",
+      "text-amber-400\\/70",
+      "text-cyan-200,",
+      "text-fuchsia-200,",
+      "text-fuchsia-100\\/80",
+      "text-pink-300",
+      "text-teal-50\\/80",
+    ]) {
+      assert.ok(light.includes(cls), cls);
+    }
+
+    assert.match(light, /html\.light \.path-buy-cta \{[^}]*background-color:\s*#6d28d9/);
+    assert.match(light, /html\.light \.path-buy-cta \{[^}]*color:\s*#ffffff/);
+    assert.match(light, /html\.light \.group:hover \.path-buy-cta \{[^}]*background-color:\s*#5b21b6/);
+    const paths = read("components/home/TwoPaths.tsx");
+    assert.match(paths, /path-buy-cta/);
+    assert.match(paths, /bg-purple-500\/15/);
+    assert.match(paths, /text-purple-100/);
+    const agents = read("components/agents/agents.css");
+    assert.match(agents, /html\.light \.agents-status-soon \{[^}]*background:\s*#00ffb3;[^}]*color:\s*#04140d/);
 
     // Color overrides live under html.light. The icon show/hide rules do not
     // set a color, so the dark palette is not rewritten at the root.
