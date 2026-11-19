@@ -8,8 +8,21 @@ import { getTranslations } from "next-intl/server";
  * SaiFlow's personality, a decorative supporting illustration and never
  * the logo or marketplace data. No mock product, price or store.
  */
-export async function Hero() {
+/** Show the live counts only once there is something to show; a tiny number
+ * says less than the trust line alone. Both counts come from the server page
+ * (lib/sellable), so the strip never states a product nobody can buy. */
+const PROOF_MIN_PRODUCTS = 10;
+
+interface HeroProps {
+  /** Products a visitor can buy right now (SELLABLE_PRODUCT_WHERE). */
+  products?: number;
+  /** Active shops with at least one such product. */
+  shops?: number;
+}
+
+export async function Hero({ products = 0, shops = 0 }: HeroProps = {}) {
   const t = await getTranslations("home.hero");
+  const showProof = products >= PROOF_MIN_PRODUCTS && shops > 0;
 
   return (
     <section className="relative overflow-hidden">
@@ -37,6 +50,11 @@ export async function Hero() {
               </Link>
             </div>
             <p className="mt-6 text-sm text-gray-500">{t("trustLine")}</p>
+            {showProof && (
+              <p className="mt-3 text-sm font-medium text-teal-400" data-testid="hero-proof">
+                {t("proof", { products, shops })}
+              </p>
+            )}
           </div>
 
           {/* The ghost: personality beside the copy, decorative only */}

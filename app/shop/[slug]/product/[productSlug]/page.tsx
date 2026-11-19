@@ -132,7 +132,7 @@ export async function generateMetadata({
   const title = `${product.name} — ${product.shop.name}`;
   const description =
     product.description?.slice(0, 160) ||
-    `${product.name} — ${product.shop.name} on Saiflow`;
+    `${product.name} — ${product.shop.name} on SaiFlow`;
   const image = product.thumbnailUrl || `${BASE_URL}/og-image.png`;
 
   return {
@@ -143,7 +143,7 @@ export async function generateMetadata({
       title,
       description,
       url,
-      siteName: "Saiflow",
+      siteName: "SaiFlow",
       type: "website",
       images: [{ url: image }],
     },

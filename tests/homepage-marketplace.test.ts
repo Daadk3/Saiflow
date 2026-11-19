@@ -67,7 +67,7 @@ describe("copy: one namespace, both locales, nothing fabricated", () => {
     assert.equal(h.hero.title, "ابدأ ببيع منتجك الرقمي، أو اكتشف منتجك القادم.");
     assert.equal(h.hero.primaryCta, "ابدأ البيع");
     assert.equal(h.hero.secondaryCta, "تصفح المنتجات");
-    assert.equal(h.hero.trustLine, "متجر مجاني للبدء · دفع آمن · تسليم رقمي مباشر");
+    assert.equal(h.hero.trustLine, "متجر مجاني للبدء · عمولة 7% فقط · دفع آمن بالريال");
     const paths = h.paths as unknown as { title: string; sell: Record<string, string>; buy: Record<string, string> };
     assert.equal(paths.title, "ماذا تريد أن تفعل اليوم؟");
     assert.equal(paths.sell.title, "بيع منتج رقمي");
@@ -226,7 +226,8 @@ describe("the homepage shows only what can be bought, and links to real routes",
 
   test("the two-path section sits directly under the hero", () => {
     const code = strip(page);
-    const hero = code.indexOf("<Hero />");
+    // The hero takes the live counts as props, so match the tag, not a fixed spelling.
+    const hero = code.search(/<Hero[\s/>]/);
     const paths = code.indexOf("<TwoPaths />");
     const categories = code.indexOf("<CategoriesGrid />");
     assert.ok(hero !== -1 && paths !== -1 && categories !== -1);

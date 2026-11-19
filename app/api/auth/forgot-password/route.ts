@@ -84,7 +84,7 @@ export async function POST(req: Request) {
     const { error: emailError } = await resend.emails.send({
       from: "Saiflow <noreply@saiflow.io>",
       to: email,
-      subject: "Reset your Saiflow password",
+      subject: "Reset your SaiFlow password",
       html: `
         <!DOCTYPE html>
         <html>
@@ -111,7 +111,7 @@ export async function POST(req: Request) {
                     <tr>
                       <td style="padding: 32px;">
                         <p style="color: #9ca3af; font-size: 16px; line-height: 24px; margin: 0 0 24px 0;">
-                          Hi there! We received a request to reset your password for your Saiflow account.
+                          Hi there! We received a request to reset your password for your SaiFlow account.
                         </p>
 
                         <p style="color: #9ca3af; font-size: 16px; line-height: 24px; margin: 0 0 24px 0;">
@@ -144,7 +144,7 @@ export async function POST(req: Request) {
                     <tr>
                       <td style="padding: 24px; border-top: 1px solid #1f2937; text-align: center;">
                         <p style="margin: 0; color: #6b7280; font-size: 14px;">
-                          Powered by <span style="color: #0d9488; font-weight: 600;">Saiflow</span>
+                          Powered by <span style="color: #0d9488; font-weight: 600;">SaiFlow</span>
                         </p>
                       </td>
                     </tr>

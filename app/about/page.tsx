@@ -13,7 +13,7 @@ export default async function AboutPage() {
       <section className="pt-16 pb-12 px-4 border-b border-white/10">
         <div className="max-w-4xl mx-auto">
           <h1 className="text-4xl sm:text-5xl font-extrabold text-white mb-4">
-            {ar ? "عن ساي فلو" : "About Saiflow"}
+            {ar ? "عن ساي فلو" : "About SaiFlow"}
           </h1>
           <p className="text-gray-400">
             {ar
@@ -27,12 +27,12 @@ export default async function AboutPage() {
         <div className="max-w-4xl mx-auto space-y-8 text-gray-300 leading-relaxed">
           <section>
             <h2 className="text-2xl font-bold text-white mb-4">
-              {ar ? "ما هي ساي فلو؟" : "What is Saiflow?"}
+              {ar ? "ما هي ساي فلو؟" : "What is SaiFlow?"}
             </h2>
             <p>
               {ar
                 ? "ساي فلو منصة عربية أولًا تمكّن صنّاع المحتوى من بيع منتجاتهم الرقمية — كتب إلكترونية، قوالب، دورات، ملفات تصميم — مباشرة إلى جمهورهم، بالريال السعودي وبتجربة شراء بسيطة وآمنة."
-                : "Saiflow is an Arabic-first platform that lets creators sell their digital products — e-books, templates, courses, design files — directly to their audience, priced in Saudi Riyal with a simple, secure purchase experience."}
+                : "SaiFlow is an Arabic-first platform that lets creators sell their digital products — e-books, templates, courses, design files — directly to their audience, priced in Saudi Riyal with a simple, secure purchase experience."}
             </p>
           </section>
 

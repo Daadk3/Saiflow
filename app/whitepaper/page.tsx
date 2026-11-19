@@ -9,7 +9,7 @@ export default function WhitepaperPage() {
       <section className="border-b border-gray-800 bg-[#0a0a0a] py-16">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h1 className="text-4xl sm:text-5xl font-bold text-white mb-4">
-            Saiflow Whitepaper
+            SaiFlow Whitepaper
           </h1>
           <p className="text-xl text-gray-400">
             Our mission, vision, and the future of digital commerce
@@ -35,7 +35,7 @@ export default function WhitepaperPage() {
             <section className="mb-16">
               <h2 className="text-3xl font-bold text-white mb-6">Introduction & Mission</h2>
               <p className="text-lg text-gray-300 mb-4">
-                Saiflow was born from a simple observation: creators deserve better. The digital marketplace landscape has been dominated by platforms that take significant cuts, limit customization, and create barriers between creators and their customers.
+                SaiFlow was born from a simple observation: creators deserve better. The digital marketplace landscape has been dominated by platforms that take significant cuts, limit customization, and create barriers between creators and their customers.
               </p>
               <p className="text-lg text-gray-300 mb-4">
                 Our mission is to empower creators by providing a platform that puts them first. We believe that when creators keep more of what they earn, have full control over their brand, and can build direct relationships with customers, everyone wins.
@@ -77,7 +77,7 @@ export default function WhitepaperPage() {
             <section className="mb-16">
               <h2 className="text-3xl font-bold text-white mb-6">Our Solution</h2>
               <p className="text-lg text-gray-300 mb-6">
-                Saiflow addresses these challenges through a creator-first approach:
+                SaiFlow addresses these challenges through a creator-first approach:
               </p>
               
               <div className="grid md:grid-cols-2 gap-6 mb-8">
@@ -215,7 +215,7 @@ export default function WhitepaperPage() {
             <section className="text-center bg-[#111111] rounded-2xl p-12 border border-gray-800">
               <h2 className="text-3xl font-bold text-white mb-4">Join Us</h2>
               <p className="text-lg text-gray-300 mb-8 max-w-2xl mx-auto">
-                We&apos;re building the future of digital commerce, and we&apos;d love for you to be part of it. Whether you&apos;re a creator looking to sell or a customer looking to support creators, Saiflow is here for you.
+                We&apos;re building the future of digital commerce, and we&apos;d love for you to be part of it. Whether you&apos;re a creator looking to sell or a customer looking to support creators, SaiFlow is here for you.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <Link

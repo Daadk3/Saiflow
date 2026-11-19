@@ -17,15 +17,15 @@ interface BlogPost {
 const blogPosts: Record<string, BlogPost> = {
   "introducing-saiflow": {
     slug: "introducing-saiflow",
-    title: "Introducing Saiflow: The Future of Digital Product Sales",
+    title: "Introducing SaiFlow: The Future of Digital Product Sales",
     content: `
-      <p>We're thrilled to announce the launch of Saiflow, a platform designed to revolutionize how creators sell digital products online.</p>
+      <p>We're thrilled to announce the launch of SaiFlow, a platform designed to revolutionize how creators sell digital products online.</p>
       
       <h2>Our Mission</h2>
-      <p>At Saiflow, we believe that creators should keep more of what they earn. Traditional marketplaces take significant cuts, leaving creators with less than they deserve. We're changing that.</p>
+      <p>At SaiFlow, we believe that creators should keep more of what they earn. Traditional marketplaces take significant cuts, leaving creators with less than they deserve. We're changing that.</p>
       
       <h2>What Makes Us Different</h2>
-      <p>Unlike other platforms, Saiflow offers:</p>
+      <p>Unlike other platforms, SaiFlow offers:</p>
       <ul>
         <li>Transparent pricing — details coming before launch</li>
         <li>Beautiful, customizable storefronts</li>
@@ -35,9 +35,9 @@ const blogPosts: Record<string, BlogPost> = {
       </ul>
       
       <h2>Getting Started</h2>
-      <p>Ready to start selling? Creating your first shop takes just minutes. Sign up today and join thousands of creators who are already using Saiflow to monetize their digital products.</p>
+      <p>Ready to start selling? Creating your first shop takes just minutes. Sign up today and open your store for free.</p>
     `,
-    author: "Saiflow Team",
+    author: "SaiFlow Team",
     date: "2026-07-01",
     category: "Product",
     featuredImage: "/mascot.png",
@@ -109,7 +109,7 @@ export default async function BlogPostPage({
           <div className="relative w-full h-96 bg-gray-800 rounded-2xl overflow-hidden">
             <Image
               src={post.featuredImage}
-              alt={`Featured image for ${post.title} - ${post.category} article on Saiflow blog`}
+              alt={`Featured image for ${post.title} - ${post.category} article on SaiFlow blog`}
               fill
               className="object-cover"
               sizes="(max-width: 768px) 100vw, 1200px"

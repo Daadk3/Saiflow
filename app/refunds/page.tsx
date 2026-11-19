@@ -31,7 +31,7 @@ export default async function RefundsPage() {
             <p className="mb-3">
               {ar
                 ? "جميع المنتجات على ساي فلو منتجات رقمية تُسلَّم فورًا عبر رابط تحميل. بإتمام عملية الشراء فإنك تقر بأن تنفيذ الخدمة يبدأ فور إتاحة رابط التحميل، وبذلك يسقط حق التراجع عن الشراء وفقًا لأحكام التجارة الإلكترونية المعمول بها في المملكة العربية السعودية."
-                : "All products on Saiflow are digital products delivered instantly via a download link. By completing a purchase, you acknowledge that performance begins as soon as the download link is made available to you, and that the right of withdrawal no longer applies once delivery has begun, in accordance with the e-commerce regulations of the Kingdom of Saudi Arabia."}
+                : "All products on SaiFlow are digital products delivered instantly via a download link. By completing a purchase, you acknowledge that performance begins as soon as the download link is made available to you, and that the right of withdrawal no longer applies once delivery has begun, in accordance with the e-commerce regulations of the Kingdom of Saudi Arabia."}
             </p>
             <p>
               {ar

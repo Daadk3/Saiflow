@@ -3,10 +3,10 @@ import Link from "next/link";
 const docCategories = [
   {
     title: "Getting Started",
-    description: "New to Saiflow? Start here",
+    description: "New to SaiFlow? Start here",
     icon: "🚀",
     docs: [
-      { slug: "getting-started", title: "Welcome to Saiflow" },
+      { slug: "getting-started", title: "Welcome to SaiFlow" },
       { slug: "creating-account", title: "Creating Your Account" },
       { slug: "first-shop", title: "Setting Up Your First Shop" },
     ],
@@ -58,7 +58,7 @@ export default function DocsPage() {
               Documentation
             </h1>
             <p className="text-xl text-gray-400 max-w-2xl mx-auto">
-              Everything you need to know about using Saiflow
+              Everything you need to know about using SaiFlow
             </p>
           </div>
         </div>
@@ -110,7 +110,7 @@ export default function DocsPage() {
                   Getting Started Guide
                 </h3>
                 <p className="text-sm text-gray-400">
-                  New to Saiflow? Start with our comprehensive getting started
+                  New to SaiFlow? Start with our comprehensive getting started
                   guide.
                 </p>
               </Link>
