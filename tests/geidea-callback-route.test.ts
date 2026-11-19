@@ -70,6 +70,7 @@ interface SessionRow {
   providerSessionId: string | null;
   providerOrderId: string | null;
   buyerEmail: string | null;
+  buyerName?: string | null;
   providerStatus: string | null;
   failureReason: string | null;
   callbackReceivedAt: Date | null;
@@ -471,6 +472,7 @@ function seed(over: Partial<SessionRow> = {}): SessionRow {
     providerSessionId: SESSION_ID,
     providerOrderId: null,
     buyerEmail: null,
+    buyerName: null,
     // As the database stores every ordinary attempt (DEFAULT false).
     founderTest: false,
     providerStatus: null,
@@ -510,6 +512,7 @@ describe("the captured paid callback fulfils exactly once", () => {
     assert.equal(order.productName, "Arabic Templates Pack");
     assert.equal(order.price, row.amount, "price is the stored amount, untouched");
     assert.equal(order.customerEmail, "");
+    assert.equal(order.customerName, null);
     assert.equal(order.stripeSessionId, null);
     assert.equal(order.paymentProvider, "GEIDEA");
     assert.equal(order.providerOrderId, ORDER_ID);
@@ -588,7 +591,19 @@ describe("the captured paid callback fulfils exactly once", () => {
     seed({ buyerEmail: null });
     await post(callback({ order: { customerEmail: "attacker@example.test", customerName: "Mallory" } }));
     assert.equal(db.orders[0].customerEmail, "");
+    assert.equal(db.orders[0].customerName, null, "the callback's customerName is not a buyer name");
     assert.equal(emails.length, 0);
+    assert.ok(!JSON.stringify(notifications).includes("Mallory"));
+    assert.ok(!JSON.stringify(notifications).includes("attacker@example.test"));
+  });
+
+  test("the name collected at checkout is copied onto the Order", async () => {
+    seed({ buyerEmail: BUYER_EMAIL, buyerName: "نورة العبدالله" });
+    await post(callback({ order: { customerName: "Mallory" } }));
+    assert.equal(db.orders[0].customerName, "نورة العبدالله");
+    assert.equal(db.orders[0].customerEmail, BUYER_EMAIL);
+    assert.equal(notifications[0].buyerName, "نورة العبدالله");
+    assert.equal(notifications[0].buyerEmail, BUYER_EMAIL);
   });
 
   test("the receipt is skipped, not the fulfilment, when no site URL is configured", async () => {
@@ -1191,8 +1206,8 @@ describe("no secret or sensitive callback data appears in logs, writes or respon
 /* ------------------------------------------------------------------ */
 
 describe("a fulfilled purchase notifies the seller and the founder", () => {
-  test("once, with the product, the gross amount and the environment — never the buyer", async () => {
-    seed({ buyerEmail: BUYER_EMAIL });
+  test("once, with the product, the gross amount, the environment, and the buyer already stored on the attempt", async () => {
+    seed({ buyerEmail: BUYER_EMAIL, buyerName: "نورة" });
     const res = await post(callback());
     assert.equal(res.body.result, "fulfilled");
     assert.deepEqual(notifications, [
@@ -1204,9 +1219,10 @@ describe("a fulfilled purchase notifies the seller and the founder", () => {
         currency: "SAR",
         environment: "TEST",
         founderTest: false,
+        buyerName: "نورة",
+        buyerEmail: BUYER_EMAIL,
       },
     ]);
-    assert.ok(!JSON.stringify(notifications).includes(BUYER_EMAIL), "the buyer is not handed to the notifier");
   });
 
   test("not again on a repeated delivery", async () => {

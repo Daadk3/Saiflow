@@ -464,7 +464,9 @@ export async function notifyProductModerated(input: {
 /**
  * A purchase was fulfilled → the shop's members and the founder. Call after
  * the Order is committed. Carries the product, the gross amount and the
- * environment; never the buyer, never a payment payload, never a bearer.
+ * environment. The founder also hears the buyer name and email already
+ * stored on the attempt. The seller's copy does not. Never a payment
+ * payload, never a bearer, and never a name taken from the provider callback.
  */
 export async function notifySaleFulfilled(input: {
   orderId: string;
@@ -475,6 +477,10 @@ export async function notifySaleFulfilled(input: {
   environment: string;
   /** A founder test (lib/payments/live-mode): real money, but never a sale to pay out. */
   founderTest?: boolean;
+  /** Collected at checkout. Null when that purchase predates the name field. */
+  buyerName?: string | null;
+  /** The receipt address already stored on the attempt. */
+  buyerEmail?: string | null;
   at?: Date;
 }): Promise<{ seller: NotifyOutcome; admins: NotifyOutcome }> {
   let shop: ShopWithMembers | null = null;
@@ -511,6 +517,8 @@ export async function notifySaleFulfilled(input: {
     link: { url: sellerSalesUrl(), label: { ar: "عرض المبيعات", en: "View sales" } },
   });
 
+  const buyerName = input.buyerName?.trim() || null;
+  const buyerEmail = input.buyerEmail?.trim() || null;
   const admins = await sendNotification({
     kind: "sale_admin",
     ref: input.orderId,
@@ -520,6 +528,14 @@ export async function notifySaleFulfilled(input: {
     lines: [
       { ar: `المنتج: ${input.productName}`, en: `Product: ${input.productName}` },
       { ar: `المتجر: ${shop?.name ?? "—"}`, en: `Store: ${shop?.name ?? "—"}` },
+      {
+        ar: `المشتري: ${buyerName ?? "غير مُجمّع"}`,
+        en: `Buyer: ${buyerName ?? "Not collected"}`,
+      },
+      {
+        ar: `بريد المشتري: ${buyerEmail ?? "غير مُجمّع"}`,
+        en: `Buyer email: ${buyerEmail ?? "Not collected"}`,
+      },
       { ar: `المبلغ: ${amount}`, en: `Amount: ${amount}` },
       { ar: `رقم الطلب: ${redactId(input.orderId)}`, en: `Order ref: ${redactId(input.orderId)}` },
       { ar: `التاريخ: ${when.ar}`, en: `Date: ${when.en}` },

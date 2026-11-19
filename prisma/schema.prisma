@@ -506,6 +506,11 @@ model Order {
   productName     String
   price           Decimal  @db.Decimal(10, 2)
   customerEmail   String
+  /// The buyer's name, copied from PaymentSession.buyerName when a Geidea
+  /// callback writes this Order. Nullable so every order from before the
+  /// checkout form asked for a name, and every Stripe row, stays valid.
+  /// The founder sales page shows these as not collected.
+  customerName    String?
   /// Stripe's checkout session id. Nullable since Geidea, because a Geidea
   /// order has none. Kept, and still unique, so every existing Stripe row is
   /// unchanged and the dormant Stripe webhook still compiles and matches on it.
@@ -668,6 +673,13 @@ model PaymentSession {
   /// this is nullable, and there is no buyer user id because no checkout has
   /// a signed-in buyer.
   buyerEmail          String?
+  /// The buyer's name, typed on SaiFlow's checkout page before the session
+  /// is created. Nullable: attempts from before the form asked for a name
+  /// have none. It decides nothing about money or access. Fulfilment copies
+  /// it onto the Order. Geidea's callback is not a source for it: the
+  /// callback decoder drops customer and cardholder fields, and a callback's
+  /// own customer name is treated as untrusted.
+  buyerName           String?
   /// The provider's last reported status string, short and verbatim
   /// ("Success", "Failed"). Diagnostic only, never an authority.
   providerStatus      String?

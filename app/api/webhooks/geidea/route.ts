@@ -135,6 +135,7 @@ const SESSION_SELECT = {
   providerSessionId: true,
   providerOrderId: true,
   buyerEmail: true,
+  buyerName: true,
   founderTest: true,
 } as const;
 
@@ -382,8 +383,10 @@ async function fulfilPaid(
   log("log", "fulfilled", { order: redactId(result.orderId), ...ids });
   await sendReceipt(session, result.orderId, result.productName, result.hosted);
   // Seller and founder, after the Order is committed and after the reply.
-  // The product, the gross amount and the environment: never the buyer,
-  // never the payload, never a bearer. Exactly once, because a repeated
+  // The product, the gross amount, the environment, and the buyer name and
+  // email already stored on the attempt. Never the callback payload, never
+  // a bearer. The seller email still leaves the buyer out; the founder
+  // email includes the name and address. Exactly once, because a repeated
   // delivery answers `already_fulfilled` above and never reaches here.
   await runAfterResponse(() =>
     notifySaleFulfilled({
@@ -394,6 +397,8 @@ async function fulfilPaid(
       currency: session.currency,
       environment: mode,
       founderTest: session.founderTest,
+      buyerName: session.buyerName,
+      buyerEmail: session.buyerEmail,
     })
   );
   return reply(200, { received: true, result: "fulfilled" });
@@ -500,6 +505,10 @@ async function fulfil(
           // Email is never part of authorisation. Known: kept for the
           // receipt. Unknown: empty, and the receipt waits for a later step.
           customerEmail: session.buyerEmail ?? "",
+          // The name collected at checkout. Null when that attempt predates
+          // the field, or never had one. The callback's own customer name
+          // is not read: it is untrusted and does not survive decoding.
+          customerName: session.buyerName ?? null,
           stripeSessionId: null,
           paymentProvider: "GEIDEA",
           providerOrderId,

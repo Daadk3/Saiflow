@@ -177,6 +177,11 @@ const product = (over: Partial<ProductRow> = {}): ProductRow => ({
  * gates below are what decide. The identity step itself is tested in
  * geidea-checkout.test.ts.
  */
+function withBuyerName(body: unknown): unknown {
+  if (body === null || typeof body !== "object" || Array.isArray(body) || "buyerName" in body) return body;
+  return { buyerName: "Test Buyer", ...(body as Record<string, unknown>) };
+}
+
 const checkout = (body: unknown = { productId: "prod_1", buyerEmail: "buyer@example.com" }) =>
   POST(
     new Request("https://saiflow.test/api/checkout", {
@@ -185,7 +190,7 @@ const checkout = (body: unknown = { productId: "prod_1", buyerEmail: "buyer@exam
         "Content-Type": "application/json",
         cookie: `saiflow_checkout=${randomBytes(32).toString("base64url")}`,
       },
-      body: JSON.stringify(body),
+      body: JSON.stringify(withBuyerName(body)),
     })
   );
 

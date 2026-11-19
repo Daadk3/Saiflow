@@ -486,6 +486,8 @@ describe("the migration is additive and matches the schema", () => {
       presentation: `"CheckoutPresentation"`,
       // lib/payments/live-mode: every existing attempt reads as an ordinary payment.
       founderTest: "BOOLEAN NOT NULL DEFAULT false",
+      // The name collected at checkout. Nullable, so attempts from before it was asked still read.
+      buyerName: "TEXT",
     }, "the attempt columns are nullable with no default; the founder-test flag defaults to false");
 
     assert.equal(columns.get("id"), "TEXT NOT NULL");

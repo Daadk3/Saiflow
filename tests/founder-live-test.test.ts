@@ -255,6 +255,11 @@ beforeEach(() => {
 });
 
 let ip = 0;
+function withBuyerName(body: Record<string, unknown>): Record<string, unknown> {
+  if ("buyerName" in body) return body;
+  return { buyerName: "Test Buyer", ...body };
+}
+
 async function checkout(body: Record<string, unknown> = { productId: "prod_1", buyerEmail: FOUNDER }) {
   ip++;
   const res = await POST(
@@ -265,7 +270,7 @@ async function checkout(body: Record<string, unknown> = { productId: "prod_1", b
         "x-forwarded-for": `10.77.${(ip >> 8) & 255}.${ip & 255}`,
         cookie: `saiflow_checkout=${randomBytes(32).toString("base64url")}`,
       },
-      body: JSON.stringify(body),
+      body: JSON.stringify(withBuyerName(body)),
     })
   );
   return { status: res.status, body: (await res.json()) as Record<string, unknown> };
@@ -504,7 +509,10 @@ describe("founder tests are never revenue and never paid out", () => {
 
   test("the sale emails call a founder test a test", () => {
     const webhook = strip(read("app/api/webhooks/geidea/route.ts"));
-    assert.match(webhook, /notifySaleFulfilled\(\{[\s\S]*?environment: mode,\s*founderTest: session\.founderTest,\s*\}\)/);
+    assert.match(
+      webhook,
+      /notifySaleFulfilled\(\{[\s\S]*?environment: mode,\s*founderTest: session\.founderTest,\s*buyerName: session\.buyerName,\s*buyerEmail: session\.buyerEmail,\s*\}\)/
+    );
     const notify = strip(read("lib/notify.ts"));
     assert.match(notify, /const test = isTest\(input\.environment\) \|\| input\.founderTest === true;/);
   });

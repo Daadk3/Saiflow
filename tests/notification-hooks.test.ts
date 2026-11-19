@@ -685,14 +685,16 @@ describe("the remaining call sites (structural)", () => {
     assert.ok(!src.includes("Review queue: /dashboard/moderation"), "the relative path is gone");
   });
 
-  test("the Geidea webhook notifies after the receipt and before the reply, with no buyer data", () => {
+  test("the Geidea webhook notifies after the receipt and before the reply, with the stored buyer and nothing from the callback", () => {
     const src = read("app/api/webhooks/geidea/route.ts");
     const receipt = src.indexOf("await sendReceipt(session, result.orderId, result.productName, result.hosted);");
     const notify = src.indexOf("notifySaleFulfilled({");
     const reply = src.indexOf('return reply(200, { received: true, result: "fulfilled" });');
     assert.ok(receipt > 0 && notify > receipt && reply > notify, "order: receipt, notify, reply");
     const block = src.slice(notify, reply);
-    for (const forbidden of ["buyerEmail", "customerEmail", "merchantReferenceId", "providerOrderId", "payload", "signature"]) {
+    assert.match(block, /buyerName: session\.buyerName/);
+    assert.match(block, /buyerEmail: session\.buyerEmail/);
+    for (const forbidden of ["customerEmail", "customerName", "merchantReferenceId", "providerOrderId", "payload", "signature"]) {
       assert.ok(!block.includes(forbidden), `${forbidden} handed to the notifier`);
     }
     assert.match(block, /environment: mode/);

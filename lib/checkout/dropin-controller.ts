@@ -127,7 +127,7 @@ export interface CheckoutReply {
 /** The browser, as the controller sees it. */
 export interface DropInHost {
   /** POST JSON to SaiFlow's checkout route. Rejects only on transport failure. */
-  post(url: string, body: { productId: string; buyerEmail: string }): Promise<CheckoutReply>;
+  post(url: string, body: { productId: string; buyerEmail: string; buyerName: string }): Promise<CheckoutReply>;
   navigate(url: string): void;
   replace(url: string): void;
   search(): string;
@@ -187,6 +187,9 @@ let mounts = 0;
  * @param buyerEmail Where the receipt goes, already checked by the page with
  *   lib/checkout/buyer-email. Sent with every session request; it decides
  *   nothing about money.
+ * @param buyerName Who bought, already checked by the page with
+ *   lib/checkout/buyer-name. Sent with every session request; it decides
+ *   nothing about money.
  * @param scriptUrl Geidea's library, as the page's server derived it from
  *   configuration; null when it cannot be served, which leaves only the
  *   hosted page.
@@ -194,6 +197,7 @@ let mounts = 0;
 export function createDropInController(
   productId: string,
   buyerEmail: string,
+  buyerName: string,
   scriptUrl: string | null,
   host: DropInHost,
   onState: (state: PanelState) => void
@@ -263,7 +267,7 @@ export function createDropInController(
       if (disposed || settled !== null) return null;
       let reply: CheckoutReply;
       try {
-        reply = await host.post(url, { productId, buyerEmail });
+        reply = await host.post(url, { productId, buyerEmail, buyerName });
       } catch {
         if (!disposed && settled === null) emit({ kind: "unavailable", problem: "service" });
         return null;

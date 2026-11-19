@@ -40,6 +40,7 @@ import type { LockOutcome } from "../lib/checkout/tab-lock";
 
 /** The receipt address the page has already checked; it rides along with every request. */
 const BUYER_EMAIL = "buyer@example.com";
+const BUYER_NAME = "Test Buyer";
 const NOW = Date.parse("2026-09-25T12:00:00Z");
 const REF_A = "7c9e6679-7425-40de-944b-e07fc1f90ae7";
 const REF_B = "0b8f3c52-51c1-4a0e-9d7e-3f2a1b6c9d10";
@@ -94,7 +95,7 @@ class Browser {
 
 interface PendingPost {
   url: string;
-  body: { productId: string; buyerEmail: string };
+  body: { productId: string; buyerEmail: string; buyerName: string };
   /** The identity cookie the request carried: the jar's value when it was sent. */
   cookie: string | null;
   resolve: (reply: CheckoutReply) => void;
@@ -187,7 +188,7 @@ function setup(browser = new Browser(), productId = "prod_1", scriptUrl: string 
     },
   };
 
-  const controller: DropInController = createDropInController(productId, BUYER_EMAIL, scriptUrl, host, (state) => states.push(state));
+  const controller: DropInController = createDropInController(productId, BUYER_EMAIL, BUYER_NAME, scriptUrl, host, (state) => states.push(state));
   return { browser, controller, posts, waits, states, geidea, timers, last: () => states[states.length - 1] };
 }
 
@@ -242,7 +243,7 @@ describe("starting the embedded form", () => {
     await ready(t);
     assert.deepEqual(t.browser.scriptLoads, [SCRIPT], "the library, before any request");
     assert.equal(t.posts[0].url, DROPIN_REQUEST);
-    assert.deepEqual(t.posts[0].body, { productId: "prod_1", buyerEmail: BUYER_EMAIL });
+    assert.deepEqual(t.posts[0].body, { productId: "prod_1", buyerEmail: BUYER_EMAIL, buyerName: BUYER_NAME });
     assert.deepEqual(t.geidea.map((g) => [g.sessionId, g.containerId]), [[SESSION_A, t.controller.containerId]]);
     assert.deepEqual(t.waits, [t.controller.containerId], "readiness is read from the same container");
     assert.equal(attemptRef(t.browser.stored), STATUS_A, "the attempt is recorded for recovery");
@@ -687,7 +688,7 @@ describe("the hosted page is offered only before any session request", () => {
     assert.deepEqual(t.last(), { kind: "redirecting" });
     await settle();
     assert.equal(t.posts[0].url, HOSTED_REQUEST);
-    assert.deepEqual(t.posts[0].body, { productId: "prod_1", buyerEmail: BUYER_EMAIL });
+    assert.deepEqual(t.posts[0].body, { productId: "prod_1", buyerEmail: BUYER_EMAIL, buyerName: BUYER_NAME });
     t.posts[0].resolve(ok({ url: HOSTED_URL }));
     await leaving;
     assert.deepEqual(t.browser.navigations, [HOSTED_URL]);
@@ -898,7 +899,7 @@ describe("no second payment or download authority is introduced", () => {
     await leaving;
     assert.deepEqual([...t.posts, ...hosted.posts].map((p) => p.url), [DROPIN_REQUEST, HOSTED_REQUEST]);
     for (const post of [...t.posts, ...hosted.posts]) {
-      assert.deepEqual(post.body, { productId: "prod_1", buyerEmail: BUYER_EMAIL });
+      assert.deepEqual(post.body, { productId: "prod_1", buyerEmail: BUYER_EMAIL, buyerName: BUYER_NAME });
     }
   });
 
