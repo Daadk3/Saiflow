@@ -102,6 +102,12 @@ export interface AdminProductPreview {
   canInspect: boolean;
   /** FILE, or HOSTED_ACCESS for access to something the seller hosts. */
   deliveryType: "FILE" | "HOSTED_ACCESS";
+  /**
+   * How many ProductDeliverable rows are attached. The rows stay in this
+   * function: they carry storage keys. The preview uses the count only to
+   * tell whether a hosted product still has files.
+   */
+  deliverableCount: number;
   /** Why an APPROVED product is still not on sale (lib/sellable), or null. */
   notSellableReason: UnsellableReason | null;
   /**
@@ -234,6 +240,7 @@ export async function getAdminProductPreview(
     fileSafety,
     canInspect: inspectProduct(product, "admin").decision.allow,
     deliveryType: product.deliveryType,
+    deliverableCount: product.deliverables.length,
     notSellableReason:
       product.moderationStatus === "APPROVED" && unsellableReason(product) !== "sellable"
         ? unsellableReason(product)
