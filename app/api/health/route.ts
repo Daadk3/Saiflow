@@ -38,8 +38,10 @@ export async function GET() {
   } catch (error) {
     health.status = "unhealthy";
     health.checks.database.status = "down";
-    health.checks.database.error =
-      error instanceof Error ? error.message : "Unknown database error";
+    // A public endpoint: never the driver's message, which can name the
+    // database host, port or user. The error's class name goes to the log.
+    health.checks.database.error = "unavailable";
+    console.error("[health] database unavailable", error instanceof Error ? error.name : "Error");
   }
 
   const statusCode = health.status === "healthy" ? 200 : 503;

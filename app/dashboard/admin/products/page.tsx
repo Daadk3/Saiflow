@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { requireAdminPage } from "@/lib/admin-page-guard";
 import Image from "next/image";
 import { getTranslations, getLocale } from "next-intl/server";
 import {
@@ -39,6 +40,9 @@ export default async function AdminProductsPage({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
+  // Admin check here too, before any data is read (lib/admin-page-guard).
+  await requireAdminPage();
+
   const t = await getTranslations("admin");
   const locale = await getLocale();
   const sp = await searchParams;

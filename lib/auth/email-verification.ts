@@ -1,4 +1,5 @@
 import { createHash, randomBytes } from "node:crypto";
+import { BCRYPT_ROUNDS } from "@/lib/auth/password";
 import bcrypt from "bcrypt";
 import { prisma } from "@/lib/prisma";
 import { SITE_URL } from "@/lib/site-url";
@@ -181,7 +182,7 @@ export function credentialFingerprint(passwordHash: string): string {
  * account was created could have guessed.
  */
 export async function unusablePasswordHash(): Promise<string> {
-  return bcrypt.hash(randomBytes(32).toString("hex"), 10);
+  return bcrypt.hash(randomBytes(32).toString("hex"), BCRYPT_ROUNDS);
 }
 
 /**

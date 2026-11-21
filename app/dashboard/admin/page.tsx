@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { requireAdminPage } from "@/lib/admin-page-guard";
 import { getTranslations, getLocale } from "next-intl/server";
 import { getFounderStats } from "@/lib/admin-stats";
 import { formatNumber } from "@/lib/formatNumber";
@@ -41,6 +42,9 @@ const MISSION_HREF: Record<MissionKey, string> = {
 };
 
 export default async function FounderDashboardPage() {
+  // Admin check here too, before any data is read (lib/admin-page-guard).
+  await requireAdminPage();
+
   const t = await getTranslations("admin");
   const locale = await getLocale();
   const stats = await getFounderStats();

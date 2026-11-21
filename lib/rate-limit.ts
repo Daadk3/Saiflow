@@ -91,6 +91,40 @@ export function accountKey(email: string): string {
   return createHash("sha256").update(email.trim().toLowerCase()).digest("hex").slice(0, 16);
 }
 
+/** Whether an identifier is over its limit right now. Counts nothing. */
+export function isLimited(identifier: string, config: RateLimitConfig): boolean {
+  const entry = rateLimitStore.get(identifier);
+  return entry !== undefined && entry.resetTime >= Date.now() && entry.count >= config.maxRequests;
+}
+
+/**
+ * FAILED sign-ins, per account. Only failures count, so a correct password
+ * is never what fills them, and they are counted two ways:
+ *   - per account AND address: 10 per 15 minutes. One machine guessing one
+ *     account is stopped; it locks out only itself.
+ *   - per account from anywhere: 100 per 15 minutes. Guessing spread over
+ *     many addresses is slowed, while locking a real owner out takes a
+ *     hundred failures, not twenty.
+ * Keyed on accountKey (a hash of the address as typed), never the address.
+ */
+const LOGIN_FAILURES_PER_ACCOUNT_AND_IP: RateLimitConfig = { windowMs: 15 * 60 * 1000, maxRequests: 10 };
+const LOGIN_FAILURES_PER_ACCOUNT: RateLimitConfig = { windowMs: 15 * 60 * 1000, maxRequests: 100 };
+
+export const loginFailures = {
+  blocked(email: string, ip: string): boolean {
+    const account = accountKey(email);
+    return (
+      isLimited(`login-fail:${account}:${ip}`, LOGIN_FAILURES_PER_ACCOUNT_AND_IP) ||
+      isLimited(`login-fail:${account}`, LOGIN_FAILURES_PER_ACCOUNT)
+    );
+  },
+  record(email: string, ip: string): void {
+    const account = accountKey(email);
+    rateLimit(`login-fail:${account}:${ip}`, LOGIN_FAILURES_PER_ACCOUNT_AND_IP);
+    rateLimit(`login-fail:${account}`, LOGIN_FAILURES_PER_ACCOUNT);
+  },
+};
+
 /** Whole seconds until the window resets, never below one, for a Retry-After header. */
 export function retryAfterSeconds(resetTime: number, now: number = Date.now()): number {
   return Math.max(1, Math.ceil((resetTime - now) / 1000));
