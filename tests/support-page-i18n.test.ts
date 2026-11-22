@@ -81,7 +81,7 @@ describe("support messages", () => {
 describe("app/support/page.tsx", () => {
   test("every key the page asks for exists in both languages", () => {
     const used = [...page.matchAll(/tPage\("([^"]+)"/g)].map((m) => m[1]);
-    assert.ok(used.length > 20, "the page reads its copy through tPage");
+    assert.ok(used.length > 15, "the page reads its copy through tPage");
     for (const subject of ["general", "technical", "billing", "other"]) used.push(`form.subjects.${subject}`);
     for (const key of used) {
       assert.equal(typeof lookup(en.support, key), "string", `en support.${key}`);

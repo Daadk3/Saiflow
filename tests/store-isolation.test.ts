@@ -120,6 +120,12 @@ const ROUTE_POLICY: Record<string, RouteDecision> = {
   "POST /api/auth/verify-email": { policy: "public", reason: "auth flow: emailed token plus password", mustContain: ["verifyEmailWithToken("] },
   "POST /api/auth/verify-email/resend": { policy: "public", reason: "auth flow: same answer for every address", mustContain: ["GENERIC"] },
   "POST /api/signup": { policy: "public", reason: "account creation", mustContain: ["rateLimiters.signup("] },
+  "POST /api/seller-waitlist": {
+    policy: "public",
+    reason: "seller early-access email, no account",
+    mustContain: ["rateLimiters.sellerWaitlist("],
+    mustNotContain: ["prisma.shop", "prisma.order", "prisma.payout"],
+  },
   "POST /api/checkout": {
     policy: "public",
     reason: "guest checkout, behind PRE_LAUNCH_MODE; while it is on, only a founder test (server-side session on FOUNDER_TEST_EMAILS)",

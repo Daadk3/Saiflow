@@ -21,6 +21,7 @@ import { ProductReviewSection, ReviewAverageLine } from "@/components/product-re
 import { ProductPrice } from "@/components/storefront/ProductPrice";
 import { ProductLandingSections } from "@/components/storefront/ProductLandingSections";
 import { hasLandingContent, publicOffer, readLanding, type ProductLanding } from "@/lib/product-landing";
+import { redirectLegacyShopPath } from "@/lib/shop-slug-redirect";
 
 const BASE_URL = "https://www.saiflow.io";
 
@@ -125,6 +126,7 @@ export async function generateMetadata({
   params: Promise<{ slug: string; productSlug: string }>;
 }): Promise<Metadata> {
   const { slug, productSlug } = await params;
+  await redirectLegacyShopPath(`/shop/${slug}/product/${productSlug}`);
   const product = await getProduct(slug, productSlug);
   if (!product) return {};
 
@@ -162,6 +164,7 @@ export default async function ProductPage({
   params: Promise<{ slug: string; productSlug: string }>;
 }) {
   const { slug, productSlug } = await params;
+  await redirectLegacyShopPath(`/shop/${slug}/product/${productSlug}`);
   const product = await getProduct(slug, productSlug);
 
   if (!product) {

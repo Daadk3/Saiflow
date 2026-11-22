@@ -97,10 +97,10 @@ describe("the answers say what the site does now", () => {
   test("the payout answer matches the payout model", () => {
     const enPayout = en.support.faq.items.payouts.answer;
     const arPayout = ar.support.faq.items.payouts.answer;
-    for (const phrase of ["bank transfer", "Saudi bank account (IBAN) in your name", "based in Saudi Arabia", "international is coming soon", "announced when sales open"]) {
+    for (const phrase of ["bank transfer", "Saudi bank account (IBAN) in your name", "own stores take orders now", "payouts start at launch", "timing is still to be confirmed", "International buyers are not active yet", "planned terms, finalized before launch"]) {
       assert.ok(enPayout.includes(phrase), `en payout answer lacks "${phrase}"`);
     }
-    for (const phrase of ["بتحويل بنكي", "حساب بنكي سعودي (آيبان) باسمك", "المقيمين في السعودية", "التوسع الدولي قريبًا", "عند فتح البيع"]) {
+    for (const phrase of ["بتحويل بنكي", "حساب بنكي سعودي (آيبان) باسمك", "تستقبل الطلبات الآن", "تبدأ تحويلات الأرباح عند الإطلاق", "سيُؤكد لاحقًا", "المشترون الدوليون غير مفعّلين بعد", "شروط مبدئية تُعتمد قبل الإطلاق"]) {
       assert.ok(arPayout.includes(phrase), `ar payout answer lacks "${phrase}"`);
     }
     assert.ok(!/Geidea/i.test(enPayout + arPayout), "payout copy must not say Geidea pays sellers");

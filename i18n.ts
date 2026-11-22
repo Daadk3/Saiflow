@@ -1,5 +1,5 @@
 import {getRequestConfig} from 'next-intl/server';
-import {cookies} from 'next/headers';
+import {cookies, headers} from 'next/headers';
 
 export const locales = ['ar', 'en'] as const;
 export type Locale = (typeof locales)[number];
@@ -11,8 +11,14 @@ export const defaultLocale: Locale = 'ar';
 export const LOCALE_COOKIE = 'NEXT_LOCALE';
 
 export default getRequestConfig(async () => {
+  const headerStore = await headers();
+  const fromHeader = headerStore.get('x-saiflow-locale');
   const cookieStore = await cookies();
-  const requested = cookieStore.get(LOCALE_COOKIE)?.value;
+  // /en (middleware) wins over a stale cookie so a shared English URL
+  // renders in English on the first visit.
+  const requested = locales.includes(fromHeader as Locale)
+    ? fromHeader
+    : cookieStore.get(LOCALE_COOKIE)?.value;
   const locale: Locale = locales.includes(requested as Locale)
     ? (requested as Locale)
     : defaultLocale;

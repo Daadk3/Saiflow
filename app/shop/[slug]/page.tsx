@@ -8,6 +8,7 @@ import Image from "next/image";
 import ShareButton from "@/components/ShareButton";
 import { getLocale, getTranslations } from "next-intl/server";
 import { formatPrice } from "@/lib/formatPrice";
+import { redirectLegacyShopPath } from "@/lib/shop-slug-redirect";
 
 const BASE_URL = "https://www.saiflow.io";
 
@@ -63,6 +64,7 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
   const { slug } = await params;
+  await redirectLegacyShopPath(`/shop/${slug}`);
   const shop = await getShop(slug);
   if (!shop) return {};
 
@@ -99,6 +101,7 @@ export default async function PublicShopPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
+  await redirectLegacyShopPath(`/shop/${slug}`);
   const shop = await getShop(slug);
 
   if (!shop) {

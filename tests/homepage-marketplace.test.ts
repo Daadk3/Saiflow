@@ -64,29 +64,29 @@ describe("copy: one namespace, both locales, nothing fabricated", () => {
 
   test("the required Arabic copy is present verbatim", () => {
     const h = ar.home as Record<string, Record<string, string>>;
-    assert.equal(h.hero.title, "ابدأ ببيع منتجك الرقمي، أو اكتشف منتجك القادم.");
-    assert.equal(h.hero.primaryCta, "ابدأ البيع");
+    assert.equal(h.hero.title, "افتح متجرك واستعد للإطلاق، أو اكتشف منتجك القادم.");
+    assert.equal(h.hero.primaryCta, "افتح متجرك الآن");
     assert.equal(h.hero.secondaryCta, "تصفح المنتجات");
-    assert.equal(h.hero.trustLine, "متجر مجاني للبدء · دفع آمن · تسليم رقمي مباشر");
+    assert.equal(h.hero.trustLine, "فتح المتجر مجاني · دفع آمن على المنتجات المتاحة · تسليم رقمي مباشر");
     const paths = h.paths as unknown as { title: string; sell: Record<string, string>; buy: Record<string, string> };
     assert.equal(paths.title, "ماذا تريد أن تفعل اليوم؟");
-    assert.equal(paths.sell.title, "بيع منتج رقمي");
-    assert.equal(paths.sell.cta, "افتح متجرك");
+    assert.equal(paths.sell.title, "افتح متجرك");
+    assert.equal(paths.sell.cta, "افتح متجرك الآن");
     assert.equal(paths.buy.title, "شراء منتج رقمي");
     assert.equal(paths.buy.cta, "تصفح المنتجات");
     assert.equal(h.categories.title, "أي شيء رقمي يمكن أن يجد مكانه هنا.");
     assert.equal(h.featured.title, "اكتشف منتجات تستحق التجربة");
     assert.equal(h.featured.viewProduct, "عرض المنتج");
     assert.equal(h.creator.title, "فكرتك تستحق متجرًا.");
-    assert.equal(h.creator.cta, "افتح متجرك مجانًا");
-    assert.equal(h.steps.title, "افتح متجرك الخاص اليوم وابدأ البيع بثلاث خطوات");
+    assert.equal(h.creator.cta, "افتح متجرك الآن");
+    assert.equal(h.steps.title, "افتح متجرك الآن واستعد للإطلاق في ثلاث خطوات");
     assert.equal(h.buyer.title, "اكتشف. اشترِ. حمّل.");
     assert.equal(h.trust.title, "مصمم للبيع الرقمي");
     assert.equal(h.finalCta.title, "جاهز تبدأ؟");
     const nav = ar.nav as Record<string, string>;
     assert.deepEqual(
       [nav.products, nav.categories, nav.howToSell, nav.pricing, nav.login, nav.startSelling],
-      ["المنتجات", "الفئات", "كيف تبيع؟", "الأسعار", "تسجيل الدخول", "ابدأ البيع"]
+      ["المنتجات", "الفئات", "جهّز متجرك", "الأسعار", "تسجيل الدخول", "افتح متجرك"]
     );
   });
 

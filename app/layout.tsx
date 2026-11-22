@@ -47,7 +47,6 @@ export async function generateMetadata(): Promise<Metadata> {
       title,
       description,
       images: ["https://www.saiflow.io/twitter-image.png"],
-      creator: "@saiflow",
     },
     icons: {
       icon: [

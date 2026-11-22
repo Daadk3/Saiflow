@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { getLocale } from "next-intl/server";
 
 // Documentation content (in a real app, this would come from a CMS or database)
 interface DocContent {
@@ -116,10 +117,10 @@ const docs: Record<string, DocContent> = {
     category: "For Sellers",
     content: `
       <h2>How Payouts Work</h2>
-      <p>Payout systems are currently in development. We will announce details before launch.</p>
+      <p>SaiFlow's own stores are selling now, and checkout on those products is live. For outside sellers, opening a shop is early access. Outside-seller payouts start at launch, and the timing is still to be confirmed.</p>
       
       <h2>Payout Schedule</h2>
-      <p>Payouts are processed according to your account settings. Standard processing time is 2-5 business days.</p>
+      <p>When outside-seller payouts begin, earnings are sent by bank transfer to a Saudi IBAN in the seller's name. The timing will be confirmed before launch. A 7% commission and no monthly fee are planned terms, finalized before launch.</p>
     `,
   },
   "analytics": {
@@ -194,7 +195,7 @@ const docs: Record<string, DocContent> = {
       <p>Saiflow is a platform for selling and buying digital products online.</p>
       
       <h2>Is Saiflow free to use?</h2>
-      <p>Creating an account is free during pre-launch. Pricing and payment terms will be announced before launch.</p>
+      <p>Opening a shop is free to start. A 7% commission and no monthly fee are planned terms, finalized before launch.</p>
       
       <h2>What types of products can I sell?</h2>
       <p>You can sell any digital product including ebooks, courses, templates, software, and more.</p>
@@ -205,10 +206,10 @@ const docs: Record<string, DocContent> = {
     category: "FAQ",
     content: `
       <h2>How do I get paid?</h2>
-      <p>Saiflow is in pre-launch. Payout features will be available at launch.</p>
+      <p>SaiFlow's own stores take orders now. Outside-seller payouts start at launch, and the timing is still to be confirmed. They will be sent by bank transfer to a Saudi IBAN in your name.</p>
       
       <h2>What are the fees?</h2>
-      <p>Pricing and payment terms will be announced before launch.</p>
+      <p>A 7% commission and no monthly fee are planned terms, finalized before launch.</p>
       
       <h2>Can I customize my shop?</h2>
       <p>Yes! You can customize colors, fonts, and layout to match your brand.</p>
@@ -283,13 +284,25 @@ const sidebarLinks = [
   },
 ];
 
+const payoutsAr: DocContent = {
+  title: "التحويلات والأرباح",
+  category: "للبائعين",
+  content: `
+      <h2>كيف تعمل التحويلات</h2>
+      <p>متاجر ساي فلو نفسها تبيع الآن، والدفع على منتجاتها يعمل. للبائعين من خارج المنصة، فتح المتجر وصول مبكر. تبدأ تحويلات أرباحهم عند الإطلاق، والموعد ما زال قيد التأكيد.</p>
+      <h2>موعد التحويل</h2>
+      <p>عندما تبدأ تحويلات البائعين الخارجيين، تُرسل الأرباح بتحويل بنكي إلى آيبان سعودي باسم البائع. سيُؤكد الموعد قبل الإطلاق. عمولة ٧٪ وعدم وجود رسوم شهرية شروط مبدئية تُعتمد قبل الإطلاق.</p>
+    `,
+};
+
 export default async function DocPage({
   params,
 }: {
   params: Promise<{ slug: string }>;
 }) {
   const resolvedParams = await params;
-  const doc = docs[resolvedParams.slug];
+  const ar = (await getLocale()).startsWith("ar");
+  const doc = ar && resolvedParams.slug === "payouts" ? payoutsAr : docs[resolvedParams.slug];
 
   if (!doc) {
     return (

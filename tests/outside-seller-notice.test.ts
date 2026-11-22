@@ -13,9 +13,9 @@ const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const read = (p: string) => readFileSync(resolve(ROOT, p), "utf8");
 
 const EN =
-  "SaiFlow currently sells only its own products. Accounts for outside sellers, whether they have a Saudi bank account or are based abroad, will open soon. You can create your store and prepare your products now, but they won't be published or sold until we open. We'll let you know as soon as we do.";
+  "SaiFlow's own stores are live and selling now. Opening a shop as an outside seller is early access: you can create your store and prepare your products now. The multi-seller marketplace has not launched, and outside-seller payouts start at launch. The timing is still to be confirmed.";
 const AR =
-  "تبيع منصة SaiFlow حالياً منتجاتها الخاصة فقط. سيتم فتح حسابات البائعين الخارجيين قريباً، سواء كان لديهم حساب بنكي سعودي أو كانوا خارج المملكة. يمكنك الآن إنشاء متجرك وتجهيز منتجاتك، لكنها لن تُنشر أو تُباع حتى نفتح التسجيل. سنبلغك فور ذلك.";
+  "متاجر ساي فلو نفسها تعمل وتبيع الآن. فتح متجر لبائع من خارج المنصة وصول مبكر: يمكنك إنشاء متجرك وتجهيز منتجاتك الآن. إطلاق السوق متعدد البائعين لم يبدأ بعد، وتبدأ تحويلات أرباح البائعين الخارجيين عند الإطلاق، والموعد سيُؤكد لاحقًا.";
 
 const PAGES = [
   "app/signup/page.tsx",

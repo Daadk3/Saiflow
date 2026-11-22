@@ -85,7 +85,7 @@ export default function WhitepaperPage() {
                   <div className="text-3xl mb-4">💰</div>
                   <h3 className="text-xl font-semibold text-white mb-3">Fair Economics</h3>
                   <p className="text-gray-300">
-                    Transparent pricing — details coming before launch
+                    A 7% commission and no monthly fee are planned terms, finalized before launch. SaiFlow&apos;s own stores are selling now. Outside-seller payouts start at launch, and the timing is still to be confirmed.
                   </p>
                 </div>
                 
@@ -162,7 +162,7 @@ export default function WhitepaperPage() {
                   <div>
                     <h3 className="text-xl font-semibold text-white mb-2">Grow Your Business</h3>
                     <p className="text-gray-300">
-                      Use analytics to understand your customers, optimize your products, and scale your digital business. Withdraw earnings whenever you&apos;re ready.
+                      Use analytics to understand your customers, optimize your products, and scale your digital business. Outside-seller payouts start at launch, and the timing is still to be confirmed.
                     </p>
                   </div>
                 </div>
@@ -171,44 +171,10 @@ export default function WhitepaperPage() {
 
             {/* Future Roadmap */}
             <section className="mb-16 bg-gradient-to-br from-teal-500/10 to-cyan-500/10 rounded-2xl p-8 border border-teal-500/20">
-              <h2 className="text-3xl font-bold text-white mb-6">Future Roadmap</h2>
-              <p className="text-lg text-gray-300 mb-6">
-                We&apos;re just getting started. Here&apos;s what&apos;s coming next:
+              <h2 className="text-3xl font-bold text-white mb-6">Where things stand</h2>
+              <p className="text-lg text-gray-300">
+                SaiFlow&apos;s own stores are selling now. Opening a shop as an outside seller is early access, and the multi-seller marketplace has not launched. Outside-seller payouts start at launch. No date is set for that yet.
               </p>
-              
-              <div className="space-y-4">
-                <div className="flex items-start gap-4">
-                  <div className="text-teal-400 mt-1">✓</div>
-                  <div>
-                    <h3 className="text-lg font-semibold text-white mb-1">Q1 2024</h3>
-                    <p className="text-gray-300">Enhanced analytics dashboard, improved mobile experience, additional payment methods</p>
-                  </div>
-                </div>
-                
-                <div className="flex items-start gap-4">
-                  <div className="text-teal-400 mt-1">✓</div>
-                  <div>
-                    <h3 className="text-lg font-semibold text-white mb-1">Q2 2024</h3>
-                    <p className="text-gray-300">Email marketing tools, affiliate program, subscription products support</p>
-                  </div>
-                </div>
-                
-                <div className="flex items-start gap-4">
-                  <div className="text-teal-400 mt-1">→</div>
-                  <div>
-                    <h3 className="text-lg font-semibold text-white mb-1">Q3 2024</h3>
-                    <p className="text-gray-300">API access for developers, advanced customization options, multi-language support</p>
-                  </div>
-                </div>
-                
-                <div className="flex items-start gap-4">
-                  <div className="text-teal-400 mt-1">→</div>
-                  <div>
-                    <h3 className="text-lg font-semibold text-white mb-1">Q4 2024</h3>
-                    <p className="text-gray-300">Mobile app, community features, advanced integrations</p>
-                  </div>
-                </div>
-              </div>
             </section>
 
             {/* Call to Action */}
@@ -222,7 +188,7 @@ export default function WhitepaperPage() {
                   href="/signup"
                   className="btn-primary"
                 >
-                  Start Selling
+                  Open your shop
                 </Link>
                 <Link
                   href="/browse"
