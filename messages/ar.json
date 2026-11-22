@@ -772,7 +772,19 @@
     "emailLabel": "بريدك الإلكتروني لاستلام الإيصال",
     "emailHint": "سنرسل إليك الإيصال ورابط التحميل على هذا البريد، لتتمكن من تحميل ملفك لاحقًا.",
     "emailInvalid": "أدخل بريدًا إلكترونيًا صحيحًا، مثل name@example.com.",
-    "emailContinue": "المتابعة إلى الدفع"
+    "emailContinue": "المتابعة إلى الدفع",
+    "payPalOr": "أو",
+    "payPalTitle": "الدفع عبر PayPal",
+    "payPalOpen": "ادفع عبر PayPal",
+    "payPalAmount": "ستدفع {usd} دولار أمريكي عبر PayPal.",
+    "payPalRate": "PayPal لا يدعم الريال، لذا حُوّل السعر {sar} ر.س بسعر صرف ثابت قدره {rate} ر.س لكل دولار. قد يضيف بنكك أو PayPal رسوم تحويل عملة.",
+    "payPalSandbox": "PayPal في وضع الاختبار (Sandbox): لا يُخصم أي مبلغ حقيقي. استخدم حساب مشترٍ تجريبيًا من PayPal.",
+    "payPalLoading": "جارٍ تحميل زر PayPal…",
+    "payPalLoadError": "تعذّر تحميل PayPal. حدّث الصفحة أو ادفع بالبطاقة.",
+    "payPalFillFirst": "أدخل اسمك وبريدك الإلكتروني أولًا، ثم اضغط زر PayPal.",
+    "payPalCancelled": "أُغلقت نافذة PayPal ولم يُخصم أي مبلغ. يمكنك المحاولة مرة أخرى.",
+    "payPalError": "تعذّر إكمال الدفع عبر PayPal. لم يُنشأ أي طلب. حاول مرة أخرى بعد قليل.",
+    "payPalConfirming": "جارٍ تأكيد الدفع مع PayPal…"
   },
   "success": {
     "processingTitle": "جارٍ تأكيد الدفع...",

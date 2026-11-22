@@ -772,7 +772,19 @@
     "emailLabel": "Your email for the receipt",
     "emailHint": "We'll send your receipt and download link here, so you can get your file again later.",
     "emailInvalid": "Enter a valid email address, like name@example.com.",
-    "emailContinue": "Continue to payment"
+    "emailContinue": "Continue to payment",
+    "payPalOr": "or",
+    "payPalTitle": "Pay with PayPal",
+    "payPalOpen": "Pay with PayPal",
+    "payPalAmount": "You will pay {usd} USD with PayPal.",
+    "payPalRate": "PayPal does not support SAR, so the {sar} SAR price is converted at a fixed rate of {rate} SAR per US dollar. Your bank or PayPal may add a currency conversion fee.",
+    "payPalSandbox": "PayPal is in test mode (Sandbox): no real money is charged. Use a PayPal sandbox buyer account.",
+    "payPalLoading": "Loading the PayPal button…",
+    "payPalLoadError": "PayPal could not be loaded. Refresh the page, or pay by card.",
+    "payPalFillFirst": "Enter your name and email first, then press the PayPal button.",
+    "payPalCancelled": "The PayPal window was closed and nothing was charged. You can try again.",
+    "payPalError": "The PayPal payment could not be completed. No order was created. Please try again shortly.",
+    "payPalConfirming": "Confirming your payment with PayPal…"
   },
   "success": {
     "processingTitle": "Payment is being confirmed...",

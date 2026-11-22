@@ -112,7 +112,8 @@ function laterPaymentSessionColumns(): Map<string, string> {
     const sql = readFileSync(new URL(`../prisma/migrations/${later}/migration.sql`, import.meta.url), "utf8");
     for (const stmt of sql.replace(/--[^\n]*/g, "").split(";").map((s) => s.replace(/\s+/g, " ").trim())) {
       if (!stmt.startsWith('ALTER TABLE "PaymentSession" ADD COLUMN')) continue;
-      for (const m of stmt.matchAll(/ADD COLUMN (?:IF NOT EXISTS )?"(\w+)" ([^,]+)/g)) added.set(m[1], m[2].trim());
+      // A type may itself hold a comma, as in DECIMAL(10,2).
+      for (const m of stmt.matchAll(/ADD COLUMN (?:IF NOT EXISTS )?"(\w+)" ((?:[^,(]|\([^)]*\))+)/g)) added.set(m[1], m[2].trim());
     }
   }
   return added;
@@ -220,8 +221,8 @@ describe("PaymentSession: a payment attempt with everything a callback must be c
 /* ------------------------------------------------------------------ */
 
 describe("the payment enums are small and closed", () => {
-  test("PaymentProvider names the dormant rail and the new one", () => {
-    assert.deepEqual(enumMembers("PaymentProvider"), ["STRIPE", "GEIDEA"]);
+  test("PaymentProvider names the dormant rail, Geidea, and PayPal", () => {
+    assert.deepEqual(enumMembers("PaymentProvider"), ["STRIPE", "GEIDEA", "PAYPAL"]);
   });
 
   test("PaymentEnvironment distinguishes test money from real money", () => {
@@ -488,6 +489,11 @@ describe("the migration is additive and matches the schema", () => {
       founderTest: "BOOLEAN NOT NULL DEFAULT false",
       // The name collected at checkout. Nullable, so attempts from before it was asked still read.
       buyerName: "TEXT",
+      // PayPal (20261123120000_paypal_provider): what the provider was asked
+      // to charge when it is not the SAR price. Nullable; Geidea leaves them NULL.
+      chargeAmount: "DECIMAL(10,2)",
+      chargeCurrency: "TEXT",
+      chargeRate: "DECIMAL(10,4)",
     }, "the attempt columns are nullable with no default; the founder-test flag defaults to false");
 
     assert.equal(columns.get("id"), "TEXT NOT NULL");
@@ -521,8 +527,12 @@ describe("the migration is additive and matches the schema", () => {
   });
 
   test("the enums in SQL are the enums in the schema, member for member", () => {
+    // Members a later migration adds with ALTER TYPE … ADD VALUE (PayPal) are
+    // not in this migration's CREATE TYPE; the drift test checks they exist.
+    const addedLater: Record<string, string[]> = { PaymentProvider: ["PAYPAL"] };
     for (const name of ["PaymentProvider", "PaymentEnvironment", "PaymentSessionStatus"]) {
-      const expected = `CREATE TYPE "${name}" AS ENUM (${enumMembers(name).map((m) => `'${m}'`).join(", ")})`;
+      const members = enumMembers(name).filter((m) => !(addedLater[name] ?? []).includes(m));
+      const expected = `CREATE TYPE "${name}" AS ENUM (${members.map((m) => `'${m}'`).join(", ")})`;
       assert.ok(statements.includes(expected), expected);
     }
   });

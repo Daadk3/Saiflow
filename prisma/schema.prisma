@@ -593,6 +593,9 @@ model Order {
 enum PaymentProvider {
   STRIPE
   GEIDEA
+  /// PayPal Orders v2. Charged in USD (PayPal has no SAR), converted from
+  /// the SAR price at one fixed rate; see PaymentSession.chargeAmount.
+  PAYPAL
 }
 
 /// Which account of the provider took, or would take, the money. A column
@@ -711,6 +714,19 @@ model PaymentSession {
   /// Made as a founder test (LIVE_PAYMENTS_MODE=founder_only, an allowlisted
   /// signed-in founder). Its Order inherits it. Never revenue, never paid out.
   founderTest         Boolean              @default(false)
+
+  // ---------------------------------------------------------------------
+  // What the provider was asked to charge, when that is not `amount` in
+  // `currency`. Null for Geidea, which charges the SAR price itself. PayPal
+  // cannot charge SAR, so it is asked for `chargeAmount` USD, converted at
+  // `chargeRate` SAR per USD (PAYPAL_SAR_PER_USD) when the attempt was
+  // made. A capture is verified against these, never against a fresh
+  // conversion. `amount`/`currency` stay the SAR price, which is what the
+  // Order, the commission split and payouts are computed from.
+  // ---------------------------------------------------------------------
+  chargeAmount        Decimal?             @db.Decimal(10, 2)
+  chargeCurrency      String?
+  chargeRate          Decimal?             @db.Decimal(10, 4)
 
   createdAt           DateTime             @default(now())
   updatedAt           DateTime             @updatedAt

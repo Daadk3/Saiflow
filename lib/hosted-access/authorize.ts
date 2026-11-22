@@ -42,7 +42,7 @@ export interface HostedOrderRow {
   id: string;
   productId: string;
   customerEmail: string;
-  paymentProvider: "STRIPE" | "GEIDEA";
+  paymentProvider: "STRIPE" | "GEIDEA" | "PAYPAL";
   paymentEnvironment: "TEST" | "PRODUCTION";
   createdAt: Date;
 }
@@ -119,7 +119,7 @@ export async function authorizeHostedAccess(
     channel = "ref";
     if (!isMerchantReference(ref)) return { ok: false, reason: "not_authorized" };
     const found = await deps.findOrderByMerchantReference(ref);
-    if (!found || found.paymentProvider !== "GEIDEA" || found.productId !== productId) {
+    if (!found || (found.paymentProvider !== "GEIDEA" && found.paymentProvider !== "PAYPAL") || found.productId !== productId) {
       return { ok: false, reason: "not_authorized" };
     }
     if (!withinReceiptWindow(found.createdAt, now)) return { ok: false, reason: "expired" };

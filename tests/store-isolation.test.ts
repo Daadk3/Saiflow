@@ -131,6 +131,18 @@ const ROUTE_POLICY: Record<string, RouteDecision> = {
     reason: "guest checkout, behind PRE_LAUNCH_MODE; while it is on, only a founder test (server-side session on FOUNDER_TEST_EMAILS)",
     mustContain: ["env.PRE_LAUNCH_MODE", "currentCheckoutAccess()"],
   },
+  "POST /api/paypal/create-order": {
+    policy: "public",
+    reason: "guest PayPal checkout: the same gates as /api/checkout (PRE_LAUNCH_MODE, founder access, LIVE_PAYMENTS_MODE)",
+    shared: "lib/payments/paypal/gate.ts",
+    mustContain: ["payPalAccessGate()", "rateLimiters.checkout("],
+  },
+  "POST /api/paypal/capture": {
+    policy: "public",
+    reason: "captures an approved PayPal order SaiFlow created; an Order only after PayPal's verified COMPLETED capture",
+    shared: "lib/payments/paypal/gate.ts",
+    mustContain: ["payPalAccessGate()", "settlePayPalOrder(", "rateLimiters.checkout("],
+  },
   "GET /api/download/[productId]": {
     policy: "public",
     reason: "buyer download: bearer reference, signed receipt token, or signed-in buyer's own order",
@@ -158,6 +170,7 @@ const ROUTE_POLICY: Record<string, RouteDecision> = {
 
   // Provider callbacks, authenticated by signature.
   "POST /api/webhooks/geidea": { policy: "webhook", mustContain: ["verifyCallbackSignature("] },
+  "POST /api/webhooks/paypal": { policy: "webhook", mustContain: ["verifyWebhookSignature("] },
   "POST /api/webhooks/stripe": { policy: "webhook", mustContain: ["constructEvent(", "stripe-signature"] },
 
   // Cron/operator worker, authenticated by a secret header.
