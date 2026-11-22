@@ -17,8 +17,8 @@ export default async function AboutPage() {
           </h1>
           <p className="text-gray-400">
             {ar
-              ? "منصة سعودية لبيع المنتجات الرقمية"
-              : "A Saudi marketplace for digital products"}
+              ? "منصة عربية أولًا للمنتجات الرقمية بالعربية والإنجليزية"
+              : "An Arabic-first marketplace for digital products in Arabic and English"}
           </p>
         </div>
       </section>
@@ -31,8 +31,8 @@ export default async function AboutPage() {
             </h2>
             <p>
               {ar
-                ? "ساي فلو منصة عربية أولًا تمكّن صنّاع المحتوى من بيع منتجاتهم الرقمية — كتب إلكترونية، قوالب، دورات، ملفات تصميم — مباشرة إلى جمهورهم، بالريال السعودي وبتجربة شراء بسيطة وآمنة."
-                : "Saiflow is an Arabic-first platform that lets creators sell their digital products — e-books, templates, courses, design files — directly to their audience, priced in Saudi Riyal with a simple, secure purchase experience."}
+                ? "ساي فلو منصة عربية أولًا للمنتجات الرقمية باللغتين العربية والإنجليزية. متاجر ساي فلو نفسها تعمل وتبيع الآن، ويمكن شراء المنتجات المتاحة منها. فتح متجر لبائع من خارج المنصة وصول مبكر: تجهيز المتجر متاح اليوم، وتبدأ تحويلات أرباح البائعين الخارجيين عند الإطلاق، والموعد سيُؤكد لاحقًا. إطلاق السوق متعدد البائعين لم يتم بعد."
+                : "Saiflow is an Arabic-first platform for digital products in Arabic and English. SaiFlow's own stores are live and selling now, and you can buy the products they offer. Opening a shop as an outside seller is early access: you can prepare a store today, and outside-seller payouts start at launch. The timing is still to be confirmed. The multi-seller marketplace has not launched yet."}
             </p>
           </section>
 

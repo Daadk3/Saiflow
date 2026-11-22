@@ -1,4 +1,5 @@
 'use client';
+import { usePathname } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
 
 const LOCALE_COOKIE = 'NEXT_LOCALE';
@@ -6,13 +7,16 @@ const ONE_YEAR = 60 * 60 * 24 * 365;
 
 export function LanguageSwitcher() {
   const locale = useLocale();
+  const pathname = usePathname() || '/';
   const t = useTranslations('nav');
   const next = locale.startsWith('ar') ? 'en' : 'ar';
 
   const switchTo = (lang: string) => {
     document.cookie = `${LOCALE_COOKIE}=${lang};path=/;max-age=${ONE_YEAR};samesite=lax`;
-    // Full reload so the server re-renders <html lang/dir> and all messages.
-    window.location.reload();
+    const bare = pathname.replace(/^\/en(?=\/|$)/, '') || '/';
+    const target = lang === 'en' ? (bare === '/' ? '/en' : `/en${bare}`) : bare;
+    // Full navigation so the server re-renders <html lang/dir> and all messages.
+    window.location.assign(target);
   };
 
   return (

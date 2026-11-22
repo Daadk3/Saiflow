@@ -7,6 +7,7 @@ import {
   FeaturedProducts,
   FinalCta,
   Hero,
+  SellerWaitlist,
   SellSteps,
   TrustGrid,
   TwoPaths,
@@ -78,6 +79,7 @@ export default async function Home() {
         <SellSteps />
         <BuyerFlow />
         <TrustGrid />
+        <SellerWaitlist />
         <FinalCta />
       </div>
     </div>

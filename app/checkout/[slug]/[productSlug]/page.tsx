@@ -12,6 +12,7 @@ import { canonicalAmount } from "@/lib/payments/geidea/callback";
 import { CheckoutSummary } from "@/components/checkout/CheckoutSummary";
 import { DropInCheckout } from "@/components/checkout/DropInCheckout";
 import { PaymentAssurance } from "@/components/checkout/PaymentAssurance";
+import { redirectLegacyShopPath } from "@/lib/shop-slug-redirect";
 
 /**
  * SaiFlow's checkout page: the product, its price, and Geidea's secure card
@@ -68,6 +69,7 @@ export default async function CheckoutPage({
   params: Promise<{ slug: string; productSlug: string }>;
 }) {
   const { slug, productSlug } = await params;
+  await redirectLegacyShopPath(`/checkout/${slug}/${productSlug}`);
   const product = await getCheckoutProduct(slug, productSlug);
   if (!product) {
     notFound();

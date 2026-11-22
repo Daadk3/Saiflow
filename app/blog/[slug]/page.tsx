@@ -17,25 +17,24 @@ interface BlogPost {
 const blogPosts: Record<string, BlogPost> = {
   "introducing-saiflow": {
     slug: "introducing-saiflow",
-    title: "Introducing Saiflow: The Future of Digital Product Sales",
+    title: "Introducing Saiflow",
     content: `
-      <p>We're thrilled to announce the launch of Saiflow, a platform designed to revolutionize how creators sell digital products online.</p>
+      <p>SaiFlow is an Arabic-first marketplace for digital products in Arabic and English. SaiFlow's own stores are live and selling now: those products have a real Buy button, and the checkout exists. The multi-seller marketplace has not launched yet.</p>
       
       <h2>Our Mission</h2>
-      <p>At Saiflow, we believe that creators should keep more of what they earn. Traditional marketplaces take significant cuts, leaving creators with less than they deserve. We're changing that.</p>
+      <p>At SaiFlow, creators should keep more of what they earn. A 7% commission and no monthly fee are planned terms, finalized before launch.</p>
       
-      <h2>What Makes Us Different</h2>
-      <p>Unlike other platforms, Saiflow offers:</p>
+      <h2>What is open today</h2>
       <ul>
-        <li>Transparent pricing — details coming before launch</li>
-        <li>Beautiful, customizable storefronts</li>
-        <li>Seamless checkout experience</li>
-        <li>Powerful analytics to track your sales</li>
-        <li>Direct customer relationships</li>
+        <li>SaiFlow's own stores take orders now</li>
+        <li>You can browse and buy the products that are on sale</li>
+        <li>Outside sellers can open a shop and prepare it. That is early access</li>
+        <li>Outside-seller payouts start at launch, and the timing is still to be confirmed</li>
+        <li>International buyers are not active yet</li>
       </ul>
       
       <h2>Getting Started</h2>
-      <p>Ready to start selling? Creating your first shop takes just minutes. Sign up today and join thousands of creators who are already using Saiflow to monetize their digital products.</p>
+      <p>If you want to sell, open your shop now and get ready for launch. Leave your email on the homepage and we will write when outside-seller payouts start. If you want to buy, browse the products that are already on sale.</p>
     `,
     author: "Saiflow Team",
     date: "2026-07-01",

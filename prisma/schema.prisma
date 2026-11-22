@@ -891,3 +891,16 @@ model Payout {
   @@index([shopId])
   @@index([paidAt])
 }
+
+/// Email addresses from people who want to sell once outside-seller
+/// payouts open. Not a customer list and not a newsletter blast:
+/// the homepage seller form and the footer form write here.
+model SellerWaitlist {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  locale    String   @default("ar")
+  source    String   @default("homepage")
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+}

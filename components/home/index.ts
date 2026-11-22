@@ -8,3 +8,4 @@ export { SellSteps } from "./SellSteps";
 export { BuyerFlow } from "./BuyerFlow";
 export { TrustGrid } from "./TrustGrid";
 export { FinalCta } from "./FinalCta";
+export { SellerWaitlist } from "./SellerWaitlist";

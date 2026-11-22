@@ -188,4 +188,12 @@ export const rateLimiters = {
   // unbounded. The token itself is never the key.
   founderBotAuth: (ip: string) =>
     rateLimit(`founder-bot-auth:${ip}`, { windowMs: 10 * 60 * 1000, maxRequests: 30 }),
+
+  // Seller early-access sign-ups. A person types one address. Five an hour
+  // per network, and five per address, is enough for a typo and a retry.
+  sellerWaitlist: (ip: string) =>
+    rateLimit(`seller-waitlist:${ip}`, { windowMs: 60 * 60 * 1000, maxRequests: 5 }),
+
+  sellerWaitlistEmail: (email: string) =>
+    rateLimit(`seller-waitlist-email:${email}`, { windowMs: 60 * 60 * 1000, maxRequests: 5 }),
 };

@@ -5,8 +5,8 @@ import Image from "next/image";
 const blogPosts = [
   {
     slug: "introducing-saiflow",
-    title: "Introducing Saiflow: The Future of Digital Product Sales",
-    excerpt: "We're excited to launch Saiflow, a platform designed to help creators sell digital products with ease. Learn about our mission and what makes us different.",
+    title: "Introducing Saiflow",
+    excerpt: "SaiFlow is an Arabic-first marketplace for digital products in Arabic and English. SaiFlow's own stores are selling now. Opening a shop as an outside seller is early access.",
     author: "Saiflow Team",
     date: "2026-07-01",
     category: "Product",

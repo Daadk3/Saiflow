@@ -18,17 +18,28 @@ export default function Footer() {
   const linkClass =
     "text-gray-400 hover:text-white text-sm font-medium transition-colors";
 
-  // Newsletter form is visual-only until /api/newsletter is built.
-  // Submit shows a "coming soon" acknowledgment so users get feedback
-  // instead of nothing or a spurious page reload.
-  // TODO(newsletter-api): wire to mailing list provider + real loading/error states.
+  // Same store as the homepage seller form: an email on the early-access list.
   const [email, setEmail] = useState("");
-  const [showSuccess, setShowSuccess] = useState(false);
+  const [newsletterStatus, setNewsletterStatus] = useState<"idle" | "pending" | "ok" | "error">("idle");
 
-  function handleNewsletterSubmit(e: React.FormEvent<HTMLFormElement>) {
+  async function handleNewsletterSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    setShowSuccess(true);
-    setEmail("");
+    setNewsletterStatus("pending");
+    try {
+      const res = await fetch("/api/seller-waitlist", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, source: "footer", locale: ar ? "ar" : "en" }),
+      });
+      if (res.ok) {
+        setEmail("");
+        setNewsletterStatus("ok");
+      } else {
+        setNewsletterStatus("error");
+      }
+    } catch {
+      setNewsletterStatus("error");
+    }
   }
 
   return (
@@ -61,13 +72,16 @@ export default function Footer() {
                 />
                 <button
                   type="submit"
-                  className="inline-flex justify-center rounded-lg bg-teal-500 px-5 py-3 text-sm font-semibold text-white transition hover:bg-teal-600"
+                  disabled={newsletterStatus === "pending"}
+                  className="inline-flex justify-center rounded-lg bg-teal-500 px-5 py-3 text-sm font-semibold text-white transition hover:bg-teal-600 disabled:opacity-60"
                 >
                   {t('footer.subscribe')}
                 </button>
               </form>
-              {showSuccess ? (
-                <p className="text-xs text-teal-400" role="status">{t('footer.newsletterComingSoon')}</p>
+              {newsletterStatus === "ok" ? (
+                <p className="text-xs text-teal-400" role="status">{t('footer.newsletterSaved')}</p>
+              ) : newsletterStatus === "error" ? (
+                <p className="text-xs text-gray-400" role="status">{t('footer.newsletterError')}</p>
               ) : (
                 <p className="text-xs text-gray-400">{t('footer.newsletterDesc')}</p>
               )}
@@ -108,6 +122,7 @@ export default function Footer() {
               <h3 className="text-sm font-semibold text-white">{t('footer.columnLegal')}</h3>
               <ul className="flex flex-col gap-2">
                 <li><Link href="/terms" className={linkClass}>{t('footer.terms')}</Link></li>
+                <li><Link href="/terms/summary" className={linkClass}>{t('footer.termsSummary')}</Link></li>
                 <li><Link href="/privacy" className={linkClass}>{t('footer.privacy')}</Link></li>
                 <li><Link href="/refunds" className={linkClass}>{t('footer.refunds')}</Link></li>
                 <li><Link href="/content-policy" className={linkClass}>{t('footer.contentPolicy')}</Link></li>

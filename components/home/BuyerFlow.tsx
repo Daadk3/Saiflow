@@ -32,9 +32,10 @@ export async function BuyerFlow() {
           </Link>
         </div>
 
+        <p className="mx-auto mt-14 max-w-2xl text-center text-sm font-semibold text-teal-300">{t("preview")}</p>
         <ol
           aria-label={t("flowAria")}
-          className="mt-14 grid grid-cols-1 items-stretch gap-3 sm:grid-cols-[1fr_auto_1fr_auto_1fr_auto_1fr] sm:gap-2"
+          className="mt-4 grid grid-cols-1 items-stretch gap-3 sm:grid-cols-[1fr_auto_1fr_auto_1fr_auto_1fr] sm:gap-2"
         >
           {/* 1. Product */}
           <li className="rounded-2xl border border-gray-800 bg-[#111111] p-4">
