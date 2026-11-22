@@ -648,6 +648,7 @@ describe("the preview payload carries no internals", () => {
       "compareAtPrice",
       "createdAt",
       "currency",
+      "deliverableCount",
       "deliveryType",
       "description",
       "fileSafety",

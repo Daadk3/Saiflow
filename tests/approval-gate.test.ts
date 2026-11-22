@@ -176,8 +176,9 @@ describe("the review buttons say why Approve is unavailable", () => {
     assert.ok(read("components/admin/ReviewButton.tsx").includes('data.error === "not_approvable"'));
     assert.ok(read("lib/decision-feedback.ts").includes('data.error === "not_approvable"'));
     assert.ok(read("components/admin/DecisionButtons.tsx").includes("readDecisionResponse(res.ok"));
-    assert.equal((read("app/dashboard/admin/products/page.tsx").match(/approveBlocked=\{p\.fileSafety\.publishable \? null : p\.fileSafety\.reason\}/g) ?? []).length, 2);
-    assert.ok(read("app/dashboard/admin/products/[id]/preview/page.tsx").includes("approveBlocked={product.fileSafety.publishable ? null : product.fileSafety.reason}"));
+    assert.equal((read("app/dashboard/admin/products/page.tsx").match(/approveBlocked=\{approveBlockedFor\(p\)\}/g) ?? []).length, 2);
+    assert.ok(read("app/dashboard/admin/products/page.tsx").includes("approveBlockedReason("));
+    assert.ok(read("app/dashboard/admin/products/[id]/preview/page.tsx").includes("approveBlocked={approveBlockedReason("));
     for (const locale of ["en", "ar"]) {
       const blocked = JSON.parse(read(`messages/${locale}.json`)).admin.directory.approveBlocked;
       for (const reason of ["missing_file_key", "pending_scan", "scan_error", "unsafe", "scan_key_mismatch", "file_changed"]) {

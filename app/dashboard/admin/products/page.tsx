@@ -7,8 +7,10 @@ import {
   DIRECTORY_FILTERS,
   DIRECTORY_SORTS,
   type DirectoryFilter,
+  type DirectoryRow,
   type DirectorySort,
 } from "@/lib/admin-stats";
+import { approveBlockedReason } from "@/lib/approve-blocked";
 import type { ModeratorFileSafety } from "@/lib/moderator-file-status";
 import { formatPrice } from "@/lib/formatPrice";
 import { formatDate } from "@/lib/formatDate";
@@ -223,7 +225,7 @@ export default async function AdminProductsPage({
                             productName={p.name}
                             previewHref={`/dashboard/admin/products/${p.id}/preview`}
                             fileHref={p.canInspect ? `/api/admin/inspect/${p.id}` : null}
-                            approveBlocked={p.fileSafety.publishable ? null : p.fileSafety.reason}
+                            approveBlocked={approveBlockedFor(p)}
                           />
                         )}
                       </td>
@@ -290,7 +292,7 @@ export default async function AdminProductsPage({
                         productName={p.name}
                         previewHref={`/dashboard/admin/products/${p.id}/preview`}
                         fileHref={p.canInspect ? `/api/admin/inspect/${p.id}` : null}
-                        approveBlocked={p.fileSafety.publishable ? null : p.fileSafety.reason}
+                        approveBlocked={approveBlockedFor(p)}
                       />
                     </div>
                   )}
@@ -313,6 +315,16 @@ export default async function AdminProductsPage({
       </main>
     </div>
   );
+}
+
+/** Why Approve is disabled. Same rules as the moderation route; the link stays on the server. */
+function approveBlockedFor(p: DirectoryRow): string | null {
+  return approveBlockedReason({
+    deliveryType: p.deliveryType ?? "FILE",
+    fileSafety: p.fileSafety,
+    hostedAccess: p.hostedAccessGate,
+    deliverables: p.deliverableCount < 0 ? null : Array.from({ length: p.deliverableCount }),
+  });
 }
 
 function StatusBadge({
