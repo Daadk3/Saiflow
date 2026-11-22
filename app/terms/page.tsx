@@ -14,7 +14,7 @@ export default function TermsPage() {
             Terms of Service
           </h1>
           <p className="text-gray-400">
-            Last updated: July 2026
+            Last updated: November 2026
           </p>
         </div>
       </section>
@@ -36,7 +36,13 @@ export default function TermsPage() {
             <section>
               <h2 className="text-2xl font-bold text-white mb-4">2. Description of Service</h2>
               <p className="mb-3">
-                Saiflow is a digital products marketplace that enables creators to sell digital products, courses, and memberships. We provide the platform and payment processing infrastructure, but we are not a party to transactions between buyers and sellers.
+                SaiFlow is a service for digital products offered in Arabic and English.
+              </p>
+              <p className="mb-3">
+                SaiFlow&apos;s own stores are live and selling. For those stores, the seller is SaiFlow, operated by the establishment named below.
+              </p>
+              <p className="mb-3">
+                Opening a shop as an outside seller is early access. The multi-seller marketplace has not launched. Once it launches, the outside seller is the seller of their own products, and SaiFlow provides the platform.
               </p>
               <p>
                 {LEGAL.storeNameEn} (<bdi>{LEGAL.storeNameAr}</bdi>) is operated by{" "}
@@ -58,7 +64,10 @@ export default function TermsPage() {
             <section>
               <h2 className="text-2xl font-bold text-white mb-4">4. Seller Responsibilities</h2>
               <p className="mb-3">
-                As a seller on Saiflow, you agree to:
+                Opening a shop as an outside seller is early access. You may prepare your store now. Nothing is sold from that store, and nothing is paid out to you, until launch.
+              </p>
+              <p className="mb-3">
+                Once selling starts, you agree to:
               </p>
               <ul className="list-disc pl-6 space-y-2 mb-3">
                 <li>Provide accurate product descriptions and pricing</li>
@@ -68,7 +77,7 @@ export default function TermsPage() {
                 <li>Pay all applicable fees</li>
               </ul>
               <p>
-                You retain ownership of your content and grant Saiflow a license to host, display, and distribute your products through the Service.
+                You retain ownership of your content and grant SaiFlow a license to host and display your products through the Service, and to distribute them once selling starts.
               </p>
             </section>
 
@@ -110,11 +119,20 @@ export default function TermsPage() {
               </p>
             </section>
 
-            {/* Payment Processing */}
+            {/* Payments and Payouts */}
             <section>
-              <h2 className="text-2xl font-bold text-white mb-4">7. Payment Processing</h2>
+              <h2 className="text-2xl font-bold text-white mb-4">7. Payments and Payouts</h2>
+              <p className="mb-3">
+                SaiFlow&apos;s own stores, operated by SaiFlow under NovaSphere&apos;s commercial registration, are live and selling. Products listed in those stores may be purchased through checkout on the Service.
+              </p>
+              <p className="mb-3">
+                Opening a shop as an outside seller is early access. You may prepare your store now. The multi-seller marketplace has not launched. Payouts to outside sellers start at launch, and the timing is still to be confirmed.
+              </p>
+              <p className="mb-3">
+                A 7% commission and no monthly fee are planned terms. These terms will be finalized before launch. We will notify users of the finalized terms in advance.
+              </p>
               <p>
-                Saiflow is currently in pre-launch. Payment processing and seller payouts are not yet available. Pricing and payment terms will be finalized before launch. We will notify users of these terms in advance.
+                Products are offered in Arabic and English. International buyers are not active yet.
               </p>
             </section>
 
