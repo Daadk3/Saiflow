@@ -127,7 +127,8 @@ export async function GET(
         });
         if (
           found &&
-          found.paymentProvider === "GEIDEA" &&
+          // A success-page reference exists for Geidea and PayPal orders alike.
+          (found.paymentProvider === "GEIDEA" || found.paymentProvider === "PAYPAL") &&
           found.productId === productId
         ) {
           if (withinReceiptWindow(found.createdAt)) order = { id: found.id, productId: found.productId };

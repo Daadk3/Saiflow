@@ -68,6 +68,26 @@ export const env = createEnv({
     LIVE_PAYMENTS_MODE: z.string().optional(),
     // Comma-separated emails allowed to make founder test payments.
     FOUNDER_TEST_EMAILS: z.string().optional(),
+
+    // ── PayPal Orders v2 (second payment option) ──────────────────────
+    // Server-side. The client id is public by PayPal's design (it is in the
+    // JS SDK URL), but it is read here and handed to the checkout page by
+    // the server, so it needs no NEXT_PUBLIC_ copy. The secret and webhook
+    // id never leave the server. All optional: when any of the four below
+    // is missing, PayPal is not configured, the button is not shown and
+    // both PayPal routes refuse (lib/payments/paypal/config).
+    PAYPAL_CLIENT_ID: z.string().min(1).optional(),
+    PAYPAL_CLIENT_SECRET: z.string().min(1).optional(),
+    PAYPAL_WEBHOOK_ID: z.string().min(1).optional(),
+    // No default, like GEIDEA_ENV: a deployment must say which account.
+    // "sandbox" is treated like a Geidea test account; "live" like a
+    // production account, so the same LIVE_PAYMENTS_MODE gates apply.
+    PAYPAL_ENV: z.enum(["sandbox", "live"]).optional(),
+    // SAR per 1 USD, the one fixed rate PayPal charges are converted at.
+    // Read leniently in lib/payments/paypal/config: missing means 3.75; a
+    // value that is not a positive number with at most four decimals makes
+    // PayPal unconfigured rather than failing a build.
+    PAYPAL_SAR_PER_USD: z.string().optional(),
   },
 
   /**
@@ -108,6 +128,11 @@ export const env = createEnv({
     GEIDEA_ENV: process.env.GEIDEA_ENV,
     LIVE_PAYMENTS_MODE: process.env.LIVE_PAYMENTS_MODE,
     FOUNDER_TEST_EMAILS: process.env.FOUNDER_TEST_EMAILS,
+    PAYPAL_CLIENT_ID: process.env.PAYPAL_CLIENT_ID,
+    PAYPAL_CLIENT_SECRET: process.env.PAYPAL_CLIENT_SECRET,
+    PAYPAL_WEBHOOK_ID: process.env.PAYPAL_WEBHOOK_ID,
+    PAYPAL_ENV: process.env.PAYPAL_ENV,
+    PAYPAL_SAR_PER_USD: process.env.PAYPAL_SAR_PER_USD,
     NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY:
       process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY,
   },

@@ -6,7 +6,17 @@ import { prisma } from "@/lib/prisma";
 import { SELLABLE_PRODUCT_WHERE, SELLABLE_SHOP_WHERE } from "@/lib/sellable";
 import { checkoutScriptUrl, geideaMode, isGeideaConfigured } from "@/lib/payments/geidea/client";
 import { isLiveCheckout } from "@/lib/payments/checkout-mode";
-import { FOUNDER_TEST_MAX_SAR, withinFounderCap } from "@/lib/payments/live-mode";
+import {
+  FOUNDER_TEST_MAX_SAR,
+  accountAllowed,
+  parseLivePaymentsMode,
+  productionAccountHere,
+  withinFounderCap,
+} from "@/lib/payments/live-mode";
+import { env } from "@/lib/env";
+import { payPalAccount, payPalConfig } from "@/lib/payments/paypal/config";
+import { sarToUsd } from "@/lib/payments/paypal/convert";
+import { PayPalCheckout } from "@/components/checkout/PayPalCheckout";
 import { currentCheckoutAccess } from "@/lib/payments/request-access";
 import { canonicalAmount } from "@/lib/payments/geidea/callback";
 import { CheckoutSummary } from "@/components/checkout/CheckoutSummary";
@@ -105,6 +115,24 @@ export default async function CheckoutPage({
   // form is replaced by the "not available yet" notice.
   const testMode = formOffered && !live;
 
+  // PayPal, beside Geidea: offered only when fully configured and allowed by
+  // the same gates (a live PayPal account is a production account), and only
+  // with the USD amount the create-order route will charge. The route
+  // re-decides everything; this only declines to show what it would refuse.
+  const paypal = payPalConfig();
+  const livePaymentsMode = parseLivePaymentsMode(env.LIVE_PAYMENTS_MODE);
+  const amountSar = canonicalAmount(product.price);
+  const paypalOffer =
+    paypal !== null &&
+    formOffered &&
+    !overFounderCap &&
+    product.currency === "SAR" &&
+    amountSar !== null &&
+    accountAllowed(access, livePaymentsMode, payPalAccount(paypal.env)) &&
+    (paypal.env !== "live" || productionAccountHere(process.env.VERCEL_ENV))
+      ? { clientId: paypal.clientId, sarPerUsd: paypal.sarPerUsd, sandbox: paypal.env === "sandbox", amountSar, amountUsd: sarToUsd(amountSar, paypal.sarPerUsd) }
+      : null;
+
   return (
     <div className="relative min-h-screen bg-[#0a0a0a]">
       <div
@@ -168,7 +196,19 @@ export default async function CheckoutPage({
                 <p className="mt-1.5 text-sm text-gray-400">{t("founderTestAmountBody", { max: FOUNDER_TEST_MAX_SAR })}</p>
               </div>
             ) : (
-              <DropInCheckout productId={product.id} productHref={productHref} scriptUrl={scriptUrl} />
+              <>
+                <DropInCheckout productId={product.id} productHref={productHref} scriptUrl={scriptUrl} />
+                {paypalOffer !== null && paypalOffer.amountUsd !== null && (
+                  <PayPalCheckout
+                    productId={product.id}
+                    clientId={paypalOffer.clientId}
+                    amountUsd={paypalOffer.amountUsd}
+                    amountSar={paypalOffer.amountSar}
+                    sarPerUsd={paypalOffer.sarPerUsd}
+                    sandbox={paypalOffer.sandbox}
+                  />
+                )}
+              </>
             )}
 
             <PaymentAssurance />

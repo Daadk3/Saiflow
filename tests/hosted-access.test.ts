@@ -476,6 +476,7 @@ describe("the access details never reach a public surface", () => {
   // admin-only, or the buyer's verified delivery.
   const ALLOWED = new Set([
     "app/api/checkout/route.ts", // gate only, never returned
+    "lib/payments/paypal/gate.ts", // PayPal checkout's copy of the same gate, never returned
     "app/api/admin/moderation/[productId]/route.ts", // admin, gate only
     "app/api/products/[id]/route.ts", // shop members only
     "lib/products/hosted-product.ts", // seller create/edit
