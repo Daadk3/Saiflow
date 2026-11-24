@@ -222,8 +222,12 @@ describe("macro and legacy spreadsheets stay blocked", () => {
   });
 
   test("a corrupt or non-ZIP body is not a workbook", () => {
+    // A sentence is plain text now, which is its own deliverable. It is still
+    // not a workbook. Binary that is not text stays unrecognised.
     const junk = new TextEncoder().encode("this is not a zip, whatever it was named");
-    assert.equal(resolveContentPolicy(junk), null);
+    assert.equal(resolveContentPolicy(junk)?.kind, "txt");
+    const binary = new Uint8Array([0x00, 0x01, 0x02, 0xff, 0xfe, 0x10, 0x20, 0x30, 0x40, 0x50, 0x60, 0x70]);
+    assert.equal(resolveContentPolicy(binary), null);
     const broken = workbook();
     broken[broken.length - 1] = 0xff;
     broken[broken.length - 2] = 0xff;

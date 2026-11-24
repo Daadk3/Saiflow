@@ -30,6 +30,8 @@ const LABELS: Record<string, string> = {
   pdf: "PDF",
   "application/epub+zip": "EPUB",
   "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": "XLSX",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document": "DOCX",
+  "text/plain": "TXT",
   "application/zip": "ZIP",
   audio: "audio",
   video: "video",

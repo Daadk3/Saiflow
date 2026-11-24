@@ -89,7 +89,6 @@ describe("blocked: active content and RAR", () => {
     ["HTML (no declared type)", "index.html", ""],
     ["HTM", "index.htm", ""],
     ["JavaScript", "payload.js", "text/javascript"],
-    ["plain text", "notes.txt", "text/plain"],
     ["RAR (x-rar-compressed)", "bundle.rar", "application/x-rar-compressed"],
     ["RAR (vnd.rar)", "bundle.rar", "application/vnd.rar"],
     ["RAR (no declared type)", "bundle.rar", ""],
@@ -101,6 +100,15 @@ describe("blocked: active content and RAR", () => {
     ["XLSB", "binary.xlsb", "application/vnd.ms-excel.sheet.binary.macroEnabled.12"],
     ["XLTM", "template.xltm", ""],
     ["XLAM", "addin.xlam", ""],
+    ["DOCM", "letter.docm", "application/vnd.ms-word.document.macroEnabled.12"],
+    ["DOCM (no declared type)", "letter.docm", ""],
+    ["DOC", "letter.doc", "application/msword"],
+    ["DOC (no declared type)", "letter.doc", ""],
+    ["DOTM", "letter.dotm", ""],
+    ["Illustrator", "art.ai", "application/postscript"],
+    ["Illustrator (no declared type)", "art.ai", ""],
+    ["EPS", "art.eps", "application/postscript"],
+    ["EPS (no declared type)", "art.eps", ""],
   ];
 
   for (const [label, name, type] of mustReject) {
@@ -114,6 +122,18 @@ describe("blocked: active content and RAR", () => {
       }
     });
   }
+
+  test("plain text is a product file only, never a picture", () => {
+    assert.equal(
+      resolveKey(PRODUCT_FILE_CONFIG as unknown as Config, "notes.txt", "text/plain"),
+      "text/plain"
+    );
+    for (const [route, config] of Object.entries(ROUTES)) {
+      if (route === "productFile") continue;
+      assert.equal(accepted(config, "notes.txt", "text/plain"), false, route);
+      assert.equal(accepted(config, "notes.txt", ""), false, route);
+    }
+  });
 
   test("SVG cannot sneak through under an image extension", () => {
     // The declared type is what the matcher prefers, so an SVG announced as
@@ -157,6 +177,10 @@ describe("preserved: the formats SaiFlow actually sells", () => {
     ["EPUB (no declared type)", "book.epub", "", "application/epub+zip"],
     ["XLSX", "prices.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"],
     ["XLSX (no declared type)", "prices.xlsx", "", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"],
+    ["DOCX", "letter.docx", "application/vnd.openxmlformats-officedocument.wordprocessingml.document", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"],
+    ["DOCX (no declared type)", "letter.docx", "", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"],
+    ["TXT", "notes.txt", "text/plain", "text/plain"],
+    ["TXT (no declared type)", "notes.txt", "", "text/plain"],
     ["ZIP", "pack.zip", "application/zip", "application/zip"],
     ["ZIP (no declared type)", "pack.zip", "", "application/zip"],
     ["MP3", "track.mp3", "audio/mpeg", "audio"],
@@ -226,6 +250,8 @@ describe("size ceilings are the ones the server will enforce", () => {
     ["audio", "track.mp3", "audio/mpeg", "128MB"],
     ["PDF", "guide.pdf", "application/pdf", "32MB"],
     ["EPUB", "book.epub", "application/epub+zip", "32MB"],
+    ["DOCX", "letter.docx", "application/vnd.openxmlformats-officedocument.wordprocessingml.document", "32MB"],
+    ["TXT", "notes.txt", "text/plain", "32MB"],
     ["image", "art.png", "image/png", "32MB"],
   ];
 

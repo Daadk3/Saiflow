@@ -23,7 +23,9 @@ import { LOCAL_HTML_APP_KIND } from "@/lib/local-html-review";
 import { readZipCentralDirectory, type ArchiveEntry } from "@/lib/scan/archive";
 import { localHtmlMarker } from "@/lib/scan/local-html-app";
 import { isEpubLayout } from "@/lib/scan/policy";
+import { isWordPackage } from "@/lib/scan/docx";
 import { sniffFormat } from "@/lib/scan/sniff";
+import { plainTextContent } from "@/lib/scan/text";
 
 /** Most decompressed bytes read from one file, across all its streams. */
 const MAX_INFLATED_TOTAL = 32 * 1024 * 1024;
@@ -40,6 +42,7 @@ export function extractFileFacts(bytes: Uint8Array): FileContentFacts {
     const format = sniffFormat(bytes);
     if (format === "pdf") return pdfFacts(bytes);
     if (format === "zip") return zipFacts(bytes);
+    if (format === "text") return textFacts(bytes);
     if (format === "unknown") return empty(null, false);
     // Images, audio and video: recognised from their bytes, no text to read.
     return empty(format, true);
@@ -297,7 +300,8 @@ function zipFacts(bytes: Uint8Array): FileContentFacts {
   // wins over that marker so the two types cannot be combined.
   const epub = isEpubLayout(dir.entries, bytes);
   const localHtml = !epub && localHtmlMarker(dir.entries, bytes) === "valid";
-  const kind = localHtml ? LOCAL_HTML_APP_KIND : "zip";
+  const word = !epub && !localHtml && isWordPackage(dir.entries);
+  const kind = localHtml ? LOCAL_HTML_APP_KIND : word ? "docx" : "zip";
   const textEntry = localHtml ? LOCAL_HTML_TEXT_ENTRY : TEXT_ENTRY;
   const budget = new Budget();
   const decoder = new TextDecoder("utf-8");
@@ -318,4 +322,10 @@ function zipFacts(bytes: Uint8Array): FileContentFacts {
     size += text.length;
   }
   return withText(kind, true, null, parts.join("\n"));
+}
+
+function textFacts(bytes: Uint8Array): FileContentFacts {
+  const text = plainTextContent(bytes);
+  if (text === null) return empty("text", false);
+  return withText("text", true, null, text);
 }

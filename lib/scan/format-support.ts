@@ -28,6 +28,7 @@ export const SNIFFER_FAMILIES: readonly Exclude<SniffedFormat, "unknown">[] = [
   "heic",
   "audio",
   "video",
+  "text",
 ];
 
 /** Human-facing format names, keyed by what proves them. */

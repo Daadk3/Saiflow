@@ -10,6 +10,8 @@ pinned by `tests/scan-format-support.test.ts`.
 | EPUB | yes, 32MB | yes (ZIP container with OCF layout) | not yet |
 | ZIP | yes, 128MB | yes | not yet |
 | Excel workbook (.xlsx, no macros) | yes, 32MB | yes, only when the ZIP is a non-macro OOXML workbook | not yet |
+| Word document (.docx, no macros) | yes, 32MB | yes, only when the ZIP is a non-macro OOXML Word document (`[Content_Types].xml` plus `word/document.xml`, no `vbaProject.bin`) | not yet |
+| Plain text (.txt) | yes, 32MB, `text/plain` only | yes, when the whole file is UTF-8 or UTF-16-with-BOM and has no binary bytes | not yet |
 | Local HTML app (a ZIP with the exact `saiflow-local-html-app.json` marker; not a separate upload type) | yes, as `application/zip`, 128MB | yes, named archive policy `local_html_app` | not yet |
 | JPG, PNG | yes, 32MB | yes | not yet |
 | GIF, WebP, AVIF, HEIC/HEIF | yes, 32MB | yes | not yet |
@@ -55,10 +57,14 @@ still rejects encryption, traversal, symlinks, nested archives, executables,
 and scripts (including `.py` and `.js`). It does not allow HTML.
 
 The provider request for that kind lists `.zip` plus the member types SaiFlow
-already accepts inside it: `.pdf`, `.md`, `.txt`, `.csv`, `.xlsx`, and the same raster
+already accepts inside it: `.pdf`, `.md`, `.txt`, `.csv`, `.xlsx`, `.docx`, and the same raster
 image extensions as a standalone image. An `.xlsx` member is opened and checked
-with the same workbook rules as a primary file. `.xlsm`, `.xls`, `.xlsb`, `.xltm`,
-`.xlam` and the other macro-enabled Office names are rejected in the archive. Sending only `.zip` made Cloudmersive's
+with the same workbook rules as a primary file. A `.docx` member is opened and
+checked with the same Word rules (OOXML word package, no macros, no
+`vbaProject.bin`). A `.txt` member is read and rejected when it is not plain
+text. `.xlsm`, `.xls`, `.xlsb`, `.xltm`, `.xlam`, `.docm`, `.doc` and the other
+macro-enabled or legacy Office names are rejected in the archive. Illustrator
+`.ai` and PostScript `.eps` are rejected too. Sending only `.zip` made Cloudmersive's
 member whitelist report `ContainsRestrictedFileFormat`, which SaiFlow records
 as `format_mismatch` — the admin sentence "The file format is not one SaiFlow
 can sell, or it does not match its contents." Listing the member types is not
