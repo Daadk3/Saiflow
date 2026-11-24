@@ -246,6 +246,9 @@ describe("format is established from bytes, not from the name", () => {
   test("HTML and SVG are not a recognised deliverable family", () => {
     assert.equal(sniffFormat(pad(bytes("<!DOCTYPE html><html>"), 64)), "unknown");
     assert.equal(sniffFormat(pad(bytes("<svg xmlns=\"http://www.w3.org/2000/svg\">"), 64)), "unknown");
+    assert.equal(sniffFormat(bytes("<!DOCTYPE html><html><body>Hi</body></html>")), "unknown");
+    assert.equal(sniffFormat(bytes("<svg xmlns=\"http://www.w3.org/2000/svg\"></svg>")), "unknown");
+    assert.equal(resolveContentPolicy(bytes("<!DOCTYPE html><html><body>Hi</body></html>")), null);
   });
 
   test("an unrecognised family resolves to no policy, which is a rejection", () => {
@@ -372,7 +375,7 @@ describe("archive structure is parsed, never executed", () => {
   }
 
   test("an ordinary ZIP is allowed", () => {
-    const zip = makeZip([{ name: "artwork.png" }, { name: "notes/readme.txt" }]);
+    const zip = makeZip([{ name: "artwork.png" }, { name: "notes/readme.txt", data: "A short note." }]);
     const policy = resolveContentPolicy(zip)!;
     assert.deepEqual(structuralVerdict(zip, policy), { outcome: "ALLOW" });
   });
@@ -1157,7 +1160,7 @@ describe("C1: a forged central directory cannot launder archive contents", () =>
   });
 
   test("a genuine archive still parses after hardening", () => {
-    const zip = makeZip([{ name: "art.png" }, { name: "notes/readme.txt" }]);
+    const zip = makeZip([{ name: "art.png" }, { name: "notes/readme.txt", data: "A short note." }]);
     const dir = readZipCentralDirectory(zip);
     assert.ok(dir.ok && dir.entries.length === 2);
     assert.equal(structuralVerdict(zip, resolveContentPolicy(zip)!).outcome, "ALLOW");

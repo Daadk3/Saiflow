@@ -9,12 +9,17 @@
  * families SaiFlow accepts, and answers "unknown" for everything else. Unknown
  * is a rejection, not a shrug: a deliverable whose type we cannot establish
  * from its own bytes never becomes SAFE.
+ *
+ * Plain text has no magic number. It is recognised only after every signature
+ * above has failed, and only when the whole buffer is text (lib/scan/text.ts).
+ * A short `%PDF` or ZIP header is left unknown rather than reclassified as text.
  */
+import { isPlainText } from "./text";
 
 /** The format families SaiFlow accepts. */
 export type SniffedFormat =
   | "pdf"
-  | "zip" // also EPUB, which is a ZIP container
+  | "zip" // also EPUB, OOXML workbooks and Word documents, which are ZIP containers
   | "jpeg"
   | "png"
   | "gif"
@@ -23,6 +28,7 @@ export type SniffedFormat =
   | "heic"
   | "audio"
   | "video"
+  | "text" // plain text with no magic number; see lib/scan/text.ts
   | "unknown";
 
 const ascii = (bytes: Uint8Array, start: number, length: number): string => {
@@ -49,7 +55,13 @@ function isoBrand(bytes: Uint8Array): string | null {
 }
 
 export function sniffFormat(bytes: Uint8Array): SniffedFormat {
-  if (bytes.length < 12) return "unknown";
+  // A truncated PDF or ZIP header is not a text file. The full signature
+  // checks below still require 12 bytes, which is what they have always required.
+  if (bytes.length < 12) {
+    if (startsWith(bytes, [0x25, 0x50, 0x44, 0x46])) return "unknown"; // %PDF
+    if (startsWith(bytes, [0x50, 0x4b, 0x03, 0x04])) return "unknown"; // ZIP local header
+    return isPlainText(bytes) ? "text" : "unknown";
+  }
 
   if (startsWith(bytes, [0x25, 0x50, 0x44, 0x46])) return "pdf"; // %PDF
   // Local file header. Empty and spanned archives use PK\x05\x06 / PK\x07\x08,
@@ -89,7 +101,7 @@ export function sniffFormat(bytes: Uint8Array): SniffedFormat {
   if (ascii(bytes, 0, 4) === "OggS") return "audio";
   if (startsWith(bytes, [0x1a, 0x45, 0xdf, 0xa3])) return "video"; // Matroska / WebM
 
-  return "unknown";
+  return isPlainText(bytes) ? "text" : "unknown";
 }
 
 export { findPdfActiveContent } from "./pdf-active";

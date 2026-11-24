@@ -476,7 +476,7 @@ export async function scanFileAsset(
     result = await provider.scan({
       bytes,
       fileName: asset.name,
-      // Ordinary ZIP: container `.zip` plus accepted members (.md, .pdf, …).
+      // Ordinary ZIP: container `.zip` plus accepted members (.md, .pdf, .docx, .txt, …).
       // The container check still uses policy.restrictToExtensions, which
       // stays [".zip"]. A restricted-format flag is still a rejection.
       restrictToExtensions: providerRestrictToExtensions(policy),

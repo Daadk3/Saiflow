@@ -42,6 +42,8 @@ import {
 } from "./local-html-app";
 import type { ScanFindings } from "./provider";
 import { findPdfActiveContent, sniffFormat, type SniffedFormat } from "./sniff";
+import { DOCX_MEMBER_EXTENSIONS, inspectWord, isWordPackage, wordMemberReason } from "./docx";
+import { inspectPlainText, textMemberReason } from "./text";
 import { inspectWorkbook, isSpreadsheetPackage, spreadsheetMemberReason } from "./xlsx";
 
 /** A deliverable family, after ZIP containers are told apart. */
@@ -50,6 +52,8 @@ export type ContentKind =
   | "epub"
   | "zip"
   | "xlsx"
+  | "docx"
+  | "txt"
   | "local_html_app"
   | "image"
   | "audio"
@@ -104,7 +108,8 @@ export interface ContentPolicy {
  * flag, and that flag is still a rejection.
  *
  * Images here are the same raster types a product file may be on its own.
- * Scripts (`.py`, `.js`, `.sh`, …) and executables are absent on purpose.
+ * Scripts (`.py`, `.js`, `.sh`, …), executables, Illustrator `.ai`, and
+ * PostScript `.eps` are absent on purpose.
  */
 export const ORDINARY_ZIP_MEMBER_EXTENSIONS = [
   ".pdf",
@@ -120,6 +125,7 @@ export const ORDINARY_ZIP_MEMBER_EXTENSIONS = [
   ".heic",
   ".heif",
   ".xlsx",
+  ".docx",
 ] as const;
 
 /**
@@ -152,6 +158,7 @@ export const XLSX_MEMBER_EXTENSIONS = [
  */
 export function providerRestrictToExtensions(policy: ContentPolicy): string[] {
   if (policy.kind === "xlsx") return [...XLSX_MEMBER_EXTENSIONS];
+  if (policy.kind === "docx") return [...DOCX_MEMBER_EXTENSIONS];
   if (policy.kind !== "zip") return policy.restrictToExtensions;
   return [".zip", ...ORDINARY_ZIP_MEMBER_EXTENSIONS];
 }
@@ -206,6 +213,9 @@ export function resolveContentPolicy(bytes: Uint8Array): ContentPolicy | null {
   const format: SniffedFormat = sniffFormat(bytes);
 
   if (format === "unknown") return null;
+  if (format === "text") {
+    return { kind: "txt", restrictToExtensions: [".txt"], allowHtml: false };
+  }
   if (format === "pdf") {
     return { kind: "pdf", restrictToExtensions: [".pdf"], allowHtml: false };
   }
@@ -225,6 +235,13 @@ export function resolveContentPolicy(bytes: Uint8Array): ContentPolicy | null {
         allowHtml: true,
         allowScripts: true,
       };
+    }
+    // Word before the spreadsheet check. A .docx that still carries
+    // vbaProject.bin would otherwise be claimed as a workbook, because any
+    // vba part makes isSpreadsheetPackage true. A real workbook has
+    // xl/workbook.xml, which isWordPackage refuses.
+    if (dir.ok && isWordPackage(dir.entries)) {
+      return { kind: "docx", restrictToExtensions: [".docx"], allowHtml: false };
     }
     if (dir.ok && isSpreadsheetPackage(dir.entries)) {
       return { kind: "xlsx", restrictToExtensions: [".xlsx"], allowHtml: false };
@@ -271,6 +288,18 @@ export function structuralVerdict(
   if (policy.kind === "xlsx") {
     const workbook = inspectWorkbook(bytes);
     if (!workbook.ok) return { outcome: "REJECT", reason: workbook.reason };
+    return { outcome: "ALLOW" };
+  }
+
+  if (policy.kind === "docx") {
+    const word = inspectWord(bytes);
+    if (!word.ok) return { outcome: "REJECT", reason: word.reason };
+    return { outcome: "ALLOW" };
+  }
+
+  if (policy.kind === "txt") {
+    const text = inspectPlainText(bytes);
+    if (!text.ok) return { outcome: "REJECT", reason: text.reason };
     return { outcome: "ALLOW" };
   }
 
@@ -323,7 +352,10 @@ export function structuralVerdict(
     }
     if (policy.kind === "zip") {
       for (const entry of dir.entries) {
-        const member = spreadsheetMemberReason(bytes, entry);
+        if (blockedIllustrationMember(entry.name)) {
+          return { outcome: "REJECT", reason: "format_mismatch" };
+        }
+        const member = spreadsheetMemberReason(bytes, entry) ?? wordMemberReason(bytes, entry) ?? textMemberReason(bytes, entry);
         if (member) return { outcome: "REJECT", reason: member };
       }
     }
@@ -496,7 +528,7 @@ function localHtmlCleanIsExplained(findings: ScanFindings, policy: ContentPolicy
  * unrecognised, and unrecognised is a rejection rather than a shrug.
  */
 const RECOGNISED_FORMATS = new Set([
-  ".pdf", ".epub", ".zip", ".xlsx",
+  ".pdf", ".epub", ".zip", ".xlsx", ".docx", ".txt",
   ".jpg", ".jpeg", ".png", ".webp", ".gif", ".avif", ".heic", ".heif",
   ".mp3", ".wav", ".m4a", ".flac", ".ogg",
   ".mp4", ".mov", ".webm", ".mkv", ".avi",
@@ -521,7 +553,20 @@ const FORMAT_ALIASES: Record<string, string[]> = {
   ".epub": [".epub", ".zip"],
   // An .xlsx is a ZIP. A verifier may report the container.
   ".xlsx": [".xlsx", ".zip"],
+  // A .docx is a ZIP. A verifier may report the container.
+  ".docx": [".docx", ".zip"],
 };
+
+/**
+ * Illustrator and PostScript are not sellable, on their own or inside a ZIP.
+ * Rejected here so the block does not depend on the provider's member list.
+ */
+function blockedIllustrationMember(name: string): boolean {
+  const base = name.replace(/\\/g, "/").split("/").pop() ?? "";
+  const dot = base.lastIndexOf(".");
+  const ext = dot < 0 ? "" : base.slice(dot).toLowerCase();
+  return ext === ".ai" || ext === ".eps";
+}
 
 /** Lowercase, with a leading dot. */
 export function normaliseFormat(raw: string): string {

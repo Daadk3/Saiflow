@@ -48,9 +48,11 @@ const rasterImages = <const C extends { maxFileSize: string }>(config: C) => ({
  * The seller's deliverable — the only route whose output is sold to a buyer.
  *
  * Absent on purpose:
- * - `text` — expands to `text/*`, which includes `text/html`. HTML uploaded
- *   here would be served inline from a public URL: free phishing hosting.
- *   A reviewed local HTML app is not a standalone HTML upload. It travels
+ * - the `text` shorthand — expands to `text/*`, which includes `text/html`.
+ *   HTML uploaded here would be served inline from a public URL: free
+ *   phishing hosting. `text/plain` is listed on its own below; the scanner
+ *   still has to prove the bytes are text.
+ *   A reviewed local HTML app is not a standalone HTML upload either. It travels
  *   inside an `application/zip` whose bytes carry the `saiflow-local-html-app`
  *   marker (lib/scan/local-html-app.ts). The ZIP stays private and
  *   `content-disposition: attachment`. SaiFlow does not host or run it.
@@ -97,6 +99,15 @@ export const PRODUCT_FILE_CONFIG = {
     maxFileSize: "32MB",
     ...PRIVATE_DELIVERABLE,
   },
+  // Macro-free Word document. .docm, .doc and the other macro or legacy Word
+  // types are absent on purpose. The scanner, not this list, proves the bytes
+  // are a non-macro OOXML document.
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document": {
+    maxFileSize: "32MB",
+    ...PRIVATE_DELIVERABLE,
+  },
+  // Plain text only. Not the `text` shorthand: that would accept text/html.
+  "text/plain": { maxFileSize: "32MB", ...PRIVATE_DELIVERABLE },
   // Archives — ZIP only
   "application/zip": { maxFileSize: "128MB", ...PRIVATE_DELIVERABLE },
   // Audio

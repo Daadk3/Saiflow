@@ -867,7 +867,7 @@
         },
         "uploadFiles": {
           "question": "How do I upload files?",
-          "answer": "Upload your file in the product form when you create or edit a product. You can sell PDFs, EPUB ebooks, Excel workbooks (.xlsx, no macros), ZIP archives, audio, video and images (JPEG, PNG, WebP, GIF, HEIC and AVIF). Files are stored privately and checked for safety before they can be sold; buyers download them through a secure link after they pay."
+          "answer": "Upload your file in the product form when you create or edit a product. You can sell PDFs, Word documents (.docx, no macros), plain text files (.txt), EPUB ebooks, Excel workbooks (.xlsx, no macros), ZIP archives, audio, video and images (JPEG, PNG, WebP, GIF, HEIC and AVIF). Files are stored privately and checked for safety before they can be sold; buyers download them through a secure link after they pay."
         },
         "payouts": {
           "question": "When do I get paid?",
@@ -985,7 +985,7 @@
     "retryLimited": "You’ve reached the retry limit for now. Try again in an hour.",
     "retryRefused": "This file can’t be rechecked.",
     "failureUnsafeContent": "The file contains content that isn’t allowed, such as a program, a script or active elements. Replace the file.",
-    "failureUnsupportedFormat": "The file format isn’t supported or couldn’t be confirmed. Replace it with a PDF.",
+    "failureUnsupportedFormat": "The file format isn’t supported or couldn’t be confirmed. Replace it with a PDF, Word document (.docx), plain text file, Excel workbook (.xlsx), ZIP, or audio, video or an image.",
     "failurePasswordProtected": "The file is password-protected. Upload an unprotected copy.",
     "failureArchiveProblem": "The archive couldn’t be read safely. Upload a plain ZIP with no encryption and no archives inside it.",
     "failureCheckUnavailable": "The check couldn’t finish because of a temporary service problem. Try again.",
@@ -1553,7 +1553,7 @@
     "seller": {
       "typeLabel": "What does the buyer get?",
       "typeFile": "A file to download",
-      "typeFileHelp": "PDF, Excel (.xlsx, no macros), ZIP, audio, video or images. We scan it before it goes on sale.",
+      "typeFileHelp": "PDF, Word (.docx, no macros), plain text (.txt), Excel (.xlsx, no macros), ZIP, audio, video or images. We scan it before it goes on sale.",
       "typeHosted": "Access to a hosted product",
       "typeHostedHelp": "For example an AI agent you host. Buyers get a private link after paying.",
       "title": "Hosted access details (private)",
