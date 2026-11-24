@@ -5,6 +5,7 @@ import { rateLimiters, getClientIp } from "@/lib/rate-limit";
 import { signupSchema, formatZodError } from "@/lib/validations";
 import { issueVerificationToken, verificationUrl } from "@/lib/auth/email-verification";
 import { sendVerificationEmail } from "@/lib/email";
+import { POLICY_VERSION } from "@/lib/policy";
 
 export async function POST(req: Request) {
   try {
@@ -63,11 +64,17 @@ export async function POST(req: Request) {
 
     // Store email as lowercase. The account starts unverified and cannot sign
     // in until its owner confirms the address from the emailed link.
+    // signupSchema has already required both consent flags, so this row is
+    // written only after the person agreed to the current Terms and confirmed
+    // they are 18 or older. The age confirmation is that gate; it is not a
+    // separate column. The terms version is the policy they accepted.
     const user = await prisma.user.create({
       data: {
         name,
         email,
         password: hashedPassword,
+        termsAcceptedAt: new Date(),
+        termsVersion: POLICY_VERSION,
       },
       select: {
         id: true,

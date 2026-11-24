@@ -322,6 +322,9 @@ describe("the migration only adds, and replaces the two delete rules", () => {
       "20261112130000_product_reviews",
       "20261112140000_shop_sales_enabled",
       "20261118120000_buyer_name",
+      "20261122120000_seller_waitlist",
+      "20261123120000_paypal_provider",
+      "20261124120000_user_terms_acceptance",
     ]);
   });
 });

@@ -1,4 +1,5 @@
 import { cookies } from "next/headers";
+import { Cairo } from "next/font/google";
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getMessages, getTranslations } from "next-intl/server";
 import { THEME_STORAGE_KEY, isThemeChoice, themeInitScript } from "@/lib/theme";
@@ -11,6 +12,19 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import StickyMobileCTA from "@/components/StickyMobileCTA";
 import StructuredData from "@/components/StructuredData";
 import PreLaunchBanner from "@/components/PreLaunchBanner";
+
+/**
+ * Cairo is self-hosted by next/font at build time and served from this site.
+ * Arabic pages use it; English pages keep the system stack in globals.css.
+ * Weights match the previous face: 400, 600 and 700, with Arabic and Latin
+ * so mixed lines stay in the same face.
+ */
+const cairo = Cairo({
+  subsets: ["arabic", "latin"],
+  weight: ["400", "600", "700"],
+  display: "swap",
+  preload: false,
+});
 
 export async function generateMetadata(): Promise<Metadata> {
   const locale = await getLocale();
@@ -81,19 +95,11 @@ export default async function RootLayout({
         <link rel="icon" href="/favicon.ico" sizes="any" />
         <link rel="icon" href="/icon.png" type="image/png" />
         <link rel="apple-touch-icon" href="/apple-icon.png" />
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        {locale.startsWith("ar") && (
-          <link
-            href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap"
-            rel="stylesheet"
-          />
-        )}
         <StructuredData />
       </head>
       <body
-        className={`bg-[#0a0a0a] text-white min-h-screen antialiased ${
-          locale.startsWith("ar") ? "font-[Cairo,sans-serif]" : ""
+        className={`bg-[#0a0a0a] text-white min-h-screen antialiased${
+          locale.startsWith("ar") ? ` ${cairo.className}` : ""
         }`}
       >
         <PreLaunchBanner />

@@ -67,7 +67,7 @@ describe("every password field uses it", () => {
 
   test("each field says whether it is a new or the current password", () => {
     const expected: Array<[string, string[]]> = [
-      ["app/signup/page.tsx", ["new-password"]],
+      ["components/auth/SignupForm.tsx", ["new-password"]],
       ["app/login/page.tsx", ["current-password"]],
       ["app/verify-email/page.tsx", ["current-password"]],
       ["app/reset-password/page.tsx", ["new-password", "new-password"]],
@@ -84,7 +84,7 @@ describe("every password field uses it", () => {
 
 describe("sign-up states the rule before the server has to refuse", () => {
   test("the rule sits under the field, tied to it, with the same minimum", () => {
-    const page = strip(read("app/signup/page.tsx"));
+    const page = strip(read("components/auth/SignupForm.tsx"));
     const field = /<PasswordInput[\s\S]*?\/>/.exec(page)?.[0] ?? "";
     assert.ok(field.includes("minLength={8}") && field.includes('aria-describedby="password-rule"'));
     assert.match(page, /<p id="password-rule"[^>]*>\s*\{t\('auth\.signup\.passwordRule'\)\}/);

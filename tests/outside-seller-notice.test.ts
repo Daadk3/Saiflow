@@ -18,7 +18,7 @@ const AR =
   "متاجر ساي فلو نفسها تعمل وتبيع الآن. فتح متجر لبائع من خارج المنصة وصول مبكر: يمكنك إنشاء متجرك وتجهيز منتجاتك الآن. إطلاق السوق متعدد البائعين لم يبدأ بعد، وتبدأ تحويلات أرباح البائعين الخارجيين عند الإطلاق، والموعد سيُؤكد لاحقًا.";
 
 const PAGES = [
-  "app/signup/page.tsx",
+  "components/auth/SignupForm.tsx",
   "app/dashboard/create-shop/page.tsx",
   "app/dashboard/shop/[slug]/add-product/page.tsx",
   "app/dashboard/shop/[slug]/product/[productSlug]/edit/page.tsx",

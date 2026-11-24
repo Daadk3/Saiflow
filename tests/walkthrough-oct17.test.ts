@@ -29,13 +29,13 @@ describe("B7: the store's cover shows on its public page", () => {
 
 describe("B9: no link goes nowhere", () => {
   test("no href=\"#\" anywhere in pages or components", () => {
-    for (const file of ["app/signup/page.tsx", "app/dashboard/shop/[slug]/add-product/page.tsx"]) {
+    for (const file of ["components/auth/SignupForm.tsx", "app/dashboard/shop/[slug]/add-product/page.tsx"]) {
       assert.ok(!read(file).includes('href="#"'), file);
     }
   });
 
   test("signup's Terms and Privacy open the real pages; the add-product help opens the listing standards", () => {
-    const signup = read("app/signup/page.tsx");
+    const signup = read("components/auth/SignupForm.tsx");
     assert.ok(signup.includes('<Link href="/terms"') && signup.includes('<Link href="/privacy"'));
     assert.ok(read("app/dashboard/shop/[slug]/add-product/page.tsx").includes('<Link href="/content-policy#listing-standards"'));
     assert.ok(read("app/content-policy/page.tsx").includes('<section id="listing-standards"'));
@@ -108,7 +108,7 @@ describe("B13: the footer's Start selling goes where the others do", () => {
 
 describe("C14: after signing up, a clear check-your-inbox screen", () => {
   test("the form gives way to the address, three plain steps, resend and start-again", () => {
-    const page = read("app/signup/page.tsx");
+    const page = read("components/auth/SignupForm.tsx");
     assert.ok(page.includes("{createdEmail ? ("), "the screen replaces the form");
     assert.ok(page.includes('<p className="mt-1 font-medium text-white break-all" dir="ltr">{createdEmail}</p>'));
     for (const key of ["inbox.title", "inbox.sentTo", "inbox.step1", "inbox.step2", "inbox.step3", "inbox.differentEmail", "resendButton", "successEmailFailed"]) {
