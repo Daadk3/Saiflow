@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { policyUpdatedOn } from "@/lib/policy";
 
 /** The tab and search-result title names the page (it inherited the site title before). */
 export const metadata: Metadata = { title: "Privacy Policy | SaiFlow" };
@@ -13,7 +14,7 @@ export default function PrivacyPage() {
             Privacy Policy
           </h1>
           <p className="text-gray-400">
-            Last updated: July 2026
+            Last updated: {policyUpdatedOn()}
           </p>
         </div>
       </section>
@@ -80,18 +81,23 @@ export default function PrivacyPage() {
 
             {/* Third-Party Services */}
             <section>
-              <h2 className="text-2xl font-bold text-white mb-4">4. Third-Party Services</h2>
+              <h2 className="text-2xl font-bold text-white mb-4">4. Third-Party Services and International Transfers</h2>
               <p className="mb-3">
-                We use third-party services that may collect information about you:
+                We use the processors below to run Saiflow. Some of them are outside the Kingdom of Saudi Arabia, so using the Service involves international transfers of the personal data needed to provide it.
               </p>
               <ul className="list-disc pl-6 space-y-2 mb-3">
-                <li><strong>Payment Processing:</strong> Payments are handled by payment service providers. Their use of your personal information is governed by their own privacy policies. We never store your full card details.</li>
-                <li><strong>Hosting &amp; Database (Vercel, Neon):</strong> Our application and database are hosted on infrastructure located in the United States.</li>
-                <li><strong>File Hosting (UploadThing):</strong> Digital product files and images are hosted and delivered by UploadThing (United States).</li>
-                <li><strong>Transactional Email (Resend):</strong> Purchase receipts and account emails are sent via Resend (United States).</li>
+                <li><strong>Hosting and functions (Vercel):</strong> The application and its server functions run on Vercel in region iad1 (Washington, DC area, United States).</li>
+                <li><strong>Database (Neon):</strong> Account, order and other application data are stored with Neon on Amazon Web Services in region eu-central-1 (Frankfurt, Germany).</li>
+                <li><strong>Transactional email (Resend):</strong> Account emails and purchase receipts are sent through Resend, sending region ap-northeast-1 (Tokyo, Japan).</li>
+                <li><strong>File uploads (UploadThing):</strong> Digital product files and images you upload are stored and delivered by UploadThing (United States).</li>
+                <li><strong>Virus scanning (Cloudmersive):</strong> Uploaded files are sent to Cloudmersive, which scans them for malware.</li>
+                <li><strong>Card payments (Geidea):</strong> Card payments are processed by Geidea (Saudi Arabia) under its own privacy policy. We never store your full card details.</li>
+                <li><strong>PayPal:</strong> When a buyer pays with PayPal, that payment is processed by PayPal under its own privacy policy.</li>
+                <li><strong>Google sign-in:</strong> If you create an account or sign in with Google, that sign-in is processed by Google under its own privacy policy. Fonts on Saiflow are served by us and are not loaded from Google.</li>
+                <li><strong>AI listing helper:</strong> An AI provider (OpenAI or Anthropic, both in the United States) is used only when a seller uses the AI listing helper. This policy does not state which of the two is configured. See section 5 for what is sent.</li>
               </ul>
               <p className="mb-3">
-                <strong className="text-white">Cross-border transfers:</strong> Because these providers operate outside the Kingdom of Saudi Arabia, some personal data (such as your email address and order details) is transferred to and stored in the United States. We limit such transfers to the minimum data necessary to deliver the Service, and we apply appropriate technical safeguards in line with the PDPL&apos;s data transfer provisions.
+                <strong className="text-white">Cross-border transfers:</strong> Account and order data is stored in Germany. Application hosting runs in the United States. Transactional email is sent from Japan. Files you upload are stored in the United States and are sent to Cloudmersive to be scanned for malware. If you sign in with Google, Google processes that sign-in under its own privacy policy. If a seller uses the AI listing helper, the listing text they submit is sent to an AI provider in the United States (OpenAI or Anthropic); we do not state here which one is in use. Card payments are processed by Geidea, and PayPal payments are processed by PayPal, each under that provider&apos;s own privacy policy. We limit transfers to the personal data needed to provide the Service, and we apply appropriate safeguards in line with the PDPL&apos;s rules on transfers outside the Kingdom.
               </p>
               <p>
                 These third parties have their own privacy policies. We encourage you to review them.
@@ -108,7 +114,7 @@ export default function PrivacyPage() {
                 <li><strong>What is sent:</strong> only the listing text the seller types or pastes into the assistant — the product title, short description, intended audience and any details they choose to paste, together with the selected category and language.</li>
                 <li><strong>What is never sent:</strong> uploaded product files, customer data, order information, and any other account data. The assistant does not read files.</li>
                 <li><strong>Purpose:</strong> to generate draft listing text that the seller reviews, edits and applies manually. Nothing generated is saved or published automatically.</li>
-                <li><strong>External processing:</strong> this text is processed by a third-party AI provider acting as a processor on our behalf. Sellers are asked not to paste personal or confidential information.</li>
+                <li><strong>External processing:</strong> this text is sent to an AI provider (OpenAI or Anthropic, both in the United States) only when a seller uses the helper. Which of the two is configured is not stated in this policy. The provider acts as a processor for that request. Sellers are asked not to paste personal or confidential information.</li>
                 <li><strong>Retention:</strong> we store a cryptographic hash of the input rather than the input itself, along with the generated suggestions, the model name and basic timing, so we can enforce usage limits and audit the feature. We do not retain the raw text the seller submitted.</li>
               </ul>
               <p>
@@ -153,11 +159,11 @@ export default function PrivacyPage() {
               </p>
             </section>
 
-            {/* Children's Privacy */}
+            {/* Age */}
             <section>
-              <h2 className="text-2xl font-bold text-white mb-4">9. Children&apos;s Privacy</h2>
+              <h2 className="text-2xl font-bold text-white mb-4">9. Age</h2>
               <p>
-                Our Service is not intended for children under the age of 13. We do not knowingly collect personal information from children under 13. If you are a parent or guardian and believe your child has provided us with personal information, please contact us immediately.
+                Saiflow is for people who are 18 or older. You must be at least 18 years old to create an account or use the Service. We do not knowingly collect personal information from anyone under 18. If you believe someone under 18 has provided us with personal information, please contact us and we will delete it.
               </p>
             </section>
 

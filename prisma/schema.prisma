@@ -13,6 +13,11 @@ model User {
   password          String
   name              String?
   emailVerified     DateTime?
+  // Set only when a new account accepts the Terms and Privacy Policy.
+  // Null on accounts created before that acceptance was recorded; login
+  // does not require these, so existing rows stay valid.
+  termsAcceptedAt   DateTime?
+  termsVersion      String?
   image             String?
   resetToken        String?   @unique
   resetTokenExpiry  DateTime?

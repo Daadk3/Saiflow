@@ -104,7 +104,16 @@ export function extractOwnAssetKey(
 }
 
 // Auth schemas
-export const signupSchema = z.object({
+/**
+ * Both must be the boolean true. A missing field, false, or a string fails.
+ * Email sign-up and the Google consent cookie use the same two checks.
+ */
+export const signupConsentSchema = z.object({
+  acceptedTerms: z.literal(true, "You must agree to the Terms of Service and Privacy Policy."),
+  acceptedAge: z.literal(true, "You must confirm that you are 18 or older."),
+});
+
+export const signupSchema = signupConsentSchema.extend({
   name: z
     .string()
     .min(2, "Name must be at least 2 characters")

@@ -10,6 +10,8 @@ import { EMAIL_NOT_VERIFIED } from "@/lib/auth/errors";
 import { credentialFingerprint, unusablePasswordHash } from "@/lib/auth/email-verification";
 import { assertSessionStillValid, SessionRevokedError } from "@/lib/auth/session-guard";
 import { postSignInUrl } from "@/lib/safe-callback";
+import { POLICY_VERSION } from "@/lib/policy";
+import { consumeSignupConsent } from "@/lib/signup-consent";
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -88,6 +90,14 @@ export const authOptions: NextAuthOptions = {
           });
 
           if (!dbUser) {
+            // A Google sign-in from /login must not open an account for
+            // someone who never accepted the Terms or confirmed they are 18+.
+            // The sign-up page sets a short-lived cookie only after both boxes
+            // are checked. Existing accounts skip this and keep a null
+            // acceptance if they never recorded one.
+            if (!(await consumeSignupConsent())) {
+              return "/signup?error=consent";
+            }
             dbUser = await prisma.user.create({
               data: {
                 email: user.email.toLowerCase(),
@@ -96,6 +106,8 @@ export const authOptions: NextAuthOptions = {
                 // Google-only accounts get a password nobody knows.
                 password: await unusablePasswordHash(),
                 emailVerified: new Date(),
+                termsAcceptedAt: new Date(),
+                termsVersion: POLICY_VERSION,
               },
             });
           } else if (!dbUser.emailVerified) {

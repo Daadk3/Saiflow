@@ -18,6 +18,7 @@ import { readFileSync } from "node:fs";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import bcrypt from "bcrypt";
+import { POLICY_VERSION } from "../lib/policy.ts";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const read = (p: string) => readFileSync(resolve(ROOT, p), "utf8");
@@ -35,6 +36,8 @@ interface UserRow {
   emailVerified: Date | null;
   resetToken: string | null;
   resetTokenExpiry: Date | null;
+  termsAcceptedAt: Date | null;
+  termsVersion: string | null;
 }
 interface TokenRow {
   identifier: string;
@@ -80,6 +83,8 @@ const prismaMock = {
         emailVerified: null,
         resetToken: null,
         resetTokenExpiry: null,
+        termsAcceptedAt: null,
+        termsVersion: null,
         ...data,
       };
       db.users.set(row.id, row);
@@ -127,6 +132,9 @@ const prismaMock = {
   },
   $transaction: async (ops: Promise<unknown>[]) => Promise.all(ops),
 };
+
+/** When true, the Google callback is allowed to create a new account. */
+const googleConsent = { granted: false };
 
 const sent: Array<{ to: string; url: string }> = [];
 const emailOutcome = { ok: true };
@@ -201,6 +209,9 @@ before(async () => {
   mock.module("next-auth", { namedExports: { NextAuthOptions: undefined } });
   mock.module("next-auth/providers/google", { defaultExport: (opts: object) => ({ id: "google", ...opts }) });
   mock.module("next-auth/providers/credentials", { defaultExport: (opts: object) => ({ id: "credentials", ...opts }) });
+  mock.module("@/lib/signup-consent", {
+    namedExports: { consumeSignupConsent: async () => googleConsent.granted },
+  });
 
   verification = await import("../lib/auth/email-verification.ts");
   guard = await import("../lib/auth/session-guard.ts");
@@ -219,6 +230,7 @@ beforeEach(() => {
   sent.length = 0;
   deferred.length = 0;
   emailOutcome.ok = true;
+  googleConsent.granted = false;
 });
 
 /* ------------------------------------------------------------------ */
@@ -235,6 +247,17 @@ function post(path: string, body: unknown, ip = freshIp()): Request {
     headers: { "Content-Type": "application/json", "x-forwarded-for": ip },
     body: JSON.stringify(body),
   });
+}
+
+function signupPayload(overrides: Record<string, unknown> = {}) {
+  return {
+    name: "Maha",
+    email: "maha@example.com",
+    password: "Secret123",
+    acceptedTerms: true,
+    acceptedAge: true,
+    ...overrides,
+  };
 }
 
 async function addUser(email: string, password: string, verified: boolean): Promise<UserRow> {
@@ -260,7 +283,7 @@ function googleSignIn(email: string, emailVerified: unknown) {
   const user: Mod = { id: "google-sub-123", email, name: "Google User", image: null };
   return authOptions.callbacks
     .signIn({ user, account: { provider: "google" }, profile: { email, email_verified: emailVerified } })
-    .then((ok: boolean) => ({ ok, user }));
+    .then((result: boolean | string) => ({ result, user }));
 }
 
 /* ------------------------------------------------------------------ */
@@ -460,18 +483,27 @@ describe("password sign-in", () => {
 describe("Google sign-in", () => {
   test("an address Google has not verified is refused, with no account created", async () => {
     for (const flag of [false, undefined, "true"]) {
-      const { ok } = await googleSignIn("new@gmail.com", flag);
-      assert.equal(ok, false, `email_verified=${String(flag)}`);
+      const { result } = await googleSignIn("new@gmail.com", flag);
+      assert.equal(result, false, `email_verified=${String(flag)}`);
     }
     assert.equal(db.users.size, 0);
   });
 
-  test("a new Google user is created verified, with a password nobody knows", async () => {
-    const { ok, user } = await googleSignIn("New@Gmail.com", true);
-    assert.equal(ok, true);
+  test("a new Google user is refused until both boxes were checked, and no account is created", async () => {
+    const { result } = await googleSignIn("fresh@gmail.com", true);
+    assert.equal(result, "/signup?error=consent");
+    assert.equal(db.users.size, 0);
+  });
+
+  test("a new Google user who consented is created verified, with the policy version and a password nobody knows", async () => {
+    googleConsent.granted = true;
+    const { result, user } = await googleSignIn("New@Gmail.com", true);
+    assert.equal(result, true);
     const row = db.users.get(user.id)!;
     assert.equal(row.email, "new@gmail.com");
     assert.ok(row.emailVerified instanceof Date);
+    assert.equal(row.termsVersion, POLICY_VERSION);
+    assert.ok(row.termsAcceptedAt instanceof Date);
     assert.match(row.password, /^\$2[aby]\$/);
     assert.ok(!read("app/api/auth/authOptions.ts").includes("oauth-${"), "the guessable placeholder is gone");
   });
@@ -483,8 +515,8 @@ describe("Google sign-in", () => {
     const squatterToken = await signInToken(squatted);
     db.users.get(squatted.id)!.emailVerified = null;
 
-    const { ok, user } = await googleSignIn("victim@gmail.com", true);
-    assert.equal(ok, true);
+    const { result, user } = await googleSignIn("victim@gmail.com", true);
+    assert.equal(result, true);
     assert.equal(user.id, squatted.id, "the real owner gets the account");
 
     const row = db.users.get(squatted.id)!;
@@ -496,9 +528,11 @@ describe("Google sign-in", () => {
   test("Google leaves a verified account's password alone", async () => {
     const owner = await addUser("owner@gmail.com", "OwnerChose1", true);
     const before = owner.password;
-    const { ok } = await googleSignIn("owner@gmail.com", true);
-    assert.equal(ok, true);
+    const { result } = await googleSignIn("owner@gmail.com", true);
+    assert.equal(result, true);
     assert.equal(db.users.get(owner.id)!.password, before);
+    assert.equal(db.users.get(owner.id)!.termsAcceptedAt, null);
+    assert.equal(db.users.get(owner.id)!.termsVersion, null);
   });
 });
 
@@ -507,8 +541,26 @@ describe("Google sign-in", () => {
 /* ------------------------------------------------------------------ */
 
 describe("signup", () => {
+  test("rejects sign-up that omits the terms agreement or the age confirmation", async () => {
+    const cases = [
+      signupPayload({ acceptedTerms: undefined, acceptedAge: undefined }),
+      signupPayload({ acceptedTerms: false }),
+      signupPayload({ acceptedAge: false }),
+      signupPayload({ acceptedTerms: "true", acceptedAge: "true" }),
+      { name: "Maha", email: "maha@example.com", password: "Secret123" },
+    ];
+    for (const body of cases) {
+      db.users.clear();
+      const res = await signupRoute.POST(post("/api/signup", body));
+      assert.equal(res.status, 400, JSON.stringify(body));
+      const error = (await res.json()).error as string;
+      assert.match(error, /Terms of Service|18 or older/);
+      assert.equal(db.users.size, 0);
+    }
+  });
+
   test("creates an unverified account and emails a link to that address", async () => {
-    const res = await signupRoute.POST(post("/api/signup", { name: "Maha", email: "Maha@Example.com", password: "Secret123" }));
+    const res = await signupRoute.POST(post("/api/signup", signupPayload({ email: "Maha@Example.com" })));
     assert.equal(res.status, 200);
     const body = await res.json();
     assert.equal(body.user, undefined, "no account details in the response");
@@ -517,6 +569,8 @@ describe("signup", () => {
     const [row] = [...db.users.values()];
     assert.equal(row.email, "maha@example.com");
     assert.equal(row.emailVerified, null);
+    assert.equal(row.termsVersion, POLICY_VERSION);
+    assert.ok(row.termsAcceptedAt instanceof Date);
 
     assert.equal(sent.length, 1);
     assert.equal(sent[0].to, "maha@example.com");
@@ -527,12 +581,12 @@ describe("signup", () => {
   test("a failed send is reported, and the page says so and offers to resend", async () => {
     // Codex review: the page used to say "check your inbox" either way.
     emailOutcome.ok = false;
-    const res = await signupRoute.POST(post("/api/signup", { name: "Maha", email: "maha@example.com", password: "Secret123" }));
+    const res = await signupRoute.POST(post("/api/signup", signupPayload()));
     assert.equal(res.status, 200);
     assert.equal((await res.json()).verificationEmailSent, false);
     assert.equal(db.users.size, 1, "the account still exists, unverified");
 
-    const page = read("app/signup/page.tsx");
+    const page = read("components/auth/SignupForm.tsx");
     // The check-your-inbox screen swaps its steps for the failure message.
     assert.match(page, /setEmailFailed\(data\.verificationEmailSent === false\)/);
     assert.match(page, /\{emailFailed \? \([\s\S]*?t\('auth\.signup\.successEmailFailed'\)/);
@@ -544,7 +598,7 @@ describe("signup", () => {
   });
 
   test("the new account cannot sign in until it is verified, then can", async () => {
-    await signupRoute.POST(post("/api/signup", { name: "Maha", email: "maha@example.com", password: "Secret123" }));
+    await signupRoute.POST(post("/api/signup", signupPayload()));
     await assert.rejects(authorize("maha@example.com", "Secret123"), { message: "EMAIL_NOT_VERIFIED" });
 
     const res = await verifyRoute.POST(post("/api/auth/verify-email", { token: tokenFromUrl(sent[0].url), password: "Secret123" }));
@@ -650,7 +704,7 @@ describe("resend never strands the user", () => {
   const component = read("components/auth/ResendVerification.tsx");
 
   test("both pages use the one shared resend control", () => {
-    for (const file of ["app/login/page.tsx", "app/signup/page.tsx"]) {
+    for (const file of ["app/login/page.tsx", "components/auth/SignupForm.tsx"]) {
       const page = read(file);
       assert.match(page, /<ResendVerification email=/, file);
       assert.ok(!page.includes("/api/auth/verify-email/resend"), `${file} keeps no second copy of the request`);

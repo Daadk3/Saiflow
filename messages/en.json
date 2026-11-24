@@ -454,7 +454,10 @@
       "submitButton": "Create account",
       "submitting": "Creating account...",
       "alreadyHaveAccount": "Already have an account? <link>Log in</link>",
-      "termsAgreement": "By creating an account, you agree to our <terms>Terms of Service</terms> and <privacy>Privacy Policy</privacy>",
+      "agreeTerms": "I agree to the <terms>Terms of Service</terms> and <privacy>Privacy Policy</privacy>.",
+      "confirmAge": "I confirm that I am 18 years of age or older.",
+      "consentRequired": "Please agree to the Terms and Privacy Policy and confirm that you are 18 or older.",
+      "googleConsentRequired": "To create an account with Google, agree to the Terms and Privacy Policy and confirm that you are 18 or older.",
       "successMessage": "Account created. We've emailed you a confirmation link: open it and enter your password to activate your account.",
       "inbox": {
         "title": "Check your inbox",

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { LEGAL } from "@/lib/legal";
+import { policyUpdatedOn } from "@/lib/policy";
 
 /** The tab and search-result title names the page (it inherited the site title before). */
 export const metadata: Metadata = { title: "Terms of Service | SaiFlow" };
@@ -14,7 +15,7 @@ export default function TermsPage() {
             Terms of Service
           </h1>
           <p className="text-gray-400">
-            Last updated: November 2026
+            Last updated: {policyUpdatedOn()}
           </p>
         </div>
       </section>
@@ -57,6 +58,9 @@ export default function TermsPage() {
               <h2 className="text-2xl font-bold text-white mb-4">3. User Accounts</h2>
               <p>
                 To use certain features of the Service, you must register for an account. You are responsible for maintaining the confidentiality of your account credentials and for all activities that occur under your account. You agree to notify us immediately of any unauthorized use of your account.
+              </p>
+              <p className="mt-3">
+                You must be at least 18 years old to create an account or use the Service. By creating an account, you confirm that you are 18 or older. If we learn that an account belongs to someone under 18, we may close it and delete the associated personal information.
               </p>
             </section>
 
