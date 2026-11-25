@@ -1,6 +1,6 @@
 /**
  * The Customer Service mascot is drawn as SVG parts (CustomerServiceMascot)
- * so it can blink, glance, follow the cursor, wave and step. These checks
+ * so it can blink, glance, follow the cursor, wave, spin and cheer. These checks
  * keep the drawing intact, the motion cheap and polite, and the other seven
  * mascots on their PNGs.
  */
@@ -10,7 +10,12 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
-import { CS_ARM_PIVOT, CS_EYES, CS_PATHS } from "@/components/agents/customer-service-paths";
+import {
+  CS_ARM_PIVOT,
+  CS_ARM_R_PIVOT,
+  CS_EYES,
+  CS_PATHS,
+} from "@/components/agents/customer-service-paths";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const read = (p: string) => readFileSync(resolve(ROOT, p), "utf8");
@@ -35,6 +40,8 @@ describe("the traced drawing", () => {
   const parts = [
     "armOuter",
     "armInner",
+    "armROuter",
+    "armRInner",
     "bodyOuter",
     "bodyInner",
     "bandOuter",
@@ -60,7 +67,7 @@ describe("the traced drawing", () => {
     }
   });
 
-  test("has two eyes left of and right of the middle, and an arm pivot at the shoulder", () => {
+  test("has two eyes left of and right of the middle, and a pivot at each shoulder", () => {
     assert.equal(CS_EYES.length, 2);
     const [left, right] = CS_EYES;
     assert.ok(left[0] < 450 && right[0] > 450);
@@ -70,6 +77,8 @@ describe("the traced drawing", () => {
     }
     assert.ok(CS_ARM_PIVOT[0] > 150 && CS_ARM_PIVOT[0] < 260);
     assert.ok(CS_ARM_PIVOT[1] > 450 && CS_ARM_PIVOT[1] < 560);
+    assert.ok(CS_ARM_R_PIVOT[0] > 600 && CS_ARM_R_PIVOT[0] < 760);
+    assert.ok(CS_ARM_R_PIVOT[1] > 450 && CS_ARM_R_PIVOT[1] < 600);
   });
 
   test("uses the PNG's palette", () => {
@@ -82,10 +91,12 @@ describe("the traced drawing", () => {
 describe("the component", () => {
   test("splits the mascot into parts that can move on their own", () => {
     for (const part of [
-      "cs-walk",
+      "cs-hop",
+      "cs-spin",
+      "cs-sway",
       "cs-breathe",
       "cs-arm",
-      "cs-arm-wave",
+      "cs-arm-r",
       "cs-body",
       "cs-head",
       "cs-face",
@@ -95,6 +106,9 @@ describe("the component", () => {
       "cs-glance",
       "cs-lid",
       "cs-pupil",
+      "cs-eyes-open",
+      "cs-eyes-happy",
+      "cs-blush",
       "cs-mouth-rest",
       "cs-mouth-happy",
       "cs-headphones",
@@ -137,41 +151,130 @@ describe("the motion", () => {
     "cs-blink",
     "cs-blink-double",
     "cs-glance",
-    "cs-tilt",
-    "cs-arm-hi",
-    "cs-wave",
-    "cs-step",
-    "cs-shadow-step",
+    "cs-hop",
+    "cs-spin",
+    "cs-sway",
+    "cs-bob",
+    "cs-arm-l",
+    "cs-arm-r",
+    "cs-mouth-happy",
+    "cs-mouth-rest",
+    "cs-eyes-open",
+    "cs-eyes-happy",
+    "cs-blush",
+    "cs-shadow-hop",
+    "cs-x-hop",
+    "cs-x-sway",
+    "cs-x-bob",
+    "cs-x-arm-l",
+    "cs-x-arm-r",
+    "cs-x-shadow",
   ];
 
   test("animates transform and opacity only", () => {
     for (const name of names) {
-      const props = [...keyframes(name).matchAll(/^\s*([a-z-]+):/gm)].map((m) => m[1]);
+      const props = [...keyframes(name).matchAll(/^\s*([a-z-]+):/gm)].map(
+        (m) => m[1],
+      );
       assert.ok(props.length > 0, name);
-      for (const prop of props) assert.ok(prop === "transform" || prop === "opacity", `${name}: ${prop}`);
+      for (const prop of props)
+        assert.ok(
+          prop === "transform" || prop === "opacity",
+          `${name}: ${prop}`,
+        );
     }
   });
 
-  test("the step stays small, so the mascot never leaves its card or covers text", () => {
-    const moves = [...keyframes("cs-step").matchAll(/translate\((-?\d+)px,\s*(-?\d+)px\)/g)];
-    assert.ok(moves.length > 0);
-    for (const [, x, y] of moves) {
-      assert.ok(Math.abs(Number(x)) <= 30, `x ${x}`);
-      assert.ok(Math.abs(Number(y)) <= 15, `y ${y}`);
+  test("every part of the show runs on the same 12s loop, so they stay in step", () => {
+    assert.match(css, /--cs-show: 12s;/);
+    for (const name of names.filter(
+      (n) =>
+        !n.startsWith("cs-x-") &&
+        n !== "cs-breathe" &&
+        !n.startsWith("cs-blink") &&
+        n !== "cs-glance",
+    )) {
+      assert.match(
+        css,
+        new RegExp(
+          `animation: ${name} var\\(--cs-show\\) [a-z-]+ var\\(--cs-start\\) infinite`,
+        ),
+        name,
+      );
     }
   });
 
-  test("waves and smiles on hover and on keyboard focus", () => {
-    assert.match(css, /\.agents-card:hover \.cs-arm-wave/);
-    assert.match(css, /\.agents-card:has\(:focus-visible\) \.cs-arm-wave/);
-    assert.match(css, /\.agents-card:has\(:focus-visible\) \.cs-mouth-happy/);
+  test("the jumps stay low, so the mascot never leaves its card or reaches the pills", () => {
+    // Jumps are a share of the mascot width: 0.045 is about 8px on a card.
+    for (const name of ["cs-hop", "cs-x-hop"]) {
+      const jumps = [
+        ...keyframes(name).matchAll(
+          /translateY\(calc\(var\(--w\) \* -([\d.]+)\)\)/g,
+        ),
+      ];
+      assert.ok(jumps.length > 0, name);
+      for (const [, k] of jumps) assert.ok(Number(k) <= 0.045, `${name}: ${k}`);
+    }
+    // The side-to-side wiggle inside the art stays within about 4px on a card.
+    for (const name of ["cs-sway", "cs-x-sway"]) {
+      for (const [, x] of keyframes(name).matchAll(/translate\((-?\d+)px,/g)) {
+        assert.ok(Math.abs(Number(x)) <= 20, `${name}: ${x}`);
+      }
+    }
+  });
+
+  test("spins one full turn and lands where it started", () => {
+    const spin = keyframes("cs-spin");
+    assert.match(spin, /rotateY\(0deg\)/);
+    assert.match(spin, /rotateY\(360deg\)/);
+  });
+
+  test("gets extra excited on hover and on keyboard focus", () => {
+    for (const cond of [":hover", ":has\\(:focus-visible\\)"]) {
+      for (const [part, anim] of [
+        ["cs-hop", "cs-x-hop"],
+        ["cs-arm", "cs-x-arm-l"],
+        ["cs-arm-r", "cs-x-arm-r"],
+      ]) {
+        assert.match(
+          css,
+          new RegExp(
+            `:is\\(\\.agents-card, \\.agents-detail-card\\)${cond}\\s+\\.cs-rig\\s+\\.${part} \\{\\s*animation: ${anim}`,
+          ),
+          `${cond} ${part}`,
+        );
+      }
+    }
+    assert.match(
+      css,
+      /:has\(:focus-visible\)\s+\.cs-rig\s+\.cs-eyes-happy \{\s*animation: none;\s*opacity: 1/,
+    );
+    // Hover is only for devices that really hover, so a tap doesn't leave it stuck.
+    assert.ok(
+      css.includes(
+        "@media (hover: hover) {\n  :is(.agents-card, .agents-detail-card):hover .cs-rig",
+      ),
+    );
   });
 
   test("reduced motion holds it completely still", () => {
-    const reduced = css.slice(css.indexOf("@media (prefers-reduced-motion: reduce)"));
+    const reduced = css.slice(
+      css.indexOf("@media (prefers-reduced-motion: reduce)"),
+    );
     assert.match(reduced, /\.cs-rig \*[\s\S]*animation: none !important/);
     assert.match(reduced, /transition: none !important/);
-    assert.match(reduced, /\.cs-rig \.cs-look[\s\S]*transform: none !important/);
-    assert.match(reduced, /\.cs-rig \.cs-mouth-happy \{\s*opacity: 0 !important/);
+    assert.match(
+      reduced,
+      /\.cs-rig \.cs-look[\s\S]*transform: none !important/,
+    );
+    assert.match(
+      reduced,
+      /\.cs-rig \.cs-mouth-happy \{\s*opacity: 0 !important/,
+    );
+    assert.match(reduced, /\.cs-rig \.cs-eyes-open \{\s*opacity: 1 !important/);
+    assert.match(
+      reduced,
+      /\.cs-rig \.cs-eyes-happy,\s*\.agents-page \.cs-rig \.cs-blush \{\s*opacity: 0 !important/,
+    );
   });
 });

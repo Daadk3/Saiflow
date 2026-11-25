@@ -145,13 +145,31 @@ for i in range(1,hn+1):
     ys,xs=np.nonzero(m); feats.append(dict(m=m,n=n,cx=xs.mean(),cy=ys.mean(),w=np.ptp(xs)+1,h=np.ptp(ys)+1))
 feats.sort(key=lambda f:f['cx'])
 for f in feats: print('hole',round(f['cx']),round(f['cy']),f['w'],f['h'],f['n'])
-arm_teal=tealf&armside; body_teal=tealf&~armside
+# The lower (right-hand) arm hangs down the body's right side. The crease
+# line in the art is its inner edge; above the crease it merges with the
+# body, so the cut runs from the crease up to just under the right ear cup.
+from PIL import Image as _Image, ImageDraw as _Draw
+_poly=_Image.new('L',(W,H),0)
+_Draw.Draw(_poly).polygon([(708,488),(652,600),(700,662),(820,662),(820,470)],fill=1)
+rside=np.array(_poly).astype(bool)
+armside&=~rside
+arm_teal=tealf&armside; armr_teal=tealf&rside; body_teal=tealf&~armside&~rside
 P=(212,505)
 disk=((xx-P[0])**2+(yy-P[1])**2)<=48**2
 arm_inner=arm_teal|(disk&tealf)
 inkish=opaque&(dark|teal)
 arm_outer=dilate(arm_teal,30)&inkish&dilate(armside,12)
-body_outer=dilate(body_teal,30)&inkish&dilate(~armside,12)
+PR=(688,532)
+diskr=((xx-PR[0])**2+(yy-PR[1])**2)<=44**2
+armr_inner=armr_teal|(diskr&tealf)
+# The lower arm is drawn in front of the body with its own outline (the art's
+# crease plus the outer edge), so it can lift away cleanly. Under it, the body
+# gets a smooth convex edge (body_ext) that only shows when the arm moves.
+armr_outer=dilate(armr_teal,24)&~body_teal
+_ext=_Image.new('L',(W,H),0)
+_Draw.Draw(_ext).polygon([(706,480),(716,540),(712,598),(698,636),(676,662),(640,665),(640,480)],fill=1)
+body_ext=np.array(_ext).astype(bool)
+body_outer=dilate(body_teal|body_ext,28)&inkish&dilate(~armside,12)
 pl,pn=label_components(pink); gl,gn=label_components(gray)
 pcs=sorted([dict(m=pl==i,n=(pl==i).sum(),cx=np.nonzero(pl==i)[1].mean()) for i in range(1,pn+1) if (pl==i).sum()>300],key=lambda c:-c['n'])
 gcs=sorted([dict(m=gl==i,n=(gl==i).sum(),cx=np.nonzero(gl==i)[1].mean()) for i in range(1,gn+1) if (gl==i).sum()>300],key=lambda c:c['cx'])
@@ -167,7 +185,8 @@ band_outer=dilate(band['m'],28)&notteal
 out={}
 def add(k,m,eps=1.4): out[k]=to_path(m,eps)
 add('armOuter',arm_outer); add('armInner',arm_inner)
-add('bodyOuter',body_outer); add('bodyInner',body_teal)
+add('armROuter',armr_outer); add('armRInner',armr_inner)
+add('bodyOuter',body_outer); add('bodyInner',body_teal|body_ext)
 add('bandOuter',band_outer); add('band',band['m'])
 add('cupLOuter',cupL_outer); add('cupLPink',pinkL); add('cupLGray',grayL)
 add('cupROuter',cupR_outer); add('cupRPink',pinkR); add('cupRGray',grayR)
@@ -176,9 +195,10 @@ mouth=[f for f in feats if abs(f['w']-f['h'])>=12]
 out['eyes']=[dict(cx=round(f['cx'],1),cy=round(f['cy'],1),rx=round(f['w']/2,1),ry=round(f['h']/2,1)) for f in eyes]
 out['mouth']=to_path(mouth[0]['m'],0.6,2)
 out['pivotArm']=P
+out['pivotArmR']=PR
 print({k:len(v) for k,v in out.items() if isinstance(v,str)})
 
-keys=['armOuter','armInner','bodyOuter','bodyInner','bandOuter','band','cupLOuter','cupLPink','cupLGray','cupROuter','cupRPink','cupRGray','mouth']
+keys=['armOuter','armInner','armROuter','armRInner','bodyOuter','bodyInner','bandOuter','band','cupLOuter','cupLPink','cupLGray','cupROuter','cupRPink','cupRGray','mouth']
 lines=['/**',' * Customer Service mascot, traced from public/agents/01-customer-service.png',' * (900×900) and split into parts that can move on their own.',' * Generated once; edit the art, not these numbers, if the mascot changes.',' * Each part has an outline layer (drawn first) and a fill layer, so parts',' * that overlap merge into one silhouette, as in the PNG.',' */','','export const CS_PATHS = {']
 for k in keys: lines.append(f'  {k}:\n    "{out[k]}",')
 lines.append('} as const;\n')
@@ -186,5 +206,6 @@ e=out['eyes']
 lines.append("/** Eye dots: [cx, cy, rx, ry] for the viewer's left and right eye. */")
 lines.append('export const CS_EYES = ['+', '.join(f'[{x["cx"]}, {x["cy"]}, {x["rx"]}, {x["ry"]}]' for x in e)+'] as const;\n')
 lines.append(f'/** Shoulder of the raised arm, the point it waves around. */\nexport const CS_ARM_PIVOT = [{out["pivotArm"][0]}, {out["pivotArm"][1]}] as const;\n')
+lines.append(f'/** Shoulder of the lower arm, the point it lifts around. */\nexport const CS_ARM_R_PIVOT = [{out["pivotArmR"][0]}, {out["pivotArmR"][1]}] as const;\n')
 open(OUT,'w').write('\n'.join(lines))
 print('wrote', OUT)
