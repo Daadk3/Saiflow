@@ -1368,7 +1368,7 @@ html.light .agents-pill-soon {
  * in step:
  *    0-18%  idle, with a curious head tilt
  *   18-38%  a big, bouncy wave
- *   38-57%  crouch, jump, a quick turn in the air, snap back, lean and squash on landing
+ *   38-57%  crouch, jump straight up, land with a lean and a squash
  *   57-82%  cheer: both arms up and pumping, hops, wiggle, head bob,
  *           happy "^ ^" eyes, rosy cheeks, big smile
  *   82-100% settle back to idle
@@ -1381,8 +1381,7 @@ html.light .agents-pill-soon {
   --cs-start: -1.5s;
 }
 
-.cs-rig .cs-hop,
-.cs-rig .cs-turn {
+.cs-rig .cs-hop {
   display: block;
 }
 
@@ -1401,11 +1400,6 @@ html.light .agents-pill-soon {
 .cs-hop {
   transform-origin: 50% 100%;
   animation: cs-hop var(--cs-show) ease-in-out var(--cs-start) infinite;
-}
-
-.cs-turn {
-  transform-origin: 50% 50%;
-  animation: cs-turn var(--cs-show) ease-in-out var(--cs-start) infinite;
 }
 
 .cs-sway {
@@ -1510,10 +1504,6 @@ html.light .agents-pill-soon {
     animation: cs-x-hop 0.9s ease-in-out infinite;
   }
 
-  :is(.agents-card, .agents-detail-card):hover .cs-rig .cs-turn {
-    animation: none;
-  }
-
   :is(.agents-card, .agents-detail-card):hover .cs-rig .cs-sway {
     animation: cs-x-sway 1.8s ease-in-out infinite;
   }
@@ -1563,10 +1553,6 @@ html.light .agents-pill-soon {
 
 :is(.agents-card, .agents-detail-card):has(:focus-visible) .cs-rig .cs-hop {
   animation: cs-x-hop 0.9s ease-in-out infinite;
-}
-
-:is(.agents-card, .agents-detail-card):has(:focus-visible) .cs-rig .cs-turn {
-  animation: none;
 }
 
 :is(.agents-card, .agents-detail-card):has(:focus-visible) .cs-rig .cs-sway {
@@ -1729,27 +1715,6 @@ html.light .agents-pill-soon {
   69%,
   73% {
     transform: translateY(calc(var(--w) * -0.03)) scale(0.98, 1.02);
-  }
-}
-
-/* A quick playful turn in the air, about 65 degrees, then a snap back to
-   the front with a little bounce. It stays well short of 90 degrees, so the
-   flat drawing never goes edge-on or shows its mirrored side. */
-@keyframes cs-turn {
-  0%,
-  43%,
-  53.5%,
-  100% {
-    transform: perspective(900px) rotateY(0deg);
-  }
-  46.5% {
-    transform: perspective(900px) rotateY(-65deg);
-  }
-  49.5% {
-    transform: perspective(900px) rotateY(10deg);
-  }
-  51.5% {
-    transform: perspective(900px) rotateY(-4deg);
   }
 }
 
@@ -2162,7 +2127,7 @@ html.light .agents-pill-soon {
   }
 
   /* The customer service rig stays in its resting pose: no breathing,
-     blinking, glancing, cursor following, jumps, turns, waves, cheers or
+     blinking, glancing, cursor following, jumps, waves, cheers or
      face changes. */
   .agents-page .cs-rig *,
   .agents-page .cs-rig .cs-shadow {

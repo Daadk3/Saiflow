@@ -1,6 +1,6 @@
 /**
  * The Customer Service mascot is drawn as SVG parts (CustomerServiceMascot)
- * so it can blink, glance, follow the cursor, wave, turn and cheer. These checks
+ * so it can blink, glance, follow the cursor, wave, jump and cheer. These checks
  * keep the drawing intact, the motion cheap and polite, and the other seven
  * mascots on their PNGs.
  */
@@ -92,7 +92,6 @@ describe("the component", () => {
   test("splits the mascot into parts that can move on their own", () => {
     for (const part of [
       "cs-hop",
-      "cs-turn",
       "cs-sway",
       "cs-breathe",
       "cs-arm",
@@ -152,7 +151,6 @@ describe("the motion", () => {
     "cs-blink-double",
     "cs-glance",
     "cs-hop",
-    "cs-turn",
     "cs-sway",
     "cs-bob",
     "cs-arm-l",
@@ -223,21 +221,15 @@ describe("the motion", () => {
     }
   });
 
-  test("turns only partway in the jump, never edge-on, and snaps back to the front", () => {
-    const turn = keyframes("cs-turn");
-    const angles = [...turn.matchAll(/rotateY\((-?[\d.]+)deg\)/g)].map((m) =>
-      Number(m[1]),
-    );
-    assert.ok(angles.length > 0);
-    // At 90 degrees the flat drawing would go edge-on; past it, it would show mirrored.
-    for (const a of angles) assert.ok(Math.abs(a) < 80, `rotateY ${a}`);
-    const widest = Math.max(...angles.map(Math.abs));
-    assert.ok(widest >= 60 && widest <= 70, `widest turn ${widest}`);
-    assert.match(
-      turn,
-      /0%,[\s\S]*?100% \{\s*transform: perspective\(900px\) rotateY\(0deg\)/,
-    );
-    assert.doesNotMatch(css, /cs-spin|rotateY\(360deg\)/);
+  test("jumps straight up with no turn or flip: the flat drawing never rotates in 3D", () => {
+    for (const source of [css, component]) {
+      assert.doesNotMatch(
+        source,
+        /rotateY|rotateX|rotate3d|perspective|scaleX\(-|cs-turn|cs-spin/,
+      );
+    }
+    const jump = keyframes("cs-hop");
+    assert.match(jump, /translateY\(calc\(var\(--w\) \* -/);
   });
 
   test("leans and squashes on landing", () => {
