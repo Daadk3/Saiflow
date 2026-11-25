@@ -1358,6 +1358,758 @@ html.light .agents-pill-soon {
   border-color: #00ffb3;
 }
 
+/* ---------- customer service rig ----------
+ * CustomerServiceMascot.tsx draws this one mascot as SVG parts. Values inside
+ * the SVG are in the art's own 900-unit space (transform-box: view-box); the
+ * jump is a share of the mascot width (--w). Both scale with the mascot.
+ *
+ * Breathing, blinking and glancing run on their own uneven loops. On top,
+ * every part shares one 12s "show" (same length, same start), so they stay
+ * in step:
+ *    0-18%  idle, with a curious head tilt
+ *   18-38%  a big, bouncy wave
+ *   38-57%  crouch, jump straight up, land with a lean and a squash
+ *   57-82%  cheer: both arms up and pumping, hops, wiggle, head bob,
+ *           happy "^ ^" eyes, rosy cheeks, big smile
+ *   82-100% settle back to idle
+ * Hover or keyboard focus on its card switches to a faster "excited" loop.
+ * Transform and opacity only. The jump stays as high as the other
+ * mascots' float (about 7px), so it never reaches the status pills. */
+
+.cs-rig {
+  --cs-show: 12s;
+  --cs-start: -1.5s;
+}
+
+.cs-rig .cs-hop {
+  display: block;
+}
+
+.cs-rig .cs-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.cs-rig .cs-svg g,
+.cs-rig .cs-svg path,
+.cs-rig .cs-svg ellipse {
+  transform-box: view-box;
+}
+
+.cs-hop {
+  transform-origin: 50% 100%;
+  animation: cs-hop var(--cs-show) ease-in-out var(--cs-start) infinite;
+}
+
+.cs-sway {
+  transform-origin: 450px 860px;
+  animation: cs-sway var(--cs-show) ease-in-out var(--cs-start) infinite;
+}
+
+.cs-breathe {
+  transform-origin: 450px 860px;
+  animation: cs-breathe 3.6s ease-in-out infinite;
+}
+
+.cs-head {
+  transform-origin: 440px 620px;
+  animation: cs-bob var(--cs-show) ease-in-out var(--cs-start) infinite;
+}
+
+.cs-face {
+  transform: translate(
+    calc(var(--cs-fx, 0) * 1px),
+    calc(var(--cs-fy, 0) * 1px)
+  );
+  transition: transform 0.5s cubic-bezier(0.2, 0.7, 0.3, 1);
+}
+
+.cs-look {
+  transform: translate(
+    calc(var(--cs-lx, 0) * 1px),
+    calc(var(--cs-ly, 0) * 1px)
+  );
+  transition: transform 0.3s cubic-bezier(0.2, 0.7, 0.3, 1);
+}
+
+.cs-glance {
+  animation: cs-glance 9.4s ease-in-out -1s infinite;
+}
+
+/* The cursor leads while it moves; the mascot glances on its own again after. */
+.cs-rig[data-tracking] .cs-glance {
+  animation: none;
+}
+
+.cs-eye {
+  animation: cs-blink-double 13.1s linear -4s infinite;
+}
+
+.cs-lid {
+  animation: cs-blink 5.3s linear infinite;
+}
+
+.cs-eye-l {
+  transform-origin: 339px 340px;
+}
+
+.cs-eye-r {
+  transform-origin: 506px 353px;
+}
+
+.cs-eyes-open {
+  animation: cs-eyes-open var(--cs-show) linear var(--cs-start) infinite;
+}
+
+.cs-eyes-happy {
+  opacity: 0;
+  animation: cs-eyes-happy var(--cs-show) linear var(--cs-start) infinite;
+}
+
+.cs-blush {
+  opacity: 0;
+  animation: cs-blush var(--cs-show) ease-in-out var(--cs-start) infinite;
+}
+
+.cs-arm {
+  transform-origin: var(--cs-arm-x) var(--cs-arm-y);
+  animation: cs-arm-l var(--cs-show) ease-in-out var(--cs-start) infinite;
+}
+
+.cs-arm-r {
+  transform-origin: var(--cs-arm-r-x) var(--cs-arm-r-y);
+  animation: cs-arm-r var(--cs-show) ease-in-out var(--cs-start) infinite;
+}
+
+.cs-mouth-rest {
+  animation: cs-mouth-rest var(--cs-show) linear var(--cs-start) infinite;
+}
+
+.cs-mouth-happy {
+  opacity: 0;
+  transform: scaleY(0.35);
+  transform-origin: 419px 388px;
+  animation: cs-mouth-happy var(--cs-show) ease-out var(--cs-start) infinite;
+}
+
+.cs-rig .cs-shadow {
+  animation: cs-shadow-hop var(--cs-show) ease-in-out var(--cs-start) infinite;
+}
+
+/* Hover or keyboard focus on its card: extra excited. Quick hops, both arms
+   waving, a wiggle, happy eyes, rosy cheeks and a big smile. */
+@media (hover: hover) {
+  :is(.agents-card, .agents-detail-card):hover .cs-rig .cs-hop {
+    animation: cs-x-hop 0.9s ease-in-out infinite;
+  }
+
+  :is(.agents-card, .agents-detail-card):hover .cs-rig .cs-sway {
+    animation: cs-x-sway 1.8s ease-in-out infinite;
+  }
+
+  :is(.agents-card, .agents-detail-card):hover .cs-rig .cs-head {
+    animation: cs-x-bob 1.8s ease-in-out infinite;
+  }
+
+  :is(.agents-card, .agents-detail-card):hover .cs-rig .cs-arm {
+    animation: cs-x-arm-l 0.6s ease-in-out infinite;
+  }
+
+  :is(.agents-card, .agents-detail-card):hover .cs-rig .cs-arm-r {
+    animation: cs-x-arm-r 0.6s ease-in-out -0.3s infinite;
+  }
+
+  :is(.agents-card, .agents-detail-card):hover .cs-rig .cs-shadow {
+    animation: cs-x-shadow 0.9s ease-in-out infinite;
+  }
+
+  :is(.agents-card, .agents-detail-card):hover .cs-rig .cs-eyes-open {
+    animation: none;
+    opacity: 0;
+  }
+
+  :is(.agents-card, .agents-detail-card):hover .cs-rig .cs-eyes-happy {
+    animation: none;
+    opacity: 1;
+  }
+
+  :is(.agents-card, .agents-detail-card):hover .cs-rig .cs-blush {
+    animation: none;
+    opacity: 0.95;
+  }
+
+  :is(.agents-card, .agents-detail-card):hover .cs-rig .cs-mouth-rest {
+    animation: none;
+    opacity: 0;
+  }
+
+  :is(.agents-card, .agents-detail-card):hover .cs-rig .cs-mouth-happy {
+    animation: none;
+    opacity: 1;
+    transform: scale(1.08, 1.08);
+  }
+}
+
+:is(.agents-card, .agents-detail-card):has(:focus-visible) .cs-rig .cs-hop {
+  animation: cs-x-hop 0.9s ease-in-out infinite;
+}
+
+:is(.agents-card, .agents-detail-card):has(:focus-visible) .cs-rig .cs-sway {
+  animation: cs-x-sway 1.8s ease-in-out infinite;
+}
+
+:is(.agents-card, .agents-detail-card):has(:focus-visible) .cs-rig .cs-head {
+  animation: cs-x-bob 1.8s ease-in-out infinite;
+}
+
+:is(.agents-card, .agents-detail-card):has(:focus-visible) .cs-rig .cs-arm {
+  animation: cs-x-arm-l 0.6s ease-in-out infinite;
+}
+
+:is(.agents-card, .agents-detail-card):has(:focus-visible) .cs-rig .cs-arm-r {
+  animation: cs-x-arm-r 0.6s ease-in-out -0.3s infinite;
+}
+
+:is(.agents-card, .agents-detail-card):has(:focus-visible) .cs-rig .cs-shadow {
+  animation: cs-x-shadow 0.9s ease-in-out infinite;
+}
+
+:is(.agents-card, .agents-detail-card):has(:focus-visible)
+  .cs-rig
+  .cs-eyes-open {
+  animation: none;
+  opacity: 0;
+}
+
+:is(.agents-card, .agents-detail-card):has(:focus-visible)
+  .cs-rig
+  .cs-eyes-happy {
+  animation: none;
+  opacity: 1;
+}
+
+:is(.agents-card, .agents-detail-card):has(:focus-visible) .cs-rig .cs-blush {
+  animation: none;
+  opacity: 0.95;
+}
+
+:is(.agents-card, .agents-detail-card):has(:focus-visible)
+  .cs-rig
+  .cs-mouth-rest {
+  animation: none;
+  opacity: 0;
+}
+
+:is(.agents-card, .agents-detail-card):has(:focus-visible)
+  .cs-rig
+  .cs-mouth-happy {
+  animation: none;
+  opacity: 1;
+  transform: scale(1.08, 1.08);
+}
+
+@keyframes cs-breathe {
+  0%,
+  100% {
+    transform: scale(1.012, 0.988);
+  }
+  50% {
+    transform: scale(0.992, 1.016);
+  }
+}
+
+@keyframes cs-blink {
+  0%,
+  90%,
+  94.5%,
+  100% {
+    transform: scaleY(1);
+  }
+  92% {
+    transform: scaleY(0.1);
+  }
+}
+
+@keyframes cs-blink-double {
+  0%,
+  58%,
+  60.2%,
+  61.6%,
+  100% {
+    transform: scaleY(1);
+  }
+  59.1%,
+  60.9% {
+    transform: scaleY(0.1);
+  }
+}
+
+@keyframes cs-glance {
+  0%,
+  16%,
+  38%,
+  54%,
+  76%,
+  100% {
+    transform: translate(0, 0);
+  }
+  21%,
+  33% {
+    transform: translate(-10px, -3px);
+  }
+  59%,
+  71% {
+    transform: translate(9px, 4px);
+  }
+}
+
+/* --- the 12s show --- */
+
+@keyframes cs-hop {
+  0%,
+  18%,
+  24.5%,
+  31.5%,
+  38%,
+  50%,
+  57%,
+  77%,
+  100% {
+    transform: translateY(0) scale(1, 1);
+  }
+  /* little bounces while waving */
+  22.5%,
+  29.5% {
+    transform: translateY(calc(var(--w) * -0.012)) scale(1, 1);
+  }
+  /* crouch, take off, top of the jump, land with a squash */
+  41% {
+    transform: translateY(0) scale(1.07, 0.92);
+  }
+  43.5% {
+    transform: translateY(calc(var(--w) * -0.03)) scale(0.96, 1.04);
+  }
+  46.5% {
+    transform: translateY(calc(var(--w) * -0.04)) scale(1, 1);
+  }
+  51.5% {
+    transform: translateY(0) scale(1.12, 0.87);
+  }
+  53.5% {
+    transform: translateY(0) scale(0.96, 1.04);
+  }
+  55.5% {
+    transform: translateY(0) scale(1.01, 0.99);
+  }
+  /* cheer: hop, hop, hop, hop */
+  59%,
+  63%,
+  67%,
+  71%,
+  75% {
+    transform: translateY(0) scale(1.06, 0.94);
+  }
+  61%,
+  65%,
+  69%,
+  73% {
+    transform: translateY(calc(var(--w) * -0.03)) scale(0.98, 1.02);
+  }
+}
+
+@keyframes cs-sway {
+  0%,
+  18%,
+  38%,
+  58%,
+  81%,
+  100% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+  21%,
+  28% {
+    transform: translate(0, 0) rotate(-2deg);
+  }
+  24.5%,
+  31.5% {
+    transform: translate(0, 0) rotate(1.5deg);
+  }
+  35% {
+    transform: translate(0, 0) rotate(-1deg);
+  }
+  /* a lean on landing that rocks back upright */
+  50% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+  51.5% {
+    transform: translate(-6px, 0) rotate(-5deg);
+  }
+  53.5% {
+    transform: translate(3px, 0) rotate(2.5deg);
+  }
+  55.5% {
+    transform: translate(0, 0) rotate(-1deg);
+  }
+  /* side-to-side wiggle while cheering */
+  60.5%,
+  65.5%,
+  70.5%,
+  75.5% {
+    transform: translate(-16px, 0) rotate(-4deg);
+  }
+  63%,
+  68%,
+  73%,
+  78% {
+    transform: translate(16px, 0) rotate(4deg);
+  }
+}
+
+@keyframes cs-bob {
+  0%,
+  6%,
+  17%,
+  38%,
+  55%,
+  58%,
+  81%,
+  100% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+  /* a curious tilt while idle */
+  9%,
+  14% {
+    transform: translate(0, 0) rotate(-3deg);
+  }
+  /* nodding along with the wave */
+  21%,
+  28% {
+    transform: translate(0, 0) rotate(-3deg);
+  }
+  24.5%,
+  31.5% {
+    transform: translate(0, 0) rotate(2deg);
+  }
+  35% {
+    transform: translate(0, 0) rotate(-2deg);
+  }
+  /* squash and stretch through the jump */
+  41% {
+    transform: translate(0, 8px) rotate(0deg);
+  }
+  46% {
+    transform: translate(0, -6px) rotate(0deg);
+  }
+  51.5% {
+    transform: translate(0, 10px) rotate(0deg);
+  }
+  /* bobbing to the beat */
+  60.5%,
+  65.5%,
+  70.5%,
+  75.5% {
+    transform: translate(0, 6px) rotate(4deg);
+  }
+  63%,
+  68%,
+  73%,
+  78% {
+    transform: translate(0, -4px) rotate(-4deg);
+  }
+}
+
+/* The raised arm. Minus swings it out, plus lifts it up. */
+@keyframes cs-arm-l {
+  0%,
+  18%,
+  38%,
+  53%,
+  82%,
+  100% {
+    transform: rotate(0deg);
+  }
+  21%,
+  28% {
+    transform: rotate(-26deg);
+  }
+  24.5%,
+  31.5% {
+    transform: rotate(12deg);
+  }
+  35% {
+    transform: rotate(-20deg);
+  }
+  41% {
+    transform: rotate(-8deg);
+  }
+  44%,
+  50% {
+    transform: rotate(-22deg);
+  }
+  58%,
+  63%,
+  68%,
+  73%,
+  78% {
+    transform: rotate(13deg);
+  }
+  60.5%,
+  65.5%,
+  70.5%,
+  75.5% {
+    transform: rotate(3deg);
+  }
+}
+
+/* The lower arm. Minus lifts it out and up. */
+@keyframes cs-arm-r {
+  0%,
+  18%,
+  24.5%,
+  31.5%,
+  38%,
+  53%,
+  82%,
+  100% {
+    transform: rotate(0deg);
+  }
+  21%,
+  28% {
+    transform: rotate(-8deg);
+  }
+  41% {
+    transform: rotate(-10deg);
+  }
+  44%,
+  50% {
+    transform: rotate(-40deg);
+  }
+  58%,
+  63%,
+  68%,
+  73%,
+  78% {
+    transform: rotate(-74deg);
+  }
+  60.5%,
+  65.5%,
+  70.5%,
+  75.5% {
+    transform: rotate(-54deg);
+  }
+}
+
+@keyframes cs-mouth-happy {
+  0%,
+  18%,
+  84%,
+  100% {
+    opacity: 0;
+    transform: scaleY(0.35);
+  }
+  20%,
+  50% {
+    opacity: 1;
+    transform: scale(1, 1);
+  }
+  52% {
+    opacity: 1;
+    transform: scale(1.14, 1.14);
+  }
+  55%,
+  82% {
+    opacity: 1;
+    transform: scale(1.06, 1.06);
+  }
+}
+
+@keyframes cs-mouth-rest {
+  0%,
+  18%,
+  84%,
+  100% {
+    opacity: 1;
+  }
+  19.5%,
+  82.5% {
+    opacity: 0;
+  }
+}
+
+@keyframes cs-eyes-open {
+  0%,
+  50.5%,
+  83.5%,
+  100% {
+    opacity: 1;
+  }
+  51.5%,
+  82.5% {
+    opacity: 0;
+  }
+}
+
+@keyframes cs-eyes-happy {
+  0%,
+  50.5%,
+  83.5%,
+  100% {
+    opacity: 0;
+  }
+  51.5%,
+  82.5% {
+    opacity: 1;
+  }
+}
+
+@keyframes cs-blush {
+  0%,
+  19%,
+  85%,
+  100% {
+    opacity: 0;
+  }
+  23%,
+  49% {
+    opacity: 0.6;
+  }
+  52%,
+  82% {
+    opacity: 0.95;
+  }
+}
+
+/* The shadow shrinks and fades while the mascot is in the air. */
+@keyframes cs-shadow-hop {
+  0%,
+  18%,
+  24.5%,
+  31.5%,
+  38%,
+  50%,
+  57%,
+  77%,
+  100% {
+    transform: scale(1, 1);
+    opacity: 1;
+  }
+  22.5%,
+  29.5% {
+    transform: scale(0.94, 0.94);
+    opacity: 0.85;
+  }
+  41% {
+    transform: scale(1.08, 1);
+    opacity: 1;
+  }
+  43.5% {
+    transform: scale(0.86, 0.86);
+    opacity: 0.7;
+  }
+  46.5% {
+    transform: scale(0.78, 0.78);
+    opacity: 0.55;
+  }
+  51.5% {
+    transform: scale(1.14, 1);
+    opacity: 1;
+  }
+  59%,
+  63%,
+  67%,
+  71%,
+  75% {
+    transform: scale(1.06, 1);
+    opacity: 1;
+  }
+  61%,
+  65%,
+  69%,
+  73% {
+    transform: scale(0.84, 0.84);
+    opacity: 0.65;
+  }
+}
+
+/* --- the excited loop (hover and focus) --- */
+
+@keyframes cs-x-hop {
+  0%,
+  100% {
+    transform: translateY(0) scale(1.06, 0.94);
+  }
+  15% {
+    transform: translateY(calc(var(--w) * -0.012)) scale(0.97, 1.03);
+  }
+  50% {
+    transform: translateY(calc(var(--w) * -0.04)) scale(1, 1);
+  }
+  85% {
+    transform: translateY(0) scale(1, 1);
+  }
+}
+
+@keyframes cs-x-sway {
+  0%,
+  100% {
+    transform: translate(-14px, 0) rotate(-3deg);
+  }
+  50% {
+    transform: translate(14px, 0) rotate(3deg);
+  }
+}
+
+@keyframes cs-x-bob {
+  0%,
+  50%,
+  100% {
+    transform: translate(0, 6px) rotate(0deg);
+  }
+  25% {
+    transform: translate(0, -4px) rotate(4deg);
+  }
+  75% {
+    transform: translate(0, -4px) rotate(-4deg);
+  }
+}
+
+@keyframes cs-x-arm-l {
+  0%,
+  100% {
+    transform: rotate(-24deg);
+  }
+  50% {
+    transform: rotate(13deg);
+  }
+}
+
+@keyframes cs-x-arm-r {
+  0%,
+  100% {
+    transform: rotate(-48deg);
+  }
+  50% {
+    transform: rotate(-76deg);
+  }
+}
+
+@keyframes cs-x-shadow {
+  0%,
+  100% {
+    transform: scale(1.06, 1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(0.82, 0.82);
+    opacity: 0.6;
+  }
+  85% {
+    transform: scale(1, 1);
+    opacity: 1;
+  }
+}
+
 /* ---------- reduced motion: nothing moves ---------- */
 
 @media (prefers-reduced-motion: reduce) {
@@ -1372,5 +2124,36 @@ html.light .agents-pill-soon {
     opacity: 1;
     transform: none;
     transition: none;
+  }
+
+  /* The customer service rig stays in its resting pose: no breathing,
+     blinking, glancing, cursor following, jumps, waves, cheers or
+     face changes. */
+  .agents-page .cs-rig *,
+  .agents-page .cs-rig .cs-shadow {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  .agents-page .cs-rig .cs-look,
+  .agents-page .cs-rig .cs-face {
+    transform: none !important;
+  }
+
+  .agents-page .cs-rig .cs-mouth-happy {
+    opacity: 0 !important;
+  }
+
+  .agents-page .cs-rig .cs-mouth-rest {
+    opacity: 1 !important;
+  }
+
+  .agents-page .cs-rig .cs-eyes-open {
+    opacity: 1 !important;
+  }
+
+  .agents-page .cs-rig .cs-eyes-happy,
+  .agents-page .cs-rig .cs-blush {
+    opacity: 0 !important;
   }
 }
