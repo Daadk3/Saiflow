@@ -23,7 +23,7 @@ const TRACK_IDLE_MS = 2200;
  * The Customer Service mascot drawn as layered SVG, so its parts can move.
  * It breathes, blinks and glances all the time, and its eyes follow the
  * cursor. Every 12 seconds it plays a short show: a big wave, a jump with a
- * full spin, then a cheer with both arms, little hops, a wiggle, happy "^ ^"
+ * quick playful turn and a bouncy landing, then a cheer with both arms, little hops, a wiggle, happy "^ ^"
  * eyes, rosy cheeks and a big smile. Hover or keyboard focus on its card makes
  * it extra excited. All motion is CSS on transform and opacity (see "customer
  * service rig" in agents.css). JavaScript only sets CSS variables for the cursor.
@@ -128,9 +128,9 @@ export default function CustomerServiceMascot({
       data-mascot="customer-service"
     >
       <span className="agents-mascot-shadow cs-shadow" aria-hidden="true" />
-      {/* Jumps and landing squash, then the spin (a turn around the upright axis). */}
+      {/* Jumps and landing squash, then the turn (a partial turn around the upright axis). */}
       <div className="cs-hop">
-        <div className="cs-spin">
+        <div className="cs-turn">
           <svg
             className="cs-svg"
             viewBox="0 0 900 900"

@@ -1368,7 +1368,7 @@ html.light .agents-pill-soon {
  * in step:
  *    0-18%  idle, with a curious head tilt
  *   18-38%  a big, bouncy wave
- *   38-57%  crouch, jump, a full spin in the air, squashy landing
+ *   38-57%  crouch, jump, a quick turn in the air, snap back, lean and squash on landing
  *   57-82%  cheer: both arms up and pumping, hops, wiggle, head bob,
  *           happy "^ ^" eyes, rosy cheeks, big smile
  *   82-100% settle back to idle
@@ -1382,7 +1382,7 @@ html.light .agents-pill-soon {
 }
 
 .cs-rig .cs-hop,
-.cs-rig .cs-spin {
+.cs-rig .cs-turn {
   display: block;
 }
 
@@ -1403,9 +1403,9 @@ html.light .agents-pill-soon {
   animation: cs-hop var(--cs-show) ease-in-out var(--cs-start) infinite;
 }
 
-.cs-spin {
+.cs-turn {
   transform-origin: 50% 50%;
-  animation: cs-spin var(--cs-show) ease-in-out var(--cs-start) infinite;
+  animation: cs-turn var(--cs-show) ease-in-out var(--cs-start) infinite;
 }
 
 .cs-sway {
@@ -1510,7 +1510,7 @@ html.light .agents-pill-soon {
     animation: cs-x-hop 0.9s ease-in-out infinite;
   }
 
-  :is(.agents-card, .agents-detail-card):hover .cs-rig .cs-spin {
+  :is(.agents-card, .agents-detail-card):hover .cs-rig .cs-turn {
     animation: none;
   }
 
@@ -1565,7 +1565,7 @@ html.light .agents-pill-soon {
   animation: cs-x-hop 0.9s ease-in-out infinite;
 }
 
-:is(.agents-card, .agents-detail-card):has(:focus-visible) .cs-rig .cs-spin {
+:is(.agents-card, .agents-detail-card):has(:focus-visible) .cs-rig .cs-turn {
   animation: none;
 }
 
@@ -1708,10 +1708,10 @@ html.light .agents-pill-soon {
     transform: translateY(calc(var(--w) * -0.04)) scale(1, 1);
   }
   51.5% {
-    transform: translateY(0) scale(1.1, 0.89);
+    transform: translateY(0) scale(1.12, 0.87);
   }
   53.5% {
-    transform: translateY(0) scale(0.97, 1.03);
+    transform: translateY(0) scale(0.96, 1.04);
   }
   55.5% {
     transform: translateY(0) scale(1.01, 0.99);
@@ -1732,15 +1732,24 @@ html.light .agents-pill-soon {
   }
 }
 
-/* One full turn while in the air. Halfway round it shows its other side. */
-@keyframes cs-spin {
+/* A quick playful turn in the air, about 65 degrees, then a snap back to
+   the front with a little bounce. It stays well short of 90 degrees, so the
+   flat drawing never goes edge-on or shows its mirrored side. */
+@keyframes cs-turn {
   0%,
-  43% {
+  43%,
+  53.5%,
+  100% {
     transform: perspective(900px) rotateY(0deg);
   }
-  50%,
-  100% {
-    transform: perspective(900px) rotateY(360deg);
+  46.5% {
+    transform: perspective(900px) rotateY(-65deg);
+  }
+  49.5% {
+    transform: perspective(900px) rotateY(10deg);
+  }
+  51.5% {
+    transform: perspective(900px) rotateY(-4deg);
   }
 }
 
@@ -1762,6 +1771,19 @@ html.light .agents-pill-soon {
     transform: translate(0, 0) rotate(1.5deg);
   }
   35% {
+    transform: translate(0, 0) rotate(-1deg);
+  }
+  /* a lean on landing that rocks back upright */
+  50% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+  51.5% {
+    transform: translate(-6px, 0) rotate(-5deg);
+  }
+  53.5% {
+    transform: translate(3px, 0) rotate(2.5deg);
+  }
+  55.5% {
     transform: translate(0, 0) rotate(-1deg);
   }
   /* side-to-side wiggle while cheering */
@@ -2025,7 +2047,7 @@ html.light .agents-pill-soon {
     opacity: 0.55;
   }
   51.5% {
-    transform: scale(1.12, 1);
+    transform: scale(1.14, 1);
     opacity: 1;
   }
   59%,
@@ -2140,7 +2162,7 @@ html.light .agents-pill-soon {
   }
 
   /* The customer service rig stays in its resting pose: no breathing,
-     blinking, glancing, cursor following, jumps, spins, waves, cheers or
+     blinking, glancing, cursor following, jumps, turns, waves, cheers or
      face changes. */
   .agents-page .cs-rig *,
   .agents-page .cs-rig .cs-shadow {
