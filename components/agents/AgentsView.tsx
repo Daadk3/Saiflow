@@ -12,8 +12,9 @@ import {
   type AgentsLocale,
 } from "./agents-data";
 import HowItWorks from "./HowItWorks";
-import CustomerServiceMascot from "./CustomerServiceMascot";
 import Mascot from "./Mascot";
+import RiggedMascot from "./RiggedMascot";
+import { RIGS } from "./rigs";
 import "./agents.css";
 
 type FilterId = "all" | AgentCategoryId;
@@ -247,8 +248,10 @@ export default function AgentsView({
                     </span>
                   </span>
                   {agent.featured ? <span className="agents-status-soon">متاح قريبًا</span> : null}
-                  {agent.id === "customer-service" ? (
-                    <CustomerServiceMascot
+                  {RIGS[agent.id] ? (
+                    <RiggedMascot
+                      id={agent.id}
+                      rig={RIGS[agent.id]}
                       width={186}
                       label={mascotAlt(agent, locale)}
                       className="agents-card-mascot"

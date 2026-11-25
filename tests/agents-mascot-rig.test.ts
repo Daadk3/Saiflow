@@ -1,15 +1,18 @@
 /**
- * The Customer Service mascot is drawn as SVG parts (CustomerServiceMascot)
- * so it can blink, glance, follow the cursor, wave, jump and cheer. These checks
- * keep the drawing intact, the motion cheap and polite, and the other seven
- * mascots on their PNGs.
+ * The /agents mascots are drawn as SVG parts (RiggedMascot + rigs/) so they
+ * can blink, glance, follow the cursor, wave, jump, cheer and move their
+ * props. These checks keep every drawing intact, every mascot on its own
+ * timing within the same 12s loop, the motion cheap and polite, and reduced
+ * motion completely still.
  */
 
 import { test, describe } from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
+import { AGENTS } from "@/components/agents/agents-data";
+import { RIGS } from "@/components/agents/rigs";
 import {
   CS_ARM_PIVOT,
   CS_ARM_R_PIVOT,
@@ -20,10 +23,16 @@ import {
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const read = (p: string) => readFileSync(resolve(ROOT, p), "utf8");
 
-const component = read("components/agents/CustomerServiceMascot.tsx");
+const component = read("components/agents/RiggedMascot.tsx");
 const view = read("components/agents/AgentsView.tsx");
 const detail = read("components/agents/AgentDetail.tsx");
 const css = read("components/agents/agents.css");
+const rigFiles = readdirSync(resolve(ROOT, "components/agents/rigs/art")).map(
+  (f) => read(`components/agents/rigs/art/${f}`),
+);
+
+const IDS = Object.keys(RIGS);
+const MOVES = ["tilt", "wave", "jump", "cheer", "prop"] as const;
 
 function keyframes(name: string): string {
   const start = css.indexOf(`@keyframes ${name} {`);
@@ -36,83 +45,212 @@ function keyframes(name: string): string {
   throw new Error(`unclosed @keyframes ${name}`);
 }
 
-describe("the traced drawing", () => {
-  const parts = [
-    "armOuter",
-    "armInner",
-    "armROuter",
-    "armRInner",
-    "bodyOuter",
-    "bodyInner",
-    "bandOuter",
-    "band",
-    "cupLOuter",
-    "cupLPink",
-    "cupLGray",
-    "cupROuter",
-    "cupRPink",
-    "cupRGray",
-    "mouth",
-  ] as const;
+const rigKeyframes = [...css.matchAll(/@keyframes (rig-[a-z-]+) \{/g)].map(
+  (m) => m[1],
+);
 
-  test("has every part as a closed path inside the 900×900 art box", () => {
-    assert.deepEqual(Object.keys(CS_PATHS).sort(), [...parts].sort());
-    for (const key of parts) {
-      const d = CS_PATHS[key];
-      assert.match(d, /^M-?\d/, key);
-      assert.match(d, /Z$/, key);
-      const numbers = d.match(/-?\d+(\.\d+)?/g)!.map(Number);
-      assert.ok(numbers.length > 20, key);
-      for (const n of numbers) assert.ok(n >= -5 && n <= 905, `${key}: ${n}`);
-    }
+describe("which mascots are rigged", () => {
+  test("all eight catalogue mascots are drawn as parts", () => {
+    assert.deepEqual(
+      [...IDS].sort(),
+      AGENTS.map((a) => a.id).sort(),
+      "every agent has a rig (one that could not be traced would keep its PNG)",
+    );
   });
 
-  test("has two eyes left of and right of the middle, and a pivot at each shoulder", () => {
+  test("the catalogue and the agent page use the rig, and keep the PNG as a fallback", () => {
+    for (const file of [view, detail]) {
+      assert.match(file, /RIGS\[agent\.id\] \?/);
+      assert.match(file, /<RiggedMascot/);
+      assert.match(file, /<Mascot/);
+    }
+    assert.equal((view.match(/<RiggedMascot/g) ?? []).length, 1);
+  });
+
+  test("the hero group shot stays as floating PNGs", () => {
+    const hero = view.slice(
+      view.indexOf("agents-stage-slot"),
+      view.indexOf("agents-filters"),
+    );
+    assert.doesNotMatch(hero, /RiggedMascot/);
+    assert.match(hero, /<Mascot/);
+  });
+});
+
+describe("each traced drawing", () => {
+  for (const id of IDS) {
+    const { art, motion } = RIGS[id];
+
+    test(`${id}: every layer is a closed path inside the 900×900 box`, () => {
+      assert.ok(art.layers.length >= 6, `${id}: ${art.layers.length} layers`);
+      for (const [part, colour, d] of art.layers) {
+        assert.match(part, /^(body|armL|armR|prop|head)$/);
+        assert.match(colour, /^#[0-9a-f]{6}$/);
+        assert.match(d, /^M-?\d/);
+        assert.match(d, /Z$/);
+        for (const n of d.match(/-?\d+(\.\d+)?/g)!.map(Number)) {
+          assert.ok(n >= -5 && n <= 905, `${id}: ${n}`);
+        }
+      }
+    });
+
+    test(`${id}: body, both arms and the prop are separate parts`, () => {
+      const parts = new Set<string>(art.layers.map(([part]) => part));
+      for (const part of ["body", "armL", "armR"]) {
+        assert.ok(parts.has(part), `${id}: ${part}`);
+      }
+      // Customer Service holds nothing; its headphones ride on its head.
+      if (id === "customer-service") assert.ok(parts.has("head"));
+      else assert.ok(parts.has("prop"), `${id}: prop`);
+      const limbs = parts.has("prop")
+        ? (["armL", "armR", "prop"] as const)
+        : (["armL", "armR"] as const);
+      for (const part of limbs) {
+        const pivot = art.pivots[part];
+        assert.ok(pivot, `${id}: ${part} pivot`);
+        for (const v of pivot!) assert.ok(v > 0 && v < 900, `${id}: ${part}`);
+      }
+      assert.ok(
+        art.pivots.armL![0] < art.pivots.armR![0],
+        `${id}: each arm on its own side`,
+      );
+    });
+
+    test(`${id}: two eyes and a mouth on the face`, () => {
+      assert.equal(art.eyes.length, 2);
+      const [a, b] = [...art.eyes].sort((p, q) => p.cx - q.cx);
+      assert.ok(b.cx - a.cx > 80 && b.cx - a.cx < 260, `${id}: eye gap`);
+      for (const e of art.eyes) {
+        assert.ok(e.cy > 200 && e.cy < 450, `${id}: eye height`);
+        assert.ok(e.rx > 8 && e.rx < 60 && e.ry > 5 && e.ry < 60, `${id}`);
+      }
+      const [x0, y0, x1, y1] = art.mouth.box;
+      assert.ok(x0 < x1 && y0 < y1);
+      assert.ok(y0 > Math.min(a.cy, b.cy), `${id}: mouth below the eyes`);
+      assert.match(art.mouth.d, /^M[\s\S]*Z$/);
+    });
+
+    test(`${id}: the cheeks get a colour that shows on the body`, () => {
+      assert.match(motion.blush, /^#[0-9a-f]{6}$/);
+      assert.notEqual(motion.blush.toLowerCase(), art.bodyColour.toLowerCase());
+    });
+
+    if (id !== "customer-service") {
+      test(`${id}: traced from its own PNG by the shared tracer`, () => {
+        const config = JSON.parse(read(`scripts/agents/rigs/${id}.json`));
+        assert.ok(existsSync(resolve(ROOT, "public/agents", config.src)));
+        const file = read(`components/agents/rigs/art/${id}.ts`);
+        assert.match(file, /by scripts\/agents\/trace_mascot\.py/);
+        assert.ok(file.includes(config.src));
+      });
+    }
+  }
+
+  test("Customer Service keeps its hand-tuned paths", () => {
     assert.equal(CS_EYES.length, 2);
-    const [left, right] = CS_EYES;
-    assert.ok(left[0] < 450 && right[0] > 450);
-    for (const [, cy, rx, ry] of CS_EYES) {
-      assert.ok(cy > 300 && cy < 400);
-      assert.ok(rx > 15 && rx < 35 && ry > 15 && ry < 35);
+    assert.ok(Object.keys(CS_PATHS).length >= 15);
+    const cs = RIGS["customer-service"].art;
+    assert.deepEqual(cs.pivots.armL, [...CS_ARM_PIVOT]);
+    assert.deepEqual(cs.pivots.armR, [...CS_ARM_R_PIVOT]);
+    assert.ok(cs.layers.some(([, , d]) => d === CS_PATHS.bandOuter));
+  });
+});
+
+describe("each mascot's own show", () => {
+  test("every move starts inside the 12s loop", () => {
+    for (const id of IDS) {
+      const { at } = RIGS[id].motion;
+      for (const move of MOVES) {
+        const s = at[move];
+        if (move === "prop" && s === undefined) continue;
+        assert.ok(
+          typeof s === "number" && s >= 0 && s < 12,
+          `${id}: ${move} ${s}`,
+        );
+      }
     }
-    assert.ok(CS_ARM_PIVOT[0] > 150 && CS_ARM_PIVOT[0] < 260);
-    assert.ok(CS_ARM_PIVOT[1] > 450 && CS_ARM_PIVOT[1] < 560);
-    assert.ok(CS_ARM_R_PIVOT[0] > 600 && CS_ARM_R_PIVOT[0] < 760);
-    assert.ok(CS_ARM_R_PIVOT[1] > 450 && CS_ARM_R_PIVOT[1] < 600);
   });
 
-  test("uses the PNG's palette", () => {
-    for (const colour of ["#001824", "#15b4bb", "#f7c6c1", "#4c575b"]) {
-      assert.ok(component.includes(colour), colour);
+  test("no two mascots play their moves in the same order or at the same times", () => {
+    const orders = IDS.map((id) => {
+      const at = RIGS[id].motion.at;
+      return MOVES.filter((m) => at[m] !== undefined)
+        .sort((a, b) => at[a]! - at[b]!)
+        .join(">");
+    });
+    assert.equal(new Set(orders).size, IDS.length, orders.join(" | "));
+    const waves = IDS.map((id) => RIGS[id].motion.at.wave);
+    assert.equal(new Set(waves).size, IDS.length);
+  });
+
+  test("a mascot's wave, jump and cheer never play on top of each other", () => {
+    // From the keyframes: the wave takes 2.4s; a cheer may start 1.8s into
+    // a jump (as it lands); the cheer takes 3.8s.
+    const span = { wave: 2.4, jump: 1.8, cheer: 3.8 };
+    for (const id of IDS) {
+      const at = RIGS[id].motion.at;
+      const moves = (["wave", "jump", "cheer"] as const).map((m) => [
+        at[m],
+        at[m] + span[m],
+      ]);
+      for (let i = 0; i < moves.length; i++) {
+        for (let j = 0; j < moves.length; j++) {
+          if (i === j) continue;
+          const [a0, a1] = moves[i];
+          for (const shift of [-12, 0, 12]) {
+            const b0 = moves[j][0] + shift;
+            assert.ok(
+              b0 >= a1 - 0.01 || b0 + 0.01 <= a0,
+              `${id}: moves ${i} and ${j} overlap`,
+            );
+          }
+        }
+      }
+    }
+  });
+
+  test("arm and prop moves stay small, so every part stays joined and inside its card", () => {
+    for (const id of IDS) {
+      const { arms, prop } = RIGS[id].motion;
+      assert.ok(arms.armL && arms.armR, `${id}: both arms move`);
+      for (const arm of [arms.armL!, arms.armR!]) {
+        for (const a of [
+          ...arm.wave,
+          ...arm.jump,
+          ...arm.cheer,
+          ...arm.excited,
+        ]) {
+          assert.ok(Math.abs(a) <= 80, `${id}: ${a}deg`);
+        }
+      }
+      if (id !== "customer-service") assert.ok(prop, `${id}: prop moves`);
+      if (prop) {
+        assert.ok(Math.abs(prop.turn) <= 15, id);
+        assert.ok(prop.lift <= 20 && prop.cheer <= 20, id);
+      }
     }
   });
 });
 
 describe("the component", () => {
-  test("splits the mascot into parts that can move on their own", () => {
+  test("splits a mascot into parts that move on their own", () => {
     for (const part of [
-      "cs-hop",
-      "cs-sway",
-      "cs-breathe",
-      "cs-arm",
-      "cs-arm-r",
-      "cs-body",
-      "cs-head",
-      "cs-face",
-      "cs-eye cs-eye-l",
-      "cs-eye cs-eye-r",
-      "cs-look",
-      "cs-glance",
-      "cs-lid",
-      "cs-pupil",
-      "cs-eyes-open",
-      "cs-eyes-happy",
-      "cs-blush",
-      "cs-mouth-rest",
-      "cs-mouth-happy",
-      "cs-headphones",
+      "rig-hop",
+      "rig-breathe",
+      "rig-face",
+      "rig-eye",
+      "rig-look",
+      "rig-glance",
+      "rig-lid",
+      "rig-joy",
+      "rig-blush",
+      "rig-smile",
+      "rig-shadow",
     ]) {
-      assert.ok(component.includes(`"${part}"`), part);
+      assert.match(component, new RegExp(`["\`]${part}[ "\`]`), part);
+    }
+    for (const chain of ["arm", "prop", "head", "eyes", "mouth", "sway"]) {
+      assert.ok(component.includes(`part="${chain}"`), chain);
     }
   });
 
@@ -131,80 +269,57 @@ describe("the component", () => {
     assert.match(component, /requestAnimationFrame/);
     assert.match(component, /removeEventListener\("pointermove"/);
   });
-});
 
-describe("only Customer Service uses the rig", () => {
-  test("the catalog and the agent page swap it in for that one agent", () => {
-    for (const file of [view, detail]) {
-      assert.match(file, /agent\.id === "customer-service" \?/);
-      assert.match(file, /<CustomerServiceMascot/);
-      assert.match(file, /<Mascot/);
-    }
-    assert.equal((view.match(/<CustomerServiceMascot/g) ?? []).length, 1);
+  test("pauses while off screen", () => {
+    assert.match(component, /dataset\.offscreen = "true"/);
+    assert.match(
+      css,
+      /\.rig\[data-offscreen\] \* \{\s*animation-play-state: paused;/,
+    );
   });
 });
 
 describe("the motion", () => {
-  const names = [
-    "cs-breathe",
-    "cs-blink",
-    "cs-blink-double",
-    "cs-glance",
-    "cs-hop",
-    "cs-sway",
-    "cs-bob",
-    "cs-arm-l",
-    "cs-arm-r",
-    "cs-mouth-happy",
-    "cs-mouth-rest",
-    "cs-eyes-open",
-    "cs-eyes-happy",
-    "cs-blush",
-    "cs-shadow-hop",
-    "cs-x-hop",
-    "cs-x-sway",
-    "cs-x-bob",
-    "cs-x-arm-l",
-    "cs-x-arm-r",
-    "cs-x-shadow",
-  ];
-
   test("animates transform and opacity only", () => {
-    for (const name of names) {
+    assert.ok(rigKeyframes.length > 40, `${rigKeyframes.length} keyframes`);
+    for (const name of rigKeyframes) {
       const props = [...keyframes(name).matchAll(/^\s*([a-z-]+):/gm)].map(
         (m) => m[1],
       );
       assert.ok(props.length > 0, name);
-      for (const prop of props)
+      for (const prop of props) {
         assert.ok(
           prop === "transform" || prop === "opacity",
           `${name}: ${prop}`,
         );
+      }
     }
   });
 
-  test("every part of the show runs on the same 12s loop, so they stay in step", () => {
-    assert.match(css, /--cs-show: 12s;/);
-    for (const name of names.filter(
-      (n) =>
-        !n.startsWith("cs-x-") &&
-        n !== "cs-breathe" &&
-        !n.startsWith("cs-blink") &&
-        n !== "cs-glance",
-    )) {
+  test("every move runs on the same 12s loop, started at each mascot's own time", () => {
+    assert.match(css, /\.rig \{\s*--show: 12s;/);
+    assert.match(
+      css,
+      /\.rig :is\(\.rig-t, \.rig-w, \.rig-j, \.rig-c, \.rig-p\) \{\s*animation-duration: var\(--show\);[\s\S]*?animation-iteration-count: infinite;/,
+    );
+    for (const m of ["t", "w", "j", "c", "p"]) {
       assert.match(
         css,
         new RegExp(
-          `animation: ${name} var\\(--cs-show\\) [a-z-]+ var\\(--cs-start\\) infinite`,
+          `\\.rig \\.rig-${m} \\{\\s*animation-delay: var\\(--at-${m}\\);`,
         ),
-        name,
       );
+      assert.ok(component.includes(`"--at-${m}"`), m);
+    }
+    // Every show keyframe is used by a move group.
+    for (const name of rigKeyframes.filter((n) => /-[twjcp]$/.test(n))) {
+      assert.match(css, new RegExp(`animation-name: ${name};`), name);
     }
   });
 
-  test("the jumps stay low, so the mascot never leaves its card or reaches the pills", () => {
+  test("jumps stay low, so a mascot never leaves its card or reaches the pills", () => {
     // Jumps are a share of the mascot width: 0.045 is about 8px on a card.
-    for (const name of ["cs-hop", "cs-x-hop"]) {
+    for (const name of ["rig-hop-w", "rig-hop-j", "rig-hop-c", "rig-hop-x"]) {
       const jumps = [
         ...keyframes(name).matchAll(
           /translateY\(calc\(var\(--w\) \* -([\d.]+)\)\)/g,
@@ -213,82 +328,102 @@ describe("the motion", () => {
       assert.ok(jumps.length > 0, name);
       for (const [, k] of jumps) assert.ok(Number(k) <= 0.045, `${name}: ${k}`);
     }
-    // The side-to-side wiggle inside the art stays within about 4px on a card.
-    for (const name of ["cs-sway", "cs-x-sway"]) {
+    for (const name of ["rig-sway-c", "rig-sway-x"]) {
       for (const [, x] of keyframes(name).matchAll(/translate\((-?\d+)px,/g)) {
         assert.ok(Math.abs(Number(x)) <= 20, `${name}: ${x}`);
       }
     }
   });
 
-  test("jumps straight up with no turn or flip: the flat drawing never rotates in 3D", () => {
-    for (const source of [css, component]) {
+  test("no 3D turn or flip anywhere: the flat drawings never rotate in 3D", () => {
+    for (const source of [css, component, ...rigFiles]) {
       assert.doesNotMatch(
         source,
-        /rotateY|rotateX|rotate3d|perspective|scaleX\(-|cs-turn|cs-spin/,
+        /rotateY|rotateX|rotate3d|perspective|scaleX\(-|rig-turn|rig-spin|cs-turn|cs-spin/,
       );
     }
-    const jump = keyframes("cs-hop");
-    assert.match(jump, /translateY\(calc\(var\(--w\) \* -/);
+    assert.match(keyframes("rig-hop-j"), /translateY\(calc\(var\(--w\) \* -/);
   });
 
   test("leans and squashes on landing", () => {
     assert.match(
-      keyframes("cs-sway"),
-      /51\.5% \{\s*transform: translate\(-?\d+px, 0\) rotate\(-?[1-9][\d.]*deg\)/,
+      keyframes("rig-sway-j"),
+      /13\.5% \{\s*transform: translate\(calc\(var\(--lean\) \* -\d+px\), 0\)\s*rotate\(calc\(var\(--lean\) \* -[1-9][\d.]*deg\)\)/,
     );
     assert.match(
-      keyframes("cs-hop"),
-      /51\.5% \{\s*transform: translateY\(0\) scale\(1\.1\d*, 0\.8\d*\)/,
+      keyframes("rig-hop-j"),
+      /13\.5% \{\s*transform: translateY\(0\) scale\(1\.1\d*, 0\.8\d*\)/,
     );
+  });
+
+  test("the happy face shows in the wave, the jump and the cheer", () => {
+    for (const m of ["w", "j", "c"]) {
+      assert.match(keyframes(`rig-smile-${m}`), /opacity: 1/);
+      assert.match(keyframes(`rig-mouth-${m}`), /opacity: 0/);
+      assert.match(keyframes(`rig-blush-${m}`), /opacity: 0\.\d+/);
+    }
+    for (const m of ["j", "c"]) {
+      assert.match(keyframes(`rig-joy-${m}`), /opacity: 1/);
+      assert.match(keyframes(`rig-eyes-${m}`), /opacity: 0/);
+    }
   });
 
   test("gets extra excited on hover and on keyboard focus", () => {
     for (const cond of [":hover", ":has\\(:focus-visible\\)"]) {
+      const card = `:is\\(\\.agents-card, \\.agents-detail-card\\)${cond}\\s+\\.rig\\s+`;
+      assert.match(
+        css,
+        new RegExp(
+          `${card}:is\\(\\.rig-t, \\.rig-w, \\.rig-j, \\.rig-c, \\.rig-p\\) \\{\\s*animation-name: none;`,
+        ),
+      );
       for (const [part, anim] of [
-        ["cs-hop", "cs-x-hop"],
-        ["cs-arm", "cs-x-arm-l"],
-        ["cs-arm-r", "cs-x-arm-r"],
+        ["hop", "rig-hop-x"],
+        ["sway", "rig-sway-x"],
+        ["head", "rig-head-x"],
+        ["arm", "rig-arm-x"],
+        ["prop", "rig-prop-x"],
+        ["shadow", "rig-shadow-x"],
       ]) {
         assert.match(
           css,
-          new RegExp(
-            `:is\\(\\.agents-card, \\.agents-detail-card\\)${cond}\\s+\\.cs-rig\\s+\\.${part} \\{\\s*animation: ${anim}`,
-          ),
+          new RegExp(`${card}\\.rig-${part}\\.rig-x \\{\\s*animation: ${anim}`),
           `${cond} ${part}`,
         );
       }
+      assert.match(
+        css,
+        new RegExp(
+          `${card}:is\\(\\.rig-joy, \\.rig-smile\\)\\.rig-c \\{\\s*opacity: 1;`,
+        ),
+      );
     }
+    // Hover is only for devices that really hover, so a tap doesn't leave it stuck.
     assert.match(
       css,
-      /:has\(:focus-visible\)\s+\.cs-rig\s+\.cs-eyes-happy \{\s*animation: none;\s*opacity: 1/,
-    );
-    // Hover is only for devices that really hover, so a tap doesn't leave it stuck.
-    assert.ok(
-      css.includes(
-        "@media (hover: hover) {\n  :is(.agents-card, .agents-detail-card):hover .cs-rig",
-      ),
+      /@media \(hover: hover\) \{\s*:is\(\.agents-card, \.agents-detail-card\):hover\s+\.rig/,
     );
   });
 
-  test("reduced motion holds it completely still", () => {
+  test("reduced motion holds every mascot completely still", () => {
     const reduced = css.slice(
       css.indexOf("@media (prefers-reduced-motion: reduce)"),
     );
-    assert.match(reduced, /\.cs-rig \*[\s\S]*animation: none !important/);
-    assert.match(reduced, /transition: none !important/);
     assert.match(
       reduced,
-      /\.cs-rig \.cs-look[\s\S]*transform: none !important/,
+      /\.agents-page \.rig \*,\s*\.agents-page \.rig \{\s*animation: none !important;\s*transition: none !important;/,
     );
     assert.match(
       reduced,
-      /\.cs-rig \.cs-mouth-happy \{\s*opacity: 0 !important/,
+      /\.rig :is\(\.rig-look, \.rig-face\) \{\s*transform: none !important/,
     );
-    assert.match(reduced, /\.cs-rig \.cs-eyes-open \{\s*opacity: 1 !important/);
     assert.match(
       reduced,
-      /\.cs-rig \.cs-eyes-happy,\s*\.agents-page \.cs-rig \.cs-blush \{\s*opacity: 0 !important/,
+      /\.rig :is\(\.rig-joy, \.rig-smile, \.rig-blush\) \{\s*opacity: 0 !important/,
+    );
+    assert.match(
+      reduced,
+      /\.rig :is\(\.rig-eyes, \.rig-mouth\) \{\s*opacity: 1 !important/,
     );
   });
 });
