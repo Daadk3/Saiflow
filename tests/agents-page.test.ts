@@ -1,7 +1,7 @@
 /**
  * /agents is a static, informational catalog. It follows the approved
- * jet-black mockup and stays out of the main navigation until the owner
- * asks for that link.
+ * jet-black mockup, is linked from the header and footer, and its copy
+ * only promises what exists: no kit to download yet, no WhatsApp date.
  */
 
 import { test, describe } from "node:test";
@@ -67,7 +67,8 @@ describe("the agents page matches the approved page, not a checkout", () => {
     assert.equal(view.includes("نموذج تصميمي"), false);
     assert.match(view, /وكلاء/);
     assert.match(view, /SaiFlow AI Agents/);
-    assert.match(view, /WhatsApp — soon/);
+    assert.match(view, /WhatsApp later/);
+    assert.match(view, /واتساب لاحقًا/);
     assert.match(view, /ChatGPT · Claude · Gemini/);
     assert.match(view, /00-saiflow-plain\.png/);
   });
@@ -84,9 +85,28 @@ describe("the agents page matches the approved page, not a checkout", () => {
     assert.match(view, /type="button"/);
   });
 
-  test("the page is not in the main nav or the homepage", () => {
-    assert.equal(nav.includes('href="/agents"'), false);
+  test("the page is linked from the desktop and mobile menus and the footer, not the homepage", () => {
+    assert.equal(nav.split('href="/agents"').length - 1, 2);
+    assert.match(nav, /t\('agents'\)/);
+    assert.match(read("components/Footer.tsx"), /href="\/agents"[^>]*>\{t\('nav\.agents'\)\}/);
     assert.equal(home.includes("/agents"), false);
+  });
+
+  test("the Agents link is translated in Arabic and English", () => {
+    assert.equal(JSON.parse(read("messages/ar.json")).nav.agents, "الوكلاء");
+    assert.equal(JSON.parse(read("messages/en.json")).nav.agents, "Agents");
+  });
+
+  test("the copy promises no download today and no WhatsApp date", () => {
+    const how = read("components/agents/HowItWorks.tsx");
+    const data = read("components/agents/agents-data.ts");
+    const detail = read("components/agents/AgentDetail.tsx");
+    for (const [name, text] of Object.entries({ page, view, how, data, detail })) {
+      assert.equal(/Download|حمّل|WhatsApp — soon|coming later|paid upgrade|ترقية مدفوعة|تيليجرام|Telegram/.test(text), false, name);
+    }
+    assert.match(view, /Coming soon: a ready kit you paste into ChatGPT, Claude or Gemini/);
+    assert.match(page, /قريبًا: حزمة جاهزة تلصقها/);
+    assert.match(how, /How it will work at launch/);
   });
 });
 
@@ -142,7 +162,7 @@ describe("each agent has its own page", () => {
     assert.match(detail, /agent\.descAr/);
     assert.match(detail, /agent\.descEn/);
     assert.match(detail, /ChatGPT · Claude · Gemini/);
-    assert.match(detail, /WhatsApp — soon/);
+    assert.match(detail, /WhatsApp later/);
     assert.match(detail, /not available yet/);
     assert.match(detail, /متاح قريبًا/);
     assert.equal(/checkout|stripe|price|سعر|هللة|whatsapp\.com|wa\.me/i.test(detail), false);

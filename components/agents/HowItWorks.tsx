@@ -11,7 +11,13 @@ export default function HowItWorks({ id = "how-it-works" }: { id?: string }) {
           · <span className="agents-en" lang="en">How it works</span>
         </span>
       </h2>
-      <p className="agents-how-sub">بدون برمجة وبدون اشتراك شهري، ثلاث خطوات فقط</p>
+      <p className="agents-how-sub">
+        هكذا سيعمل عند الإطلاق: بدون برمجة وبدون اشتراك شهري، ثلاث خطوات فقط
+        {/* Own line, so the English never lands inside the Arabic sentence. */}
+        <span className="agents-en" lang="en" style={{ display: "block" }}>
+          How it will work at launch
+        </span>
+      </p>
       <div className="agents-steps">
         {HOW_STEPS.map((step) => (
           <article key={step.n} className="agents-step">
@@ -34,17 +40,22 @@ export default function HowItWorks({ id = "how-it-works" }: { id?: string }) {
         ))}
       </div>
       <div className="agents-upg">
+        {/* No date, price or channel list until they are decided: WhatsApp
+            waits on Meta business verification. */}
         <div className="agents-upg-title">
-          قريبًا: اربط وكيلك بواتساب، ثم تيليجرام
+          لاحقًا: ربط الوكيل بواتساب
           <small>
-            ترقية مدفوعة اختيارية ·{" "}
+            غير متاح بعد ·{" "}
             <span className="agents-en" lang="en">
-              Optional paid upgrade: WhatsApp first, then Telegram
+              Later: connecting your agent to WhatsApp. Not available yet.
             </span>
           </small>
         </div>
-        <span className="agents-soon agents-en" lang="en">
-          WhatsApp — coming later
+        <span className="agents-soon">
+          واتساب لاحقًا ·{" "}
+          <span className="agents-en" lang="en">
+            WhatsApp later
+          </span>
         </span>
       </div>
     </section>

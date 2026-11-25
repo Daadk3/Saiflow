@@ -5,7 +5,7 @@ import { agentsFont } from "@/components/agents/agents-font";
 
 const title = "وكلاء SaiFlow الأذكياء";
 const description =
-  "حمّل الوكيل، والصقه في ChatGPT أو Claude أو Gemini، ويبدأ العمل فورًا. Download, paste into ChatGPT, Claude or Gemini, and it starts working.";
+  "قريبًا: حزمة جاهزة تلصقها في ChatGPT أو Claude أو Gemini، ويبدأ وكيلك العمل. Coming soon: a ready kit you paste into ChatGPT, Claude or Gemini.";
 
 export const metadata: Metadata = {
   title,

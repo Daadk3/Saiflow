@@ -59,6 +59,9 @@ export default function Navbar() {
             <Link href="/pricing" className={navLinkClass}>
               {t('pricing')}
             </Link>
+            <Link href="/agents" className={navLinkClass}>
+              {t('agents')}
+            </Link>
           </div>
 
           {/* Right actions. WhatsApp stays outside the lg-only group so the
@@ -164,6 +167,9 @@ export default function Navbar() {
             </Link>
             <Link href="/pricing" className={navLinkClass} onClick={() => setMenuOpen(false)}>
               {t('pricing')}
+            </Link>
+            <Link href="/agents" className={navLinkClass} onClick={() => setMenuOpen(false)}>
+              {t('agents')}
             </Link>
             {session ? (
               // Logged in mobile menu

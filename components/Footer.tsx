@@ -94,6 +94,7 @@ export default function Footer() {
               <h3 className="text-sm font-semibold text-white">{t('footer.columnProduct')}</h3>
               <ul className="flex flex-col gap-2">
                 <li><Link href="/browse" className={linkClass}>{t('products.allProducts')}</Link></li>
+                <li><Link href="/agents" className={linkClass}>{t('nav.agents')}</Link></li>
                 <li><Link href="/features" className={linkClass}>{t('nav.features')}</Link></li>
                 <li><Link href="/pricing" className={linkClass}>{t('nav.pricing')}</Link></li>
                 <li><Link href={startSellingHref} className={linkClass}>{t('nav.startSelling')}</Link></li>

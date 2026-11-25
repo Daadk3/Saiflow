@@ -172,9 +172,9 @@ export const HOW_STEPS = [
   {
     n: "١",
     color: "#00FFB3",
-    title: "حمّل حزمة الوكيل",
-    body: "تعليمات جاهزة، وقالب لمعلومات نشاطك، ودليل إعداد بالصور.",
-    en: "Download the kit: instructions, knowledge template, setup guide.",
+    title: "حزمة الوكيل (قريبًا)",
+    body: "قريبًا: تعليمات جاهزة، وقالب لمعلومات نشاطك، ودليل إعداد بالصور.",
+    en: "Coming soon: a ready kit with instructions, a knowledge template and a setup guide.",
   },
   {
     n: "٢",

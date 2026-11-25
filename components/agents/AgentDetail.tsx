@@ -103,7 +103,12 @@ export default function AgentDetail({
                 </dt>
                 <dd className="agents-badges">
                   <span className="agents-badge">ChatGPT · Claude · Gemini</span>
-                  <span className="agents-badge agents-badge-wa">WhatsApp — soon</span>
+                  <span className="agents-badge agents-badge-wa">
+                    واتساب لاحقًا ·{" "}
+                    <span className="agents-en" lang="en">
+                      WhatsApp later
+                    </span>
+                  </span>
                 </dd>
               </div>
 
