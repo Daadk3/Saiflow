@@ -28,6 +28,9 @@ const nextConfig: NextConfig = {
     // resized thumbnail can be cached for a month instead of re-made daily.
     // Keep remotePatterns in step with lib/image-hosts.
     minimumCacheTTL: 2678400,
+    // 75 is the default; the /agents mascots ask for 90 so their flat
+    // colours and outlines stay crisp after resizing.
+    qualities: [75, 90],
     remotePatterns: [
       {
         protocol: "https",

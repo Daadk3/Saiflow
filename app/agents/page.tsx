@@ -1,13 +1,7 @@
 import type { Metadata } from "next";
-import { Cairo } from "next/font/google";
+import { getLocale } from "next-intl/server";
 import AgentsView from "@/components/agents/AgentsView";
-
-const cairo = Cairo({
-  subsets: ["arabic", "latin"],
-  weight: ["400", "600", "700", "800"],
-  display: "swap",
-  variable: "--font-agents",
-});
+import { agentsFont } from "@/components/agents/agents-font";
 
 const title = "وكلاء SaiFlow الأذكياء";
 const description =
@@ -27,6 +21,7 @@ export const metadata: Metadata = {
   },
 };
 
-export default function AgentsPage() {
-  return <AgentsView fontVariableClass={cairo.variable} />;
+export default async function AgentsPage() {
+  const locale = (await getLocale()).startsWith("en") ? "en" : "ar";
+  return <AgentsView fontVariableClass={agentsFont.variable} locale={locale} />;
 }

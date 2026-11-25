@@ -2,7 +2,9 @@
  * /agents — approved "SaiFlow AI Agents" mockup.
  *
  * Dark (the default, and html.dark) is the jet-black design: the page and
- * every agent card are #000000. Mascot glows and drop shadows stay off.
+ * every agent card are #000000. Mascot glows and drop shadows stay off;
+ * the only shadow is the soft ground ellipse under each mascot, which
+ * breathes with the idle loop (see "mascot motion" below).
  * The Customer Service mint ring, the faint art-dot texture, and the
  * How it works panel stay as drawn.
  *
@@ -272,11 +274,6 @@
   background: none;
 }
 
-.agents-orb img {
-  width: 100%;
-  height: auto;
-  filter: none;
-}
 
 .agents-orb-big {
   width: 330px;
@@ -286,9 +283,6 @@
   align-items: center;
 }
 
-.agents-orb-big img {
-  width: 290px;
-}
 
 .agents-orb-s {
   width: 130px;
@@ -469,10 +463,19 @@
   display: flex;
   flex-direction: column;
   min-width: 0;
+  height: 100%;
+  transition: border-color 0.25s ease;
+}
+
+@media (hover: hover) {
+  .agents-card:not(.agents-card-first):hover {
+    border-color: color-mix(in srgb, var(--c) 45%, var(--agents-line));
+  }
 }
 
 .agents-card-art {
-  height: 200px;
+  /* Room for the status pills above the mascot's highest float. */
+  height: 214px;
   position: relative;
   display: flex;
   align-items: flex-end;
@@ -490,13 +493,9 @@
   pointer-events: none;
 }
 
-.agents-card-art img {
-  width: 186px;
-  height: auto;
-  position: relative;
+.agents-card-mascot {
   z-index: 1;
-  margin-bottom: 6px;
-  filter: none;
+  margin-bottom: 8px;
 }
 
 .agents-card-body {
@@ -521,6 +520,19 @@
   font-weight: 800;
   line-height: 1.4;
   white-space: nowrap;
+}
+
+.agents-name-link {
+  color: inherit;
+  text-decoration: none;
+  border-radius: 6px;
+}
+
+.agents-name-link:hover {
+  text-decoration: underline;
+  text-decoration-color: var(--c);
+  text-underline-offset: 6px;
+  text-decoration-thickness: 2px;
 }
 
 .agents-name-en {
@@ -589,6 +601,9 @@
 }
 
 .agents-card-btn {
+  display: block;
+  text-align: center;
+  text-decoration: none;
   margin-top: 16px;
   width: 100%;
   padding: 10px;
@@ -1000,5 +1015,362 @@ html.light .agents-soon {
 
   .agents-search input {
     font-size: 16px;
+  }
+}
+
+/* ---------- keyboard focus ---------- */
+
+.agents-page a:focus-visible,
+.agents-page button:focus-visible {
+  outline: 2px solid var(--agents-mint);
+  outline-offset: 3px;
+}
+
+.agents-search:has(input:focus-visible) {
+  outline: 2px solid var(--agents-mint);
+  outline-offset: 2px;
+}
+
+html.light .agents-page a:focus-visible,
+html.light .agents-page button:focus-visible,
+html.light .agents-search:has(input:focus-visible) {
+  outline-color: #0f766e;
+}
+
+/* ---------- mascot motion ----------
+ * Transform and opacity only, so it all stays on the compositor.
+ * .agents-mascot-bob    idle float with a little squash and stretch
+ * .agents-mascot-shadow ground shadow, smaller and fainter at the top
+ * .agents-mascot-react  one happy hop and tilt on card hover or focus
+ * Duration and phase come from Mascot.tsx so neighbours never sync. */
+
+.agents-mascot {
+  --w: 186px;
+  --dur: 3.4s;
+  --delay: 0s;
+  position: relative;
+  width: var(--w);
+  flex: none;
+}
+
+.agents-mascot img {
+  display: block;
+  width: 100%;
+  height: auto;
+  filter: none;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+.agents-mascot-bob {
+  transform-origin: 50% 100%;
+  animation: agents-bob var(--dur) ease-in-out var(--delay) infinite;
+  will-change: transform;
+}
+
+.agents-mascot-react {
+  transform-origin: 50% 85%;
+}
+
+.agents-mascot-shadow {
+  position: absolute;
+  left: 18%;
+  right: 18%;
+  bottom: -2px;
+  height: 14px;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgba(255, 255, 255, 0.13), rgba(255, 255, 255, 0));
+  animation: agents-shadow var(--dur) ease-in-out var(--delay) infinite;
+  will-change: transform, opacity;
+  pointer-events: none;
+}
+
+html.light .agents-mascot-shadow {
+  background: radial-gradient(closest-side, rgba(18, 20, 23, 0.2), rgba(18, 20, 23, 0));
+}
+
+@keyframes agents-bob {
+  0%,
+  100% {
+    transform: translateY(0) scale(1.025, 0.975);
+  }
+  18% {
+    transform: translateY(-1px) scale(1, 1);
+  }
+  50% {
+    transform: translateY(-7px) scale(0.985, 1.015);
+  }
+  82% {
+    transform: translateY(-1px) scale(1, 1);
+  }
+}
+
+@keyframes agents-shadow {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(0.74);
+    opacity: 0.55;
+  }
+}
+
+@keyframes agents-hop {
+  0% {
+    transform: none;
+  }
+  22% {
+    transform: translateY(-12px) rotate(-5deg) scale(0.97, 1.04);
+  }
+  46% {
+    transform: translateY(0) rotate(4deg) scale(1.05, 0.95);
+  }
+  66% {
+    transform: translateY(-4px) rotate(-2.5deg);
+  }
+  84% {
+    transform: rotate(1deg);
+  }
+  100% {
+    transform: none;
+  }
+}
+
+@media (hover: hover) {
+  .agents-card:hover .agents-mascot-react,
+  .agents-detail-card:hover .agents-mascot-react {
+    animation: agents-hop 0.75s cubic-bezier(0.3, 0.7, 0.4, 1) both;
+  }
+}
+
+.agents-card:has(:focus-visible) .agents-mascot-react {
+  animation: agents-hop 0.75s cubic-bezier(0.3, 0.7, 0.4, 1) both;
+}
+
+/* ---------- scroll reveal ---------- */
+
+.agents-reveal {
+  opacity: 0;
+  transform: translateY(18px);
+  transition:
+    opacity 0.5s ease var(--reveal-delay, 0ms),
+    transform 0.6s cubic-bezier(0.2, 0.7, 0.2, 1) var(--reveal-delay, 0ms),
+    border-color 0.25s ease;
+}
+
+.agents-reveal.is-in {
+  opacity: 1;
+  transform: none;
+}
+
+/* ---------- agent page ---------- */
+
+.agents-detail {
+  padding-top: 22px;
+}
+
+.agents-crumbs {
+  margin-bottom: 16px;
+}
+
+.agents-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--agents-muted);
+  text-decoration: none;
+  font-size: 14px;
+  border-radius: 999px;
+  padding: 6px 2px;
+}
+
+.agents-back:hover {
+  color: var(--agents-ink);
+}
+
+.agents-detail-card {
+  --c: #1fb3b3;
+  --c-ink: #0f766e;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  background: #000000;
+  border: 1px solid var(--agents-line);
+  border-radius: 26px;
+  overflow: hidden;
+}
+
+@media (min-width: 860px) {
+  .agents-detail-card {
+    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+  }
+}
+
+.agents-detail-art {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 300px;
+  padding: 28px 16px 34px;
+  background: radial-gradient(circle at 50% 60%, color-mix(in srgb, var(--c) 14%, transparent), transparent 62%);
+}
+
+.agents-detail-art::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(rgba(255, 255, 255, 0.07) 1px, transparent 1px);
+  background-size: 16px 16px;
+  mask-image: linear-gradient(180deg, #000, transparent);
+  pointer-events: none;
+}
+
+.agents-detail-art .agents-mascot {
+  z-index: 1;
+  width: min(var(--w), 62vw);
+}
+
+.agents-detail-body {
+  padding: 24px 20px 26px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+@media (min-width: 860px) {
+  .agents-detail-body {
+    padding: 36px 36px 34px;
+  }
+}
+
+.agents-detail-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.agents-pill {
+  font-size: 12.5px;
+  border-radius: 999px;
+  padding: 4px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: #c3c9d3;
+  line-height: 1.4;
+}
+
+.agents-pill-soon {
+  border-color: rgba(0, 255, 179, 0.45);
+  color: var(--agents-mint);
+  font-weight: 700;
+}
+
+.agents-page h1.agents-detail-title {
+  margin: 14px 0 0;
+  font-size: 30px;
+}
+
+@media (min-width: 960px) {
+  .agents-page h1.agents-detail-title {
+    font-size: 40px;
+  }
+}
+
+.agents-detail-title-en {
+  margin: 0;
+  color: var(--c);
+  font-weight: 700;
+  font-size: 17px;
+}
+
+.agents-facts {
+  width: 100%;
+  margin: 22px 0 0;
+  display: grid;
+  gap: 0;
+}
+
+.agents-fact {
+  padding: 14px 0;
+  border-top: 1px solid var(--agents-line);
+}
+
+.agents-fact dt {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--agents-muted);
+}
+
+.agents-fact dd {
+  margin: 6px 0 0;
+  font-size: 15.5px;
+  line-height: 1.7;
+}
+
+.agents-fact dd.agents-badges {
+  margin-top: 8px;
+}
+
+.agents-fact-ar,
+.agents-fact-en {
+  margin: 0;
+}
+
+.agents-fact-en {
+  font-size: 14px;
+  color: var(--agents-muted);
+}
+
+.agents-detail-back {
+  margin-top: 18px;
+}
+
+.agents-detail-card.agents-card-first {
+  border-color: rgba(0, 255, 179, 0.55);
+}
+
+html.light .agents-detail-card {
+  background: #ffffff;
+  border-color: #e1e7ee;
+}
+
+html.light .agents-detail-card.agents-card-first {
+  border-color: rgba(0, 200, 140, 0.7);
+}
+
+html.light .agents-detail-art::after {
+  background-image: radial-gradient(rgba(18, 20, 23, 0.14) 1px, transparent 1px);
+}
+
+html.light .agents-detail-title-en {
+  color: var(--c-ink);
+}
+
+html.light .agents-pill {
+  color: #334155;
+  border-color: rgba(18, 20, 23, 0.16);
+}
+
+html.light .agents-pill-soon {
+  background: #00ffb3;
+  color: #04140d;
+  border-color: #00ffb3;
+}
+
+/* ---------- reduced motion: nothing moves ---------- */
+
+@media (prefers-reduced-motion: reduce) {
+  .agents-page .agents-mascot-bob,
+  .agents-page .agents-mascot-shadow,
+  .agents-page .agents-mascot-react {
+    animation: none !important;
+    will-change: auto;
+  }
+
+  .agents-page .agents-reveal {
+    opacity: 1;
+    transform: none;
+    transition: none;
   }
 }

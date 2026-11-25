@@ -191,3 +191,63 @@ export const HOW_STEPS = [
     en: "Paste into ChatGPT Projects, Claude Projects or Gemini Gems.",
   },
 ] as const;
+
+export function getAgent(id: string): Agent | undefined {
+  return AGENTS.find((agent) => agent.id === id);
+}
+
+export function getCategory(id: AgentCategoryId): AgentCategory {
+  return CATEGORIES.find((item) => item.id === id) ?? CATEGORIES[0];
+}
+
+/**
+ * Folds the spellings people type into one form, so "منسق" finds "منسّق"
+ * and "مساعد المحاسبه" finds "مساعد المحاسبة": drops harakat, shadda and
+ * tatweel, and unifies alef, yaa and taa marbuta forms.
+ */
+export function normalizeSearch(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/[ً-ٰٟـ]/g, "")
+    .replace(/[إأآٱ]/g, "ا")
+    .replace(/ى/g, "ي")
+    .replace(/ة/g, "ه")
+    .replace(/ؤ/g, "و")
+    .replace(/ئ/g, "ي")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+/** The cards the catalog shows for a chip and a search box value. */
+export function filterAgents(
+  agents: readonly Agent[],
+  category: "all" | AgentCategoryId,
+  query: string,
+): Agent[] {
+  const q = normalizeSearch(query);
+  return agents.filter((agent) => {
+    if (category !== "all" && agent.category !== category) return false;
+    if (!q) return true;
+    const group = getCategory(agent.category);
+    const haystack = normalizeSearch(
+      [
+        agent.nameAr,
+        agent.nameEn,
+        agent.descAr,
+        agent.descEn,
+        group.ar,
+        group.en,
+        agent.statusAr,
+        agent.statusEn,
+      ].join(" "),
+    );
+    return haystack.includes(q);
+  });
+}
+
+export type AgentsLocale = "ar" | "en";
+
+/** Mascot alt text in the visitor's language (Arabic on /agents, English on /en/agents). */
+export function mascotAlt(agent: Agent, locale: AgentsLocale): string {
+  return locale === "en" ? `${agent.nameEn} agent illustration` : `رسم ${agent.nameAr}`;
+}
