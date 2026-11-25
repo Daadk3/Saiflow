@@ -1253,7 +1253,25 @@
       "payouts": "Seller payouts",
       "sales": "Sales",
       "stores": "Stores",
-      "buyerReviews": "Buyer reviews"
+      "buyerReviews": "Buyer reviews",
+      "agentWaitlist": "Agent launch list"
+    },
+    "agentWaitlist": {
+      "title": "Agent launch list",
+      "subtitle": "People who asked to hear when an agent on /agents launches, newest first. Nothing is sent from here.",
+      "count": "{count, plural, =0 {Nobody yet} one {# person} other {# people}}",
+      "export": "Download CSV",
+      "empty": "Nobody is on the list yet.",
+      "email": "Email",
+      "agent": "Agent",
+      "language": "Language",
+      "date": "Date",
+      "arabic": "Arabic",
+      "english": "English",
+      "pages": "Pages",
+      "newer": "← Newer",
+      "older": "Older →",
+      "pageOf": "Page {page} of {pages}"
     },
     "firstVisit": {
       "title": "Why do products say “Not yet reviewed”?",

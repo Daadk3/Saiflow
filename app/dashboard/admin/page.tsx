@@ -347,6 +347,12 @@ export default async function FounderDashboardPage() {
             >
               {t("actions.buyerReviews")}
             </Link>
+            <Link
+              href="/dashboard/admin/agent-waitlist"
+              className="rounded-lg border border-gray-800 bg-[#111] px-4 py-2 text-sm text-gray-300 transition-colors hover:border-gray-700 hover:text-white"
+            >
+              {t("actions.agentWaitlist")}
+            </Link>
           </nav>
         </div>
       </main>

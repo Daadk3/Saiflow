@@ -925,3 +925,17 @@ model SellerWaitlist {
 
   @@index([createdAt])
 }
+
+/// Email addresses from people who asked to hear when an /agents kit
+/// launches. One row per address and agent. Used only for that launch
+/// email; the "Notify me" form on /agents writes here.
+model AgentWaitlist {
+  id        String   @id @default(cuid())
+  email     String
+  agentSlug String
+  locale    String   @default("ar")
+  createdAt DateTime @default(now())
+
+  @@unique([email, agentSlug])
+  @@index([createdAt])
+}
