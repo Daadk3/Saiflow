@@ -110,10 +110,10 @@ export default function AgentsView({
               SaiFlow AI Agents
             </div>
             <p className="agents-lead">
-              حمّل الوكيل، والصقه في <bdi>ChatGPT</bdi> أو <bdi>Claude</bdi> أو <bdi>Gemini</bdi>، ويبدأ العمل فورًا.
+              قريبًا: حزمة جاهزة تلصقها في <bdi>ChatGPT</bdi> أو <bdi>Claude</bdi> أو <bdi>Gemini</bdi>، ويبدأ وكيلك العمل.
             </p>
             <p className="agents-leaden agents-en" lang="en">
-              Download, paste into ChatGPT, Claude or Gemini, and it starts working.
+              Coming soon: a ready kit you paste into ChatGPT, Claude or Gemini.
             </p>
             <div className="agents-ctas">
               <a className="agents-btn agents-btn-mint" href="#agents-catalog">
@@ -284,7 +284,12 @@ export default function AgentsView({
                   <div className="agents-spacer" />
                   <div className="agents-badges">
                     <span className="agents-badge">ChatGPT · Claude · Gemini</span>
-                    <span className="agents-badge agents-badge-wa">WhatsApp — soon</span>
+                    <span className="agents-badge agents-badge-wa">
+                      واتساب لاحقًا ·{" "}
+                      <span className="agents-en" lang="en">
+                        WhatsApp later
+                      </span>
+                    </span>
                   </div>
                   {agent.featured ? (
                     // Informational only. Launch sign-up is not built yet; this does not take payment.
