@@ -1358,6 +1358,296 @@ html.light .agents-pill-soon {
   border-color: #00ffb3;
 }
 
+/* ---------- customer service rig ----------
+ * CustomerServiceMascot.tsx draws this one mascot as SVG parts. Every
+ * value below is in the art's own 900-unit space (transform-box: view-box),
+ * so the motion scales with the mascot. Loop lengths are deliberately
+ * uneven (3.6s, 5.3s, 13.1s, 9.4s, 7.9s, 11.3s, 15.7s) so the pattern
+ * never visibly repeats. Transform and opacity only. */
+
+.cs-rig .cs-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.cs-rig .cs-svg g,
+.cs-rig .cs-svg path,
+.cs-rig .cs-svg ellipse {
+  transform-box: view-box;
+}
+
+.cs-walk {
+  transform-origin: 450px 860px;
+  animation: cs-step 15.7s ease-in-out -3s infinite;
+}
+
+.cs-breathe {
+  transform-origin: 450px 860px;
+  animation: cs-breathe 3.6s ease-in-out infinite;
+}
+
+.cs-head {
+  transform-origin: 440px 620px;
+  animation: cs-tilt 7.9s ease-in-out -2s infinite;
+}
+
+.cs-face {
+  transform: translate(calc(var(--cs-fx, 0) * 1px), calc(var(--cs-fy, 0) * 1px));
+  transition: transform 0.5s cubic-bezier(0.2, 0.7, 0.3, 1);
+}
+
+.cs-look {
+  transform: translate(calc(var(--cs-lx, 0) * 1px), calc(var(--cs-ly, 0) * 1px));
+  transition: transform 0.3s cubic-bezier(0.2, 0.7, 0.3, 1);
+}
+
+.cs-glance {
+  animation: cs-glance 9.4s ease-in-out -1s infinite;
+}
+
+/* The cursor leads while it moves; the mascot glances on its own again after. */
+.cs-rig[data-tracking] .cs-glance {
+  animation: none;
+}
+
+.cs-eye {
+  animation: cs-blink-double 13.1s linear -4s infinite;
+}
+
+.cs-lid {
+  animation: cs-blink 5.3s linear infinite;
+}
+
+.cs-eye-l {
+  transform-origin: 339px 340px;
+}
+
+.cs-eye-r {
+  transform-origin: 506px 353px;
+}
+
+.cs-arm,
+.cs-arm-wave {
+  transform-origin: var(--cs-arm-x) var(--cs-arm-y);
+}
+
+.cs-arm {
+  animation: cs-arm-hi 11.3s ease-in-out -6s infinite;
+}
+
+.cs-mouth-rest {
+  transition: opacity 0.18s ease;
+}
+
+.cs-mouth-happy {
+  opacity: 0;
+  transform: scaleY(0.35);
+  transform-origin: 419px 388px;
+  transition:
+    opacity 0.18s ease,
+    transform 0.25s cubic-bezier(0.3, 1.4, 0.5, 1);
+}
+
+.cs-rig .cs-shadow {
+  animation: cs-shadow-step 15.7s ease-in-out -3s infinite;
+}
+
+/* Hover or keyboard focus on its card: wave and a big smile. */
+@media (hover: hover) {
+  .agents-card:hover .cs-arm-wave,
+  .agents-detail-card:hover .cs-arm-wave {
+    animation: cs-wave 1.15s ease-in-out infinite;
+  }
+
+  .agents-card:hover .cs-mouth-happy,
+  .agents-detail-card:hover .cs-mouth-happy {
+    opacity: 1;
+    transform: none;
+  }
+
+  .agents-card:hover .cs-mouth-rest,
+  .agents-detail-card:hover .cs-mouth-rest {
+    opacity: 0;
+  }
+}
+
+.agents-card:has(:focus-visible) .cs-arm-wave,
+.agents-detail-card:has(:focus-visible) .cs-arm-wave {
+  animation: cs-wave 1.15s ease-in-out infinite;
+}
+
+.agents-card:has(:focus-visible) .cs-mouth-happy,
+.agents-detail-card:has(:focus-visible) .cs-mouth-happy {
+  opacity: 1;
+  transform: none;
+}
+
+.agents-card:has(:focus-visible) .cs-mouth-rest,
+.agents-detail-card:has(:focus-visible) .cs-mouth-rest {
+  opacity: 0;
+}
+
+@keyframes cs-breathe {
+  0%,
+  100% {
+    transform: scale(1.012, 0.988);
+  }
+  50% {
+    transform: scale(0.992, 1.016);
+  }
+}
+
+@keyframes cs-blink {
+  0%,
+  90%,
+  94.5%,
+  100% {
+    transform: scaleY(1);
+  }
+  92% {
+    transform: scaleY(0.1);
+  }
+}
+
+@keyframes cs-blink-double {
+  0%,
+  58%,
+  60.2%,
+  61.6%,
+  100% {
+    transform: scaleY(1);
+  }
+  59.1%,
+  60.9% {
+    transform: scaleY(0.1);
+  }
+}
+
+@keyframes cs-glance {
+  0%,
+  16%,
+  38%,
+  54%,
+  76%,
+  100% {
+    transform: translate(0, 0);
+  }
+  21%,
+  33% {
+    transform: translate(-10px, -3px);
+  }
+  59%,
+  71% {
+    transform: translate(9px, 4px);
+  }
+}
+
+@keyframes cs-tilt {
+  0%,
+  40%,
+  70%,
+  100% {
+    transform: rotate(0deg);
+  }
+  48%,
+  62% {
+    transform: rotate(-3deg);
+  }
+}
+
+@keyframes cs-arm-hi {
+  0%,
+  80%,
+  97%,
+  100% {
+    transform: rotate(0deg);
+  }
+  84% {
+    transform: rotate(-10deg);
+  }
+  88% {
+    transform: rotate(3deg);
+  }
+  92% {
+    transform: rotate(-7deg);
+  }
+}
+
+@keyframes cs-wave {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  22% {
+    transform: rotate(-18deg);
+  }
+  48% {
+    transform: rotate(3deg);
+  }
+  72% {
+    transform: rotate(-15deg);
+  }
+  88% {
+    transform: rotate(2deg);
+  }
+}
+
+/* A small step to its side, a little turn to look around, and back home.
+   28 units is about 6px on a card, so it never leaves the art area. */
+@keyframes cs-step {
+  0%,
+  60%,
+  96%,
+  100% {
+    transform: translate(0, 0);
+  }
+  63% {
+    transform: translate(-14px, -12px) rotate(-2deg);
+  }
+  66%,
+  71% {
+    transform: translate(-28px, 0) scale(1.015, 0.985);
+  }
+  74% {
+    transform: translate(-28px, 0) scale(0.9, 1);
+  }
+  77%,
+  86% {
+    transform: translate(-28px, 0);
+  }
+  90% {
+    transform: translate(-14px, -12px) rotate(2deg);
+  }
+  93% {
+    transform: translate(0, 0) scale(1.015, 0.985);
+  }
+}
+
+@keyframes cs-shadow-step {
+  0%,
+  60%,
+  96%,
+  100% {
+    transform: translateX(0) scale(1);
+    opacity: 1;
+  }
+  63%,
+  90% {
+    transform: translateX(calc(var(--w) * -0.0156)) scale(0.85);
+    opacity: 0.6;
+  }
+  66%,
+  86% {
+    transform: translateX(calc(var(--w) * -0.0311)) scale(1);
+    opacity: 1;
+  }
+  93% {
+    transform: translateX(0) scale(1);
+    opacity: 1;
+  }
+}
+
 /* ---------- reduced motion: nothing moves ---------- */
 
 @media (prefers-reduced-motion: reduce) {
@@ -1372,5 +1662,26 @@ html.light .agents-pill-soon {
     opacity: 1;
     transform: none;
     transition: none;
+  }
+
+  /* The customer service rig stays in its resting pose: no breathing,
+     blinking, glancing, cursor following, steps, waves or smile swap. */
+  .agents-page .cs-rig *,
+  .agents-page .cs-rig .cs-shadow {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  .agents-page .cs-rig .cs-look,
+  .agents-page .cs-rig .cs-face {
+    transform: none !important;
+  }
+
+  .agents-page .cs-rig .cs-mouth-happy {
+    opacity: 0 !important;
+  }
+
+  .agents-page .cs-rig .cs-mouth-rest {
+    opacity: 1 !important;
   }
 }

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { CSSProperties } from "react";
 import { AGENTS, getCategory, mascotAlt, type Agent, type AgentsLocale } from "./agents-data";
+import CustomerServiceMascot from "./CustomerServiceMascot";
 import HowItWorks from "./HowItWorks";
 import Mascot from "./Mascot";
 import "./agents.css";
@@ -40,13 +41,17 @@ export default function AgentDetail({
           aria-labelledby="agent-title"
         >
           <div className="agents-detail-art">
-            <Mascot
-              src={agent.image}
-              alt={mascotAlt(agent, locale)}
-              width={260}
-              index={index + 5}
-              priority
-            />
+            {agent.id === "customer-service" ? (
+              <CustomerServiceMascot width={260} label={mascotAlt(agent, locale)} />
+            ) : (
+              <Mascot
+                src={agent.image}
+                alt={mascotAlt(agent, locale)}
+                width={260}
+                index={index + 5}
+                priority
+              />
+            )}
           </div>
 
           <div className="agents-detail-body">
