@@ -13,6 +13,8 @@ import {
 } from "./agents-data";
 import HowItWorks from "./HowItWorks";
 import Mascot from "./Mascot";
+import RiggedMascot from "./RiggedMascot";
+import { RIGS } from "./rigs";
 import "./agents.css";
 
 type FilterId = "all" | AgentCategoryId;
@@ -246,13 +248,23 @@ export default function AgentsView({
                     </span>
                   </span>
                   {agent.featured ? <span className="agents-status-soon">متاح قريبًا</span> : null}
-                  <Mascot
-                    src={agent.image}
-                    alt={mascotAlt(agent, locale)}
-                    width={186}
-                    index={AGENTS.indexOf(agent) + 5}
-                    className="agents-card-mascot"
-                  />
+                  {RIGS[agent.id] ? (
+                    <RiggedMascot
+                      id={agent.id}
+                      rig={RIGS[agent.id]}
+                      width={186}
+                      label={mascotAlt(agent, locale)}
+                      className="agents-card-mascot"
+                    />
+                  ) : (
+                    <Mascot
+                      src={agent.image}
+                      alt={mascotAlt(agent, locale)}
+                      width={186}
+                      index={AGENTS.indexOf(agent) + 5}
+                      className="agents-card-mascot"
+                    />
+                  )}
                 </div>
                 <div className="agents-card-body">
                   <div className="agents-name">

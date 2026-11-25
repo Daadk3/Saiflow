@@ -3,6 +3,8 @@ import type { CSSProperties } from "react";
 import { AGENTS, getCategory, mascotAlt, type Agent, type AgentsLocale } from "./agents-data";
 import HowItWorks from "./HowItWorks";
 import Mascot from "./Mascot";
+import RiggedMascot from "./RiggedMascot";
+import { RIGS } from "./rigs";
 import "./agents.css";
 
 /**
@@ -40,13 +42,22 @@ export default function AgentDetail({
           aria-labelledby="agent-title"
         >
           <div className="agents-detail-art">
-            <Mascot
-              src={agent.image}
-              alt={mascotAlt(agent, locale)}
-              width={260}
-              index={index + 5}
-              priority
-            />
+            {RIGS[agent.id] ? (
+              <RiggedMascot
+                id={agent.id}
+                rig={RIGS[agent.id]}
+                width={260}
+                label={mascotAlt(agent, locale)}
+              />
+            ) : (
+              <Mascot
+                src={agent.image}
+                alt={mascotAlt(agent, locale)}
+                width={260}
+                index={index + 5}
+                priority
+              />
+            )}
           </div>
 
           <div className="agents-detail-body">
