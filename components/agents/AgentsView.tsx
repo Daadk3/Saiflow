@@ -1,48 +1,97 @@
 "use client";
 
-/* Approved mascot PNGs are sized by this page's CSS, not the image optimizer. */
-/* eslint-disable @next/next/no-img-element */
-
-import { useMemo, useState, type CSSProperties } from "react";
+import Link from "next/link";
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import {
   AGENTS,
   CATEGORIES,
-  HOW_STEPS,
   TRUST_POINTS,
+  filterAgents,
+  mascotAlt,
   type AgentCategoryId,
+  type AgentsLocale,
 } from "./agents-data";
+import HowItWorks from "./HowItWorks";
+import Mascot from "./Mascot";
 import "./agents.css";
 
 type FilterId = "all" | AgentCategoryId;
 
-function matchesQuery(text: string, query: string): boolean {
-  return text.toLowerCase().includes(query);
-}
+/** Cards that enter the viewport together fade in this far apart. */
+const STAGGER_MS = 80;
+const MAX_STAGGER_MS = 320;
 
 export default function AgentsView({
   fontVariableClass,
+  locale = "ar",
 }: {
   fontVariableClass: string;
+  locale?: AgentsLocale;
 }) {
   const [category, setCategory] = useState<FilterId>("all");
   const [query, setQuery] = useState("");
 
-  const visible = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    return AGENTS.filter((agent) => {
-      if (category !== "all" && agent.category !== category) return false;
-      if (!q) return true;
-      return (
-        matchesQuery(agent.nameAr, q) ||
-        matchesQuery(agent.nameEn, q) ||
-        matchesQuery(agent.descAr, q) ||
-        matchesQuery(agent.descEn, q)
+  const visible = useMemo(() => filterAgents(AGENTS, category, query), [category, query]);
+
+  // Scroll reveal. Each card fades and slides in the first time it comes
+  // into view; cards arriving together are staggered. A card that has been
+  // revealed stays revealed when filters hide and show it again.
+  const gridRef = useRef<HTMLDivElement>(null);
+  const [revealed, setRevealed] = useState<Record<string, number>>({});
+  const revealedRef = useRef(revealed);
+  useEffect(() => {
+    revealedRef.current = revealed;
+  }, [revealed]);
+
+  useEffect(() => {
+    const grid = gridRef.current;
+    if (!grid) return;
+    const pending = Array.from(grid.querySelectorAll<HTMLElement>("[data-agent]")).filter(
+      (el) => !(el.dataset.agent! in revealedRef.current),
+    );
+    if (pending.length === 0) return;
+
+    // With reduced motion the CSS shows every card as is; nothing to observe.
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    if (typeof IntersectionObserver === "undefined") {
+      const frame = requestAnimationFrame(() =>
+        setRevealed((prev) => {
+          const next = { ...prev };
+          for (const el of pending) next[el.dataset.agent!] = 0;
+          return next;
+        }),
       );
-    });
-  }, [category, query]);
+      return () => cancelAnimationFrame(frame);
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const entering = entries
+          .filter((entry) => entry.isIntersecting)
+          .map((entry) => entry.target as HTMLElement)
+          .sort((a, b) => Number(a.dataset.order) - Number(b.dataset.order));
+        if (entering.length === 0) return;
+        for (const el of entering) observer.unobserve(el);
+        setRevealed((prev) => {
+          const next = { ...prev };
+          entering.forEach((el, k) => {
+            next[el.dataset.agent!] = Math.min(k * STAGGER_MS, MAX_STAGGER_MS);
+          });
+          return next;
+        });
+      },
+      { rootMargin: "0px 0px -6% 0px", threshold: 0.12 },
+    );
+    for (const el of pending) observer.observe(el);
+    return () => observer.disconnect();
+  }, [visible]);
 
   return (
     <div className={`agents-page ${fontVariableClass}`} dir="rtl" lang="ar">
+      {/* Without JavaScript nothing would reveal the cards, so show them as drawn. */}
+      <noscript>
+        <style>{".agents-reveal{opacity:1!important;transform:none!important}"}</style>
+      </noscript>
       <section className="agents-hero">
         <div className="agents-wrap agents-hero-grid">
           <div>
@@ -79,28 +128,32 @@ export default function AgentsView({
             </ul>
           </div>
 
-          <div className="agents-stage-slot">
+          {/* Decorative group shot; each agent is named in its card below. */}
+          <div className="agents-stage-slot" aria-hidden="true">
             <div className="agents-stage-scale">
               <div className="agents-stage">
                 <div className="agents-orb agents-orb-big">
-                  <img
+                  <Mascot
                     src="/agents/00-saiflow-plain.png"
                     alt=""
-                    width={658}
-                    height={648}
+                    width={290}
+                    index={0}
+                    intrinsic={658}
+                    intrinsicHeight={648}
+                    priority
                   />
                 </div>
                 <div className="agents-orb agents-orb-s agents-orb-writer">
-                  <img src="/agents/02-content-writer.png" alt="" width={900} height={900} />
+                  <Mascot src="/agents/02-content-writer.png" alt="" width={130} index={1} />
                 </div>
                 <div className="agents-orb agents-orb-s agents-orb-sales">
-                  <img src="/agents/03-sales.png" alt="" width={900} height={900} />
+                  <Mascot src="/agents/03-sales.png" alt="" width={130} index={2} />
                 </div>
                 <div className="agents-orb agents-orb-s agents-orb-appointments">
-                  <img src="/agents/06-appointments.png" alt="" width={900} height={900} />
+                  <Mascot src="/agents/06-appointments.png" alt="" width={130} index={3} />
                 </div>
                 <div className="agents-orb agents-orb-s agents-orb-books">
-                  <img src="/agents/04-bookkeeping.png" alt="" width={900} height={900} />
+                  <Mascot src="/agents/04-bookkeeping.png" alt="" width={130} index={4} />
                 </div>
                 <div className="agents-tag agents-tag-hello">
                   💬 «أهلًا! كيف أقدر أساعدك اليوم؟»
@@ -126,6 +179,7 @@ export default function AgentsView({
                   type="button"
                   className={on ? "agents-chip agents-chip-on" : "agents-chip"}
                   aria-pressed={on}
+                  aria-controls="agents-catalog"
                   onClick={() => setCategory(item.id)}
                 >
                   {item.ar}{" "}
@@ -146,6 +200,8 @@ export default function AgentsView({
               onChange={(event) => setQuery(event.target.value)}
               placeholder="ابحث بين ٨ وكلاء…"
               aria-label="ابحث بين الوكلاء"
+              aria-controls="agents-catalog"
+              enterKeyHint="search"
             />
             {query.trim() === "" ? (
               <span className="agents-search-hint agents-en" lang="en" aria-hidden="true">
@@ -155,53 +211,95 @@ export default function AgentsView({
           </label>
         </div>
 
-        <div id="agents-catalog" className="agents-grid">
-          {visible.map((agent) => (
-            <article
-              key={agent.id}
-              className={agent.featured ? "agents-card agents-card-first" : "agents-card"}
-              style={{ "--c": agent.accent, "--c-ink": agent.accentInk } as CSSProperties}
-            >
-              <div className="agents-card-art">
-                <span className={agent.featured ? "agents-status agents-status-first" : "agents-status"}>
-                  {agent.statusAr}
-                  {" · "}
-                  <span className="agents-en" lang="en">
-                    {agent.statusEn}
-                  </span>
-                </span>
-                {agent.featured ? <span className="agents-status-soon">متاح قريبًا</span> : null}
-                <img src={agent.image} alt="" width={900} height={900} />
-              </div>
-              <div className="agents-card-body">
-                <div className="agents-name">
-                  <h2>{agent.nameAr}</h2>
-                  <span className="agents-name-en agents-en" lang="en">
-                    {agent.nameEn}
-                  </span>
-                </div>
-                <p className="agents-desc">{agent.descAr}</p>
-                <p className="agents-desc-en agents-en" lang="en">
-                  {agent.descEn}
-                </p>
-                <div className="agents-spacer" />
-                <div className="agents-badges">
-                  <span className="agents-badge">ChatGPT · Claude · Gemini</span>
-                  <span className="agents-badge agents-badge-wa">WhatsApp — soon</span>
-                </div>
-                {/* Informational only. These buttons do not open a product or take payment. */}
-                <button type="button" className="agents-card-btn">
-                  {agent.actionAr}
-                  <span className="agents-card-btn-en">
+        <div id="agents-catalog" className="agents-grid" ref={gridRef}>
+          {visible.map((agent, order) => {
+            const delay = revealed[agent.id];
+            const cardClass = [
+              "agents-card",
+              "agents-reveal",
+              agent.featured ? "agents-card-first" : "",
+              delay !== undefined ? "is-in" : "",
+            ]
+              .filter(Boolean)
+              .join(" ");
+            const href = `/agents/${agent.id}`;
+            return (
+              <article
+                key={agent.id}
+                data-agent={agent.id}
+                data-order={order}
+                className={cardClass}
+                style={
+                  {
+                    "--c": agent.accent,
+                    "--c-ink": agent.accentInk,
+                    "--reveal-delay": `${delay ?? 0}ms`,
+                  } as CSSProperties
+                }
+              >
+                <div className="agents-card-art">
+                  <span className={agent.featured ? "agents-status agents-status-first" : "agents-status"}>
+                    {agent.statusAr}
                     {" · "}
                     <span className="agents-en" lang="en">
-                      {agent.actionEn}
+                      {agent.statusEn}
                     </span>
                   </span>
-                </button>
-              </div>
-            </article>
-          ))}
+                  {agent.featured ? <span className="agents-status-soon">متاح قريبًا</span> : null}
+                  <Mascot
+                    src={agent.image}
+                    alt={mascotAlt(agent, locale)}
+                    width={186}
+                    index={AGENTS.indexOf(agent) + 5}
+                    className="agents-card-mascot"
+                  />
+                </div>
+                <div className="agents-card-body">
+                  <div className="agents-name">
+                    <h2>
+                      <Link href={href} className="agents-name-link">
+                        {agent.nameAr}
+                      </Link>
+                    </h2>
+                    <span className="agents-name-en agents-en" lang="en">
+                      {agent.nameEn}
+                    </span>
+                  </div>
+                  <p className="agents-desc">{agent.descAr}</p>
+                  <p className="agents-desc-en agents-en" lang="en">
+                    {agent.descEn}
+                  </p>
+                  <div className="agents-spacer" />
+                  <div className="agents-badges">
+                    <span className="agents-badge">ChatGPT · Claude · Gemini</span>
+                    <span className="agents-badge agents-badge-wa">WhatsApp — soon</span>
+                  </div>
+                  {agent.featured ? (
+                    // Informational only. Launch sign-up is not built yet; this does not take payment.
+                    <button type="button" className="agents-card-btn">
+                      {agent.actionAr}
+                      <span className="agents-card-btn-en">
+                        {" · "}
+                        <span className="agents-en" lang="en">
+                          {agent.actionEn}
+                        </span>
+                      </span>
+                    </button>
+                  ) : (
+                    <Link href={href} className="agents-card-btn">
+                      {agent.actionAr}
+                      <span className="agents-card-btn-en">
+                        {" · "}
+                        <span className="agents-en" lang="en">
+                          {agent.actionEn}
+                        </span>
+                      </span>
+                    </Link>
+                  )}
+                </div>
+              </article>
+            );
+          })}
         </div>
         {visible.length === 0 ? (
           <p className="agents-empty" role="status">
@@ -212,50 +310,7 @@ export default function AgentsView({
           </p>
         ) : null}
 
-        <section id="how-it-works" className="agents-how" aria-labelledby="how-it-works-title">
-          <h2 id="how-it-works-title">
-            كيف يعمل؟{" "}
-            <span className="agents-how-en">
-              · <span className="agents-en" lang="en">How it works</span>
-            </span>
-          </h2>
-          <p className="agents-how-sub">بدون برمجة وبدون اشتراك شهري، ثلاث خطوات فقط</p>
-          <div className="agents-steps">
-            {HOW_STEPS.map((step) => (
-              <article key={step.n} className="agents-step">
-                <div className="agents-step-num" style={{ background: step.color }}>
-                  {step.n}
-                </div>
-                <h3>{step.title}</h3>
-                {step.n === "٣" ? (
-                  <p>
-                    في <bdi>ChatGPT Projects</bdi> أو <bdi>Claude Projects</bdi> أو{" "}
-                    <bdi>Gemini Gems</bdi>، ويبدأ العمل.
-                  </p>
-                ) : (
-                  <p>{step.body}</p>
-                )}
-                <span className="agents-step-en agents-en" lang="en">
-                  {step.en}
-                </span>
-              </article>
-            ))}
-          </div>
-          <div className="agents-upg">
-            <div className="agents-upg-title">
-              قريبًا: اربط وكيلك بواتساب، ثم تيليجرام
-              <small>
-                ترقية مدفوعة اختيارية ·{" "}
-                <span className="agents-en" lang="en">
-                  Optional paid upgrade: WhatsApp first, then Telegram
-                </span>
-              </small>
-            </div>
-            <span className="agents-soon agents-en" lang="en">
-              WhatsApp — coming later
-            </span>
-          </div>
-        </section>
+        <HowItWorks />
       </div>
     </div>
   );
