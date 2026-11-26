@@ -1323,7 +1323,141 @@ html.light .agents-mascot-shadow {
 }
 
 .agents-detail-back {
+  margin-top: 0;
+}
+
+.agents-detail-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 12px;
   margin-top: 18px;
+  width: 100%;
+}
+
+.agents-detail-notify {
+  flex: 1 1 280px;
+  max-width: 420px;
+}
+
+.agents-detail-notify .agents-btn {
+  width: 100%;
+}
+
+/* ---------- "Notify me" form ---------- */
+
+.agents-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.agents-notify {
+  width: 100%;
+}
+
+.agents-notify-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* On the card the field and its button share the button's row, and the
+   model badges step aside while the form is open, so the card (and the
+   rest of its row) keeps nearly the same height. */
+.agents-card .agents-notify {
+  margin-top: 16px;
+}
+
+.agents-card .agents-notify-form {
+  flex-direction: row;
+  align-items: stretch;
+}
+
+.agents-card .agents-notify-form .agents-notify-input {
+  flex: 1 1 auto;
+}
+
+.agents-card .agents-notify-form .agents-card-btn {
+  margin-top: 0;
+  width: auto;
+  flex: 0 0 auto;
+  padding: 10px 14px;
+}
+
+.agents-card:has(.agents-notify) .agents-badges {
+  display: none;
+}
+
+.agents-notify-input {
+  width: 100%;
+  min-width: 0;
+  border-radius: 999px;
+  border: 1px solid #2e3138;
+  background: #0b0c0e;
+  color: var(--agents-ink);
+  font-family: inherit;
+  font-size: 16px;
+  line-height: 1.3;
+  padding: 10px 16px;
+  text-align: left;
+}
+
+.agents-notify-input::placeholder {
+  color: #6b7280;
+}
+
+.agents-notify-input:focus-visible {
+  outline: 2px solid var(--agents-mint);
+  outline-offset: 2px;
+  border-color: var(--agents-mint);
+}
+
+.agents-notify-form button:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.agents-notify-status {
+  margin: 8px 0 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #f3b4b4;
+}
+
+.agents-notify-status:empty {
+  display: none;
+}
+
+.agents-notify-ok {
+  color: var(--agents-mint);
+  font-weight: 700;
+}
+
+.agents-notify-note {
+  margin: 6px 0 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--agents-dim);
+}
+
+html.light .agents-notify-input {
+  background: #ffffff;
+  border-color: #c7d0db;
+}
+
+html.light .agents-notify-status {
+  color: #b42318;
+}
+
+html.light .agents-notify-ok {
+  color: #067647;
 }
 
 .agents-detail-card.agents-card-first {
@@ -2506,4 +2640,10 @@ html.light .rig .rig-shadow.rig-x {
   .agents-page .rig :is(.rig-eyes, .rig-mouth) {
     opacity: 1 !important;
   }
+}
+
+/* Arabic first, English on its own line: in a narrow card a joined
+   sentence would break the English across the Arabic. */
+.agents-notify-en {
+  display: block;
 }

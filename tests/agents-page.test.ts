@@ -152,10 +152,39 @@ describe("each agent has its own page", () => {
     assert.equal(getAgent("not-an-agent"), undefined);
   });
 
-  test("View agent opens the agent page; Notify me stays an informational button", () => {
+  test("View agent opens the agent page; Notify me opens the launch form", () => {
     assert.match(view, /href=\{href\}/);
     assert.match(view, /`\/agents\/\$\{agent\.id\}`/);
     assert.match(view, /agent\.featured \?/);
+    // Only the featured card carries the form, and it names its own agent.
+    assert.match(view, /agent\.featured \? \([\s\S]{0,200}<AgentNotifyForm[\s\S]{0,80}agentSlug=\{agent\.id\}/);
+    assert.match(view, /locale=\{locale\}/);
+    assert.equal(view.split("<AgentNotifyForm").length - 1, 1);
+  });
+
+  test("the notify form posts the email, agent and language, and says what the email is for", () => {
+    const form = read("components/agents/AgentNotifyForm.tsx");
+    assert.match(form, /^"use client";/);
+    assert.match(form, /fetch\("\/api\/agent-waitlist"/);
+    assert.match(form, /JSON\.stringify\(\{ email, agentSlug, locale \}\)/);
+    assert.match(form, /type="email"/);
+    assert.match(form, /autoComplete="email"/);
+    assert.match(form, /dir="ltr"/);
+    assert.match(form, /aria-live="polite"/);
+    assert.match(form, /disabled=\{status === "pending"\}/);
+    assert.match(form, /نستخدم بريدك فقط لإبلاغك عند الإطلاق/);
+    assert.match(form, /We only use your email to tell you at launch\./);
+    assert.match(form, /تم! سنراسلك عند الإطلاق/);
+    assert.match(form, /Done! We&apos;ll email you at launch/);
+    assert.match(form, /تحقق من البريد الإلكتروني/);
+    assert.match(form, /محاولات كثيرة، حاول لاحقًا/);
+    assert.match(form, /تعذّر الحفظ، حاول مرة أخرى/);
+    assert.equal(/checkout|stripe|price|سعر|هللة|ريال|SAR/i.test(form), false);
+  });
+
+  test("the agent page shows the form only for the featured agent", () => {
+    assert.match(detail, /agent\.featured \? \([\s\S]{0,200}<AgentNotifyForm[\s\S]{0,80}agentSlug=\{agent\.id\}/);
+    assert.equal(detail.split("<AgentNotifyForm").length - 1, 1);
   });
 
   test("the page repeats the card's facts and stays honest about status", () => {

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { CSSProperties } from "react";
 import { AGENTS, getCategory, mascotAlt, type Agent, type AgentsLocale } from "./agents-data";
+import AgentNotifyForm from "./AgentNotifyForm";
 import HowItWorks from "./HowItWorks";
 import Mascot from "./Mascot";
 import RiggedMascot from "./RiggedMascot";
@@ -11,6 +12,7 @@ import "./agents.css";
  * One agent's page. It only repeats what the catalog card already says
  * (name, what it does, group, models, status) plus the shared How it works
  * steps. No chat, no WhatsApp, nothing to buy: every agent is still planned.
+ * The first agent also carries the launch "Notify me" form.
  */
 export default function AgentDetail({
   agent,
@@ -154,12 +156,26 @@ export default function AgentDetail({
               </div>
             </dl>
 
-            <Link href="/agents#agents-catalog" className="agents-btn agents-btn-ghost agents-detail-back">
-              تصفّح الوكلاء ·{" "}
-              <span className="agents-en" lang="en">
-                Browse agents
-              </span>
-            </Link>
+            <div className="agents-detail-actions">
+              {agent.featured ? (
+                // Saves an email for the launch message only. Nothing is sold here.
+                <div className="agents-detail-notify">
+                  <AgentNotifyForm
+                    agentSlug={agent.id}
+                    locale={locale}
+                    labelAr={agent.actionAr}
+                    labelEn={agent.actionEn}
+                    buttonClassName="agents-btn agents-btn-mint"
+                  />
+                </div>
+              ) : null}
+              <Link href="/agents#agents-catalog" className="agents-btn agents-btn-ghost agents-detail-back">
+                تصفّح الوكلاء ·{" "}
+                <span className="agents-en" lang="en">
+                  Browse agents
+                </span>
+              </Link>
+            </div>
           </div>
         </article>
 

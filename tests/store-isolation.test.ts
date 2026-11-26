@@ -80,6 +80,7 @@ const ROUTE_POLICY: Record<string, RouteDecision> = {
   "GET /api/admin/inspect/[productId]": { policy: "admin" },
   "GET /api/admin/moderation": { policy: "admin" },
   "POST /api/admin/moderation/[productId]": { policy: "admin" },
+  "GET /api/admin/agent-waitlist": { policy: "admin" },
   "GET /api/admin/payouts": { policy: "admin" },
   "POST /api/admin/payouts": { policy: "admin" },
   "POST /api/admin/reviews": { policy: "admin" },
@@ -129,6 +130,12 @@ const ROUTE_POLICY: Record<string, RouteDecision> = {
     policy: "public",
     reason: "seller early-access email, no account",
     mustContain: ["rateLimiters.sellerWaitlist("],
+    mustNotContain: ["prisma.shop", "prisma.order", "prisma.payout"],
+  },
+  "POST /api/agent-waitlist": {
+    policy: "public",
+    reason: "agent launch email, no account",
+    mustContain: ["rateLimiters.agentWaitlist("],
     mustNotContain: ["prisma.shop", "prisma.order", "prisma.payout"],
   },
   "POST /api/checkout": {
@@ -491,7 +498,8 @@ type Table =
   | "sellerPayoutAccount"
   | "payout"
   | "moderationEvent"
-  | "aiGeneration";
+  | "aiGeneration"
+  | "agentWaitlist";
 
 const TABLES: Table[] = [
   "user",
@@ -504,6 +512,7 @@ const TABLES: Table[] = [
   "payout",
   "moderationEvent",
   "aiGeneration",
+  "agentWaitlist",
 ];
 
 let db: Record<Table, Row[]> = Object.fromEntries(TABLES.map((t) => [t, []])) as unknown as Record<Table, Row[]>;
@@ -798,6 +807,7 @@ function seed() {
     payout: [],
     moderationEvent: [],
     aiGeneration: [],
+    agentWaitlist: [{ id: "aw_1", email: "early@example.test", agentSlug: "customer-service", locale: "ar", createdAt: T0 }],
   };
   writes.length = 0;
 }
@@ -996,6 +1006,7 @@ before(async () => {
   H.adminInspectGET = (await import("../app/api/admin/inspect/[productId]/route.ts")).GET;
   const adminPayouts = await import("../app/api/admin/payouts/route.ts");
   H.adminPayoutsGET = adminPayouts.GET;
+  H.adminAgentWaitlistGET = (await import("../app/api/admin/agent-waitlist/route.ts")).GET;
   H.adminPayoutsPOST = adminPayouts.POST;
   H.adminReviewsPOST = (await import("../app/api/admin/reviews/route.ts")).POST;
   H.adminShopSalesPOST = (await import("../app/api/admin/shops/[shopId]/sales/route.ts")).POST;
@@ -1310,6 +1321,7 @@ const ADMIN_CALLS: Record<string, () => Promise<Response>> = {
     H.adminDecisionPOST(req("POST", "/api/admin/moderation/product_b", { action: "APPROVED" }), ctx({ productId: "product_b" })),
   "GET /api/admin/inspect/[productId]": () =>
     H.adminInspectGET(req("GET", "/api/admin/inspect/product_b"), ctx({ productId: "product_b" })),
+  "GET /api/admin/agent-waitlist": () => H.adminAgentWaitlistGET(req("GET", "/api/admin/agent-waitlist")),
   "GET /api/admin/payouts": () => H.adminPayoutsGET(req("GET", "/api/admin/payouts")),
   "POST /api/admin/payouts": () =>
     H.adminPayoutsPOST(

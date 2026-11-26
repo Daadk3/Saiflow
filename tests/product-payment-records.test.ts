@@ -325,6 +325,7 @@ describe("the migration only adds, and replaces the two delete rules", () => {
       "20261122120000_seller_waitlist",
       "20261123120000_paypal_provider",
       "20261124120000_user_terms_acceptance",
+      "20261125120000_agent_waitlist",
     ]);
   });
 });

@@ -11,6 +11,7 @@ import {
   type AgentCategoryId,
   type AgentsLocale,
 } from "./agents-data";
+import AgentNotifyForm from "./AgentNotifyForm";
 import HowItWorks from "./HowItWorks";
 import Mascot from "./Mascot";
 import RiggedMascot from "./RiggedMascot";
@@ -292,16 +293,14 @@ export default function AgentsView({
                     </span>
                   </div>
                   {agent.featured ? (
-                    // Informational only. Launch sign-up is not built yet; this does not take payment.
-                    <button type="button" className="agents-card-btn">
-                      {agent.actionAr}
-                      <span className="agents-card-btn-en">
-                        {" · "}
-                        <span className="agents-en" lang="en">
-                          {agent.actionEn}
-                        </span>
-                      </span>
-                    </button>
+                    // Saves an email for the launch message only. Nothing is sold here.
+                    <AgentNotifyForm
+                      agentSlug={agent.id}
+                      locale={locale}
+                      labelAr={agent.actionAr}
+                      labelEn={agent.actionEn}
+                      buttonClassName="agents-card-btn"
+                    />
                   ) : (
                     <Link href={href} className="agents-card-btn">
                       {agent.actionAr}

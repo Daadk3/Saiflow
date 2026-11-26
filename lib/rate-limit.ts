@@ -196,4 +196,12 @@ export const rateLimiters = {
 
   sellerWaitlistEmail: (email: string) =>
     rateLimit(`seller-waitlist-email:${email}`, { windowMs: 60 * 60 * 1000, maxRequests: 5 }),
+
+  // "Notify me" on /agents. Same budget as the seller list: five an hour per
+  // network and five per address.
+  agentWaitlist: (ip: string) =>
+    rateLimit(`agent-waitlist:${ip}`, { windowMs: 60 * 60 * 1000, maxRequests: 5 }),
+
+  agentWaitlistEmail: (email: string) =>
+    rateLimit(`agent-waitlist-email:${email}`, { windowMs: 60 * 60 * 1000, maxRequests: 5 }),
 };
